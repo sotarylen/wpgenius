@@ -1,0 +1,132 @@
+/* Image Watermark settings */
+.image-watermark-settings {
+    margin-right: 300px;
+}
+.image-watermark-settings form {
+    float: left;
+    min-width: 463px;
+    width: auto;
+}
+.image-watermark-settings fieldset .description {
+    font-size: 13px;
+    margin-bottom: 8px;
+    margin-top: 4px;
+    display: block;
+}
+.image-watermark-settings p.help, .image-watermark-settings p.description, .image-watermark-settings span.description {
+    font-size: 13px;
+    font-style: italic;
+}
+.image-watermark-settings select {
+	vertical-align: top;
+}
+.image-watermark-settings .df-credits {
+    float: right;
+    width: 280px;
+    background: #fff;
+    margin: 20px -300px 20px 20px;
+    position: relative;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.image-watermark-settings .df-credits .inner {
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.image-watermark-settings .df-credits h3 {
+    font-size: 14px;
+    line-height: 1.4;
+    margin: 0;
+    padding: 8px 12px;
+    border-bottom: 1px solid #eee;
+}
+
+.image-watermark-settings .df-credits .df-link {
+	padding-top: 5px;
+    padding-bottom: 10px;
+    margin: 0;
+}
+
+.image-watermark-settings .df-credits .df-link a {
+	display: block;
+	text-align: center;
+	outline: none !important;
+	border: none !important;
+	box-shadow: none !important;
+}
+
+.image-watermark-settings .df-credits .df-link a img {
+	display: block;
+	margin: 0 auto;
+	width: 80px;
+}
+
+.image-watermark-settings .df-credits hr {
+    border: solid #eee;
+    border-width: 1px 0 0;
+    clear: both;
+    height: 0;
+}
+.image-watermark-settings.ui-button { 
+    margin-bottom: 5px; 
+}
+.image-watermark-settings #watermark_position td {
+    padding: 15px 20px;
+}
+.image-watermark-settings #watermark_position td input {
+    margin: 0;
+}
+
+/* All Mobile Sizes (devices and browser) */
+@media only screen and (max-width: 960px) {
+	.image-watermark-settings .df-credits {
+		width: 100%;
+		float: none;
+		margin: 20px 0;
+	}
+	.image-watermark-settings {
+		margin-right: 0;
+	}
+}
+
+#cpt-select { margin-top: 5px; }
+.wplike-slider span.middle { width: 150px; }
+.wplike-slider span.left { margin-right: 10px; }
+.wplike-slider span.right { margin-left: 10px; }
+
+#image_watermark_buttons {
+    margin: 10px 0;
+}
+
+.iw-overlay .spinner {
+    margin: 0;
+    height: 20px;
+    width: 40px;
+    padding: 0;
+}
+
+div.iw-notice {
+    margin: 12px 0;
+}
+
+.iw-watermark-action {
+    text-decoration: none;
+}
+.delete-watermark, .media-frame a.delete-watermark {
+    color: #bc0b0b;
+}
+
+.delete-watermark:hover, .delete-watermark:focus, .media-frame a.delete-watermark:hover, .media-frame a.delete-watermark:focus {
+    color: #f00;
+}
+
+.iw-current-value {
+	position: relative;
+	bottom: 25px;
+	display: inline-block;
+	width: 17px;
+	text-align: center;
+	margin-left: -.6em;
+	font-size: 0.9em;
+}
