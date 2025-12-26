@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WP Genius\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-12-15 10:54+0000\n"
+"POT-Creation-Date: 2025-12-15 10:25+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: \n"
@@ -176,11 +176,11 @@ msgstr ""
 msgid "Background"
 msgstr ""
 
-#: includes/modules/image-watermark/settings.php:286
+#: includes/modules/image-watermark/settings.php:262
 msgid "Backup full size image"
 msgstr ""
 
-#: includes/modules/image-watermark/settings.php:290
+#: includes/modules/image-watermark/settings.php:266
 msgid "Backup full size image."
 msgstr ""
 
@@ -202,10 +202,6 @@ msgstr ""
 
 #: includes/templates/upload-form.php:45
 msgid "Book Category"
-msgstr ""
-
-#: includes/modules/image-watermark/settings.php:226
-msgid "Bottom:"
 msgstr ""
 
 #: includes/templates/upload-form.php:27
@@ -343,7 +339,7 @@ msgstr ""
 msgid "Disable Gravatar completely"
 msgstr ""
 
-#: includes/modules/image-watermark/settings.php:269
+#: includes/modules/image-watermark/settings.php:245
 msgid "Disable right mouse click on images"
 msgstr ""
 
@@ -363,7 +359,7 @@ msgstr ""
 msgid "Enable Apply Watermark option for Media Library images."
 msgstr ""
 
-#: includes/modules/image-watermark/settings.php:279
+#: includes/modules/image-watermark/settings.php:255
 msgid "Enable image protection for logged-in users also"
 msgstr ""
 
@@ -387,7 +383,7 @@ msgstr ""
 msgid "Encryption method for SMTP connection"
 msgstr ""
 
-#: includes/modules/image-watermark/settings.php:247
+#: includes/modules/image-watermark/settings.php:223
 msgid ""
 "Enter a number ranging from 0 to 100. 0 makes watermark image completely "
 "transparent, 100 shows it as is."
@@ -524,11 +520,11 @@ msgstr ""
 msgid "Image Name:"
 msgstr ""
 
-#: includes/modules/image-watermark/settings.php:264
+#: includes/modules/image-watermark/settings.php:240
 msgid "Image protection"
 msgstr ""
 
-#: includes/modules/image-watermark/settings.php:252
+#: includes/modules/image-watermark/settings.php:228
 msgid "Image quality"
 msgstr ""
 
@@ -608,10 +604,6 @@ msgstr ""
 
 #: includes/modules/image-watermark/module.php:159
 msgid "Invalid module ID."
-msgstr ""
-
-#: includes/modules/image-watermark/settings.php:230
-msgid "Left:"
 msgstr ""
 
 #: includes/modules/avatar-manager/module.php:78
@@ -823,7 +815,7 @@ msgstr ""
 msgid "Preparing to process images..."
 msgstr ""
 
-#: includes/modules/image-watermark/settings.php:274
+#: includes/modules/image-watermark/settings.php:250
 msgid "Prevent drag and drop"
 msgstr ""
 
@@ -959,10 +951,6 @@ msgstr ""
 msgid "Right Now"
 msgstr ""
 
-#: includes/modules/image-watermark/settings.php:222
-msgid "Right:"
-msgstr ""
-
 #: includes/modules/png-metadata-extractor/settings.php:63
 msgid "Sampling steps"
 msgstr ""
@@ -980,7 +968,7 @@ msgid "Save Module Preferences"
 msgstr ""
 
 #: includes/modules/upload-rename/settings.php:38
-#: includes/modules/image-watermark/settings.php:296
+#: includes/modules/image-watermark/settings.php:272
 msgid "Save Module Settings"
 msgstr ""
 
@@ -1083,12 +1071,8 @@ msgstr ""
 msgid "Set First Image as Featured:"
 msgstr ""
 
-#: includes/modules/image-watermark/settings.php:259
+#: includes/modules/image-watermark/settings.php:235
 msgid "Set output image quality."
-msgstr ""
-
-#: includes/modules/image-watermark/settings.php:233
-msgid "Set the padding (in pixels) from each edge of the image."
 msgstr ""
 
 #: includes/modules/auto-upload-images-module/settings-handler.php:90
@@ -1306,10 +1290,6 @@ msgstr ""
 msgid "Toggle automatic updates and core update hooks."
 msgstr ""
 
-#: includes/modules/image-watermark/settings.php:218
-msgid "Top:"
-msgstr ""
-
 #: includes/templates/auto-upload-progress.php:24
 #: includes/modules/auto-upload-images-module/module.php:340
 msgid "Total"
@@ -1417,10 +1397,6 @@ msgstr ""
 msgid "Watermark image"
 msgstr ""
 
-#: includes/modules/image-watermark/settings.php:214
-msgid "Watermark padding"
-msgstr ""
-
 #: includes/modules/image-watermark/settings.php:185
 msgid "Watermark position"
 msgstr ""
@@ -1433,7 +1409,7 @@ msgstr ""
 msgid "Watermark size"
 msgstr ""
 
-#: includes/modules/image-watermark/settings.php:240
+#: includes/modules/image-watermark/settings.php:216
 msgid "Watermark transparency / opacity"
 msgstr ""
 

@@ -1,0 +1,40 @@
+{
+	"name": "smart-auto-upload-images",
+	"version": "1.2.1",
+	"description": "A modern WordPress plugin that automatically detects and uploads external images from post content with advanced settings and React-based admin interface.",
+	"main": "index.js",
+	"scripts": {
+		"start": "10up-toolkit build --watch",
+		"build": "10up-toolkit build",
+		"format-js": "10up-toolkit format-js",
+		"lint-js": "10up-toolkit lint-js",
+		"format-style": "10up-toolkit lint-style --fix",
+		"lint-style": "10up-toolkit lint-style",
+		"build:zip": "./bin/build-zip.sh",
+		"env": "wp-env",
+		"env:start": "wp-env start",
+		"env:stop": "wp-env stop",
+		"env:reset": "wp-env clean all && npm run env:start",
+		"test:unit": "wp-env run tests-cli --env-cwd=wp-content/plugins/smart-auto-upload-images ./vendor/bin/phpunit"
+	},
+	"10up-toolkit": {
+		"entry": {
+			"admin-settings": "./assets/js/settings/index.js",
+			"admin-settings-style": "./assets/css/settings.css",
+			"admin-editor": "./assets/js/editor/index.js"
+		}
+	},
+	"keywords": [
+		"wordpress",
+		"plugin",
+		"images",
+		"upload",
+		"media"
+	],
+	"author": "Burhan Nasir",
+	"license": "GPL-2.0-or-later",
+	"devDependencies": {
+		"@wordpress/env": "^10.26.0",
+		"10up-toolkit": "^6.5.0"
+	}
+}

@@ -52,9 +52,9 @@ class ImageWatermarkModule extends W2P_Abstract_Module {
      */
     private function define_constants() {
         define('W2P_IMAGE_WATERMARK_URL', plugin_dir_url(WP_GENIUS_FILE) . 'assets/modules/image-watermark/');
-        define('W2P_IMAGE_WATERMARK_PATH', plugin_dir_path(WP_GENIUS_FILE) . 'assets/modules/image-watermark/');
-        define('W2P_IMAGE_WATERMARK_BASENAME', plugin_basename(WP_GENIUS_FILE) . '/assets/modules/image-watermark/module.php');
-        define('W2P_IMAGE_WATERMARK_REL_PATH', dirname(W2P_IMAGE_WATERMARK_BASENAME));
+        define('W2P_IMAGE_WATERMARK_PATH', plugin_dir_path(__FILE__));
+        define('W2P_IMAGE_WATERMARK_BASENAME', plugin_basename(__FILE__));
+        define('W2P_IMAGE_WATERMARK_REL_PATH', dirname(plugin_basename(__FILE__)));
     }
 
     /**
@@ -86,8 +86,8 @@ class ImageWatermarkModule extends W2P_Abstract_Module {
         // 注册设置
         add_action('admin_init', [$this, 'register_settings']);
         
-        // 处理设置保存
-        add_action('admin_post_word2posts_save_module_settings', [$this, 'save_settings']);
+        // 处理设置保存 (Priority 5 ensures it runs before the main plugin handler)
+        add_action('admin_post_word2posts_save_module_settings', [$this, 'save_settings'], 5);
         
         // 加载管理员脚本和样式
         add_action('admin_enqueue_scripts', [$this, 'admin_enqueue_scripts']);
@@ -100,7 +100,7 @@ class ImageWatermarkModule extends W2P_Abstract_Module {
      * 加载文本域
      */
     public function load_textdomain() {
-        load_plugin_textdomain('image-watermark', false, W2P_IMAGE_WATERMARK_REL_PATH . '/languages/');
+        // languages directory removed
     }
 
     /**
@@ -156,11 +156,14 @@ class ImageWatermarkModule extends W2P_Abstract_Module {
         
         // 验证模块 ID
         if (!isset($_POST['module_id']) || $_POST['module_id'] !== 'image-watermark') {
-            wp_die(__('Invalid module ID.', 'wp-genius'));
+            return;
         }
         
         // 获取设置验证类
         $settings_class = new W2P_Image_Watermark_Settings();
+        
+        // 确保加载图片尺寸，因为在 admin_post 钩子中 wp_loaded 已经触发过了
+        $settings_class->load_image_sizes();
         
         // 获取当前选项
         $options = get_option('w2p_image_watermark_options', $this->plugin->defaults['options']);
@@ -172,7 +175,7 @@ class ImageWatermarkModule extends W2P_Abstract_Module {
         update_option('w2p_image_watermark_options', $validated_options);
         
         // 重定向回设置页面
-        wp_redirect(admin_url('admin.php?page=wp-genius-modules'));
+        wp_redirect(admin_url('tools.php?page=wp-genius-settings&updated=1'));
         exit;
     }
 }

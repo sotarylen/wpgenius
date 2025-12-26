@@ -83,6 +83,103 @@ $options = $module->options;
                         </p>
                     </td>
                 </tr>
+
+                <tr>
+                    <th scope="row"><?php _e('Watermark size', 'wp-genius'); ?></th>
+                    <td>
+                        <fieldset id="iw_watermark_size">
+                            <div id="watermark-type">
+                                <label><input type="radio" id="type1" value="0" name="iw_options[watermark_image][watermark_size_type]" <?php checked($options['watermark_image']['watermark_size_type'], 0); ?> /> <?php _e('original', 'wp-genius'); ?></label>
+                                <label><input type="radio" id="type2" value="1" name="iw_options[watermark_image][watermark_size_type]" <?php checked($options['watermark_image']['watermark_size_type'], 1); ?> /> <?php _e('custom', 'wp-genius'); ?></label>
+                                <label><input type="radio" id="type3" value="2" name="iw_options[watermark_image][watermark_size_type]" <?php checked($options['watermark_image']['watermark_size_type'], 2); ?> /> <?php _e('scaled', 'wp-genius'); ?></label>
+                            </div>
+                            <p class="description"><?php _e('Select method of aplying watermark size.', 'wp-genius'); ?></p>
+                        </fieldset>
+                    </td>
+                </tr>
+
+                <tr class="iw-watermark-size-custom" style="display: none;">
+                    <th scope="row"><?php _e('Watermark custom size', 'wp-genius'); ?></th>
+                    <td>
+                        <fieldset id="iw_watermark_size_custom">
+                            <?php _e('x:', 'wp-genius'); ?> <input type="text" size="5" class="small-text" name="iw_options[watermark_image][absolute_width]" value="<?php echo $options['watermark_image']['absolute_width']; ?>"> <?php _e('px', 'wp-genius'); ?>
+                            <br />
+                            <?php _e('y:', 'wp-genius'); ?> <input type="text" size="5" class="small-text" name="iw_options[watermark_image][absolute_height]" value="<?php echo $options['watermark_image']['absolute_height']; ?>"> <?php _e('px', 'wp-genius'); ?>
+                        </fieldset>
+                        <p class="description"><?php _e('Those dimensions will be used if "custom" method is selected above.', 'wp-genius'); ?></p>
+                    </td>
+                </tr>
+
+                <tr class="iw-watermark-size-scaled" style="display: none;">
+                    <th scope="row"><?php _e('Watermark scale', 'wp-genius'); ?></th>
+                    <td>
+                        <fieldset id="iw_watermark_size_scaled">
+                            <div>
+                                <input type="text" id="iw_size_input" maxlength="3" class="small-text" name="iw_options[watermark_image][width]" value="<?php echo $options['watermark_image']['width']; ?>" />
+                            </div>
+                        </fieldset>
+                        <p class="description"><?php _e('Enter a number ranging from 0 to 100. 100 makes width of watermark image equal to width of the image it is applied to.', 'wp-genius'); ?></p>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row"><?php _e('Enable watermark for', 'wp-genius'); ?></th>
+                    <td>
+                        <fieldset id="iw_enable_for">
+                            <div id="thumbnail-select">
+                                <?php
+                                $image_sizes = get_intermediate_image_sizes();
+                                $image_sizes[] = 'full';
+                                sort($image_sizes, SORT_STRING);
+
+                                foreach ($image_sizes as $image_size) {
+                                    ?>
+                                    <input name="iw_options[watermark_on][<?php echo $image_size; ?>]" type="checkbox" id="image_size_<?php echo $image_size; ?>" value="1" <?php echo (in_array($image_size, array_keys($options['watermark_on'])) ? ' checked="checked"' : ''); ?> /><label for="image_size_<?php echo $image_size; ?>"><?php echo $image_size; ?></label>
+                                    <?php
+                                }
+                                ?>
+                            </div>
+                            <p class="description">
+                                <?php echo __('Check the image sizes watermark will be applied to.', 'wp-genius'); ?><br />
+                                <?php echo __('<strong>IMPORTANT:</strong> checking full size is NOT recommended as it\'s the original image. You may need it later - for removing or changing watermark, image sizes regeneration or any other image manipulations. Use it only if you know what you are doing.', 'wp-genius'); ?>
+                            </p>
+
+                            <?php
+                            $watermark_cpt_on = $options['watermark_cpt_on'];
+                            $post_types_selected = array_keys($options['watermark_cpt_on']);
+
+                            if (in_array('everywhere', $watermark_cpt_on) && count($watermark_cpt_on) === 1) {
+                                $first_checked = true;
+                                $second_checked = false;
+                                $watermark_cpt_on = [];
+                            } else {
+                                $first_checked = false;
+                                $second_checked = true;
+                            }
+                            ?>
+
+                            <div id="cpt-specific">
+                                <input id="df_option_everywhere" type="radio" name="iw_options[watermark_cpt_on]" value="everywhere" <?php echo ($first_checked === true ? 'checked="checked"' : ''); ?>/><label for="df_option_everywhere"><?php _e('everywhere', 'wp-genius'); ?></label>
+                                <input id="df_option_cpt" type="radio" name="iw_options[watermark_cpt_on]" value="specific" <?php echo ($second_checked === true ? 'checked="checked"' : ''); ?> /><label for="df_option_cpt"><?php _e('on selected post types only', 'wp-genius'); ?></label>
+                            </div>
+
+                            <div id="cpt-select" <?php echo ($second_checked === false ? 'style="display: none;"' : ''); ?>>
+                                <?php
+                                $post_types = array_merge(['post', 'page'], get_post_types(['_builtin' => false], 'names'));
+                                foreach ($post_types as $cpt) {
+                                    ?>
+                                    <input name="iw_options[watermark_cpt_on_type][<?php echo $cpt; ?>]" type="checkbox" id="post_type_<?php echo $cpt; ?>" value="1" <?php echo (in_array($cpt, $post_types_selected) ? ' checked="checked"' : ''); ?> /><label for="post_type_<?php echo $cpt; ?>"><?php echo $cpt; ?></label>
+                                    <?php
+                                }
+                                ?>
+                            </div>
+
+                            <p class="description"><?php echo __('Check custom post types on which watermark should be applied to uploaded images.', 'wp-genius'); ?></p>
+                        </fieldset>
+                    </td>
+                </tr>
+
+                
                 
                 <tr>
                     <th scope="row"><?php _e('Watermark position', 'wp-genius'); ?></th>
@@ -114,14 +211,37 @@ $options = $module->options;
                 </tr>
                 
                 <tr>
+                    <th scope="row"><?php _e('Watermark padding', 'wp-genius'); ?></th>
+                    <td>
+                        <fieldset id="iw_padding">
+                            <div style="margin-bottom: 8px;">
+                                <label style="display: inline-block; width: 80px;"><?php echo __('Top:', 'wp-genius'); ?></label>
+                                <input type="number" class="small-text" name="iw_options[watermark_image][padding_top]" value="<?php echo $options['watermark_image']['padding_top']; ?>"> px
+                            </div>
+                            <div style="margin-bottom: 8px;">
+                                <label style="display: inline-block; width: 80px;"><?php echo __('Right:', 'wp-genius'); ?></label>
+                                <input type="number" class="small-text" name="iw_options[watermark_image][padding_right]" value="<?php echo $options['watermark_image']['padding_right']; ?>"> px
+                            </div>
+                            <div style="margin-bottom: 8px;">
+                                <label style="display: inline-block; width: 80px;"><?php echo __('Bottom:', 'wp-genius'); ?></label>
+                                <input type="number" class="small-text" name="iw_options[watermark_image][padding_bottom]" value="<?php echo $options['watermark_image']['padding_bottom']; ?>"> px
+                            </div>
+                            <div style="margin-bottom: 8px;">
+                                <label style="display: inline-block; width: 80px;"><?php echo __('Left:', 'wp-genius'); ?></label>
+                                <input type="number" class="small-text" name="iw_options[watermark_image][padding_left]" value="<?php echo $options['watermark_image']['padding_left']; ?>"> px
+                            </div>
+                            <p class="description"><?php _e('Set the padding (in pixels) from each edge of the image.', 'wp-genius'); ?></p>
+                        </fieldset>
+                    </td>
+                </tr>
+                
+                
+                <tr>
                     <th scope="row"><?php _e('Watermark transparency / opacity', 'wp-genius'); ?></th>
                     <td>
                         <fieldset id="iw_watermark_opacity">
                             <div>
-                                <input type="text" id="iw_opacity_input" maxlength="3" class="hide-if-js" name="iw_options[watermark_image][transparent]" value="<?php echo $options['watermark_image']['transparent']; ?>" />
-                                <div class="wplike-slider">
-                                    <span class="left hide-if-no-js">0</span><span class="middle" id="iw_opacity_span" title="<?php echo $options['watermark_image']['transparent']; ?>"><span class="iw-current-value" style="left: <?php echo $options['watermark_image']['transparent']; ?>%;"><?php echo $options['watermark_image']['transparent']; ?></span></span><span class="right hide-if-no-js">100</span>
-                                </div>
+                                <input type="text" id="iw_opacity_input" maxlength="3" class="small-text" name="iw_options[watermark_image][transparent]" value="<?php echo $options['watermark_image']['transparent']; ?>" />
                             </div>
                         </fieldset>
                         <p class="description"><?php _e('Enter a number ranging from 0 to 100. 0 makes watermark image completely transparent, 100 shows it as is.', 'wp-genius'); ?></p>
@@ -133,10 +253,7 @@ $options = $module->options;
                     <td>
                         <fieldset id="iw_image_quality">
                             <div>
-                                <input type="text" id="iw_quality_input" maxlength="3" class="hide-if-js" name="iw_options[watermark_image][quality]" value="<?php echo $options['watermark_image']['quality']; ?>" />
-                                <div class="wplike-slider">
-                                    <span class="left hide-if-no-js">0</span><span class="middle" id="iw_quality_span" title="<?php echo $options['watermark_image']['quality']; ?>"><span class="iw-current-value" style="left: <?php echo $options['watermark_image']['quality']; ?>%;"><?php echo $options['watermark_image']['quality']; ?></span></span><span class="right hide-if-no-js">100</span>
-                                </div>
+                                <input type="text" id="iw_quality_input" maxlength="3" class="small-text" name="iw_options[watermark_image][quality]" value="<?php echo $options['watermark_image']['quality']; ?>" />
                             </div>
                         </fieldset>
                         <p class="description"><?php _e('Set output image quality.', 'wp-genius'); ?></p>
