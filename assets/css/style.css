@@ -6,13 +6,13 @@
 /* ============================== */
 
 :root {
-    --background-light: rgba(60,130,240,0.1);
+    --background-light: rgba(60, 130, 240, 0.1);
     --primary-color: #32beeb;
     --second-color: #e8712c;
     --light-color: #ffffff;
-    --dark-color: rgba(0,0,0,0.75);
-    --border-color: rgba(100,100,100,0.1);
-    
+    --dark-color: rgba(0, 0, 0, 0.75);
+    --border-color: rgba(100, 100, 100, 0.1);
+
     --border-style-1: 1px solid var(--border-color);
     --radius: 0.3rem;
     --border-style-2: 1px dashed var(--border-color);
@@ -57,7 +57,7 @@
 /* ============================== */
 
 .word-to-posts-container {
-    color: rgba(50,50,50,1);
+    color: rgba(50, 50, 50, 1);
     font-weight: 300;
     font-size: 0.9rem;
     margin-top: 20px;
@@ -89,7 +89,7 @@
 }
 
 .word-to-posts-container #tabs li a {
-    background: rgba(200,200,200,1);
+    background: rgba(200, 200, 200, 1);
     color: #1c1c1c;
     text-decoration: none;
     padding: 10px 20px;
@@ -99,17 +99,17 @@
 .word2postNotice {
     padding: 0.5rem;
     margin: 2rem 0;
-    border-left: 5px solid rgba(0,200,0,1) !important;
-    border: 1px solid rgba(240,240,240,1);
+    border-left: 5px solid rgba(0, 200, 0, 1) !important;
+    border: 1px solid rgba(240, 240, 240, 1);
     border-radius: 0.6em;
     border-top-left-radius: 0 !important;
     border-bottom-left-radius: 0 !important;
 }
 
-.word2postNotice p{
+.word2postNotice p {
     font-size: 0.9rem;
     font-weight: 300;
-    color: rgba(60,60,60,1);
+    color: rgba(60, 60, 60, 1);
 }
 
 /* Admin Menu Highlighting */
@@ -218,11 +218,11 @@ input[name="new_custom_taxonomy"] {
     border-radius: 50%;
 }
 
-input:checked + .slider {
+input:checked+.slider {
     background-color: #10a754;
 }
 
-input:checked + .slider:before {
+input:checked+.slider:before {
     transform: translateX(26px);
 }
 
@@ -461,7 +461,8 @@ input:checked + .slider:before {
     border-top: 1px solid #f0f0f0;
     justify-content: flex-start;
     align-items: center;
-    margin-top: auto; /* push to bottom */
+    margin-top: auto;
+    /* push to bottom */
 }
 
 .w2p-form-actions .button {
@@ -482,7 +483,8 @@ input:checked + .slider:before {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 160px; /* consistent minimum width */
+    min-width: 160px;
+    /* consistent minimum width */
 }
 
 /* Override WP .button-large inside our form actions to keep consistent sizing */
@@ -570,7 +572,7 @@ input:checked + .slider:before {
     margin-top: 4px;
 }
 
-.w2p-danger-toggle:checked + .slider {
+.w2p-danger-toggle:checked+.slider {
     background-color: #dc2626;
 }
 
@@ -587,7 +589,7 @@ input:checked + .slider:before {
     border: 2px solid #0073aa;
     border-radius: 5px;
     padding: 15px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     z-index: 999999;
     min-width: 300px;
 }
@@ -614,7 +616,7 @@ input:checked + .slider:before {
     padding: 20px;
     background: #fff;
     border: 1px solid #ccd0d4;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     z-index: 100000;
     border-radius: 8px;
     text-align: center;
@@ -623,13 +625,19 @@ input:checked + .slider:before {
     overflow-y: auto;
 }
 
+/* Minimized state for the progress container */
+#w2p-aui-progress-container.minimized {
+    height: 60px;
+    overflow: hidden;
+}
+
 #w2p-aui-backdrop {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.5);
     z-index: 99999;
     display: none;
 }
@@ -708,9 +716,15 @@ input:checked + .slider:before {
 
 /* Threads Info */
 .w2p-aui-threads-info {
+    text-align: left;
     margin: 10px 0;
     font-size: 13px;
-    color: #666;
+    color: var(--primary-color);
+}
+
+w2p-aui-threads-info span {
+    font-weight: 500;
+    color: var(--primary-color);
 }
 
 /* Batch Preview Grid */
@@ -723,9 +737,9 @@ input:checked + .slider:before {
     overflow-y: auto;
     min-height: 60px;
     padding: 8px;
-    background: #f9f9f9;
+    background: var(--light-color);
     border-radius: 6px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--border-color);
 }
 
 /* 当没有图片时隐藏预览区域 */
@@ -742,7 +756,7 @@ input:checked + .slider:before {
 /* Progress Bar */
 .w2p-aui-progress-bar {
     height: 20px;
-    background-color: #f0f0f1;
+    background-color: var(--light-color);
     border-radius: 3px;
     overflow: hidden;
     margin-top: 15px;
@@ -783,9 +797,16 @@ input:checked + .slider:before {
 }
 
 .w2p-aui-result-summary {
+    margin-bottom: 8px;
+}
+
+.w2p-aui-result-row {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 15px;
 }
 
 .w2p-aui-result-item {
@@ -815,7 +836,7 @@ input:checked + .slider:before {
 }
 
 .w2p-aui-batch-item:hover {
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     transform: translateY(-1px);
 }
 
@@ -831,7 +852,7 @@ input:checked + .slider:before {
     bottom: 0;
     left: 0;
     right: 0;
-    background: rgba(0,0,0,0.8);
+    background: rgba(0, 0, 0, 0.8);
     color: white;
     padding: 3px;
     font-size: 0.8rem;
@@ -848,11 +869,24 @@ input:checked + .slider:before {
 /* Post Info Display for Batch Processing */
 .w2p-aui-post-info {
     margin: 10px 0;
-    padding: 8px;
+    padding: 10px;
     background: #f0f8ff;
     border: 1px solid #b3d9ff;
     border-radius: 4px;
-    display: none;
+    text-align: left;
+}
+
+.w2p-aui-post-progress {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.w2p-aui-current-post-title {
+    font-weight: 600;
+    color: #2271b1;
+    margin-bottom: 8px;
+    font-size: 14px;
 }
 
 .w2p-aui-current-post {
@@ -872,7 +906,8 @@ input:checked + .slider:before {
     font-weight: 500;
 }
 
-#w2p-aui-post-progress, #w2p-aui-images-progress {
+#w2p-aui-post-progress,
+#w2p-aui-images-progress {
     color: #64748b;
     font-size: 12px;
 }
@@ -897,7 +932,8 @@ input:checked + .slider:before {
     position: relative;
     display: inline-block;
     max-width: 100%;
-    line-height: 0; /* 移除行高导致的额外空间 */
+    line-height: 0;
+    /* 移除行高导致的额外空间 */
 }
 
 .png-metadata-wrapper .wp-block-image,
@@ -917,7 +953,8 @@ input:checked + .slider:before {
     top: 0;
     right: 0;
     z-index: 100;
-    pointer-events: none; /* 允许点击穿透到下面的图片 */
+    pointer-events: none;
+    /* 允许点击穿透到下面的图片 */
 }
 
 .png-metadata-icon {
@@ -937,7 +974,8 @@ input:checked + .slider:before {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     z-index: 101;
     transition: all 0.2s ease;
-    pointer-events: auto; /* 图标可点击 */
+    pointer-events: auto;
+    /* 图标可点击 */
 }
 
 .png-metadata-icon:hover {
@@ -948,7 +986,8 @@ input:checked + .slider:before {
 
 .png-metadata-popup {
     position: absolute;
-    top: 45px; /* 调整为图标下方 */
+    top: 45px;
+    /* 调整为图标下方 */
     right: 0;
     background: white;
     border: 1px solid #ddd;
@@ -959,7 +998,8 @@ input:checked + .slider:before {
     max-height: 400px;
     overflow-y: auto;
     padding: 15px;
-    pointer-events: auto; /* 弹出框内容可交互 */
+    pointer-events: auto;
+    /* 弹出框内容可交互 */
 }
 
 .stable-diffusion-metadata h4 {
@@ -1010,7 +1050,9 @@ input:checked + .slider:before {
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* 处理WordPress图片块的特殊情况 */
@@ -1086,16 +1128,18 @@ a img {
 }
 
 #contentContainer {
-    width: calc( 100% - 200px );
+    width: calc(100% - 200px);
     height: 630px;
     min-height: 630px;
     display: flex;
     margin: 0 auto;
     border-radius: var(--radius);
     font-weight: var(--font-weight-thin);
-    box-shadow: 0 0 15px rgba(0,0,0,0.3);
-    background-size: cover; /* 适应容器大小并裁剪 */
-    background-position: center; /* 居中显示 */
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+    background-size: cover;
+    /* 适应容器大小并裁剪 */
+    background-position: center;
+    /* 居中显示 */
 }
 
 #fileMenu {
@@ -1141,16 +1185,19 @@ a img {
     line-height: 35px;
 }
 
-#fileContent::-webkit-scrollbar, #fileMenu::-webkit-scrollbar {
+#fileContent::-webkit-scrollbar,
+#fileMenu::-webkit-scrollbar {
     width: 5px;
 }
 
-#fileContent::-webkit-scrollbar-thumb, #fileMenu::-webkit-scrollbar-thumb {
+#fileContent::-webkit-scrollbar-thumb,
+#fileMenu::-webkit-scrollbar-thumb {
     background: var(--second-color);
     border-radius: var(--radius);
 }
 
-#fileContent::-webkit-scrollbar-track, #fileMenu::-webkit-scrollbar-track {
+#fileContent::-webkit-scrollbar-track,
+#fileMenu::-webkit-scrollbar-track {
     background: var(--border-color);
 }
 
@@ -1281,12 +1328,12 @@ a img {
     .w2p-modules-list {
         grid-template-columns: 1fr;
     }
-    
+
     .w2p-module-card-header {
         flex-direction: column;
         gap: 12px;
     }
-    
+
     .w2p-module-toggle-switch {
         align-self: flex-start;
     }
@@ -1317,23 +1364,23 @@ a img {
     .w2p-tab-nav-list {
         flex-direction: column;
     }
-    
+
     .w2p-tab-nav-item {
         margin-right: 0;
         margin-bottom: 2px;
     }
-    
+
     .w2p-tab-nav-link {
         border-radius: 4px;
         border: 1px solid #e0e0e0;
         margin-bottom: 5px;
     }
-    
+
     .w2p-tab-nav-item.active .w2p-tab-nav-link {
         border-bottom: 1px solid #0073aa;
         margin-bottom: 5px;
     }
-    
+
     .w2p-tab-content {
         border-radius: 4px;
         padding: 16px;
@@ -1345,25 +1392,26 @@ a img {
         max-width: 400px;
         padding: 15px;
     }
-    
+
     #w2p-aui-batch-preview {
         grid-template-columns: repeat(5, 1fr) !important;
         gap: 6px;
     }
-    
+
     .w2p-aui-batch-item {
         height: 50px;
     }
-    
+
     #w2p-aui-post-info {
         padding: 6px;
     }
-    
+
     #w2p-aui-current-post-title {
         font-size: 12px;
     }
-    
-    #w2p-aui-post-progress, #w2p-aui-images-progress {
+
+    #w2p-aui-post-progress,
+    #w2p-aui-images-progress {
         font-size: 11px;
     }
 }
@@ -1384,7 +1432,7 @@ a img {
         top: 5px;
         right: 5px;
     }
-    
+
     .png-metadata-popup {
         max-width: 280px;
         max-height: 300px;

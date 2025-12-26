@@ -260,12 +260,13 @@ class W2P_Admin_Settings {
             update_option('w2p_smtp_settings', $clean_settings);
         }
 
-        // 清理 WordPress 模块
-        if ($module_id === 'cleanup-wordpress') {
-            $settings = isset($_POST['w2p_cleanup_settings']) ? (array) $_POST['w2p_cleanup_settings'] : [];
+
+        // Accelerate Module
+        if ($module_id === 'accelerate') {
+            $settings = isset($_POST['w2p_accelerate_settings']) ? (array) $_POST['w2p_accelerate_settings'] : [];
             
-            // 清理和验证所有复选框选项
             $clean_settings = [
+                // Cleanup
                 'remove_admin_bar_wp_logo'         => !empty($settings['remove_admin_bar_wp_logo']),
                 'remove_admin_bar_about'           => !empty($settings['remove_admin_bar_about']),
                 'remove_admin_bar_comments'        => !empty($settings['remove_admin_bar_comments']),
@@ -278,21 +279,15 @@ class W2P_Admin_Settings {
                 'remove_admin_bar_support_forums'  => !empty($settings['remove_admin_bar_support_forums']),
                 'remove_admin_bar_feedback'        => !empty($settings['remove_admin_bar_feedback']),
                 'remove_admin_bar_view_site'       => !empty($settings['remove_admin_bar_view_site']),
-                'remove_dashboard_activity'        => !empty($settings['remove_dashboard_node_activity']),
+                'remove_dashboard_activity'        => !empty($settings['remove_dashboard_activity']),
                 'remove_dashboard_primary'         => !empty($settings['remove_dashboard_primary']),
                 'remove_dashboard_secondary'       => !empty($settings['remove_dashboard_secondary']),
                 'remove_dashboard_site_health'     => !empty($settings['remove_dashboard_site_health']),
                 'remove_dashboard_right_now'       => !empty($settings['remove_dashboard_right_now']),
-            ];
-            
-            update_option('w2p_cleanup_settings', $clean_settings);
-        }
-
-        // 更新行为模块
-        if ($module_id === 'update-behavior') {
-            $settings = isset($_POST['w2p_update_behavior_settings']) ? (array) $_POST['w2p_update_behavior_settings'] : [];
-
-            $clean_settings = [
+                'remove_dashboard_quick_draft'     => !empty($settings['remove_dashboard_quick_draft']),
+                'disable_months_dropdown'          => !empty($settings['disable_months_dropdown']),
+                
+                // Update Behavior
                 'disable_auto_update_plugin' => !empty($settings['disable_auto_update_plugin']),
                 'disable_auto_update_theme'  => !empty($settings['disable_auto_update_theme']),
                 'remove_wp_update_plugins'   => !empty($settings['remove_wp_update_plugins']),
@@ -304,8 +299,8 @@ class W2P_Admin_Settings {
                 'hide_plugin_notices'      => !empty($settings['hide_plugin_notices']),
                 'block_acf_updates'        => !empty($settings['block_acf_updates']),
             ];
-
-            update_option('w2p_update_behavior_settings', $clean_settings);
+            
+            update_option('w2p_accelerate_settings', $clean_settings);
         }
 
         // Auto Upload Images 模块
@@ -344,6 +339,42 @@ class W2P_Admin_Settings {
             
             // 保存选项
             update_option('w2p_auto_upload_setting', $options);
+        }
+
+        // Smart Auto Upload Images 模块 - WP Genius 增强功能
+        if ($module_id === 'smart-auto-upload-images') {
+            $settings = isset($_POST['smart_aui_settings']) ? (array) $_POST['smart_aui_settings'] : [];
+            
+            // 获取现有的核心设置
+            $core_settings = get_option('smart_aui_settings', []);
+            
+            // 更新 WP Genius 增强功能设置
+            $core_settings['auto_set_featured_image'] = !empty($settings['auto_set_featured_image']);
+            $core_settings['show_progress_ui'] = !empty($settings['show_progress_ui']);
+            $core_settings['process_images_on_rest_api'] = !empty($settings['process_images_on_rest_api']);
+            
+            // 保存合并后的设置
+            update_option('smart_aui_settings', $core_settings);
+        }
+
+        // Auto Publish 模块
+        if ($module_id === 'auto-publish') {
+            $settings = isset($_POST['w2p_auto_publish_settings']) ? (array) $_POST['w2p_auto_publish_settings'] : [];
+            
+            $clean_settings = [
+                'cron_enabled' => !empty($settings['cron_enabled']),
+                'interval'     => isset($settings['interval']) ? sanitize_text_field($settings['interval']) : 'hourly',
+                'batch_size'   => isset($settings['batch_size']) ? absint($settings['batch_size']) : 5,
+            ];
+            
+            update_option('w2p_auto_publish_settings', $clean_settings);
+            
+            // 如果启用了定时发布，重新调度任务
+            $module_loader = $this->loader;
+            $modules = $module_loader->get_available_modules();
+            if (isset($modules['auto-publish'])) {
+                $modules['auto-publish']->enable();
+            }
         }
 
         wp_redirect(admin_url('tools.php?page=wp-genius-settings&updated=1'));

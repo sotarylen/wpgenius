@@ -1,0 +1,319 @@
+/**
+ * Smart Auto Upload Images Admin Styles
+ *
+ * @package SmartAutoUploadImages
+ */
+
+.smart-aui-admin-wrapper {
+	--smart-aui-color-dim-gray: #646970;
+
+	margin: 20px 0;
+	max-width: 1200px;
+
+
+	& .smart-aui-admin-header {
+		margin-bottom: 20px;
+
+		& h1 {
+			color: #1d2327;
+			margin-bottom: 8px;
+		}
+
+		.description {
+			color: var(--smart-aui-color-dim-gray);
+			font-size: 14px;
+		}
+	}
+
+
+	.smart-aui-admin-content {
+		display: grid;
+		gap: 20px;
+		grid-template-columns: 2fr 1fr;
+
+		@media (width <= 1024px) {
+			grid-template-columns: 1fr;
+		}
+	}
+
+
+	.smart-aui-admin-main {
+
+		& .components-card {
+			margin-bottom: 20px;
+		}
+	}
+
+
+	.smart-aui-admin-sidebar {
+
+		& .components-card {
+			margin-bottom: 16px;
+		}
+	}
+}
+
+
+.smart-aui-admin-loading {
+	align-items: center;
+	display: flex;
+	gap: 12px;
+	justify-content: center;
+	padding: 40px;
+	text-align: center;
+
+	& p {
+		color: var(--smart-aui-color-dim-gray);
+		margin: 0;
+	}
+}
+
+
+.smart-aui-pattern-preview {
+	background-color: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	margin-top: 8px;
+
+	& .smart-aui-pattern-preview-content {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	& .smart-aui-pattern-preview-label {
+		color: #1d2327;
+		font-size: 12px;
+		font-weight: 600;
+		margin: 0;
+	}
+
+	& .smart-aui-pattern-preview-output {
+		align-items: center;
+		display: flex;
+		gap: 8px;
+
+		& code {
+			background-color: #fff;
+			border: 1px solid #dcdcde;
+			border-radius: 3px;
+			font-size: 13px;
+			padding: 4px 8px;
+		}
+	}
+}
+
+
+.smart-aui-pattern-field {
+	width: 100%;
+
+	& .components-base-control__field {
+		margin-bottom: 0;
+	}
+}
+
+
+.smart-aui-pattern-variables {
+	background-color: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	display: grid;
+	gap: 8px;
+	max-height: 300px;
+	overflow-y: auto;
+	padding: 4px;
+
+	& .smart-aui-pattern-variable {
+		align-items: center;
+		border-radius: 3px;
+		display: flex;
+		justify-content: space-between;
+		padding: 6px 8px;
+		transition: background-color 0.1s ease;
+
+		&:hover {
+			background-color: #f6f7f7;
+		}
+
+		& code {
+			background-color: #e5f5ff;
+			border-radius: 3px;
+			color: #0073aa;
+			flex-shrink: 0;
+			font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+			font-size: 12px;
+			font-weight: 600;
+			padding: 2px 6px;
+		}
+
+		& span {
+			color: var(--smart-aui-color-dim-gray);
+			font-size: 13px;
+			margin-left: 12px;
+		}
+	}
+}
+
+
+.smart-aui-examples {
+	display: grid;
+	gap: 8px;
+
+	& .smart-aui-example {
+		background-color: #f6f7f7;
+		border: 1px solid #dcdcde;
+		border-radius: 4px;
+		padding: 8px 12px;
+
+		& code {
+			display: block;
+			font-size: 13px;
+			margin-bottom: 4px;
+		}
+
+		& small {
+			color: var(--smart-aui-color-dim-gray);
+			font-size: 12px;
+			font-style: italic;
+		}
+	}
+}
+
+
+.smart-aui-post-type-selector {
+
+	& h4 {
+		color: #1d2327;
+		margin-bottom: 8px;
+	}
+
+	& .description {
+		color: var(--smart-aui-color-dim-gray);
+		font-size: 13px;
+		margin-bottom: 12px;
+	}
+
+	& .components-checkbox-control__input {
+		margin-right: 8px;
+	}
+}
+
+
+.smart-aui-domain-exclusions {
+
+	& h4 {
+		color: #1d2327;
+		margin-bottom: 8px;
+	}
+
+	& .description {
+		color: var(--smart-aui-color-dim-gray);
+		font-size: 13px;
+		margin-bottom: 12px;
+	}
+
+	& .components-textarea-control__input {
+		font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+		font-size: 13px;
+	}
+}
+
+
+.smart-aui-help-panel {
+	background-color: #f0f6fc;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 16px;
+
+	& h5 {
+		color: #1d2327;
+		margin-bottom: 12px;
+		margin-top: 0;
+	}
+
+	& ul {
+		margin: 0 0 12px;
+		padding-left: 20px;
+
+		& li {
+			font-size: 13px;
+			margin-bottom: 6px;
+
+			& code {
+				background-color: #fff;
+				border: 1px solid #dcdcde;
+				border-radius: 2px;
+				font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+				font-size: 12px;
+				padding: 2px 4px;
+			}
+		}
+	}
+
+	& .description {
+		color: var(--smart-aui-color-dim-gray);
+		font-size: 13px;
+		margin: 0;
+	}
+}
+
+
+.smart-aui-loading {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+	padding: 16px;
+
+	& span {
+		color: var(--smart-aui-color-dim-gray);
+		font-size: 13px;
+	}
+}
+
+
+@media (width <= 768px) {
+
+	.smart-aui-admin-wrapper {
+		margin: 10px;
+
+		& .smart-aui-admin-content {
+			gap: 16px;
+		}
+
+		&.smart-aui-pattern-variables {
+
+			&	.smart-aui-pattern-variable {
+				align-items: flex-start;
+				flex-direction: column;
+				gap: 4px;
+
+				& span {
+					margin-left: 0;
+				}
+			}
+		}
+	}
+}
+
+
+.wp-admin {
+
+	& .smart-aui-admin-wrapper {
+
+		& .components-card {
+			border: 1px solid #c3c4c7;
+			box-shadow: 0 1px 1px rgb(0 0 0 / 4%);
+		}
+
+		& .components-notice {
+			margin: 0 0 20px;
+		}
+
+		& .smart-aui-admin-snackbar-list {
+			inset-block-end: 40px;
+			margin-inline-start: auto;
+			max-inline-size: fit-content;
+			position: fixed;
+		}
+	}
+}
