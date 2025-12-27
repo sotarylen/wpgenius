@@ -199,7 +199,7 @@
 
         startAsyncProcessing: function (content, images) {
             this.show();
-            this.updateStatus('正在准备处理图片...', true);
+            this.updateStatus('正在进行分布式图片抓取...', true);
             this.updateStats(images.length, 0, 0, 0);
 
             this.processId = this.generateProcessId();
@@ -212,32 +212,77 @@
                 postId = wp.data.select('core/editor').getCurrentPostId();
             }
 
-            // 立即开始轮询进度
-            self.monitorProgress();
+            // Queue based processing
+            var queue = images.slice();
+            var total = images.length;
+            var processed = 0;
+            var success = 0;
+            var failed = 0;
 
-            $.ajax({
-                url: w2pSmartAuiParams.ajax_url,
-                type: 'POST',
-                data: {
-                    action: 'w2p_smart_aui_process_content', // New endpoint
-                    nonce: w2pSmartAuiParams.nonce,
-                    post_id: postId,
-                    content: content,
-                    process_id: self.processId
-                },
-                success: function (response) {
-                    if (response.success) {
-                        // 处理完成，使用返回的新内容
-                        var processedContent = response.data.processed_content || content;
-                        self.finishProcessing(processedContent);
-                    } else {
-                        self.handleError(response.data || 'Failed to process content');
-                    }
-                },
-                error: function (xhr, status, error) {
-                    self.handleError('Connection error: ' + error);
+            var processNextBatch = function () {
+                if (queue.length === 0 || !self.isProcessing) {
+                    // All done or cancelled
+                    // Final content fetch from DB to ensure editor is perfectly in sync
+                    $.ajax({
+                        url: w2pSmartAuiParams.ajax_url,
+                        type: 'POST',
+                        data: {
+                            action: 'w2p_smart_aui_bulk_process', // Reuse bulk process to fetch content
+                            nonce: w2pSmartAuiParams.nonce,
+                            post_id: postId,
+                            process_id: self.processId
+                        },
+                        success: function (response) {
+                            var finalContent = (response.success && response.data && response.data.stats) ?
+                                response.data.stats.content : self.getEditorContent();
+                            self.finishProcessing(finalContent);
+                        },
+                        error: function () {
+                            self.finishProcessing(self.getEditorContent());
+                        }
+                    });
+                    return;
                 }
-            });
+
+                var targetUrl = queue.shift();
+                processed++;
+                self.updateCurrentImage(targetUrl);
+                self.updateStatus('正在抓取: ' + (targetUrl.length > 40 ? targetUrl.substring(0, 40) + '...' : targetUrl), true);
+
+                $.ajax({
+                    url: w2pSmartAuiParams.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'w2p_smart_aui_process_content',
+                        nonce: w2pSmartAuiParams.nonce,
+                        post_id: postId,
+                        content: self.getEditorContent(), // Pass current editor content
+                        target_url: targetUrl,
+                        process_id: self.processId
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            success++;
+                            // Local update of editor content to show immediate progress
+                            if (response.data.processed_content) {
+                                self.setEditorContent(response.data.processed_content);
+                            }
+                        } else {
+                            failed++;
+                        }
+                        self.updateStats(total, success, failed, processed);
+                        processNextBatch();
+                    },
+                    error: function () {
+                        failed++;
+                        self.updateStats(total, success, failed, processed);
+                        processNextBatch();
+                    }
+                });
+            };
+
+            // Start processing queue
+            processNextBatch();
         },
 
         monitorProgress: function () {

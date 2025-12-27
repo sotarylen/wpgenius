@@ -68,6 +68,20 @@ class ImageDownloader {
 	 * @return array|WP_Error Download result or error.
 	 */
 	public function download_image( array $image_data, array $post_data ) {
+		// Check if we already have this image from a previous process
+		$existing_id = $this->find_existing_by_source( $image_data['url'] );
+		if ( $existing_id ) {
+			$this->logger->info( 'Found existing image by source URL', [ 'url' => $image_data['url'], 'id' => $existing_id ] );
+			$file_url = wp_get_attachment_url( $existing_id );
+			return [
+				'file'          => get_attached_file( $existing_id ),
+				'url'           => $file_url,
+				'type'          => get_post_mime_type( $existing_id ),
+				'attachment_id' => $existing_id,
+				'alt_text'      => get_post_meta( $existing_id, '_wp_attachment_image_alt', true ),
+			];
+		}
+
 		$validation_result = $this->validator->validate_image_url( $image_data['url'], $post_data );
 		if ( is_wp_error( $validation_result ) ) {
 			return $validation_result;
@@ -283,7 +297,22 @@ class ImageDownloader {
 			update_post_meta( $attachment_id, '_wp_attachment_image_alt', $image_data['alt_text'] );
 		}
 
+		// Store original source for breakpoint persistence
+		update_post_meta( $attachment_id, '_w2p_original_source', $image_data['url'] );
+
 		return $attachment_id;
+	}
+
+	/**
+	 * Find existing attachment by original source URL
+	 */
+	private function find_existing_by_source( $url ) {
+		global $wpdb;
+		$attachment_id = $wpdb->get_var( $wpdb->prepare(
+			"SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_w2p_original_source' AND meta_value = %s LIMIT 1",
+			$url
+		) );
+		return $attachment_id ? intval( $attachment_id ) : false;
 	}
 
 	/**

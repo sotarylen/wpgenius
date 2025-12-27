@@ -74,6 +74,10 @@ $draft_count = count( get_posts( [
 
 			<hr />
 
+			<hr />
+
+			<!-- Progress Panel is now rendered via admin_notices hook in module.php -->
+
 			<!-- Manual Processing -->
 			<h3><?php _e( 'Manual Bulk Publish', 'wp-genius' ); ?></h3>
 			<div class="w2p-manual-publish-controls">
@@ -144,11 +148,20 @@ jQuery(document).ready(function($) {
 
 	$('#w2p-start-publish').on('click', function() {
 		if (isRunning) return;
-		isRunning = true;
-		$(this).hide();
-		$('#w2p-stop-publish').show();
-		$('#w2p-publish-progress').show();
-		refreshStats().done(function() {
+		
+		let btn = $(this);
+		
+		// Check for scheduled lock before starting
+		refreshStats().done(function(response) {
+			if (response.success && response.data.active_lock === 'scheduled') {
+				alert('<?php _e("A scheduled publishing task is currently running. Please wait for it to finish.", "wp-genius"); ?>');
+				return;
+			}
+
+			isRunning = true;
+			btn.hide();
+			$('#w2p-stop-publish').show();
+			$('#w2p-publish-progress').show();
 			processedCount = 0;
 			updateProgress(0);
 			processNext();
@@ -234,6 +247,49 @@ jQuery(document).ready(function($) {
 		$('.progress-bar-inner').css('width', percent + '%');
 	}
 
+	// Handle stats update from external shared script
+	$(document).on('w2p_auto_publish_stats_refreshed', function(e, data) {
+		totalToProcess = data.draft_count + processedCount;
+		$('.w2p-manual-publish-controls strong').text(data.draft_count);
+		
+		// Button state based on lock
+		if (data.active_lock === 'scheduled') {
+			if (!isRunning) {
+				$('#w2p-start-publish').prop('disabled', true).attr('title', '<?php _e("Scheduled task running", "wp-genius"); ?>');
+			}
+		} else {
+			if (!isRunning) {
+				$('#w2p-start-publish').prop('disabled', data.draft_count === 0);
+			}
+		}
+
+		if (isRunning && data.next_post) {
+			$('.progress-text').html('<strong>Next up (Post ' + data.next_post.id + '):</strong> ' + data.next_post.title + ' (' + processedCount + '/' + totalToProcess + ')');
+		}
+
+		// Update logs
+		updateLogs(data.logs);
+	});
+
+	function updateLogs(logs) {
+		let logHtml = '';
+		if (!logs || logs.length === 0) {
+			logHtml = '<tr><td colspan="4"><?php _e( "No activity logged yet.", "wp-genius" ); ?></td></tr>';
+		} else {
+			logs.forEach(function(log) {
+				let source = log.source || 'manual';
+				let sourceLabel = (source === 'scheduled') ? '<?php _e("Scheduled", "wp-genius"); ?>' : '<?php _e("Manual", "wp-genius"); ?>';
+				logHtml += `<tr>
+					<td>${log.time}</td>
+					<td>${log.title} (ID: ${log.post_id})</td>
+					<td><span class="source-badge ${source}">${sourceLabel}</span></td>
+					<td><span class="status-badge ${log.status}">${log.status}</span></td>
+				</tr>`;
+			});
+		}
+		$('#w2p-publish-logs-body').html(logHtml);
+	}
+
 	function refreshStats() {
 		return $.ajax({
 			url: ajaxurl,
@@ -244,128 +300,11 @@ jQuery(document).ready(function($) {
 			},
 			success: function(response) {
 				if (response.success) {
-					totalToProcess = response.data.draft_count + processedCount;
-					$('.w2p-manual-publish-controls strong').text(response.data.draft_count);
-					
-					if (isRunning && response.data.next_post) {
-						$('.progress-text').html('<strong>Next up (Post ' + response.data.next_post.id + '):</strong> ' + response.data.next_post.title + ' (' + processedCount + '/' + totalToProcess + ')');
-					}
-					
-					// Update logs
-					let logHtml = '';
-					if (response.data.logs.length === 0) {
-						logHtml = '<tr><td colspan="4"><?php _e( "No activity logged yet.", "wp-genius" ); ?></td></tr>';
-					} else {
-						response.data.logs.forEach(function(log) {
-							let source = log.source || 'manual';
-							let sourceLabel = (source === 'scheduled') ? '<?php _e("Scheduled", "wp-genius"); ?>' : '<?php _e("Manual", "wp-genius"); ?>';
-							logHtml += `<tr>
-								<td>${log.time}</td>
-								<td>${log.title} (ID: ${log.post_id})</td>
-								<td><span class="source-badge ${source}">${sourceLabel}</span></td>
-								<td><span class="status-badge ${log.status}">${log.status}</span></td>
-							</tr>`;
-						});
-					}
-					$('#w2p-publish-logs-body').html(logHtml);
+					// Trigger event so shared JS and this page both hear it
+					$(document).trigger('w2p_auto_publish_stats_refreshed', [response.data]);
 				}
 			}
 		});
 	}
 });
 </script>
-
-<style>
-.w2p-auto-publish-settings h3 {
-	margin-top: 0;
-	padding-bottom: 15px;
-	border-bottom: 1px solid #eee;
-	margin-bottom: 20px;
-}
-.w2p-auto-publish-split {
-	display: flex;
-	gap: 30px;
-	align-items: flex-start;
-}
-.w2p-auto-publish-config {
-	flex: 1.5;
-	background: #fff;
-	padding: 25px;
-	border: 1px solid #e5e5e5;
-	border-radius: 8px;
-	box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-}
-.w2p-auto-publish-logs {
-	flex: 1;
-	background: #fff;
-	padding: 25px;
-	border: 1px solid #e5e5e5;
-	border-radius: 8px;
-	box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-}
-.w2p-log-header-flex {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	margin-bottom: 5px;
-}
-.w2p-log-header-flex h3 {
-	border: none !important;
-	margin-bottom: 0 !important;
-	padding-bottom: 0 !important;
-}
-.w2p-log-container {
-	max-height: 600px;
-	overflow-y: auto;
-}
-.status-badge {
-	padding: 3px 10px;
-	border-radius: 12px;
-	font-size: 10px;
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-}
-.status-badge.success { background: #e6fffa; color: #2c7a7b; border: 1px solid #b2f5ea; }
-.status-badge.failed { background: #fff5f5; color: #c53030; border: 1px solid #fed7d7; }
-
-.source-badge {
-	padding: 2px 8px;
-	border-radius: 4px;
-	font-size: 10px;
-	font-weight: 500;
-}
-.source-badge.manual { background: #f0f4f8; color: #4a5568; }
-.source-badge.scheduled { background: #fffaf0; color: #975a16; }
-
-.w2p-manual-publish-controls {
-	background: #f8fafc;
-	padding: 20px;
-	border-radius: 6px;
-	border: 1px dashed #cbd5e0;
-}
-
-.progress-bar-container {
-	width: 100%;
-	height: 12px;
-	background: #edf2f7;
-	border-radius: 6px;
-	overflow: hidden;
-	margin-bottom: 10px;
-}
-.progress-bar-inner {
-	height: 100%;
-	background: linear-gradient(90deg, #4299e1 0%, #3182ce 100%);
-	transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-	width: 0%;
-}
-.progress-text {
-	font-size: 13px;
-	color: #4a5568;
-	margin: 0;
-	font-weight: 500;
-}
-.w2p-auto-publish-logs th {
-	background: #f7fafc;
-}
-</style>

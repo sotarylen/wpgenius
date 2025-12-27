@@ -47,9 +47,10 @@ class ImageProcessorExtended {
 	 *
 	 * @param string $content Post content.
 	 * @param array  $post_data Post data.
+	 * @param string $target_url Optional. Only process this specific URL.
 	 * @return string|false Processed content or false on no changes.
 	 */
-	public function process_post_content( string $content, array $post_data ) {
+	public function process_post_content( string $content, array $post_data, string $target_url = '' ) {
 		// [FIX 1] 确保 Post ID 存在，以解决附件未关联的问题
 		if ( empty( $post_data['ID'] ) ) {
 			if ( isset( $_POST['post_ID'] ) ) {
@@ -65,6 +66,13 @@ class ImageProcessorExtended {
 		$find_images_method->setAccessible( true );
 		
 		$images = $find_images_method->invoke( $this->processor, $content );
+
+		// [FIX 6] Single Image Processing Support
+		if ( ! empty( $target_url ) ) {
+			$images = array_values( array_filter( $images, function( $img ) use ( $target_url ) {
+				return $img['url'] === $target_url;
+			} ) );
+		}
 
 		if ( empty( $images ) ) {
 			return false;
@@ -165,9 +173,33 @@ class ImageProcessorExtended {
 			++$processed_count;
 			$success_count++;
 			
+			// [FIX 5] Incremental Saving: Update database immediately after each successful image
+			if ( ! empty( $post_data['ID'] ) ) {
+				global $wpdb;
+				$wpdb->update(
+					$wpdb->posts,
+					[ 'post_content' => $processed_content ],
+					[ 'ID' => $post_data['ID'] ]
+				);
+				clean_post_cache( $post_data['ID'] );
+			}
+
 			// Fire action for successful image (包括已存在的图片)
 			do_action( 'smart_aui_image_processed', $image, $result, $index );
 		}
+
+		// [NEW] Final pass to clean up attributes using WP_HTML_Tag_Processor
+		$final_processor = new \WP_HTML_Tag_Processor( $processed_content );
+		while ( $final_processor->next_tag( 'img' ) ) {
+			// If the image points to our base_url, we should definitely clean up external attributes
+			$img_src = $final_processor->get_attribute( 'src' );
+			if ( $img_src && strpos( $img_src, $base_url ) === 0 ) {
+				$final_processor->remove_attribute( 'srcset' );
+				$final_processor->remove_attribute( 'sizes' );
+				$final_processor->remove_attribute( 'data-smush-webp-fallback' );
+			}
+		}
+		$processed_content = $final_processor->get_updated_html();
 
 		// Fire action after processing
 		do_action( 'smart_aui_after_process_images', $processed_count, $post_data );

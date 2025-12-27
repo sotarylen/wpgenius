@@ -86,10 +86,6 @@ class W2P_Smart_AUI_Progress_Tracker {
 		$this->progress_data['end_time'] = time();
 		
 		$this->save_progress();
-		
-		// Auto-delete after 60 seconds (increased from 10 to allow frontend to fetch final status)
-		// We need to pass process_id to the scheduled event
-		wp_schedule_single_event( time() + 60, 'w2p_smart_aui_cleanup_progress', [ $this->current_user_id, $this->process_id ] );
 	}
 	
 	private function save_progress() {
@@ -134,9 +130,3 @@ class W2P_Smart_AUI_Progress_Tracker {
 
 // Initialize tracker
 W2P_Smart_AUI_Progress_Tracker::get_instance();
-
-// Register cleanup action
-// Register cleanup action
-add_action( 'w2p_smart_aui_cleanup_progress', function( $user_id, $process_id = '' ) {
-	W2P_Smart_AUI_Progress_Tracker::clear_progress( $user_id, $process_id );
-}, 10, 2 );

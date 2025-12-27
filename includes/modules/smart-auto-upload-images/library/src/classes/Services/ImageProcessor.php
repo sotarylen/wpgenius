@@ -57,35 +57,59 @@ class ImageProcessor {
 	 * @return string|false Processed content or false on no changes.
 	 */
 	public function process_post_content( string $content, array $post_data ) {
-		$images = $this->find_images_in_content( $content );
-
-		if ( empty( $images ) ) {
-			return false;
-		}
-
-		$processed_content = $content;
+		$processed_content = $this->decode_json_content( $content );
+		$processor         = new \WP_HTML_Tag_Processor( $processed_content );
 		$processed_count   = 0;
+		$changes_made      = false;
 
-		foreach ( $images as $image ) {
+		while ( $processor->next_tag( 'img' ) ) {
+			$src    = $processor->get_attribute( 'src' );
+			$srcset = $processor->get_attribute( 'srcset' );
+			$sizes  = $processor->get_attribute( 'sizes' );
+			$fallback = $processor->get_attribute( 'data-smush-webp-fallback' );
 
-			$result = $this->downloader->download_image( $image, $post_data );
+			if ( $src && ! empty( trim( $src ) ) ) {
+				$image_data = [
+					'url'   => trim( $src ),
+					'alt'   => $processor->get_attribute( 'alt' ) ?? '',
+					'title' => $processor->get_attribute( 'title' ) ?? '',
+				];
 
-			if ( is_wp_error( $result ) ) {
-				$this->logger->error(
-					'Failed to process image',
-					[
-						'url'   => $image['url'],
-						'error' => $result->get_error_message(),
-					]
-				);
-				continue;
+				$result = $this->downloader->download_image( $image_data, $post_data );
+
+				if ( ! is_wp_error( $result ) ) {
+					$settings = \SmartAutoUploadImages\Plugin::get_settings();
+					$base_url = trim( $settings['base_url'], '/' );
+					$new_url_parts = wp_parse_url( $result['url'] );
+					$new_url       = $base_url . $new_url_parts['path'];
+
+					$processor->set_attribute( 'src', $new_url );
+					
+					if ( ! empty( $result['alt_text'] ) ) {
+						$processor->set_attribute( 'alt', $result['alt_text'] );
+					}
+
+					$processed_count++;
+					$changes_made = true;
+				}
 			}
 
-			$processed_content = $this->replace_image_url( $processed_content, $image, $result );
-			++$processed_count;
+			// Clean up redundant/external multi-size attributes
+			if ( $srcset ) {
+				$processor->remove_attribute( 'srcset' );
+				$changes_made = true;
+			}
+			if ( $sizes ) {
+				$processor->remove_attribute( 'sizes' );
+				$changes_made = true;
+			}
+			if ( $fallback ) {
+				$processor->remove_attribute( 'data-smush-webp-fallback' );
+				$changes_made = true;
+			}
 		}
 
-		if ( $processed_count > 0 ) {
+		if ( $changes_made ) {
 			$this->logger->info(
 				'Processed images for post',
 				[
@@ -93,7 +117,7 @@ class ImageProcessor {
 					'processed_count' => $processed_count,
 				]
 			);
-			return $processed_content;
+			return $processor->get_updated_html();
 		}
 
 		return false;
@@ -114,37 +138,18 @@ class ImageProcessor {
 		$processor = new \WP_HTML_Tag_Processor( $processed_content );
 
 		while ( $processor->next_tag( 'img' ) ) {
-			$src    = $processor->get_attribute( 'src' );
-			$srcset = $processor->get_attribute( 'srcset' );
-			$alt    = $processor->get_attribute( 'alt' ) ?? '';
-			$title  = $processor->get_attribute( 'title' ) ?? '';
+			$src = $processor->get_attribute( 'src' );
 
 			if ( $src && ! empty( trim( $src ) ) ) {
 				$src = trim( $src );
 				if ( ! in_array( $src, $seen_urls, true ) ) {
 					$images[]    = [
 						'url'      => $src,
-						'alt'      => $alt,
-						'title'    => $title,
-						'full_tag' => $this->get_full_img_tag( $processor ),
+						'alt'      => $processor->get_attribute( 'alt' ) ?? '',
+						'title'    => $processor->get_attribute( 'title' ) ?? '',
+						'full_tag' => '', // No longer needed as we use processor to replace
 					];
 					$seen_urls[] = $src;
-				}
-			}
-
-			if ( $srcset && ! empty( trim( $srcset ) ) ) {
-				$srcset_urls = $this->extract_urls_from_srcset( $srcset );
-
-				foreach ( $srcset_urls as $srcset_url ) {
-					if ( ! in_array( $srcset_url, $seen_urls, true ) ) {
-						$images[]    = [
-							'url'      => $srcset_url,
-							'alt'      => $alt,
-							'title'    => $title,
-							'full_tag' => $this->get_full_img_tag( $processor ),
-						];
-						$seen_urls[] = $srcset_url;
-					}
 				}
 			}
 		}
