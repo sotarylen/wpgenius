@@ -286,6 +286,11 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 			return;
 		}
 
+		// 如果文章正在被移动到回收站，跳过处理
+		if ( isset( $post->post_status ) && 'trash' === $post->post_status ) {
+			return;
+		}
+
 		// 如果已有封面图，跳过
 		if ( has_post_thumbnail( $post_id ) ) {
 			return;
@@ -401,9 +406,11 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 		$container = \SmartAutoUploadImages\get_container();
 		$processor = $container->get( 'image_processor' );
 		
+		$target_url = isset( $_POST['target_url'] ) ? esc_url_raw( $_POST['target_url'] ) : '';
+		
 		// Process content
 		// Note: Actions hooked in ImageProcessorExtended will handle progress updates
-		$processed_content = $processor->process_post_content( $content, $post_data );
+		$processed_content = $processor->process_post_content( $content, $post_data, $target_url );
 		
 		// Get final progress status
 		$progress = W2P_Smart_AUI_Progress_Tracker::get_progress( null, $process_id );
@@ -477,6 +484,10 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 		}
 		
 		$progress = W2P_Smart_AUI_Progress_Tracker::get_progress( null, $process_id );
+		if ( ! is_array( $progress ) ) {
+			$progress = [];
+		}
+		$progress['content'] = get_post_field( 'post_content', $post_id );
 		
 		wp_send_json_success( [ 'stats' => $progress ] );
 	}

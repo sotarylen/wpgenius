@@ -78,7 +78,11 @@ class AccelerateModule extends W2P_Abstract_Module {
         // Cleanup Functionality Hooks
         add_action( 'wp_before_admin_bar_render', [ $this, 'clean_admin_bar' ] );
         add_action( 'wp_dashboard_setup', [ $this, 'clean_dashboard_widgets' ], 999 );
-        add_filter( 'months_dropdown_results', [ $this, 'disable_months_dropdown' ] );
+        
+        // Date Dropdown Optimization
+        add_filter( 'disable_months_dropdown', [ $this, 'should_disable_months_dropdown' ], 10, 2 );
+        add_filter( 'media_library_months_with_files', [ $this, 'disable_media_months' ] );
+        add_filter( 'query', [ $this, 'intercept_date_query' ] );
 
         // Update Behavior Hooks
         add_action( 'init', array( $this, 'apply_update_behavior' ), 1 );
@@ -188,9 +192,27 @@ class AccelerateModule extends W2P_Abstract_Module {
     }
 
     /**
-     * Disable Months Dropdown
+     * Should Disable Months Dropdown (Post List)
+     * 
+     * Returning true here prevents the SQL query entirely.
      */
-    public function disable_months_dropdown( $months ) {
+    public function should_disable_months_dropdown( $disable, $post_type ) {
+        if ( ! $this->is_module_enabled() ) {
+            return $disable;
+        }
+
+        $settings = get_option( 'w2p_accelerate_settings', [] );
+        if ( ! empty( $settings['disable_months_dropdown'] ) ) {
+            return true;
+        }
+
+        return $disable;
+    }
+
+    /**
+     * Disable Media Months UI
+     */
+    public function disable_media_months( $months ) {
         if ( ! $this->is_module_enabled() ) {
             return $months;
         }
@@ -201,6 +223,28 @@ class AccelerateModule extends W2P_Abstract_Module {
         }
 
         return $months;
+    }
+
+    /**
+     * Intercept and block date-based SELECT DISTINCT queries
+     * 
+     * This is a fallback for cases where there is no "disable" filter (like Grid Media Library).
+     */
+    public function intercept_date_query( $query ) {
+        if ( ! is_admin() || ! $this->is_module_enabled() ) {
+            return $query;
+        }
+
+        // Target the specific slow queries for years/months
+        if ( strpos( $query, 'SELECT DISTINCT YEAR( post_date ) AS year, MONTH( post_date ) AS month' ) !== false ) {
+            $settings = get_option( 'w2p_accelerate_settings', [] );
+            if ( ! empty( $settings['disable_months_dropdown'] ) ) {
+                // Return a valid query that result in 0 rows to satisfy the get_results call without hitting table indexes
+                return "SELECT 1 FROM wp_posts WHERE 1=0";
+            }
+        }
+
+        return $query;
     }
 
     /**

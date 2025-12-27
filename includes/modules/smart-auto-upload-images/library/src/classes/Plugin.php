@@ -97,8 +97,12 @@ class Plugin {
 			}
 		}
 
-		// Don't process when trashing a post.
+		// Don't process when trashing or untrashing a post.
 		if ( isset( $data['post_status'] ) && 'trash' === $data['post_status'] ) {
+			return $data;
+		}
+
+		if ( ! empty( $postarr['ID'] ) && 'trash' === get_post_status( $postarr['ID'] ) ) {
 			return $data;
 		}
 

@@ -141,6 +141,13 @@ $settings = wp_parse_args( $settings, $defaults );
 					<input type="checkbox" name="w2p_accelerate_settings[remove_dashboard_quick_draft]" value="1" <?php checked( $settings['remove_dashboard_quick_draft'], 1 ); ?> />
 					<span class="w2p-cleanup-label"><strong><?php esc_html_e( 'Quick Draft', 'wp-genius' ); ?></strong></span>
 				</label>
+				<label class="w2p-cleanup-item">
+					<input type="checkbox" name="w2p_accelerate_settings[disable_months_dropdown]" value="1" <?php checked( $settings['disable_months_dropdown'], 1 ); ?> />
+					<span class="w2p-cleanup-label">
+						<strong><?php esc_html_e( 'Disable Months Dropdown', 'wp-genius' ); ?></strong>
+						<span class="description"><?php esc_html_e( 'Block slow "All dates" queries in post list and media library.', 'wp-genius' ); ?></span>
+					</span>
+				</label>
 			</div>
 		</div>
 
