@@ -60,10 +60,8 @@ class AutoPublishModule extends W2P_Abstract_Module {
 	 * Enqueue Assets
 	 */
 	public function enqueue_assets( $hook ) {
-		$settings_page = 'toplevel_page_word2posts-settings'; // Adjust if different
-		
 		// Only load on Post List and Settings page
-		if ( 'edit.php' !== $hook && strpos( $hook, 'word2posts' ) === false ) {
+		if ( 'edit.php' !== $hook && strpos( $hook, 'wp-genius' ) === false && strpos( $hook, 'word2posts' ) === false ) {
 			return;
 		}
 
@@ -102,7 +100,7 @@ class AutoPublishModule extends W2P_Abstract_Module {
 		$screen = get_current_screen();
 		
 		// Only show on post list or our settings page
-		if ( $screen->id !== 'edit-post' && strpos( $screen->id, 'word2posts' ) === false ) {
+		if ( $screen->id !== 'edit-post' && strpos( $screen->id, 'wp-genius' ) === false && strpos( $screen->id, 'word2posts' ) === false ) {
 			return;
 		}
 
@@ -183,6 +181,15 @@ class AutoPublishModule extends W2P_Abstract_Module {
 	 * Maybe trigger pseudo-cron on page load
 	 */
 	public function maybe_trigger_pseudo_cron() {
+		// Never run pseudo-cron during AJAX or Upload requests to prevent bottlenecks
+		if ( wp_doing_ajax() || wp_doing_cron() ) {
+			return;
+		}
+
+		if ( is_admin() && ( basename( $_SERVER['PHP_SELF'] ) === 'async-upload.php' || basename( $_SERVER['PHP_SELF'] ) === 'media-new.php' ) ) {
+			return;
+		}
+
 		// Only run in admin or periodically on front-end
 		if ( is_admin() || ( ! is_admin() && mt_rand( 1, 100 ) <= 5 ) ) {
 			$settings = get_option( 'w2p_auto_publish_settings', [] );
@@ -310,6 +317,9 @@ class AutoPublishModule extends W2P_Abstract_Module {
 	 * AJAX Get Stats
 	 */
 	public function ajax_get_stats() {
+		if ( session_status() === PHP_SESSION_ACTIVE ) {
+			session_write_close();
+		}
 		check_ajax_referer( 'w2p_auto_publish_nonce', 'nonce' );
 		
 		$draft_count = (int) wp_count_posts( 'post' )->draft;

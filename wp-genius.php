@@ -60,7 +60,7 @@ function word_to_posts_ensure_core_modules_enabled($module_loader) {
     $enabled = get_option('word2posts_modules', array());
     
     // 核心模块列表 - 这些应该默认启用
-    $core_modules = array('word-publish', 'image-watermark', 'smart-auto-upload-images', 'clipboard-image-upload');
+    $core_modules = array('word-publish', 'image-watermark', 'smart-auto-upload-images', 'clipboard-image-upload', 'system-health', 'media-turbo', 'seo-linker', 'ai-assistant');
     
     $changed = false;
     foreach ($core_modules as $module_id) {

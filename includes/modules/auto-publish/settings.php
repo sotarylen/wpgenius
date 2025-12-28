@@ -74,7 +74,6 @@ $draft_count = count( get_posts( [
 
 			<hr />
 
-			<hr />
 
 			<!-- Progress Panel is now rendered via admin_notices hook in module.php -->
 

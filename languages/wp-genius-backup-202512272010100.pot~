@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WP Genius\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-12-26 19:01+0000\n"
+"POT-Creation-Date: 2025-12-27 16:59+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: \n"
@@ -106,6 +106,10 @@ msgstr ""
 msgid "All files cleaned successfully."
 msgstr ""
 
+#: includes/modules/clipboard-image-upload/settings.php:48
+msgid "Allow pasting images directly into the editor and media library."
+msgstr ""
+
 #: includes/modules/accelerate/settings.php:90
 msgid "Appearance"
 msgstr ""
@@ -144,6 +148,12 @@ msgstr ""
 
 #: includes/modules/image-watermark/settings.php:29
 msgid "Automatic watermarking"
+msgstr ""
+
+#: includes/modules/clipboard-image-upload/module.php:38
+msgid ""
+"Automatically convert and upload pasted clipboard images (Base64) to the "
+"media library."
 msgstr ""
 
 #: includes/modules/smart-auto-upload-images/module.php:44
@@ -201,12 +211,16 @@ msgstr ""
 msgid "Batch Size"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:187
+#: includes/modules/accelerate/settings.php:194
 msgid "Block ACF update requests"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:197
+#: includes/modules/accelerate/settings.php:204
 msgid "Block all external HTTP requests (DANGER!)"
+msgstr ""
+
+#: includes/modules/accelerate/settings.php:148
+msgid "Block slow \"All dates\" queries in post list and media library."
 msgstr ""
 
 #: includes/templates/upload-form.php:45
@@ -258,12 +272,24 @@ msgstr ""
 msgid "Cleaning uploads folder..."
 msgstr ""
 
+#: includes/modules/clipboard-image-upload/module.php:31
+msgid "Clipboard Image Upload"
+msgstr ""
+
+#: includes/modules/clipboard-image-upload/settings.php:28
+msgid "Clipboard Image Upload Settings"
+msgstr ""
+
 #: includes/modules/accelerate/settings.php:74
 msgid "Comments"
 msgstr ""
 
 #: includes/modules/smtp-mailer/settings.php:222
 msgid "Common SMTP Providers"
+msgstr ""
+
+#: includes/modules/clipboard-image-upload/settings.php:29
+msgid "Configure how clipboard images are handled when pasted into the editor."
 msgstr ""
 
 #: includes/modules/word-publish/settings.php:41
@@ -290,7 +316,7 @@ msgstr ""
 msgid "Connection successful"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:150
+#: includes/modules/accelerate/settings.php:157
 msgid "Control automatic updates and update checks"
 msgstr ""
 
@@ -326,16 +352,20 @@ msgstr ""
 msgid "Dashboard Widgets to Remove"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:155
+#: includes/modules/accelerate/settings.php:162
 msgid "Disable automatic plugin updates"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:159
+#: includes/modules/accelerate/settings.php:166
 msgid "Disable automatic theme updates"
 msgstr ""
 
 #: includes/modules/avatar-manager/settings.php:31
 msgid "Disable Gravatar completely"
+msgstr ""
+
+#: includes/modules/accelerate/settings.php:147
+msgid "Disable Months Dropdown"
 msgstr ""
 
 #: includes/modules/image-watermark/settings.php:269
@@ -378,6 +408,10 @@ msgstr ""
 
 #: includes/modules/image-watermark/settings.php:279
 msgid "Enable image protection for logged-in users also"
+msgstr ""
+
+#: includes/modules/clipboard-image-upload/settings.php:36
+msgid "Enable Module"
 msgstr ""
 
 #: includes/class-admin-settings.php:87
@@ -471,6 +505,10 @@ msgstr ""
 msgid "Failed to publish chapter \"%s\""
 msgstr ""
 
+#: includes/modules/clipboard-image-upload/module.php:139
+msgid "Failed to upload clipboard image."
+msgstr ""
+
 #: includes/modules/avatar-manager/settings.php:25
 #: includes/modules/png-metadata-extractor/settings.php:25
 msgid "Features"
@@ -519,12 +557,16 @@ msgid ""
 "from the bulk actions dropdown, and click Apply."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:183
+#: includes/modules/accelerate/settings.php:190
 msgid "Hide plugin notices"
 msgstr ""
 
 #: includes/modules/auto-publish/settings.php:57
 msgid "Hourly"
+msgstr ""
+
+#: includes/modules/clipboard-image-upload/settings.php:55
+msgid "Image Paste Prefix"
 msgstr ""
 
 #: includes/modules/image-watermark/settings.php:264
@@ -533,6 +575,10 @@ msgstr ""
 
 #: includes/modules/image-watermark/settings.php:252
 msgid "Image quality"
+msgstr ""
+
+#: includes/modules/clipboard-image-upload/module.php:138
+msgid "Image uploaded successfully!"
 msgstr ""
 
 #: includes/modules/image-watermark/module.php:23
@@ -795,6 +841,12 @@ msgstr ""
 msgid "Post"
 msgstr ""
 
+#: includes/modules/clipboard-image-upload/settings.php:66
+msgid ""
+"Prefix added to the filename of images uploaded via clipboard (e.g., "
+"prefix_uniqueid.png)."
+msgstr ""
+
 #: includes/modules/image-watermark/settings.php:274
 msgid "Prevent drag and drop"
 msgstr ""
@@ -825,15 +877,15 @@ msgstr ""
 msgid "Quick Draft"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:171
+#: includes/modules/accelerate/settings.php:178
 msgid "Remove _maybe_update_core on admin_init"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:175
+#: includes/modules/accelerate/settings.php:182
 msgid "Remove _maybe_update_plugins on admin_init"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:179
+#: includes/modules/accelerate/settings.php:186
 msgid "Remove _maybe_update_themes on admin_init"
 msgstr ""
 
@@ -849,11 +901,11 @@ msgstr ""
 msgid "Remove image"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:163
+#: includes/modules/accelerate/settings.php:170
 msgid "Remove wp_update_plugins action"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:167
+#: includes/modules/accelerate/settings.php:174
 msgid "Remove wp_update_themes action"
 msgstr ""
 
@@ -879,7 +931,7 @@ msgstr ""
 msgid "Sampling steps"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:204
+#: includes/modules/accelerate/settings.php:211
 msgid "Save Accelerate Settings"
 msgstr ""
 
@@ -1178,7 +1230,7 @@ msgid ""
 "media library."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:198
+#: includes/modules/accelerate/settings.php:205
 msgid ""
 "This will block all plugins and themes from checking for updates, "
 "dramatically speeding up the backend load times. Use only for local "
@@ -1225,7 +1277,7 @@ msgstr ""
 msgid "Typical ports: 465 (SSL), 587 (TLS), 25 (unencrypted)"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:149
+#: includes/modules/accelerate/settings.php:156
 msgid "Update Behaviors"
 msgstr ""
 
@@ -1259,6 +1311,10 @@ msgstr ""
 
 #: includes/modules/avatar-manager/settings.php:29
 msgid "Upload/select avatar via media library"
+msgstr ""
+
+#: includes/modules/clipboard-image-upload/module.php:137
+msgid "Uploading clipboard image..."
 msgstr ""
 
 #: includes/class-word-to-posts-backup.php:149
