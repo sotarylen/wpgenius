@@ -357,6 +357,64 @@ class W2P_Admin_Settings {
             update_option('smart_aui_settings', $core_settings);
         }
 
+        // AI Assistant Module
+        if ($module_id === 'ai-assistant') {
+            $settings = isset($_POST['w2p_ai_assistant_settings']) ? (array) $_POST['w2p_ai_assistant_settings'] : [];
+            
+            $clean_settings = [
+                'api_key'      => sanitize_text_field($settings['api_key'] ?? ''),
+                'api_base'     => esc_url_raw($settings['api_base'] ?? 'https://api.openai.com/v1/chat/completions'),
+                'model'        => sanitize_text_field($settings['model'] ?? 'gpt-3.5-turbo'),
+                'auto_excerpt' => !empty($settings['auto_excerpt']),
+                'auto_tags'    => !empty($settings['auto_tags']),
+            ];
+            
+            update_option('w2p_ai_assistant_settings', $clean_settings);
+        }
+
+        // SEO & Internal Linker Module
+        if ($module_id === 'seo-linker') {
+            $settings = isset($_POST['w2p_seo_linker_settings']) ? (array) $_POST['w2p_seo_linker_settings'] : [];
+            
+            $clean_keywords = [];
+            if ( ! empty( $settings['keywords'] ) ) {
+                foreach ( $settings['keywords'] as $item ) {
+                    if ( empty( $item['keyword'] ) || empty( $item['url'] ) ) continue;
+                    $clean_keywords[] = [
+                        'keyword' => sanitize_text_field( $item['keyword'] ),
+                        'url'     => esc_url_raw( $item['url'] ),
+                        'title'   => sanitize_text_field( $item['title'] ?? '' )
+                    ];
+                }
+            }
+
+            $clean_settings = [
+                'linker_enabled' => !empty($settings['linker_enabled']),
+                'keywords'       => $clean_keywords,
+                'toc_enabled'    => !empty($settings['toc_enabled']),
+                'toc_threshold'  => isset($settings['toc_threshold']) ? absint($settings['toc_threshold']) : 3,
+                'toc_depth'      => isset($settings['toc_depth']) ? absint($settings['toc_depth']) : 3,
+                'toc_auto_insert'=> !empty($settings['toc_auto_insert']),
+            ];
+            
+            update_option('w2p_seo_linker_settings', $clean_settings);
+        }
+
+        // Media Turbo Module
+        if ($module_id === 'media-turbo') {
+            $settings = isset($_POST['w2p_media_turbo_settings']) ? (array) $_POST['w2p_media_turbo_settings'] : [];
+            
+            $clean_settings = [
+                'webp_enabled'  => !empty($settings['webp_enabled']),
+                'webp_quality'  => isset($settings['webp_quality']) ? absint($settings['webp_quality']) : 80,
+                'keep_original' => !empty($settings['keep_original']),
+                'scan_limit'    => isset($settings['scan_limit']) ? absint($settings['scan_limit']) : 100,
+                'batch_size'    => isset($settings['batch_size']) ? absint($settings['batch_size']) : 10,
+            ];
+            
+            update_option('w2p_media_turbo_settings', $clean_settings);
+        }
+
         // Auto Publish 模块
         if ($module_id === 'auto-publish') {
             $settings = isset($_POST['w2p_auto_publish_settings']) ? (array) $_POST['w2p_auto_publish_settings'] : [];

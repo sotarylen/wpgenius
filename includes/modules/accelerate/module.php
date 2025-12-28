@@ -89,44 +89,46 @@ class AccelerateModule extends W2P_Abstract_Module {
     }
 
     public function register_settings() {
-        $defaults = [
-            // Cleanup Defaults
-            'remove_admin_bar_wp_logo'         => true,
-            'remove_admin_bar_about'           => true,
-            'remove_admin_bar_comments'        => true,
-            'remove_admin_bar_new_content'     => true,
-            'remove_admin_bar_search'          => true,
-            'remove_admin_bar_updates'         => true,
-            'remove_admin_bar_appearance'      => true,
-            'remove_admin_bar_wporg'           => true,
-            'remove_admin_bar_documentation'   => true,
-            'remove_admin_bar_support_forums'  => true,
-            'remove_admin_bar_feedback'        => true,
-            'remove_admin_bar_view_site'       => true,
-            'remove_dashboard_activity'        => true,
-            'remove_dashboard_primary'         => false,
-            'remove_dashboard_secondary'       => false,
-            'remove_dashboard_site_health'     => false,
-            'remove_dashboard_right_now'       => false,
-            'remove_dashboard_quick_draft'     => true,
-            'disable_months_dropdown'          => false,
-            
-            // Update Behavior Defaults
-            'disable_auto_update_plugin' => true,
-            'disable_auto_update_theme'  => true,
-            'remove_wp_update_plugins'   => true,
-            'remove_wp_update_themes'    => true,
-            'remove_maybe_update_core'   => true,
-            'remove_maybe_update_plugins'=> true,
-            'remove_maybe_update_themes' => true,
-            'block_external_http'      => false,
-            'hide_plugin_notices'      => false,
-            'block_acf_updates'        => false,
-        ];
+        register_setting( 'w2p_accelerate_settings', 'w2p_accelerate_settings', [
+            'type'              => 'array',
+            'sanitize_callback' => [ $this, 'sanitize_settings' ],
+            'default'           => [
+                'remove_admin_bar_wp_logo'         => true,
+                'remove_admin_bar_about'           => true,
+                'remove_admin_bar_comments'        => true,
+                'remove_admin_bar_new_content'     => true,
+                'remove_admin_bar_search'          => true,
+                'remove_admin_bar_updates'         => true,
+                'remove_admin_bar_appearance'      => true,
+                'remove_admin_bar_wporg'           => true,
+                'remove_admin_bar_documentation'   => true,
+                'remove_admin_bar_support_forums'  => true,
+                'remove_admin_bar_feedback'        => true,
+                'remove_admin_bar_view_site'       => true,
+                'remove_dashboard_activity'        => true,
+                'remove_dashboard_primary'         => false,
+                'remove_dashboard_secondary'       => false,
+                'remove_dashboard_site_health'     => false,
+                'remove_dashboard_right_now'       => false,
+                'remove_dashboard_quick_draft'     => true,
+                'disable_months_dropdown'          => false,
+                'disable_auto_update_plugin'       => true,
+                'disable_auto_update_theme'        => true,
+                'remove_wp_update_plugins'         => true,
+                'remove_wp_update_themes'          => true,
+                'remove_maybe_update_core'         => true,
+                'remove_maybe_update_plugins'      => true,
+                'remove_maybe_update_themes'       => true,
+                'block_external_http'              => false,
+                'hide_plugin_notices'              => false,
+                'block_acf_updates'                => false,
+            ]
+        ] );
+    }
 
-        $settings = get_option( 'w2p_accelerate_settings', [] );
-        $settings = wp_parse_args( $settings, $defaults );
-        update_option( 'w2p_accelerate_settings', $settings );
+    public function sanitize_settings( $input ) {
+        if ( ! is_array( $input ) ) return [];
+        return array_map( 'boolval', $input ); // Most settings here are boolean
     }
 
     /**

@@ -128,7 +128,7 @@ final class W2P_Image_Watermark {
             } else
                 $this->is_backup_folder_writable = false;
 
-            if ($this->is_backup_folder_writable !== true) {
+            if ($this->is_backup_folder_writable !== true && $this->options['backup']['backup_image'] !== false) {
                 // disable backup setting
                 $this->options['backup']['backup_image'] = false;
 

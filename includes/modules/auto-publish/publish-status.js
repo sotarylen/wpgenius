@@ -10,7 +10,7 @@ jQuery(document).ready(function ($) {
         if (!nonce) return;
 
         $.ajax({
-            url: ajaxurl,
+            url: w2pAutoPublishParams.ajax_url,
             type: 'POST',
             data: {
                 action: 'w2p_auto_publish_get_stats',
@@ -41,6 +41,6 @@ jQuery(document).ready(function ($) {
     if (statusBox.length) {
         refreshScheduledStatus();
         // Periodic status refresh
-        setInterval(refreshScheduledStatus, 10000); // 10 seconds
+        setInterval(refreshScheduledStatus, 20000); // 20 seconds - Reduce browser overhead
     }
 });
