@@ -103,8 +103,8 @@ class AiAssistantModule extends W2P_Abstract_Module {
             return;
         }
 
-        wp_enqueue_script( 'w2p-ai-assistant', plugin_dir_url( __FILE__ ) . 'assets/ai-assistant.js', [ 'jquery' ], '1.0.0', true );
-        wp_localize_script( 'w2p-ai-assistant', 'w2pAiParams', [
+        wp_enqueue_script( 'w2p-modules-unified', plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/modules-unified.js', [ 'jquery' ], '1.0.0', true );
+        wp_localize_script( 'w2p-modules-unified', 'w2pAiParams', [
             'ajax_url' => admin_url( 'admin-ajax.php' ),
             'nonce'    => wp_create_nonce( 'w2p_ai_nonce' ),
         ] );

@@ -1,6 +1,6 @@
 (function($){
     $(document).ready(function(){
-        console.log('=== ADMIN MODULES JS LOADED ===');
+        // console.log('=== ADMIN MODULES JS LOADED ===');
         
         // 危险级开关确认对话框 - 保留这个功能
         $(document).on('change', '.w2p-danger-toggle', function(e){
@@ -15,9 +15,9 @@
         // 其他模块设置相关的交互
         $(document).on('click', '.w2p-module-settings-toggle', function(e){
             // 旧版本兼容性 - 已被标签页替代
-            console.log('Legacy toggle found - use tabs instead');
+            // console.log('Legacy toggle found - use tabs instead');
         });
         
-        console.log('=== ADMIN MODULES JS END ===');
+        // console.log('=== ADMIN MODULES JS END ===');
     });
 })(jQuery);

@@ -34,9 +34,8 @@ class W2P_Admin_Settings {
 
         settings_errors('word_to_posts');
         ?>
-        <div class="wrap">
+        <div class="w2p-wrap">
             <h1><?php _e('WP Genius — Module Settings', 'wp-genius'); ?></h1>
-            <p><?php _e('Manage your WP Genius modules below. Enable or disable features as needed.', 'wp-genius'); ?></p>
             
             <div class="w2p-settings-tabs-layout">
                 <!-- 标签页导航 -->
@@ -52,6 +51,7 @@ class W2P_Admin_Settings {
                         <?php
                         // 生成启用的模块设置标签
                         $enabled_modules_with_settings = array();
+                        
                         foreach ($modules as $id => $module) {
                             $is = !empty($enabled[$id]);
                             $settings_path = plugin_dir_path(__FILE__) . 'modules/' . $id . '/settings.php';
@@ -99,40 +99,49 @@ class W2P_Admin_Settings {
                                         $has_settings = file_exists(plugin_dir_path(__FILE__) . 'modules/' . $id . '/settings.php');
                                     ?>
                                         <div class="w2p-module-card <?php echo $is ? 'enabled' : 'disabled'; ?>">
-                                            <div class="w2p-module-card-header">
+                                            <div class="w2p-module-card-content">
                                                 <div class="w2p-module-info">
-                                                    <h3><?php echo esc_html($name); ?></h3>
-                                                    <p class="description"><?php echo esc_html($desc); ?></p>
-                                                    <?php if ($has_settings && $is): ?>
-                                                        <p class="w2p-module-has-settings">
-                                                            <a href="#w2p-tab-<?php echo esc_attr($id); ?>"
-                                                               class="w2p-settings-link"
-                                                               data-module="<?php echo esc_attr($id); ?>"
-                                                               title="<?php echo esc_attr(sprintf(__('Go to %s settings', 'wp-genius'), $name)); ?>">
-                                                                <?php _e('Configure Settings', 'wp-genius'); ?>
-                                                            </a>
-                                                        </p>
-                                                    <?php elseif ($has_settings && !$is): ?>
-                                                        <p class="w2p-module-has-settings-disabled">
-                                                            <span class="w2p-settings-disabled"
-                                                                  title="<?php echo esc_attr(sprintf(__('%s is disabled. Enable the module to access settings.', 'wp-genius'), $name)); ?>">
-                                                                <?php _e('Module Disabled', 'wp-genius'); ?>
+                                                    <div class="w2p-module-title-row">
+                                                        <h3><?php echo esc_html($name); ?></h3>
+                                                        <div class="w2p-module-status-badge">
+                                                            <span class="w2p-badge <?php echo $is ? 'active' : 'inactive'; ?>">
+                                                                <?php echo $is ? __('Active', 'wp-genius') : __('Disabled', 'wp-genius'); ?>
                                                             </span>
-                                                        </p>
-                                                    <?php endif; ?>
+                                                        </div>
+                                                    </div>
+                                                    <p class="description"><?php echo esc_html($desc); ?></p>
                                                 </div>
-                                                <div class="w2p-module-toggle-switch">
-                                                    <label class="switch">
-                                                        <input type="checkbox" name="modules[<?php echo esc_attr($id); ?>]" value="1" <?php checked($is, true); ?> />
-                                                        <span class="slider"></span>
-                                                    </label>
+                                                
+                                                <div class="w2p-module-footer">
+                                                    <div class="w2p-module-actions">
+                                                        <?php if ($has_settings && $is): ?>
+                                                            <a href="#w2p-tab-<?php echo esc_attr($id); ?>"
+                                                               class="w2p-settings-btn w2p-settings-link"
+                                                               data-module="<?php echo esc_attr($id); ?>">
+                                                                <span class="dashicons dashicons-admin-generic"></span>
+                                                                <?php _e('Configure', 'wp-genius'); ?>
+                                                            </a>
+                                                        <?php elseif ($has_settings && !$is): ?>
+                                                            <span class="w2p-settings-disabled-text">
+                                                                <?php _e('Enable to configure', 'wp-genius'); ?>
+                                                            </span>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <div class="w2p-module-toggle">
+                                                        <label class="w2p-switch">
+                                                            <input type="checkbox" name="modules[<?php echo esc_attr($id); ?>]" value="1" <?php checked($is, true); ?> />
+                                                            <span class="w2p-slider"></span>
+                                                        </label>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
                                 
-                                <?php submit_button(__('Save Module Preferences', 'wp-genius'), 'primary', 'submit', true, array('id' => 'w2p-save-modules')); ?>
+                                <div class="w2p-form-actions">
+                                    <?php submit_button(__('Save Module Preferences', 'wp-genius'), 'primary', 'submit', false, array('id' => 'w2p-save-modules')); ?>
+                                </div>
                             </form>
                         </div>
                     </div>
@@ -163,16 +172,11 @@ class W2P_Admin_Settings {
         <script>
         (function($){
             $(document).ready(function(){
-                console.log('=== W2P UNIFIED TABS JS START ===');
-                
-                // 检查元素
-                console.log('Tab nav items found:', $('.w2p-tab-nav-item').length);
-                console.log('Tab content panels found:', $('.w2p-tab-content').length);
                 
                 // 标签页切换逻辑
                 $(document).on('click', '.w2p-tab-nav-link, .w2p-settings-link', function(e){
                     e.preventDefault();
-                    console.log('Tab clicked:', $(this).data('module'));
+                    // console.log('Tab clicked:', $(this).data('module'));
                     
                     var $link = $(this);
                     var targetId = $link.attr('href');
@@ -204,16 +208,16 @@ class W2P_Admin_Settings {
                         scrollTop: $('.w2p-settings-tabs-nav').offset().top - 50
                     }, 300);
                     
-                    console.log('Tab switched to:', targetId);
+                    // console.log('Tab switched to:', targetId);
                 });
                 
                 // 保存时显示成功消息
                 $('#w2p-save-modules').on('click', function(){
-                    console.log('Module preferences saved');
+                    // console.log('Module preferences saved');
                     // WordPress会自动处理表单提交和重定向
                 });
                 
-                console.log('=== W2P UNIFIED TABS JS END ===');
+                // console.log('=== W2P UNIFIED TABS JS END ===');
             });
         })(jQuery);
         </script>
@@ -226,7 +230,31 @@ class W2P_Admin_Settings {
             wp_die(__('No permission', 'wp-genius'));
         }
 
-        if (!isset($_POST['word2posts_module_nonce']) || !wp_verify_nonce($_POST['word2posts_module_nonce'], 'word2posts_save_module_settings')) {
+        // 验证 nonce - 检查可能的字段名以避免ID冲突
+        $nonce_valid = false;
+        $possible_nonce_fields = [
+            'word2posts_module_nonce',
+            'w2p_media_turbo_nonce',
+            'w2p_ai_assistant_nonce',
+            'w2p_auto_publish_nonce',
+            'w2p_clipboard_upload_nonce',
+            'w2p_seo_linker_nonce',
+            'w2p_accelerate_nonce',
+            'w2p_upload_rename_nonce',
+            'w2p_smtp_mailer_nonce',
+            'w2p_smart_aui_nonce',
+            'w2p_image_watermark_nonce',
+            'w2p_post_duplicator_nonce',
+        ];
+        
+        foreach ($possible_nonce_fields as $nonce_field) {
+            if (isset($_POST[$nonce_field]) && wp_verify_nonce($_POST[$nonce_field], 'word2posts_save_module_settings')) {
+                $nonce_valid = true;
+                break;
+            }
+        }
+        
+        if (!$nonce_valid) {
             wp_die(__('Nonce verification failed', 'wp-genius'));
         }
 
@@ -298,9 +326,32 @@ class W2P_Admin_Settings {
                 'block_external_http'      => !empty($settings['block_external_http']),
                 'hide_plugin_notices'      => !empty($settings['hide_plugin_notices']),
                 'block_acf_updates'        => !empty($settings['block_acf_updates']),
+                
+                // General Interface
+                'enable_local_avatar'      => !empty($settings['enable_local_avatar']),
+                'enable_upload_rename'     => !empty($settings['enable_upload_rename']),
+                'upload_rename_pattern'    => isset($settings['upload_rename_pattern']) ? sanitize_text_field($settings['upload_rename_pattern']) : '{timestamp}_{sanitized}',
             ];
             
             update_option('w2p_accelerate_settings', $clean_settings);
+        }
+
+        // Media Turbo Module
+        if ($module_id === 'media-turbo') {
+            $settings = isset($_POST['w2p_media_turbo_settings']) ? (array) $_POST['w2p_media_turbo_settings'] : [];
+            
+            $clean_settings = [
+                'webp_enabled'  => !empty($settings['webp_enabled']),
+                'webp_quality'  => isset($settings['webp_quality']) ? absint($settings['webp_quality']) : 80,
+                'keep_original' => !empty($settings['keep_original']),
+                'min_file_size' => isset($settings['min_file_size']) ? absint($settings['min_file_size']) : 1024,
+                'scan_mode'     => isset($settings['scan_mode']) && in_array($settings['scan_mode'], ['media', 'posts']) ? $settings['scan_mode'] : 'media',
+                'posts_limit'   => isset($settings['posts_limit']) ? absint($settings['posts_limit']) : 10,
+                'scan_limit'    => isset($settings['scan_limit']) ? absint($settings['scan_limit']) : 100,
+                'batch_size'    => isset($settings['batch_size']) ? absint($settings['batch_size']) : 10,
+            ];
+            
+            update_option('w2p_media_turbo_settings', $clean_settings);
         }
 
         // Auto Upload Images 模块
@@ -341,20 +392,81 @@ class W2P_Admin_Settings {
             update_option('w2p_auto_upload_setting', $options);
         }
 
-        // Smart Auto Upload Images 模块 - WP Genius 增强功能
+        // Smart Auto Upload Images 模块 - 包含所有设置
         if ($module_id === 'smart-auto-upload-images') {
             $settings = isset($_POST['smart_aui_settings']) ? (array) $_POST['smart_aui_settings'] : [];
             
             // 获取现有的核心设置
             $core_settings = get_option('smart_aui_settings', []);
             
+            // 更新核心设置
+            if (isset($settings['base_url'])) {
+                $core_settings['base_url'] = esc_url_raw($settings['base_url']);
+            }
+            if (isset($settings['image_name_pattern'])) {
+                $core_settings['image_name_pattern'] = sanitize_text_field($settings['image_name_pattern']);
+            }
+            if (isset($settings['alt_text_pattern'])) {
+                $core_settings['alt_text_pattern'] = sanitize_text_field($settings['alt_text_pattern']);
+            }
+            if (isset($settings['max_width'])) {
+                $core_settings['max_width'] = absint($settings['max_width']);
+            }
+            if (isset($settings['max_height'])) {
+                $core_settings['max_height'] = absint($settings['max_height']);
+            }
+            if (isset($settings['exclude_domains'])) {
+                $core_settings['exclude_domains'] = sanitize_textarea_field($settings['exclude_domains']);
+            }
+            if (isset($settings['exclude_post_types']) && is_array($settings['exclude_post_types'])) {
+                $core_settings['exclude_post_types'] = array_map('sanitize_text_field', $settings['exclude_post_types']);
+            }
+            
             // 更新 WP Genius 增强功能设置
             $core_settings['auto_set_featured_image'] = !empty($settings['auto_set_featured_image']);
             $core_settings['show_progress_ui'] = !empty($settings['show_progress_ui']);
             $core_settings['process_images_on_rest_api'] = !empty($settings['process_images_on_rest_api']);
             
+            // 更新并发线程数和重试次数
+            if (isset($settings['concurrent_threads'])) {
+                $core_settings['concurrent_threads'] = max(1, min(16, absint($settings['concurrent_threads'])));
+            }
+            if (isset($settings['max_retries'])) {
+                $core_settings['max_retries'] = min(10, absint($settings['max_retries']));
+            }
+            
             // 保存合并后的设置
             update_option('smart_aui_settings', $core_settings);
+        }
+
+        // Smart AUI Module (New)
+        if ($module_id === 'smart-aui') {
+            $settings = isset($_POST['smart_aui_settings']) ? (array) $_POST['smart_aui_settings'] : [];
+            
+            // Handle checkboxes
+            $settings['show_progress_ui'] = isset($settings['show_progress_ui']) ? true : false;
+            $settings['auto_set_featured'] = isset($settings['auto_set_featured']) ? true : false;
+            $settings['enable_rest_api'] = isset($settings['enable_rest_api']) ? true : false;
+            
+            $clean_settings = [
+                'base_url'           => isset($settings['base_url']) ? esc_url_raw($settings['base_url']) : site_url(),
+                'rename_pattern'     => isset($settings['rename_pattern']) ? sanitize_text_field($settings['rename_pattern']) : '{original}',
+                'alt_pattern'        => isset($settings['alt_pattern']) ? sanitize_text_field($settings['alt_pattern']) : '{title}',
+                'max_image_size'     => isset($settings['max_image_size']) ? max(100, min(10000, absint($settings['max_image_size']))) : 2048,
+                'min_image_size'     => isset($settings['min_image_size']) ? max(10, min(1000, absint($settings['min_image_size']))) : 100,
+                'max_file_size'      => isset($settings['max_file_size']) ? max(1, min(50, absint($settings['max_file_size']))) : 5,
+                'concurrent_threads' => isset($settings['concurrent_threads']) ? max(1, min(5, absint($settings['concurrent_threads']))) : 2,
+                'max_retries'        => isset($settings['max_retries']) ? max(0, min(5, absint($settings['max_retries']))) : 3,
+                'download_timeout'   => isset($settings['download_timeout']) ? max(5, min(60, absint($settings['download_timeout']))) : 15,
+                'show_progress_ui'   => (bool) $settings['show_progress_ui'],
+                'auto_set_featured'  => (bool) $settings['auto_set_featured'],
+                'enable_rest_api'    => (bool) $settings['enable_rest_api'],
+                'allowed_post_types' => ['post', 'page'],
+                'excluded_domains'   => [],
+                'allowed_extensions' => ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+            ];
+            
+            update_option('smart_aui_settings', $clean_settings);
         }
 
         // AI Assistant Module
@@ -400,21 +512,6 @@ class W2P_Admin_Settings {
             update_option('w2p_seo_linker_settings', $clean_settings);
         }
 
-        // Media Turbo Module
-        if ($module_id === 'media-turbo') {
-            $settings = isset($_POST['w2p_media_turbo_settings']) ? (array) $_POST['w2p_media_turbo_settings'] : [];
-            
-            $clean_settings = [
-                'webp_enabled'  => !empty($settings['webp_enabled']),
-                'webp_quality'  => isset($settings['webp_quality']) ? absint($settings['webp_quality']) : 80,
-                'keep_original' => !empty($settings['keep_original']),
-                'scan_limit'    => isset($settings['scan_limit']) ? absint($settings['scan_limit']) : 100,
-                'batch_size'    => isset($settings['batch_size']) ? absint($settings['batch_size']) : 10,
-            ];
-            
-            update_option('w2p_media_turbo_settings', $clean_settings);
-        }
-
         // Auto Publish 模块
         if ($module_id === 'auto-publish') {
             $settings = isset($_POST['w2p_auto_publish_settings']) ? (array) $_POST['w2p_auto_publish_settings'] : [];
@@ -433,6 +530,37 @@ class W2P_Admin_Settings {
             if (isset($modules['auto-publish'])) {
                 $modules['auto-publish']->enable();
             }
+        }
+
+        // Post Duplicator 模块
+        if ($module_id === 'post-duplicator') {
+            $settings = isset($_POST['w2p_post_duplicator_settings']) ? (array) $_POST['w2p_post_duplicator_settings'] : [];
+            
+            $clean_settings = [
+                'mode'                                   => sanitize_text_field($settings['mode'] ?? 'advanced'),
+                'single_after_duplication_action'        => sanitize_text_field($settings['single_after_duplication_action'] ?? 'notice'),
+                'list_single_after_duplication_action'   => sanitize_text_field($settings['list_single_after_duplication_action'] ?? 'notice'),
+                'list_multiple_after_duplication_action' => sanitize_text_field($settings['list_multiple_after_duplication_action'] ?? 'notice'),
+                'status'                                 => sanitize_text_field($settings['status'] ?? 'draft'),
+                'type'                                   => sanitize_text_field($settings['type'] ?? 'same'),
+                'post_author'                            => sanitize_text_field($settings['post_author'] ?? 'current_user'),
+                'timestamp'                              => sanitize_text_field($settings['timestamp'] ?? 'current'),
+                'title'                                  => sanitize_text_field($settings['title'] ?? ''),
+                'slug'                                   => sanitize_text_field($settings['slug'] ?? ''),
+                'time_offset'                            => !empty($settings['time_offset']),
+                'time_offset_days'                       => intval($settings['time_offset_days'] ?? 0),
+                'time_offset_hours'                      => intval($settings['time_offset_hours'] ?? 0),
+                'time_offset_minutes'                    => intval($settings['time_offset_minutes'] ?? 0),
+                'time_offset_seconds'                    => intval($settings['time_offset_seconds'] ?? 0),
+                'time_offset_direction'                  => sanitize_text_field($settings['time_offset_direction'] ?? 'newer'),
+                'duplicate_other_draft'                  => sanitize_text_field($settings['duplicate_other_draft'] ?? 'enabled'),
+                'duplicate_other_pending'                => sanitize_text_field($settings['duplicate_other_pending'] ?? 'enabled'),
+                'duplicate_other_private'                => sanitize_text_field($settings['duplicate_other_private'] ?? 'enabled'),
+                'duplicate_other_password'               => sanitize_text_field($settings['duplicate_other_password'] ?? 'enabled'),
+                'duplicate_other_future'                 => sanitize_text_field($settings['duplicate_other_future'] ?? 'enabled'),
+            ];
+            
+            update_option('w2p_post_duplicator_settings', $clean_settings);
         }
 
         wp_redirect(admin_url('tools.php?page=wp-genius-settings&updated=1'));

@@ -1,0 +1,1 @@
+<?php // Legacy file removed ?>

@@ -23,7 +23,7 @@ class W2P_Image_Watermark_Settings {
     public function __construct() {
         // actions
         add_action('admin_init', [$this, 'register_settings'], 11);
-        add_action('admin_menu', [$this, 'options_page']);
+        // add_action('admin_menu', [$this, 'options_page']); // 移除独立菜单，整合到WP Genius模块设置
         add_action('wp_loaded', [$this, 'load_image_sizes']);
     }
 
@@ -101,7 +101,7 @@ class W2P_Image_Watermark_Settings {
      * Create options page in menu.
      */
     public function options_page() {
-        add_options_page(__('Image Watermark Options', 'image-watermark'), __('Watermark', 'image-watermark'), 'manage_options', 'watermark-options', [$this, 'options_page_output']);
+        // add_options_page(__('Image Watermark Options', 'image-watermark'), __('Watermark', 'image-watermark'), 'manage_options', 'watermark-options', [$this, 'options_page_output']); // 移除独立菜单，整合到WP Genius模块设置
     }
 
     /**
@@ -119,15 +119,15 @@ class W2P_Image_Watermark_Settings {
                     <h3 class="hndle">' . esc_html__('Image Watermark', 'image-watermark') . ' ' . esc_html(W2P_Image_Watermark::instance()->defaults['version']) . '</h3>
                     <div class="inside">
                         <h4 class="inner">' . esc_html__('Need support?', 'image-watermark') . '</h4>
-                        <p class="inner">' . sprintf(esc_html__('If you are having problems with this plugin, please browse it\'s %s or talk about them in the %s.', 'image-watermark'), '<a href="http://www.dfactory.co/docs/image-watermark/?utm_source=image-watermark-settings&utm_medium=link&utm_campaign=docs" target="_blank">' . esc_html__('Documentation', 'image-watermark') . '</a>', '<a href="http://www.dfactory.co/support/?utm_source=image-watermark-settings&utm_medium=link&utm_campaign=support" target="_blank">' . esc_html__('Support forum', 'image-watermark') . '</a>') . '</p
+                        <p class="inner">' . sprintf(esc_html__('If you are having problems with this plugin, please browse it\'s %s or talk about them in the %s.', 'image-watermark'), '<a href="https://www.dfactory.co/docs/image-watermark/?utm_source=image-watermark-settings&utm_medium=link&utm_campaign=docs" target="_blank">' . esc_html__('Documentation', 'image-watermark') . '</a>', '<a href="https://www.dfactory.co/support/?utm_source=image-watermark-settings&utm_medium=link&utm_campaign=support" target="_blank">' . esc_html__('Support forum', 'image-watermark') . '</a>') . '</p
                         <hr />
                         <h4 class="inner">' . esc_html__('Do you like this plugin?', 'image-watermark') . '</h4>
                         <p class="inner">' . sprintf(esc_html__('%s on WordPress.org', 'image-watermark'), '<a href="https://wordpress.org/support/plugin/image-watermark/reviews/?filter=5" target="_blank">' . esc_html__('Rate it 5', 'image-watermark') . '</a>') . '<br />' .
-                        sprintf(esc_html__('Blog about it & link to the %s.', 'image-watermark'), '<a href="http://www.dfactory.co/products/image-watermark/?utm_source=image-watermark-settings&utm_medium=link&utm_campaign=blog-about" target="_blank">' . esc_html__('plugin page', 'image-watermark') . '</a>') . '<br />' .
-                        sprintf(esc_html__('Check out our other %s.', 'image-watermark'), '<a href="http://www.dfactory.co/products/?utm_source=image-watermark-settings&utm_medium=link&utm_campaign=other-plugins" target="_blank">' . esc_html__('WordPress plugins', 'image-watermark') . '</a>') . '
+                        sprintf(esc_html__('Blog about it & link to the %s.', 'image-watermark'), '<a href="https://www.dfactory.co/products/image-watermark/?utm_source=image-watermark-settings&utm_medium=link&utm_campaign=blog-about" target="_blank">' . esc_html__('plugin page', 'image-watermark') . '</a>') . '<br />' .
+                        sprintf(esc_html__('Check out our other %s.', 'image-watermark'), '<a href="https://www.dfactory.co/products/?utm_source=image-watermark-settings&utm_medium=link&utm_campaign=other-plugins" target="_blank">' . esc_html__('WordPress plugins', 'image-watermark') . '</a>') . '
                         </p>
                         <hr />
-                        <p class="df-link inner"><a href="http://www.dfactory.co/?utm_source=image-watermark-settings&utm_medium=link&utm_campaign=created-by" target="_blank" title="Digital Factory"><img src="' . W2P_IMAGE_WATERMARK_URL . '/images/df-black-sm.png" alt="Digital Factory" /></a></p>
+                        <p class="df-link inner"><a href="https://www.dfactory.co/?utm_source=image-watermark-settings&utm_medium=link&utm_campaign=created-by" target="_blank" title="Digital Factory"><img src="' . W2P_IMAGE_WATERMARK_URL . 'img/df-black-sm.png" alt="Digital Factory" /></a></p>
                     </div>
                 </div>
                 <form action="options.php" method="post">';

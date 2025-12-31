@@ -127,6 +127,46 @@ class W2P_Smart_AUI_Progress_Tracker {
 		delete_transient( $key );
 	}
 }
-
+	
 // Initialize tracker
 W2P_Smart_AUI_Progress_Tracker::get_instance();
+
+/**
+ * 获取当前用户的图片处理进度（公共函数，供其他模块调用）
+ *
+ * @param string   $process_id 进程ID，可选。
+ * @param int|null $user_id    用户ID，默认当前用户。
+ * @return array|false
+ */
+if ( ! function_exists( 'w2p_smart_aui_get_progress' ) ) {
+	function w2p_smart_aui_get_progress( $process_id = '', $user_id = null ) {
+		return W2P_Smart_AUI_Progress_Tracker::get_progress( $user_id, $process_id );
+	}
+}
+
+/**
+ * 清理指定进程的进度数据
+ *
+ * @param string   $process_id 进程ID，可选。
+ * @param int|null $user_id    用户ID，默认当前用户。
+ * @return void
+ */
+if ( ! function_exists( 'w2p_smart_aui_clear_progress' ) ) {
+	function w2p_smart_aui_clear_progress( $process_id = '', $user_id = null ) {
+		W2P_Smart_AUI_Progress_Tracker::clear_progress( $user_id, $process_id );
+	}
+}
+
+/**
+ * 判断指定进程是否仍在处理
+ *
+ * @param string   $process_id 进程ID，可选。
+ * @param int|null $user_id    用户ID，默认当前用户。
+ * @return bool
+ */
+if ( ! function_exists( 'w2p_smart_aui_is_processing' ) ) {
+	function w2p_smart_aui_is_processing( $process_id = '', $user_id = null ) {
+		$progress = W2P_Smart_AUI_Progress_Tracker::get_progress( $user_id, $process_id );
+		return is_array( $progress ) && isset( $progress['status'] ) && 'processing' === $progress['status'];
+	}
+}

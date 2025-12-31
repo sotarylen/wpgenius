@@ -30,79 +30,98 @@ $draft_count = count( get_posts( [
 		<!-- Configuration Form -->
 		<div class="w2p-auto-publish-config">
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-				<?php wp_nonce_field( 'word2posts_save_module_settings', 'word2posts_module_nonce' ); ?>
+				<?php wp_nonce_field( 'word2posts_save_module_settings', 'w2p_auto_publish_nonce' ); ?>
 				<input type="hidden" name="action" value="word2posts_save_module_settings" />
 				<input type="hidden" name="module_id" value="auto-publish" />
 
-				<h3><?php _e( 'Automation Settings', 'wp-genius' ); ?></h3>
-				
-				<table class="form-table">
-					<tr>
-						<th scope="row"><?php _e( 'Enable Auto Publish', 'wp-genius' ); ?></th>
-						<td>
-							<label class="switch">
-								<input type="checkbox" name="w2p_auto_publish_settings[cron_enabled]" value="1" <?php checked( $settings['cron_enabled'] ); ?> />
-								<span class="slider"></span>
-							</label>
-							<p class="description"><?php _e( 'Enable background scheduled publishing using WP-Cron.', 'wp-genius' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row"><?php _e( 'Interval', 'wp-genius' ); ?></th>
-						<td>
-							<select name="w2p_auto_publish_settings[interval]">
-								<option value="w2p_every_5_minutes" <?php selected( $settings['interval'], 'w2p_every_5_minutes' ); ?>><?php _e( 'Every 5 Minutes', 'wp-genius' ); ?></option>
-								<option value="w2p_every_15_minutes" <?php selected( $settings['interval'], 'w2p_every_15_minutes' ); ?>><?php _e( 'Every 15 Minutes', 'wp-genius' ); ?></option>
-								<option value="w2p_every_30_minutes" <?php selected( $settings['interval'], 'w2p_every_30_minutes' ); ?>><?php _e( 'Every 30 Minutes', 'wp-genius' ); ?></option>
-								<option value="hourly" <?php selected( $settings['interval'], 'hourly' ); ?>><?php _e( 'Hourly', 'wp-genius' ); ?></option>
-								<option value="twicedaily" <?php selected( $settings['interval'], 'twicedaily' ); ?>><?php _e( 'Twice Daily', 'wp-genius' ); ?></option>
-								<option value="daily" <?php selected( $settings['interval'], 'daily' ); ?>><?php _e( 'Daily', 'wp-genius' ); ?></option>
-							</select>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row"><?php _e( 'Batch Size', 'wp-genius' ); ?></th>
-						<td>
-							<input type="number" name="w2p_auto_publish_settings[batch_size]" value="<?php echo esc_attr( $settings['batch_size'] ); ?>" min="1" max="50" />
-							<p class="description"><?php _e( 'Number of drafts to publish in each execution.', 'wp-genius' ); ?></p>
-						</td>
-					</tr>
-				</table>
+				<div class="w2p-section">
+					<div class="w2p-section-header">
+						<h4><?php _e( 'Automation Settings', 'wp-genius' ); ?></h4>
+					</div>
+					<div class="w2p-section-body">
+						<div class="w2p-form-row">
+							<div class="w2p-form-label">
+								<label><?php _e( 'Enable Auto Publish', 'wp-genius' ); ?></label>
+							</div>
+							<div class="w2p-form-control">
+								<label class="w2p-switch">
+									<input type="checkbox" name="w2p_auto_publish_settings[cron_enabled]" value="1" <?php checked( $settings['cron_enabled'] ); ?> />
+									<span class="w2p-slider"></span>
+								</label>
+								<p class="description"><?php _e( 'Enable background scheduled publishing using WP-Cron.', 'wp-genius' ); ?></p>
+							</div>
+						</div>
 
-				<?php submit_button(); ?>
+						<div class="w2p-form-row">
+							<div class="w2p-form-label">
+								<label><?php _e( 'Execution Interval', 'wp-genius' ); ?></label>
+							</div>
+							<div class="w2p-form-control">
+								<select name="w2p_auto_publish_settings[interval]" class="w2p-input-medium">
+									<option value="w2p_every_5_minutes" <?php selected( $settings['interval'], 'w2p_every_5_minutes' ); ?>><?php _e( 'Every 5 Minutes', 'wp-genius' ); ?></option>
+									<option value="w2p_every_15_minutes" <?php selected( $settings['interval'], 'w2p_every_15_minutes' ); ?>><?php _e( 'Every 15 Minutes', 'wp-genius' ); ?></option>
+									<option value="w2p_every_30_minutes" <?php selected( $settings['interval'], 'w2p_every_30_minutes' ); ?>><?php _e( 'Every 30 Minutes', 'wp-genius' ); ?></option>
+									<option value="hourly" <?php selected( $settings['interval'], 'hourly' ); ?>><?php _e( 'Hourly', 'wp-genius' ); ?></option>
+									<option value="twicedaily" <?php selected( $settings['interval'], 'twicedaily' ); ?>><?php _e( 'Twice Daily', 'wp-genius' ); ?></option>
+									<option value="daily" <?php selected( $settings['interval'], 'daily' ); ?>><?php _e( 'Daily', 'wp-genius' ); ?></option>
+								</select>
+							</div>
+						</div>
+
+						<div class="w2p-form-row border-none">
+							<div class="w2p-form-label">
+								<label><?php _e( 'Batch Size', 'wp-genius' ); ?></label>
+							</div>
+							<div class="w2p-form-control">
+								<input type="number" name="w2p_auto_publish_settings[batch_size]" value="<?php echo esc_attr( $settings['batch_size'] ); ?>" min="1" max="50" class="w2p-input-small" />
+								<p class="description"><?php _e( 'Number of drafts to publish in each execution.', 'wp-genius' ); ?></p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="w2p-settings-actions" style="margin-top: 20px;">
+					<input type="submit" name="submit" id="w2p-auto-publish-submit" class="button button-primary" value="<?php esc_attr_e( 'Save Automation Settings', 'wp-genius' ); ?>">
+				</div>
 			</form>
-
-			<hr />
-
-
 			<!-- Progress Panel is now rendered via admin_notices hook in module.php -->
+		</div>
+
+		<!-- Logs Area -->
+		<div class="w2p-auto-publish-logs">
 
 			<!-- Manual Processing -->
-			<h3><?php _e( 'Manual Bulk Publish', 'wp-genius' ); ?></h3>
+			<div class="w2p-section-header">
+				<h4><?php _e( 'Manual Bulk Publish', 'wp-genius' ); ?></h4>
+				<div class="w2p-header-actions">
+					<button type="button" id="w2p-start-publish" class="button button-primary" <?php disabled( $draft_count == 0 ); ?>>
+						<?php _e( 'Start Now', 'wp-genius' ); ?>
+					</button>
+					<button type="button" id="w2p-stop-publish" class="button button-secondary" style="display:none;">
+						<?php _e( 'Stop', 'wp-genius' ); ?>
+					</button>
+				</div>
+			</div>
+			
 			<div class="w2p-manual-publish-controls">
 				<p><?php printf( __( 'Current drafts: <strong>%d</strong>', 'wp-genius' ), $draft_count ); ?></p>
-				<button type="button" id="w2p-start-publish" class="button button-primary" <?php disabled( $draft_count == 0 ); ?>>
-					<?php _e( 'Start Bulk Publish Now', 'wp-genius' ); ?>
-				</button>
-				<button type="button" id="w2p-stop-publish" class="button button-secondary" style="display:none;">
-					<?php _e( 'Stop', 'wp-genius' ); ?>
-				</button>
 				
 				<div id="w2p-publish-progress" style="display:none; margin-top:15px;">
 					<div class="progress-bar-container">
 						<div class="progress-bar-inner" style="width: 0%;"></div>
 					</div>
 					<p class="progress-text"><?php _e( 'Initializing...', 'wp-genius' ); ?></p>
+                    
+                    <!-- Smart AUI Preview Container -->
+                    <div id="w2p-smart-aui-preview-area" class="w2p-smart-aui-preview-area" style="margin-top: 15px;"></div>
 				</div>
 			</div>
-		</div>
 
-		<!-- Logs Area -->
-		<div class="w2p-auto-publish-logs">
-			<div class="w2p-log-header-flex">
-				<h3><?php _e( 'Publish Logs', 'wp-genius' ); ?></h3>
-				<button type="button" id="w2p-clean-logs" class="button button-small"><?php _e( 'Clean Logs', 'wp-genius' ); ?></button>
+			<div class="w2p-section-header w2p-section-spacing">
+				<h4><?php _e( 'Publish Logs', 'wp-genius' ); ?></h4>
+				<button type="button" id="w2p-clean-logs" class="button button-small"><?php _e( 'Clear Logs', 'wp-genius' ); ?></button>
 			</div>
+			
 			<div class="w2p-log-container">
 				<table class="wp-list-table widefat fixed striped">
 					<thead>
@@ -142,8 +161,19 @@ $draft_count = count( get_posts( [
 jQuery(document).ready(function($) {
 	let isRunning = false;
 	let nonce = '<?php echo wp_create_nonce("w2p_auto_publish_nonce"); ?>';
+    // Reuse Smart AUI nonce if available, otherwise we assume it's passed or available
+    let smartAuiNonce = (typeof w2pSmartAuiParams !== 'undefined') ? w2pSmartAuiParams.nonce : ''; 
 	let totalToProcess = <?php echo $draft_count; ?>;
 	let processedCount = 0;
+    let failedPostIds = []; // Global list of failed IDs to skip
+
+    // Page exit protection
+    $(window).on('beforeunload', function(e) {
+        if (isRunning) {
+            e.preventDefault();
+            return 'Publishing is in progress. Are you sure you want to leave?';
+        }
+    });
 
 	$('#w2p-start-publish').on('click', function() {
 		if (isRunning) return;
@@ -162,6 +192,7 @@ jQuery(document).ready(function($) {
 			$('#w2p-stop-publish').show();
 			$('#w2p-publish-progress').show();
 			processedCount = 0;
+            failedPostIds = []; // Reset on start
 			updateProgress(0);
 			processNext();
 		});
@@ -169,6 +200,10 @@ jQuery(document).ready(function($) {
 
 	$('#w2p-stop-publish').on('click', function() {
 		isRunning = false;
+        // Also stop Smart AUI if running
+        if (window.W2P_SmartAUI_Progress && window.W2P_SmartAUI_Progress.isProcessing) {
+             window.W2P_SmartAUI_Progress.isProcessing = false;
+        }
 		$(this).hide();
 		$('#w2p-start-publish').show();
 		$('.progress-text').text('Stopping after current post...');
@@ -202,45 +237,139 @@ jQuery(document).ready(function($) {
 			return;
 		}
 
-		$.ajax({
+        // 1. Get stats to find next post ID, excluding failed ones
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'w2p_auto_publish_get_stats',
+                nonce: nonce,
+                exclude: failedPostIds
+            },
+            success: function(response) {
+                if (response.success && response.data.next_post) {
+                    let nextPost = response.data.next_post;
+                    let postId = nextPost.id;
+                    let title = nextPost.title;
+
+                    $('.progress-text').html('<strong>Preparing Post ' + postId + ':</strong> ' + title);
+
+                    // 2. Decide if we use Smart AUI
+                    if (window.W2P_SmartAUI_Progress && smartAuiNonce) {
+                        fetchAndProcessImages(postId, title);
+                    } else {
+                        // Fallback to legacy
+                        publishPost(postId, title);
+                    }
+                } else if (response.success && (response.data.draft_count === 0 || !response.data.next_post)) {
+                     // If draft_count > 0 but no next_post, it means all remaining were excluded (failed)
+                     finishAll();
+                } else {
+                     // Maybe finished or error
+                     finishAll();
+                }
+            },
+            error: function() {
+                 $('.progress-text').text('Error fetching stats. Retrying...');
+                 setTimeout(processNext, 2000);
+            }
+        });
+	}
+
+    function fetchAndProcessImages(postId, title) {
+        // Fetch content
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'w2p_smart_aui_get_post_details',
+                nonce: smartAuiNonce,
+                post_id: postId
+            },
+            success: function(response) {
+                if (response.success && response.data) {
+                    let content = response.data.post_content;
+                    let images = W2P_SmartAUI_Progress.findExternalImages(content);
+
+                    if (images.length > 0) {
+                        $('.progress-text').html('<strong>Processing Images for Post ' + postId + ':</strong> ' + title + ' (' + images.length + ' images)');
+                        
+                        // Force process ID regen
+                        W2P_SmartAUI_Progress.processId = 'auto_pub_' + postId + '_' + Date.now();
+                        W2P_SmartAUI_Progress.isProcessing = true; // Manually enable processing flag
+                        
+                        // Use the exposed method to show progress, but don't save
+                        // Backend will handle both image processing and publishing
+                        W2P_SmartAUI_Progress.processPostImages(postId, content, images, function(processedContent) {
+                            // Don't save content here, let backend handle it
+                            // This avoids triggering save_post hook before publishing
+                            publishPost(postId, title);
+                        });
+                    } else {
+                        publishPost(postId, title);
+                    }
+                } else {
+                    publishPost(postId, title);
+                }
+            },
+            error: function() {
+                 publishPost(postId, title);
+            }
+        });
+    }
+
+    function publishPost(postId, title) {
+        if (!isRunning) return;
+
+        $('.progress-text').html('<strong>Publishing Post ' + postId + ':</strong> ' + title);
+        
+        $.ajax({
 			url: ajaxurl,
 			type: 'POST',
 			data: {
 				action: 'w2p_auto_publish_process',
-				nonce: nonce
+				nonce: nonce,
+                exclude: failedPostIds
 			},
 			success: function(response) {
-				if (!isRunning) {
-					$('.progress-text').text('Stopped.');
-					return;
-				}
+                if (response.success) {
+                    if (response.data && response.data.finished) {
+                        finishAll();
+                        return;
+                    }
+                    processedCount++;
+					let progress = (processedCount / totalToProcess) * 100;
+					updateProgress(progress);
+                    refreshStats();
+                    // Clear preview area for next
+                    $('#w2p-smart-aui-preview-area').empty().removeClass('grid-mode');
+                    
+                    processNext();
+                } else {
+                    $('.progress-text').html('<span style="color:red;">Error publishing ' + postId + ': ' + response.data + '. Skipping...</span>');
+                    failedPostIds.push(postId);
+                    processedCount++; // Still count as processed (or at least attempted) to update progress
+                    
+                    setTimeout(processNext, 1000);
+                }
+            },
+            error: function() {
+                $('.progress-text').html('<span style="color:red;">Connection error during publish of ' + postId + '. Skipping...</span>');
+                failedPostIds.push(postId);
+                processedCount++;
+                
+                setTimeout(processNext, 1000);
+            }
+        });
+    }
 
-				if (response.success) {
-					if (response.data.finished) {
-						$('.progress-text').text('All finished!');
-						$('#w2p-stop-publish').hide();
-						$('#w2p-start-publish').show().prop('disabled', true);
-						updateProgress(100);
-						isRunning = false;
-					} else {
-						processedCount++;
-						let progress = (processedCount / totalToProcess) * 100;
-						updateProgress(progress);
-						$('.progress-text').html('<strong>Publishing Post ' + response.data.post_id + ':</strong> ' + response.data.title + ' (' + processedCount + '/' + totalToProcess + ')');
-						refreshStats();
-						processNext();
-					}
-				} else {
-					$('.progress-text').text('Error: ' + response.data);
-					isRunning = false;
-				}
-			},
-			error: function() {
-				$('.progress-text').text('Connection error.');
-				isRunning = false;
-			}
-		});
-	}
+    function finishAll() {
+        $('.progress-text').text('All finished!');
+        $('#w2p-stop-publish').hide();
+        $('#w2p-start-publish').show().prop('disabled', true);
+        updateProgress(100);
+        isRunning = false;
+    }
 
 	function updateProgress(percent) {
 		$('.progress-bar-inner').css('width', percent + '%');

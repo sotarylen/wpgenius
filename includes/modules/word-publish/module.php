@@ -17,9 +17,6 @@ class WordPublishModule extends W2P_Abstract_Module {
     }
 
     public function init() {
-        // Register the module's admin menu and functionality
-        add_action('admin_menu', array($this, 'register_menu'));
-        
         // Register AJAX handlers for import operations
         add_action('admin_post_handle_upload', array($this, 'handle_upload'));
         add_action('admin_post_scan_uploads', array($this, 'handle_scan'));
@@ -29,23 +26,6 @@ class WordPublishModule extends W2P_Abstract_Module {
         add_action('admin_init', array($this, 'register_settings'));
     }
 
-    public function register_menu() {
-        add_management_page(
-            __('WP Genius', 'wp-genius'),
-            __('WP Genius', 'wp-genius'),
-            'manage_options',
-            'wp-genius',
-            array($this, 'render_page')
-        );
-    }
-
-    public function render_page() {
-        // Load the upload form template
-        $template_path = dirname(__FILE__) . '/../../templates/upload-form.php';
-        if (file_exists($template_path)) {
-            include $template_path;
-        }
-    }
 
     public function register_settings() {
         // Register settings for Word to Posts module (if needed for future expansion)
@@ -90,7 +70,7 @@ class WordPublishModule extends W2P_Abstract_Module {
             $word_to_posts->handleFileUpload();
         }
 
-        wp_redirect(admin_url('tools.php?page=wp-genius'));
+        wp_redirect(admin_url('tools.php?page=wp-genius-settings#w2p-tab-word-publish'));
         exit;
     }
 
@@ -112,7 +92,7 @@ class WordPublishModule extends W2P_Abstract_Module {
             $word_to_posts->scanUploads();
         }
 
-        wp_redirect(admin_url('tools.php?page=wp-genius'));
+        wp_redirect(admin_url('tools.php?page=wp-genius-settings#w2p-tab-word-publish'));
         exit;
     }
 
@@ -134,7 +114,7 @@ class WordPublishModule extends W2P_Abstract_Module {
             $word_to_posts->cleanUploads();
         }
 
-        wp_redirect(admin_url('tools.php?page=wp-genius'));
+        wp_redirect(admin_url('tools.php?page=wp-genius-settings#w2p-tab-word-publish'));
         exit;
     }
 

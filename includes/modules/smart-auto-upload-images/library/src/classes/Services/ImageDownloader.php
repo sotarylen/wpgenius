@@ -51,6 +51,13 @@ class ImageDownloader {
 	private PatternResolver $pattern_resolver;
 
 	/**
+	 * Failed image manager
+	 *
+	 * @var \SmartAutoUploadImages\Utils\FailedImagesManager|null
+	 */
+	private $failed_manager;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -58,6 +65,14 @@ class ImageDownloader {
 		$this->logger           = \SmartAutoUploadImages\get_container()->get( 'logger' );
 		$this->validator        = new ImageValidator();
 		$this->pattern_resolver = new PatternResolver();
+		try {
+			$this->failed_manager = \SmartAutoUploadImages\get_container()->get( 'failed_images_manager' );
+		} catch ( \Exception $e ) {
+			// Container entry might not be set in all contexts (e.g. standalone mode without module.php init)
+			// We can gracefully handle this by checking for null usage locally or registering it if possible.
+			// For now, logging and null is safe as we will check isset/empty before usage.
+			$this->failed_manager = null;
+		}
 	}
 
 	/**
@@ -68,6 +83,12 @@ class ImageDownloader {
 	 * @return array|WP_Error Download result or error.
 	 */
 	public function download_image( array $image_data, array $post_data ) {
+		// Check if the URL has failed before
+		if ( $this->failed_manager && $this->failed_manager->is_failed( $image_data['url'] ) ) {
+			$this->logger->warning( 'Skipping previously failed image', [ 'url' => $image_data['url'] ] );
+			return new WP_Error( 'previously_failed', 'This image has previously failed to download' );
+		}
+
 		// Check if we already have this image from a previous process
 		$existing_id = $this->find_existing_by_source( $image_data['url'] );
 		if ( $existing_id ) {
@@ -89,6 +110,8 @@ class ImageDownloader {
 
 		$response = $this->fetch_image( $image_data['url'] );
 		if ( is_wp_error( $response ) ) {
+			// Don't add to failed list here - let the retry mechanism in module.php handle it
+			// Only after max_retries are exhausted should it be marked as failed
 			return $response;
 		}
 

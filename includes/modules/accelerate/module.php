@@ -38,7 +38,7 @@ class AccelerateModule extends W2P_Abstract_Module {
 
         // 1. Migrate Module Activation Status
         $modules_enabled = get_option( 'word2posts_modules', [] );
-        $old_modules = ['cleanup-wordpress', 'update-behavior'];
+        $old_modules = ['cleanup-wordpress', 'update-behavior', 'avatar-manager', 'upload-rename'];
         $should_enable = false;
 
         foreach ($old_modules as $old_id) {
@@ -69,6 +69,24 @@ class AccelerateModule extends W2P_Abstract_Module {
             }
         }
         
+        // 3. Migrate Avatar Manager Settings
+        $avatar_was_enabled = !empty($modules_enabled['avatar-manager']);
+        if ($avatar_was_enabled && empty($current_settings['enable_local_avatar'])) {
+            $current_settings['enable_local_avatar'] = true;
+            update_option($new_settings_key, $current_settings);
+        }
+        
+        // 4. Migrate Upload Rename Settings
+        $rename_was_enabled = !empty($modules_enabled['upload-rename']);
+        $old_pattern = get_option('w2p_upload_rename_pattern', '');
+        if ($rename_was_enabled && empty($current_settings['enable_upload_rename'])) {
+            $current_settings['enable_upload_rename'] = true;
+            if ($old_pattern) {
+                $current_settings['upload_rename_pattern'] = $old_pattern;
+            }
+            update_option($new_settings_key, $current_settings);
+        }
+        
         set_transient( $transient_key, true, MONTH_IN_SECONDS );
     }
 
@@ -86,6 +104,12 @@ class AccelerateModule extends W2P_Abstract_Module {
 
         // Update Behavior Hooks
         add_action( 'init', array( $this, 'apply_update_behavior' ), 1 );
+
+        // Local Avatar Management Hooks
+        $this->init_local_avatar();
+
+        // Upload Rename Hooks
+        $this->init_upload_rename();
     }
 
     public function register_settings() {
@@ -122,13 +146,32 @@ class AccelerateModule extends W2P_Abstract_Module {
                 'block_external_http'              => false,
                 'hide_plugin_notices'              => false,
                 'block_acf_updates'                => false,
+                'enable_local_avatar'              => false,
+                'enable_upload_rename'             => false,
+                'upload_rename_pattern'            => '{timestamp}_{sanitized}',
             ]
         ] );
     }
 
     public function sanitize_settings( $input ) {
         if ( ! is_array( $input ) ) return [];
-        return array_map( 'boolval', $input ); // Most settings here are boolean
+        
+        $sanitized = [];
+        
+        // Handle string fields separately
+        if ( isset( $input['upload_rename_pattern'] ) ) {
+            $sanitized['upload_rename_pattern'] = sanitize_text_field( $input['upload_rename_pattern'] );
+        }
+        
+        // Convert all other fields to boolean
+        foreach ( $input as $key => $value ) {
+            if ( $key === 'upload_rename_pattern' ) {
+                continue; // Already handled
+            }
+            $sanitized[$key] = (bool) $value;
+        }
+        
+        return $sanitized;
     }
 
     /**
@@ -338,5 +381,267 @@ class AccelerateModule extends W2P_Abstract_Module {
 
     public function deactivate() {
         do_action( 'w2p_accelerate_deactivated' );
+    }
+
+    /**
+     * ============================================
+     * Local Avatar Management Integration
+     * ============================================
+     */
+
+    protected static $original_titles = array();
+
+    protected function init_local_avatar() {
+        $settings = get_option( 'w2p_accelerate_settings', [] );
+        if ( empty( $settings['enable_local_avatar'] ) ) {
+            return;
+        }
+
+        // Hide WP default avatar section
+        add_action('admin_head', array($this, 'hide_default_avatar_ui'));
+
+        // Load media library scripts on profile pages
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_avatar_scripts'));
+
+        // Show custom avatar field
+        add_action('show_user_profile', array($this, 'render_avatar_field'));
+        add_action('edit_user_profile', array($this, 'render_avatar_field'));
+
+        // Print inline JS for upload/remove functionality
+        add_action('admin_print_footer_scripts', array($this, 'print_avatar_js'));
+
+        // Save avatar metadata
+        add_action('personal_options_update', array($this, 'save_avatar'));
+        add_action('edit_user_profile_update', array($this, 'save_avatar'));
+
+        // Override get_avatar to use local avatars
+        add_filter('get_avatar', array($this, 'get_local_avatar'), 10, 5);
+    }
+
+    public function hide_default_avatar_ui() {
+        echo '<style>
+            .user-profile-picture { display:none; }
+        </style>';
+    }
+
+    public function enqueue_avatar_scripts() {
+        $screen = get_current_screen();
+        if (!$screen || ($screen->base !== 'profile' && $screen->base !== 'user-edit')) {
+            return;
+        }
+
+        wp_enqueue_media();
+        wp_add_inline_style('wp-admin', '
+            /* Local avatar preview styling */
+            #st-avatar-preview img {
+                width: 96px !important;
+                height: 96px !important;
+                border-radius: 50%;
+                object-fit: cover;
+            }
+        ');
+    }
+
+    public function render_avatar_field($user) {
+        $avatar_id = get_user_meta($user->ID, 'st_local_avatar', true);
+        $blank_img = includes_url('images/blank.gif');
+        ?>
+        <h3><?php _e('Local Avatar', 'wp-genius'); ?></h3>
+        <table class="form-table">
+            <tr>
+                <th>
+                    <label><?php _e('Current Avatar', 'wp-genius'); ?></label>
+                </th>
+                <td>
+                    <input type="hidden" name="st_local_avatar" id="st_local_avatar" value="<?php echo esc_attr($avatar_id); ?>">
+                    <div id="st-avatar-preview">
+                        <?php
+                        if ($avatar_id) {
+                            echo wp_get_attachment_image($avatar_id, 96);
+                        } else {
+                            echo '<img src="' . esc_url($blank_img) . '" width="96" height="96" style="background:#f1f1f1;border-radius:50%;" />';
+                        }
+                        ?>
+                    </div>
+                    <p>
+                        <button type="button" class="button" id="st-upload-avatar">
+                            <?php _e('Upload / Select Avatar', 'wp-genius'); ?>
+                        </button>
+                        <button type="button" class="button" id="st-remove-avatar">
+                            <?php _e('Remove Avatar', 'wp-genius'); ?>
+                        </button>
+                    </p>
+                </td>
+            </tr>
+        </table>
+        <?php
+    }
+
+    public function print_avatar_js() {
+        $screen = get_current_screen();
+        if (!$screen || ($screen->base !== 'profile' && $screen->base !== 'user-edit')) {
+            return;
+        }
+
+        $blank_img = esc_url(includes_url('images/blank.gif'));
+        ?>
+        <script>
+        (function($) {
+            $('#st-upload-avatar').on('click', function(e) {
+                e.preventDefault();
+                var frame = wp.media({
+                    title: '<?php _e('Select Avatar', 'wp-genius'); ?>',
+                    library: { type: 'image' },
+                    multiple: false
+                }).on('select', function() {
+                    var attachment = frame.state().get('selection').first().toJSON();
+                    $('#st_local_avatar').val(attachment.id);
+                    $('#st-avatar-preview').html('<img src="' + attachment.url + '" width="96" height="96" style="border-radius:50%;" />');
+                }).open();
+            });
+
+            $('#st-remove-avatar').on('click', function(e) {
+                e.preventDefault();
+                $('#st_local_avatar').val('');
+                $('#st-avatar-preview').html('<img src="<?php echo $blank_img; ?>" width="96" height="96" style="background:#f1f1f1;border-radius:50%;" />');
+            });
+        })(jQuery);
+        </script>
+        <?php
+    }
+
+    public function save_avatar($user_id) {
+        if (!current_user_can('edit_user', $user_id)) {
+            return;
+        }
+
+        $avatar_id = isset($_POST['st_local_avatar']) ? absint($_POST['st_local_avatar']) : 0;
+        update_user_meta($user_id, 'st_local_avatar', $avatar_id);
+    }
+
+    public function get_local_avatar($avatar, $id_or_email, $size, $default, $alt) {
+        // Resolve user object
+        if (is_numeric($id_or_email)) {
+            $user = get_user_by('id', $id_or_email);
+        } elseif (is_object($id_or_email) && isset($id_or_email->user_id)) {
+            $user = get_user_by('id', $id_or_email->user_id);
+        } else {
+            $user = get_user_by('email', $id_or_email);
+        }
+
+        if (!$user) {
+            return $avatar;
+        }
+
+        // Get local avatar ID
+        $avatar_id = get_user_meta($user->ID, 'st_local_avatar', true);
+        if ($avatar_id) {
+            return wp_get_attachment_image($avatar_id, array($size, $size), false, array(
+                'class' => "avatar avatar-{$size}",
+                'alt'   => $alt,
+            ));
+        }
+
+        // Fallback to blank image
+        $blank_img = esc_url(includes_url('images/blank.gif'));
+        return '<img src="' . $blank_img . '" class="avatar avatar-' . $size . '" width="' . $size . '" height="' . $size . '" alt="' . esc_attr($alt) . '" />';
+    }
+
+    /**
+     * ============================================
+     * Upload Rename Integration
+     * ============================================
+     */
+
+    protected function init_upload_rename() {
+        $settings = get_option( 'w2p_accelerate_settings', [] );
+        if ( empty( $settings['enable_upload_rename'] ) ) {
+            return;
+        }
+
+        // 在上传预处理阶段重命名文件名
+        add_filter('wp_handle_upload_prefilter', array($this, 'handle_upload_prefilter'));
+
+        // 在插入附件数据前，允许替换 post_title 为原始文件名
+        add_filter('wp_insert_attachment_data', array($this, 'maybe_replace_attachment_title'), 10, 2);
+    }
+
+    public function handle_upload_prefilter($file) {
+        if (empty($file['name'])) {
+            return $file;
+        }
+
+        $settings = get_option( 'w2p_accelerate_settings', [] );
+        $pattern = isset($settings['upload_rename_pattern']) ? $settings['upload_rename_pattern'] : '{timestamp}_{sanitized}';
+        
+        // 保留原始模板以便判断是否包含 {ext}
+        $pattern_template = $pattern;
+        // 支持 {date} 或 {date:FORMAT}，默认格式 Y-m-d
+        $pattern = preg_replace_callback('/\{date(?::([^}]+))?\}/', function($m) {
+            $fmt = isset($m[1]) && $m[1] ? $m[1] : 'Y-m-d';
+            return date($fmt);
+        }, $pattern);
+        // 原始基名（不含扩展名），作为媒体标题使用（做最小的文件名清理）
+        $original_base = pathinfo($file['name'], PATHINFO_FILENAME);
+        $original_base = sanitize_file_name( $original_base );
+        $sanitized = $original_base;
+        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $timestamp = time();
+        $random = wp_rand(1000, 9999);
+
+        // 当前用户信息（若已登录）
+        $current_user = wp_get_current_user();
+        $user_login = !empty($current_user->user_login) ? $current_user->user_login : '';
+        $user_id = !empty($current_user->ID) ? $current_user->ID : 0;
+
+        $replacements = array(
+            '{timestamp}' => $timestamp,
+            '{sanitized}' => $sanitized,
+            '{rand}'      => $random,
+            '{datetime}' => date('YmdHis'),
+            '{year}'     => date('Y'),
+            '{month}'    => date('m'),
+            '{day}'      => date('d'),
+            '{hour}'     => date('H'),
+            '{minute}'   => date('i'),
+            '{second}'   => date('s'),
+            '{user_id}'  => $user_id,
+            '{user_login}' => $user_login,
+            '{orig}'     => $original_base,
+            '{ext}'      => $ext,
+            '{uniqid}'   => uniqid(),
+        );
+
+        // 执行替换
+        $new_name = strtr( $pattern, $replacements );
+
+        // 如果模板没有包含 {ext}，则自动追加扩展名
+        if ( false === strpos( $pattern_template, '{ext}' ) ) {
+            $new_name = $new_name . ( $ext ? '.' . $ext : '' );
+        }
+
+        // 确保文件名不包含非法字符
+        $new_sanitized = sanitize_file_name($new_name);
+        $file['name'] = $new_sanitized;
+
+        // 记录映射：新基名 => 原始基名（未含扩展）
+        $new_base = pathinfo( $new_sanitized, PATHINFO_FILENAME );
+        self::$original_titles[ $new_base ] = $original_base;
+
+        return $file;
+    }
+
+    public function maybe_replace_attachment_title( $data, $postarr ) {
+        if ( empty( $data['post_title'] ) ) {
+            return $data;
+        }
+
+        $current_base = sanitize_file_name( $data['post_title'] );
+        if ( isset( self::$original_titles[ $current_base ] ) ) {
+            // 使用原始基名（未含扩展）作为标题
+            $data['post_title'] = self::$original_titles[ $current_base ];
+        }
+
+        return $data;
     }
 }

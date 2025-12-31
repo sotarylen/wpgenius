@@ -1,4 +1,4 @@
-jQuery(document).ready(function($) {
+jQuery(document).ready(function ($) {
     $('#tabs').tabs();
 
     var uploadForm = $('#word_to_posts_upload_form');
@@ -9,11 +9,11 @@ jQuery(document).ready(function($) {
 
 
     // 处理上传表单的通知
-    uploadForm.on('submit', function(e) {
+    uploadForm.on('submit', function (e) {
         e.preventDefault();
 
         var formData = new FormData(this);
-        logDiv.html('<p>' + word_to_posts_params.starting_import + '</p>');
+        logDiv.html('<p>' + word_to_posts_params.starting_import + '</p>').show();
 
         $.ajax({
             url: uploadForm.attr('action'),
@@ -21,28 +21,28 @@ jQuery(document).ready(function($) {
             data: formData,
             processData: false,
             contentType: false,
-            success: function(response) {
+            success: function (response) {
                 logDiv.empty();
                 if (response.success) {
-                    response.data.forEach(function(message) {
+                    response.data.forEach(function (message) {
                         logDiv.append('<p>' + message + '</p>');
                     });
                 } else {
                     logDiv.append('<p>' + word_to_posts_params.error + ': ' + response.data + '</p>');
                 }
             },
-            error: function(jqXHR, textStatus, errorThrown) {
+            error: function (jqXHR, textStatus, errorThrown) {
                 logDiv.append('<p>' + word_to_posts_params.error + ': ' + errorThrown + '</p>');
             }
         });
     });
 
     // 处理扫描表单的通知
-    scanForm.on('submit', function(e) {
+    scanForm.on('submit', function (e) {
         e.preventDefault();
 
         var formData = new FormData(this);
-        cleanLogDiv.html('<p>' + word_to_posts_params.scanning + '</p>');
+        cleanLogDiv.html('<p>' + word_to_posts_params.scanning + '</p>').show();
 
         $.ajax({
             url: scanForm.attr('action'),
@@ -50,28 +50,28 @@ jQuery(document).ready(function($) {
             data: formData,
             processData: false,
             contentType: false,
-            success: function(response) {
+            success: function (response) {
                 cleanLogDiv.empty();
                 if (response.success) {
-                    response.data.forEach(function(message) {
+                    response.data.forEach(function (message) {
                         cleanLogDiv.append('<p>' + message + '</p>');
                     });
                 } else {
                     cleanLogDiv.append('<p>' + word_to_posts_params.error + ': ' + response.data + '</p>');
                 }
             },
-            error: function(jqXHR, textStatus, errorThrown) {
+            error: function (jqXHR, textStatus, errorThrown) {
                 cleanLogDiv.append('<p>' + word_to_posts_params.error + ': ' + errorThrown + '</p>');
             }
         });
     });
 
     // 处理清理表单的通知
-    cleanForm.on('submit', function(e) {
+    cleanForm.on('submit', function (e) {
         e.preventDefault();
 
         var formData = new FormData(this);
-        cleanLogDiv.html('<p>' + word_to_posts_params.cleaning + '</p>');
+        cleanLogDiv.html('<p>' + word_to_posts_params.cleaning + '</p>').show();
 
         $.ajax({
             url: cleanForm.attr('action'),
@@ -79,17 +79,17 @@ jQuery(document).ready(function($) {
             data: formData,
             processData: false,
             contentType: false,
-            success: function(response) {
+            success: function (response) {
                 cleanLogDiv.empty();
                 if (response.success) {
-                    response.data.forEach(function(message) {
+                    response.data.forEach(function (message) {
                         cleanLogDiv.append('<p>' + message + '</p>');
                     });
                 } else {
                     cleanLogDiv.append('<p>' + word_to_posts_params.error + ': ' + response.data + '</p>');
                 }
             },
-            error: function(jqXHR, textStatus, errorThrown) {
+            error: function (jqXHR, textStatus, errorThrown) {
                 cleanLogDiv.append('<p>' + word_to_posts_params.error + ': ' + errorThrown + '</p>');
             }
         });
