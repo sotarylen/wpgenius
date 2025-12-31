@@ -2,15 +2,14 @@
 
 class WordToPosts {
     public function __construct() {
-        // 注册处理程序（这些将由Word发布模块调用）
-        add_action('admin_post_handle_upload', array($this, 'handleFileUpload'));       // 注册handleFileUpload方法
-        add_action('admin_post_clean_uploads', array($this, 'cleanUploads'));           // 注册cleanUploads方法
-        add_action('admin_post_scan_uploads', array($this, 'scanUploads'));             // 注册ScanUploads方法
-        add_action('admin_notices', array($this, 'showAdminNotices'));                  // 注册showAdminNotices方法
+        // Hooks are now handled by the WordPublishModule for better integration
+        // with the unified settings framework.
         
         // 菜单注册现在由Word发布模块处理
-        // 仅在模块框架未加载或Word发布模块禁用时提供备用菜单
         if (!class_exists('W2P_Module_Loader')) {
+            add_action('admin_post_handle_upload', array($this, 'handleFileUpload'));
+            add_action('admin_post_clean_uploads', array($this, 'cleanUploads'));
+            add_action('admin_post_scan_uploads', array($this, 'scanUploads'));
             add_action('admin_menu', array($this, 'registerMenu'));
         }
     }
@@ -105,13 +104,19 @@ class WordToPosts {
     // 处理文件
     public function handleFileUpload() {
         if (!isset($_POST['word_to_posts_upload_nonce']) || !wp_verify_nonce($_POST['word_to_posts_upload_nonce'], 'word_to_posts_upload')) {
-            wp_die(__('Nonce verification failed', 'wp-genius'));
+            wp_send_json_error(__('Nonce verification failed', 'wp-genius'));
+            return;
         }
     
         if (!function_exists('wp_handle_upload')) {
             require_once(ABSPATH . 'wp-admin/includes/file.php');
         }
     
+        if (!isset($_FILES['word_file']) || empty($_FILES['word_file']['name'])) {
+            wp_send_json_error(__('No file was uploaded.', 'wp-genius'));
+            return;
+        }
+
         $uploadedfile = $_FILES['word_file'];
         $upload_overrides = ['test_form' => false];
         $movefile = wp_handle_upload($uploadedfile, $upload_overrides);
@@ -127,10 +132,11 @@ class WordToPosts {
                 $tags = isset($_POST['tags']) ? $_POST['tags'] : '';
                 $this->importAndPublish($target_file, $tags);
             } else {
-                echo '<p>' . __('File move failed', 'wp-genius') . '</p>';
+                wp_send_json_error(__('File move failed', 'wp-genius'));
             }
         } else {
-            echo '<p>' . __('File upload failed', 'wp-genius') . '</p>';
+            $error_msg = isset($movefile['error']) ? $movefile['error'] : __('File upload failed', 'wp-genius');
+            wp_send_json_error($error_msg);
         }
     }
     

@@ -27,19 +27,27 @@ class ImageProcessorExtended {
 	/**
 	 * Original ImageProcessor instance
 	 *
-	 * @var ImageProcessor
+	 * @var \SmartAutoUploadImages\Services\ImageProcessor
 	 */
 	private $processor;
-	
+
+	/**
+	 * Image validator
+	 *
+	 * @var ImageValidator
+	 */
+	private $validator;
+
 	/**
 	 * Constructor
 	 */
 	public function __construct() {
 		$this->processor = new ImageProcessor();
 		
-		// 增加PHP执行时间和内存限制
 		@ini_set( 'max_execution_time', '300' ); // 5分钟
 		@ini_set( 'memory_limit', '512M' );
+
+		$this->validator = new ImageValidator();
 	}
 	
 	/**
@@ -113,6 +121,17 @@ class ImageProcessorExtended {
 				continue;
 			}
 			
+			// [FIX 7] 检查域名是否被排除
+			$validation = $this->validator->validate_image_url( $image['url'], $post_data );
+			if ( is_wp_error( $validation ) && $validation->get_error_code() === 'excluded_domain' ) {
+				$logger->info( 'Skipped excluded domain', [ 'url' => $image['url'] ] );
+				// 标记为成功（跳过），触发事件以便进度条更新
+				do_action( 'smart_aui_image_processed', $image, [ 'skipped' => true ], $index );
+				$success_count++;
+				$processed_count++;
+				continue;
+			}
+
 			// 检查域名是否匹配
 			$image_host = parse_url($image['url'], PHP_URL_HOST);
 			if ( $image_host === $site_domain ) {
@@ -142,6 +161,11 @@ class ImageProcessorExtended {
 					// 成功，跳出重试循环
 					break;
 				}
+
+				// If the image has previously failed, don't retry, just skip it according to objective
+				if ( $result->get_error_code() === 'previously_failed' ) {
+					break;
+				}
 				
 				// 失败，增加重试计数并等待
 				$retry_count++;
@@ -152,6 +176,14 @@ class ImageProcessorExtended {
 			}
 
 			if ( is_wp_error( $result ) ) {
+				if ( $result->get_error_code() === 'previously_failed' ) {
+					$logger->info( 'Skipped previously failed image', [ 'url' => $image['url'] ] );
+					do_action( 'smart_aui_image_processed', $image, [ 'skipped' => true ], $index );
+					$success_count++;
+					$processed_count++;
+					continue;
+				}
+
 				$logger->error(
 					'Failed to process image after retries',
 					[
@@ -161,10 +193,12 @@ class ImageProcessorExtended {
 					]
 				);
 				
-				$failed_count++;
+				// 失败的图片也计为成功，保留原始URL，不需要替换
+				$success_count++;
+				$processed_count++;
 				
-				// Fire action for failed image
-				do_action( 'smart_aui_image_processed', $image, $result, $index );
+				// Fire action for failed image (but marked as skipped)
+				do_action( 'smart_aui_image_processed', $image, [ 'skipped' => true, 'error' => $result->get_error_message() ], $index );
 				continue;
 			}
 
@@ -173,17 +207,6 @@ class ImageProcessorExtended {
 			++$processed_count;
 			$success_count++;
 			
-			// [FIX 5] Incremental Saving: Update database immediately after each successful image
-			if ( ! empty( $post_data['ID'] ) ) {
-				global $wpdb;
-				$wpdb->update(
-					$wpdb->posts,
-					[ 'post_content' => $processed_content ],
-					[ 'ID' => $post_data['ID'] ]
-				);
-				clean_post_cache( $post_data['ID'] );
-			}
-
 			// Fire action for successful image (包括已存在的图片)
 			do_action( 'smart_aui_image_processed', $image, $result, $index );
 		}

@@ -33,6 +33,11 @@ class Logger {
 	 * @param array  $context Additional context.
 	 */
 	public function log( string $message, string $level = self::INFO, array $context = [] ): void {
+		// Check if logging is enabled (can be disabled via filter)
+		if ( ! apply_filters( 'smart_aui_enable_logging', false ) ) {
+			return;
+		}
+
 		// Only log if WP_DEBUG_LOG is enabled.
 		if ( ! defined( 'WP_DEBUG_LOG' ) || ! WP_DEBUG_LOG ) {
 			return;

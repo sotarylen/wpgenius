@@ -86,7 +86,7 @@ function word_to_posts_enqueue_scripts() {
         // 检查是否是插件设置页面
         if ($screen && (
             strpos($screen->id, 'word-to-posts') !== false ||
-            strpos($screen->id, 'tools_page_word-to-posts-settings') !== false ||
+            strpos($screen->id, 'wp-genius-settings') !== false ||
             strpos($screen->id, 'wp-genius') !== false ||
             $screen->id === 'tools'
         )) {
@@ -97,8 +97,9 @@ function word_to_posts_enqueue_scripts() {
             wp_enqueue_style('jquery-ui-css', 'https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css');
             wp_enqueue_script('jquery-ui-tabs');
             
-            // 统一加载CSS和JS - 所有样式已合并到style.css中
+            // 统一加载CSS和JS - 使用新的统一样式表
             wp_enqueue_style('word-to-posts-css', plugin_dir_url(__FILE__) . 'assets/css/style.css');
+
             wp_enqueue_script('word-to-posts-js', plugin_dir_url(__FILE__) . 'assets/js/word-to-posts.js', array('jquery'), null, true);
             wp_enqueue_script('w2p-admin-modules-js', plugin_dir_url(__FILE__) . 'assets/js/admin-modules.js', array('jquery'), null, true);
             

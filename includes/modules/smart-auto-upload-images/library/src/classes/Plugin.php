@@ -76,10 +76,28 @@ class Plugin {
 	 * @return array Modified post data.
 	 */
 	public function process_post_images( array $data, array $postarr ): array {
+		// Check if images were already processed by frontend JS or backend batch saving
+		if ( isset( $_POST['w2p_smart_aui_processed'] ) || isset( $_GET['w2p_smart_aui_processed'] ) ) {
+			return $data;
+		}
+		
 		// If forced processing is requested, we skip AJAX and Revision checks
 		$is_forced = ( defined( 'W2P_FORCE_IMAGE_PROCESS' ) && W2P_FORCE_IMAGE_PROCESS );
 
 		if ( ! $is_forced ) {
+			// 检查是否为 REST API 请求
+			$is_rest_request = defined( 'REST_REQUEST' ) && REST_REQUEST;
+			$is_xmlrpc_request = defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST;
+			
+			if ( $is_rest_request || $is_xmlrpc_request ) {
+				$settings_manager = \SmartAutoUploadImages\get_container()->get( 'settings_manager' );
+				$settings         = $settings_manager->get_settings();
+				
+				if ( empty( $settings['process_images_on_rest_api'] ) ) {
+					return $data;
+				}
+			}
+			
 			if ( ( defined( 'DOING_AJAX' ) && DOING_AJAX ) ) {
 				return $data;
 			}
@@ -104,16 +122,6 @@ class Plugin {
 
 		if ( ! empty( $postarr['ID'] ) && 'trash' === get_post_status( $postarr['ID'] ) ) {
 			return $data;
-		}
-
-		// Check for REST API request and settings.
-		if ( ! $is_forced && defined( 'REST_REQUEST' ) && REST_REQUEST ) {
-			$settings_manager = \SmartAutoUploadImages\get_container()->get( 'settings_manager' );
-			$settings         = $settings_manager->get_settings();
-
-			if ( empty( $settings['process_images_on_rest_api'] ) ) {
-				return $data;
-			}
 		}
 
 		// Process images.

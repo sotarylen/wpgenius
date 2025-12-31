@@ -167,7 +167,13 @@ class ImageValidator {
 				continue;
 			}
 
-			$domain_host = wp_parse_url( $domain, PHP_URL_HOST );
+			// 检查是否是完整的URL或是简单的域名字符串
+			if ( strpos( $domain, '://' ) !== false ) {
+				$domain_host = wp_parse_url( $domain, PHP_URL_HOST );
+			} else {
+				$domain_host = $domain;
+			}
+
 			if ( $url_host === $domain_host ) {
 				return true;
 			}

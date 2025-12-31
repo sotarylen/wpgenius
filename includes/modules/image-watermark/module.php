@@ -51,7 +51,7 @@ class ImageWatermarkModule extends W2P_Abstract_Module {
      * 定义插件常量
      */
     private function define_constants() {
-        define('W2P_IMAGE_WATERMARK_URL', plugin_dir_url(WP_GENIUS_FILE) . 'assets/modules/image-watermark/');
+        define('W2P_IMAGE_WATERMARK_URL', plugin_dir_url(WP_GENIUS_FILE) . 'assets/');
         define('W2P_IMAGE_WATERMARK_PATH', plugin_dir_path(__FILE__));
         define('W2P_IMAGE_WATERMARK_BASENAME', plugin_basename(__FILE__));
         define('W2P_IMAGE_WATERMARK_REL_PATH', dirname(plugin_basename(__FILE__)));
@@ -144,19 +144,19 @@ class ImageWatermarkModule extends W2P_Abstract_Module {
      * 保存模块设置
      */
     public function save_settings() {
+        // 首先检查是否是image-watermark模块的请求
+        if (!isset($_POST['module_id']) || $_POST['module_id'] !== 'image-watermark') {
+            return; // 不是本模块的请求，让其他处理函数处理
+        }
+        
         // 验证 nonce
-        if (!isset($_POST['word2posts_module_nonce']) || !wp_verify_nonce($_POST['word2posts_module_nonce'], 'word2posts_save_module_settings')) {
+        if (!isset($_POST['w2p_image_watermark_nonce']) || !wp_verify_nonce($_POST['w2p_image_watermark_nonce'], 'word2posts_save_module_settings')) {
             wp_die(__('Security check failed. Please try again.', 'wp-genius'));
         }
         
         // 验证用户权限
         if (!current_user_can('manage_options')) {
             wp_die(__('You do not have sufficient permissions to access this page.', 'wp-genius'));
-        }
-        
-        // 验证模块 ID
-        if (!isset($_POST['module_id']) || $_POST['module_id'] !== 'image-watermark') {
-            return;
         }
         
         // 获取设置验证类

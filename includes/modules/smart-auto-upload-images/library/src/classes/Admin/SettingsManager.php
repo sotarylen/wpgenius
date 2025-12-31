@@ -144,6 +144,14 @@ class SettingsManager {
 			$sanitized['process_images_on_rest_api'] = (bool) $settings['process_images_on_rest_api'];
 		}
 
+		if ( isset( $settings['concurrent_threads'] ) ) {
+			$sanitized['concurrent_threads'] = max( 1, min( 16, absint( $settings['concurrent_threads'] ) ) );
+		}
+
+		if ( isset( $settings['max_retries'] ) ) {
+			$sanitized['max_retries'] = min( 10, absint( $settings['max_retries'] ) );
+		}
+
 		return $sanitized;
 	}
 
@@ -211,6 +219,8 @@ class SettingsManager {
 			'auto_set_featured_image' => true,
 			'show_progress_ui' => true,
 			'process_images_on_rest_api' => true,
+			'concurrent_threads' => 4,
+			'max_retries'        => 3,
 		];
 
 		return $settings;
