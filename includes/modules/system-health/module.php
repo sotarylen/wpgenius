@@ -38,6 +38,10 @@ class SystemHealthModule extends W2P_Abstract_Module {
         add_action( 'wp_ajax_w2p_system_health_scan_duplicates', [ $this, 'ajax_scan_duplicates_handler' ] );
         add_action( 'wp_ajax_w2p_system_health_trash_duplicates', [ $this, 'ajax_trash_duplicates_handler' ] );
         
+        // Enhanced duplicate handlers for improved performance
+        add_action( 'wp_ajax_w2p_system_health_scan_duplicates_improved', [ $this, 'ajax_scan_duplicates_improved_handler' ] );
+        add_action( 'wp_ajax_w2p_system_health_get_duplicate_stats', [ $this, 'ajax_get_duplicate_stats_handler' ] );
+        
         // Settings page assets
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
     }
