@@ -297,17 +297,47 @@ class SystemHealthCleanupService {
      */
     public function trash_duplicate_posts( $post_ids ) {
         if ( empty( $post_ids ) || ! is_array( $post_ids ) ) {
+            error_log( 'W2P DuplicateCleaner: Invalid post_ids provided: ' . print_r( $post_ids, true ) );
             return 0;
         }
 
         $count = 0;
-        foreach ( $post_ids as $post_id ) {
+        $total = count( $post_ids );
+        error_log( 'W2P DuplicateCleaner: trash_duplicate_posts called with ' . $total . ' post IDs: ' . implode( ',', array_slice( $post_ids, 0, 10 ) ) . ( $total > 10 ? '...' : '' ) );
+        
+        foreach ( $post_ids as $index => $post_id ) {
+            if ( ! is_numeric( $post_id ) || $post_id <= 0 ) {
+                error_log( 'W2P DuplicateCleaner: Invalid post ID at index ' . $index . ': ' . $post_id );
+                continue;
+            }
+            
+            $post = get_post( $post_id );
+            if ( ! $post ) {
+                error_log( 'W2P DuplicateCleaner: Post ID ' . $post_id . ' not found or already deleted' );
+                continue;
+            }
+            
+            if ( $post->post_status === 'trash' ) {
+                error_log( 'W2P DuplicateCleaner: Post ID ' . $post_id . ' is already in trash' );
+                $count++;
+                continue;
+            }
+            
             $result = wp_trash_post( $post_id );
             if ( $result !== false ) {
                 $count++;
+                error_log( 'W2P DuplicateCleaner: Successfully trashed post ID ' . $post_id );
+            } else {
+                error_log( 'W2P DuplicateCleaner: Failed to trash post ID ' . $post_id . '. Error: ' . print_r( $result, true ) );
+            }
+            
+            // Add small delay every 10 posts to prevent overwhelming the database
+            if ( ( $index + 1 ) % 10 === 0 ) {
+                usleep( 100000 ); // 0.1 second delay
             }
         }
 
+        error_log( 'W2P DuplicateCleaner: Processed ' . $total . ' posts, successfully trashed ' . $count . ' posts' );
         return $count;
     }
 }

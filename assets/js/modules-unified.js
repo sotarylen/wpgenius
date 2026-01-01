@@ -866,10 +866,16 @@
     };
 
     // ==============================
-    // 重复文章清理模块 (Duplicate Post Cleaner)
+    // 重复文章清理模块 (Duplicate Post Cleaner) - Enhanced
     // ==============================
     WPGenius.DuplicateCleaner = {
         duplicateGroups: [],
+        isScanning: false,
+        isProcessing: false,
+        currentScanOffset: 0,
+        scanLimit: 1000,
+        totalDuplicateGroups: 0,
+        scanStats: {},
 
         init: function () {
             // Check if required variables are available
@@ -913,74 +919,6 @@
             var tail = slug.substring(slug.length - tailLength);
             
             return head + '...' + tail;
-        },
-
-        handleScan: function (e) {
-            var $btn = $(e.currentTarget);
-            var categoryId = $('#w2p-duplicate-category').val();
-
-            // Set loading state
-            $btn.prop('disabled', true).addClass('is-loading');
-            $btn.find('.btn-text').text($btn.data('text-scanning'));
-
-            $.post(w2pSystemHealth.ajax_url, {
-                action: 'w2p_system_health_scan_duplicates',
-                category_id: categoryId,
-                nonce: w2pSystemHealth.nonce
-            }, (response) => {
-                console.log('Scan response:', response);
-                
-                if (response && response.success) {
-                    // Ensure response.data is an array
-                    this.duplicateGroups = Array.isArray(response.data) ? response.data : [];
-                    console.log('Duplicate groups found:', this.duplicateGroups.length);
-                    
-                    this.renderResults();
-                    var totalDuplicates = this.getTotalDuplicates();
-                    $('#w2p-duplicate-status').text('Found ' + this.duplicateGroups.length + ' duplicate groups (' + totalDuplicates + ' posts to clean).');
-                    $('#w2p-duplicate-results-wrapper').removeClass('w2p-hidden').fadeIn();
-                    $('#w2p-duplicate-clean-btn').prop('disabled', this.duplicateGroups.length === 0);
-                } else {
-                    console.error('Scan failed:', response);
-                    var errorMsg = 'Unknown error';
-                    if (response && response.data) {
-                        if (typeof response.data === 'string') {
-                            errorMsg = response.data;
-                        } else if (response.data.message) {
-                            errorMsg = response.data.message;
-                        }
-                    }
-                    alert('Scan failed: ' + errorMsg);
-                }
-                // Reset button state
-                $btn.prop('disabled', false).removeClass('is-loading');
-                $btn.find('.btn-text').text($btn.data('text-default'));
-            }, 'json').fail((xhr, status, error) => {
-                console.error('Scan AJAX error:', {
-                    status: status,
-                    error: error,
-                    responseText: xhr.responseText,
-                    statusCode: xhr.status
-                });
-                
-                var errorMsg = 'Network error';
-                if (xhr.responseText) {
-                    try {
-                        var jsonResponse = JSON.parse(xhr.responseText);
-                        if (jsonResponse && jsonResponse.data) {
-                            errorMsg = jsonResponse.data.message || jsonResponse.data;
-                        }
-                    } catch (e) {
-                        errorMsg = 'Server error: ' + xhr.status;
-                    }
-                }
-                
-                alert('Scan failed: ' + errorMsg);
-                
-                // Reset button state
-                $btn.prop('disabled', false).removeClass('is-loading');
-                $btn.find('.btn-text').text($btn.data('text-default'));
-            });
         },
 
         getTotalDuplicates: function () {
@@ -1161,56 +1099,154 @@
         },
 
         /**
-         * Clean posts (shared logic)
+         * Clean posts using improved bulk processing (shared logic)
          */
         cleanPosts: function (postIds, $btn, $group) {
-            $.post(w2pSystemHealth.ajax_url, {
-                action: 'w2p_system_health_trash_duplicates',
-                post_ids: postIds,
-                nonce: w2pSystemHealth.nonce
-            }, (response) => {
-                if (response.success) {
-                    if ($group) {
-                        // Single group cleanup - show Done on button
-                        $btn.prop('disabled', true).removeClass('is-loading').addClass('button-primary');
-                        $btn.find('.btn-text').text($btn.data('text-done'));
-                        $btn.find('.dashicons').removeClass('dashicons-trash').addClass('dashicons-yes');
+            console.log('W2P DuplicateCleaner: cleanPosts called');
+            console.log('W2P DuplicateCleaner: postIds count:', postIds.length);
+            
+            if (this.isProcessing) {
+                console.log('W2P DuplicateCleaner: Already processing, skipping');
+                return;
+            }
+            
+            this.isProcessing = true;
+            
+            // Fix: Split into smaller batches to avoid max_input_vars limit
+            var batchSize = 50; // Reduced from 25 to be safer
+            var batches = [];
+            
+            for (var i = 0; i < postIds.length; i += batchSize) {
+                batches.push(postIds.slice(i, i + batchSize));
+            }
+            
+            console.log('W2P DuplicateCleaner: Split into', batches.length, 'batches of max', batchSize, 'items each');
+            
+            var processedBatches = 0;
+            var totalProcessed = 0;
+            var failedBatches = 0;
+            
+            var processBatch = function(batchIndex) {
+                if (batchIndex >= batches.length) {
+                    // All batches processed
+                    console.log('W2P DuplicateCleaner: All batches processed. Success:', totalProcessed, 'Failed:', failedBatches);
+                    
+                    if (failedBatches === 0) {
+                        // Success - show success message and refresh
+                        WPGenius.DuplicateCleaner.isProcessing = false;
                         
-                        // Remove this group after a short delay
-                        setTimeout(() => {
-                            $group.fadeOut(300, function() {
-                                $(this).remove();
-                                // Update status after removal
-                                var remaining = $('.w2p-duplicate-group').length;
-                                if (remaining === 0) {
-                                    $('#w2p-duplicate-results-wrapper').fadeOut(300, function() {
-                                        $(this).addClass('w2p-hidden');
-                                    });
-                                }
-                            });
-                        }, 1500);
+                        if ($group) {
+                            // Single group cleanup
+                            $btn.prop('disabled', true).removeClass('is-loading').addClass('button-primary');
+                            $btn.find('.btn-text').text($btn.data('text-done'));
+                            $btn.find('.dashicons').removeClass('dashicons-trash').addClass('dashicons-yes');
+                            
+                            setTimeout(() => {
+                                $group.fadeOut(300, function() {
+                                    $(this).remove();
+                                    var remaining = $('.w2p-duplicate-group').length;
+                                    if (remaining === 0) {
+                                        $('#w2p-duplicate-results-wrapper').fadeOut(300, function() {
+                                            $(this).addClass('w2p-hidden');
+                                        });
+                                    }
+                                });
+                            }, 1500);
+                        } else {
+                            // Batch cleanup
+                            WPGenius.DuplicateCleaner.showNotice('Successfully processed ' + totalProcessed + ' posts!', 'success');
+                            setTimeout(() => {
+                                $('#w2p-duplicate-scan-btn').click();
+                            }, 1500);
+                            $btn.prop('disabled', false).removeClass('is-loading');
+                            $btn.find('.btn-text').text($btn.data('text-default'));
+                        }
                     } else {
-                        // Batch cleanup - show notice and re-scan
-                        this.showNotice(response.data.message, 'success');
-                        setTimeout(() => {
-                            $('#w2p-duplicate-scan-btn').click();
-                        }, 1500);
-                        // Reset button state
+                        // Some batches failed
+                        WPGenius.DuplicateCleaner.isProcessing = false;
+                        WPGenius.DuplicateCleaner.showNotice('Partially completed: ' + totalProcessed + ' succeeded, ' + failedBatches + ' failed', 'error');
                         $btn.prop('disabled', false).removeClass('is-loading');
                         $btn.find('.btn-text').text($btn.data('text-default'));
                     }
-                } else {
-                    this.showNotice('Cleanup failed: ' + (response.data.message || 'Unknown error'), 'error');
-                    // Reset button state
-                    $btn.prop('disabled', false).removeClass('is-loading');
-                    $btn.find('.btn-text').text($btn.data('text-default'));
+                    return;
                 }
-            }).fail(() => {
-                this.showNotice('Network error during cleanup.', 'error');
-                // Reset button state
-                $btn.prop('disabled', false).removeClass('is-loading');
-                $btn.find('.btn-text').text($btn.data('text-default'));
-            });
+                
+                var currentBatch = batches[batchIndex];
+                console.log('W2P DuplicateCleaner: Processing batch', (batchIndex + 1), 'of', batches.length, 'with', currentBatch.length, 'items');
+                
+                // Use $.ajax with timeout instead of $.post for better control
+                $.ajax({
+                    url: w2pSystemHealth.ajax_url,
+                    type: 'POST',
+                    timeout: 30000, // 30 second timeout per batch
+                    data: {
+                        action: 'w2p_system_health_trash_duplicates',
+                        post_ids: currentBatch,
+                        nonce: w2pSystemHealth.nonce
+                    },
+                    success: (response) => {
+                        console.log('W2P DuplicateCleaner: Batch', (batchIndex + 1), 'response:', response);
+                        
+                        processedBatches++;
+                        
+                        if (response && response.success) {
+                            var processedCount = response.data && response.data.count ? response.data.count : 0;
+                            totalProcessed += processedCount;
+                            console.log('W2P DuplicateCleaner: Batch', (batchIndex + 1), 'success, processed:', processedCount, 'total:', totalProcessed);
+                            
+                            // Update UI for this batch
+                            var batchStart = batchIndex * batchSize + 1;
+                            var batchEnd = Math.min((batchIndex + 1) * batchSize, postIds.length);
+                            WPGenius.DuplicateCleaner.showNotice('Processed batch ' + (batchIndex + 1) + ' of ' + batches.length + ' (' + batchStart + '-' + batchEnd + ' of ' + postIds.length + ' posts)', 'success');
+                            
+                        } else {
+                            failedBatches++;
+                            var errorMsg = response && response.data && response.data.message ? response.data.message : 'Unknown error';
+                            console.error('W2P DuplicateCleaner: Batch', (batchIndex + 1), 'failed:', errorMsg);
+                            
+                            // Show error but continue with next batch
+                            WPGenius.DuplicateCleaner.showNotice('Batch ' + (batchIndex + 1) + ' failed: ' + errorMsg, 'error');
+                        }
+                        
+                        // Process next batch after a small delay
+                        setTimeout(() => {
+                            processBatch(batchIndex + 1);
+                        }, 500); // 0.5 second delay between batches
+                        
+                    },
+                    error: (xhr, status, error) => {
+                        console.error('W2P DuplicateCleaner: Batch', (batchIndex + 1), 'AJAX failed:', { xhr: xhr, status: status, error: error });
+                        processedBatches++;
+                        failedBatches++;
+                        
+                        // Try to extract error message from response
+                        var errorMsg = 'Network error';
+                        if (xhr.responseText) {
+                            try {
+                                var jsonResponse = JSON.parse(xhr.responseText);
+                                if (jsonResponse && jsonResponse.data) {
+                                    errorMsg = jsonResponse.data.message || jsonResponse.data;
+                                }
+                            } catch (e) {
+                                errorMsg = 'Server error: ' + xhr.status;
+                            }
+                        }
+                        
+                        console.error('W2P DuplicateCleaner: Batch', (batchIndex + 1), 'detailed error:', errorMsg);
+                        
+                        // Show error but continue with next batch
+                        WPGenius.DuplicateCleaner.showNotice('Batch ' + (batchIndex + 1) + ' network error: ' + errorMsg, 'error');
+                        
+                        // Continue with next batch even if this one failed
+                        setTimeout(() => {
+                            processBatch(batchIndex + 1);
+                        }, 500);
+                    }
+                });
+            };
+            
+            // Start processing batches
+            processBatch(0);
         },
 
         showNotice: function (msg, type) {
@@ -1226,6 +1262,77 @@
                     $(this).addClass('w2p-hidden');
                 });
             }, 5000);
+        },
+
+        /**
+         * Original scan method (kept for compatibility)
+         */
+        handleScan: function (e) {
+            var $btn = $(e.currentTarget);
+            var categoryId = $('#w2p-duplicate-category').val();
+
+            // Set loading state
+            $btn.prop('disabled', true).addClass('is-loading');
+            $btn.find('.btn-text').text($btn.data('text-scanning'));
+
+            $.post(w2pSystemHealth.ajax_url, {
+                action: 'w2p_system_health_scan_duplicates',
+                category_id: categoryId,
+                nonce: w2pSystemHealth.nonce
+            }, (response) => {
+                console.log('Scan response:', response);
+                
+                if (response && response.success) {
+                    // Ensure response.data is an array
+                    this.duplicateGroups = Array.isArray(response.data) ? response.data : [];
+                    console.log('Duplicate groups found:', this.duplicateGroups.length);
+                    
+                    this.renderResults();
+                    var totalDuplicates = this.getTotalDuplicates();
+                    $('#w2p-duplicate-status').text('Found ' + this.duplicateGroups.length + ' duplicate groups (' + totalDuplicates + ' posts to clean).');
+                    $('#w2p-duplicate-results-wrapper').removeClass('w2p-hidden').fadeIn();
+                    $('#w2p-duplicate-clean-btn').prop('disabled', this.duplicateGroups.length === 0);
+                } else {
+                    console.error('Scan failed:', response);
+                    var errorMsg = 'Unknown error';
+                    if (response && response.data) {
+                        if (typeof response.data === 'string') {
+                            errorMsg = response.data;
+                        } else if (response.data.message) {
+                            errorMsg = response.data.message;
+                        }
+                    }
+                    alert('Scan failed: ' + errorMsg);
+                }
+                // Reset button state
+                $btn.prop('disabled', false).removeClass('is-loading');
+                $btn.find('.btn-text').text($btn.data('text-default'));
+            }, 'json').fail((xhr, status, error) => {
+                console.error('Scan AJAX error:', {
+                    status: status,
+                    error: error,
+                    responseText: xhr.responseText,
+                    statusCode: xhr.status
+                });
+                
+                var errorMsg = 'Network error';
+                if (xhr.responseText) {
+                    try {
+                        var jsonResponse = JSON.parse(xhr.responseText);
+                        if (jsonResponse && jsonResponse.data) {
+                            errorMsg = jsonResponse.data.message || jsonResponse.data;
+                        }
+                    } catch (e) {
+                        errorMsg = 'Server error: ' + xhr.status;
+                    }
+                }
+                
+                alert('Scan failed: ' + errorMsg);
+                
+                // Reset button state
+                $btn.prop('disabled', false).removeClass('is-loading');
+                $btn.find('.btn-text').text($btn.data('text-default'));
+            });
         }
     };
 
@@ -1584,6 +1691,24 @@
             // Toggle active content within this container
             $container.find('.w2p-sub-tab-content').removeClass('active');
             $container.find('#w2p-tab-' + tab).addClass('active');
+        });
+        
+        // Module-specific tab switching logic for frontend enhancement settings
+        $(document).on('click', '.w2p-tab-btn', function (e) {
+            e.preventDefault();
+            var $btn = $(this);
+            var tab = $btn.data('tab');
+            var module = $btn.closest('.w2p-tabs').data('module');
+            
+            if (!tab || !module) return;
+            
+            // Toggle active button within this module
+            $btn.siblings('.w2p-tab-btn').removeClass('active');
+            $btn.addClass('active');
+            
+            // Toggle active pane within this module
+            $btn.closest('.w2p-tabs').find('.w2p-tab-pane').removeClass('active');
+            $btn.closest('.w2p-tabs').find('[data-pane="' + tab + '"]').addClass('active');
         });
 
         // 处理所有AJAX错误

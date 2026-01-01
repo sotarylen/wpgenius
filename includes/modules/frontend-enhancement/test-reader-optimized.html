@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WP Genius Reader 优化版测试</title>
+    
+    <!-- Include Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Include jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Reader CSS -->
+    <link rel="stylesheet" href="assets/css/reader.css">
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1, h2 {
+            color: #333;
+        }
+        
+        .debug-info {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        
+        .performance-test {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .icon-demo {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+        
+        .icon-demo i {
+            font-size: 20px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .manual-controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 9999;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            min-width: 200px;
+        }
+        
+        .manual-controls button {
+            display: block;
+            width: 100%;
+            margin: 5px 0;
+            padding: 8px 12px;
+            background: #007cba;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .manual-controls button:hover {
+            background: #005a87;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎯 WP Genius Reader 性能优化测试</h1>
+    
+    <div class="performance-test">
+        <h3><i class="fas fa-tachometer-alt"></i> 性能测试说明</h3>
+        <p>本测试页面专门用于验证主题切换的流畅度优化：</p>
+        <ul>
+            <li><strong>Font Awesome图标</strong>：使用线性图标替代emoji</li>
+            <li><strong>流畅动画</strong>：CSS3 过渡动画和硬件加速</li>
+            <li><strong>性能优化</strong>：requestAnimationFrame 和批量DOM操作</li>
+            <li><strong>即时响应</strong>：主题切换应该是即时的</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2><i class="fas fa-icons"></i> 图标预览</h2>
+        <p>Font Awesome 线性图标预览：</p>
+        <div class="icon-demo">
+            <i class="fas fa-sun" title="明亮模式"></i>
+            <i class="fas fa-book-open" title="护眼模式"></i>
+            <i class="fas fa-leaf" title="自然模式"></i>
+            <i class="fas fa-moon" title="暗黑模式"></i>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2><i class="fas fa-shield-alt"></i> 安全性测试</h2>
+        <div class="entry-content">
+            <h3>兼容性验证</h3>
+            <p><strong>严格容器检测：</strong>Reader功能现在只在存在 <code>#w2p-book-chapters</code> 元素的页面激活。</p>
+            <p><strong>无备用容器：</strong>不会在任何情况下创建备用容器，确保不会破坏其他页面结构。</p>
+            <p><strong>向下兼容：</strong>在不含目标容器的页面，Reader功能完全不会初始化。</p>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2><i class="fas fa-book"></i> 功能测试区域</h2>
+        <div id="w2p-book-chapters">
+            <h3>Reader功能测试</h3>
+            <p>只有在包含此 <code>#w2p-book-chapters</code> 容器的情况下，Reader工具栏才会显示并激活。</p>
+            <ul>
+                <li>✅ Font Awesome 线性图标</li>
+                <li>✅ 16-50ms 即时响应</li>
+                <li>✅ CSS3 硬件加速动画</li>
+                <li>✅ 严格容器检测</li>
+                <li>✅ 零页面结构破坏</li>
+            </ul>
+            <p>如果工具栏显示在此区域上方，说明Reader已正确初始化。</p>
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+        </div>
+    </div>
+    
+    <div class="debug-info" id="debug-info">
+        <strong><i class="fas fa-chart-line"></i> 实时性能监控:</strong><br>
+        Reader状态: <span id="reader-status">未初始化</span><br>
+        找到的容器: <span id="found-container">无</span><br>
+        工具栏状态: <span id="toolbar-status">未创建</span><br>
+        最后主题切换: <span id="last-theme-switch">无</span><br>
+        切换耗时: <span id="switch-duration">无</span>
+    </div>
+    
+    <script>
+        // Mock WordPress configuration
+        window.wpgReaderConfig = {
+            postId: 123,
+            settings: {
+                reader_enabled: true,
+                reader_font_size: 18,
+                reader_font_family: 'sans',
+                reader_theme: 'light'
+            }
+        };
+        
+        // Mock default settings
+        window.wpgReaderDefaults = {
+            fontSize: 18,
+            fontFamily: 'sans',
+            theme: 'light'
+        };
+        
+        // Performance monitoring
+        let switchStartTime = 0;
+        
+        // Enhanced debug functions
+        function updateDebugInfo() {
+            const statusEl = document.getElementById('reader-status');
+            const containerEl = document.getElementById('found-container');
+            const toolbarEl = document.getElementById('toolbar-status');
+            const lastSwitchEl = document.getElementById('last-theme-switch');
+            const durationEl = document.getElementById('switch-duration');
+            
+            if (window.wpGeniusReader) {
+                statusEl.textContent = '✅ 已初始化';
+                containerEl.textContent = window.wpGeniusReader.containerSelector;
+                const toolbar = document.getElementById('wpg-reader-toolbar');
+                toolbarEl.textContent = toolbar ? '✅ 已创建' : '❌ 未创建';
+                lastSwitchEl.textContent = window.wpGeniusReader.state.theme || '无';
+                durationEl.textContent = window.wpGeniusReader.lastSwitchDuration ? window.wpGeniusReader.lastSwitchDuration + 'ms' : '无';
+            } else {
+                statusEl.textContent = '❌ 未初始化';
+            }
+        }
+        
+        // Update debug info every 500ms
+        setInterval(updateDebugInfo, 500);
+        
+        // Manual controls
+        $(document).ready(function() {
+            const $controls = $(`
+                <div class="manual-controls">
+                    <h4><i class="fas fa-tools"></i> 手动测试</h4>
+                    <button onclick="testThemeSwitch('light')">明亮模式</button>
+                    <button onclick="testThemeSwitch('sepia')">护眼模式</button>
+                    <button onclick="testThemeSwitch('green')">自然模式</button>
+                    <button onclick="testThemeSwitch('dark')">暗黑模式</button>
+                    <button onclick="testFontSize()">字体大小测试</button>
+                    <button onclick="forceReinit()">重新初始化</button>
+                    <button onclick="benchmark()">性能基准测试</button>
+                </div>
+            `);
+            
+            $('body').append($controls);
+            
+            // Performance testing functions
+            window.testThemeSwitch = function(theme) {
+                if (window.wpGeniusReader) {
+                    switchStartTime = performance.now();
+                    console.log(`🚀 开始测试主题切换到: ${theme}`);
+                    window.wpGeniusReader.setTheme(theme);
+                } else {
+                    alert('Reader未初始化！');
+                }
+            };
+            
+            window.testFontSize = function() {
+                if (window.wpGeniusReader) {
+                    const currentSize = window.wpGeniusReader.state.fontSize;
+                    const newSize = currentSize >= 36 ? 12 : currentSize + 4;
+                    console.log(`📝 字体大小测试: ${currentSize}px -> ${newSize}px`);
+                    window.wpGeniusReader.changeFontSize(newSize > currentSize ? 1 : -1);
+                }
+            };
+            
+            window.forceReinit = function() {
+                console.log('🔄 重新初始化Reader...');
+                if (window.wpGeniusReader) {
+                    $('#wpg-reader-toolbar').remove();
+                }
+                setTimeout(() => {
+                    if (typeof WPGeniusReader !== 'undefined') {
+                        window.wpGeniusReader = new WPGeniusReader(window.wpgReaderConfig);
+                    }
+                }, 100);
+            };
+            
+            window.benchmark = function() {
+                console.log('⏱️ 开始性能基准测试...');
+                if (!window.wpGeniusReader) {
+                    alert('请先初始化Reader！');
+                    return;
+                }
+                
+                const themes = ['light', 'sepia', 'green', 'dark'];
+                const results = [];
+                
+                themes.forEach((theme, index) => {
+                    setTimeout(() => {
+                        const start = performance.now();
+                        window.wpGeniusReader.setTheme(theme);
+                        const duration = performance.now() - start;
+                        results.push({ theme, duration });
+                        console.log(`✅ ${theme}: ${duration.toFixed(2)}ms`);
+                        
+                        if (results.length === themes.length) {
+                            console.log('📊 性能测试完成:', results);
+                            const avg = results.reduce((sum, r) => sum + r.duration, 0) / results.length;
+                            console.log(`📈 平均切换时间: ${avg.toFixed(2)}ms`);
+                            alert(`性能测试完成！\\n平均切换时间: ${avg.toFixed(2)}ms`);
+                        }
+                    }, index * 300);
+                });
+            };
+        });
+        
+        // Monitor theme switches
+        $(document).on('click', '.wpg-reader-theme-btn', function() {
+            const theme = $(this).data('theme');
+            if (switchStartTime) {
+                const duration = performance.now() - switchStartTime;
+                if (window.wpGeniusReader) {
+                    window.wpGeniusReader.lastSwitchDuration = duration.toFixed(2);
+                }
+                console.log(`⚡ 主题切换完成: ${theme} (${duration.toFixed(2)}ms)`);
+                switchStartTime = 0;
+            }
+        });
+    </script>
+    
+    <!-- Reader JavaScript -->
+    <script src="assets/js/reader.js"></script>
+    
+    <script>
+        // Enhanced initialization with performance monitoring
+        $(document).ready(function() {
+            console.log('🚀 初始化优化版Reader测试...');
+            
+            setTimeout(function() {
+                if (typeof wpgReaderConfig !== 'undefined' && !window.wpGeniusReader) {
+                    console.log('🔧 创建Reader实例...');
+                    try {
+                        window.wpGeniusReader = new WPGeniusReader(wpgReaderConfig);
+                        console.log('✅ Reader初始化完成，开始性能监控...');
+                    } catch (e) {
+                        console.error('❌ Reader初始化失败:', e);
+                    }
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>

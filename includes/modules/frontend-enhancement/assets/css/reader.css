@@ -1,0 +1,430 @@
+/**
+ * WP Genius Reader Styles
+ * 
+ * Styles for the book chapter reader enhancement.
+ * Updated to match "Premium Dark Toolbar" design.
+ * V3: High Specificity & Visibility Fixes
+ */
+
+:root {
+    --wpg-reader-bg-dark: #1a1a1a;
+    --wpg-reader-bg-panel: #2d2d2d;
+    --wpg-reader-text-primary: #e0e0e0;
+    --wpg-reader-text-secondary: #aaaaaa;
+    --wpg-reader-accent: #00bf72;
+    --wpg-reader-border: #3d3d3d;
+}
+
+/* Progress Bar */
+#wpg-reader-progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0%;
+    height: 3px;
+    background-color: #00bf72;
+    /* Fallback */
+    background-color: var(--wpg-reader-accent);
+    z-index: 999999;
+    transition: width 0.1s linear;
+    box-shadow: 0 0 5px rgba(0, 191, 114, 0.5);
+    pointer-events: none;
+}
+
+/* Main Toolbar Container - High Specificity Reset */
+#wpg-reader-toolbar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    background-color: #1a1a1a !important;
+    /* Fallback */
+    background-color: var(--wpg-reader-bg-dark) !important;
+    color: #e0e0e0 !important;
+    /* Fallback */
+    color: var(--wpg-reader-text-primary) !important;
+    padding: 10px 20px !important;
+    /* margin: 20px auto !important; */
+    border-radius: 8px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    font-size: 14px !important;
+    line-height: normal !important;
+    user-select: none !important;
+    width: 100% !important;
+    /* max-width: 800px !important; */
+    box-sizing: border-box !important;
+    z-index: 1000 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-height: 50px;
+    position: relative;
+    /* 悬浮效果 */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* 全屏模式样式 */
+body.wpg-reader-fullscreen {
+    overflow: hidden !important;
+}
+
+/* 简化的全屏模式工具栏样式 */
+html body.wpg-reader-fullscreen #wpg-reader-toolbar {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    left: auto !important;
+    transform: none !important;
+    margin: 0 !important;
+    backdrop-filter: blur(10px) !important;
+    background-color: rgba(26, 26, 26, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    width: auto !important;
+    z-index: 10000 !important;
+}
+
+body.wpg-reader-fullscreen #wpg-reader-progress-bar {
+    z-index: 10001 !important;
+}
+
+/* 简化的全屏模式容器样式 */
+html body.wpg-reader-fullscreen #w2p-book-chapters {
+    position: relative !important;
+    top: 0 !important;
+    left: 0 !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    padding: 40px !important;
+    margin: 80px auto 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    z-index: 9998 !important;
+}
+
+/* Ensure all children of toolbar are visible and inherit styles */
+#wpg-reader-toolbar * {
+    box-sizing: border-box;
+    visibility: visible !important;
+}
+
+/* Sections */
+#wpg-reader-toolbar .wpg-reader-section {
+    display: flex !important;
+    align-items: center !important;
+    gap: 15px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+}
+
+/* Controls Wrapper */
+#wpg-reader-toolbar .wpg-reader-size-control {
+    display: flex !important;
+    align-items: center !important;
+    background-color: #2d2d2d;
+    background-color: var(--wpg-reader-bg-panel);
+    border-radius: 6px;
+    padding: 2px !important;
+    border: 1px solid transparent;
+}
+
+/* Icons/Buttons */
+#wpg-reader-toolbar .wpg-reader-btn-icon {
+    appearance: none !important;
+    background: transparent !important;
+    border: none !important;
+    color: #aaaaaa !important;
+    color: var(--wpg-reader-text-secondary) !important;
+    font-size: 16px !important;
+    font-family: inherit !important;
+    width: 32px !important;
+    height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: color 0.2s, background-color 0.2s;
+    border-radius: 4px;
+    outline: none;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    line-height: 1 !important;
+}
+
+#wpg-reader-toolbar .wpg-reader-btn-icon:hover {
+    color: #fff !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Text Display */
+#wpg-reader-toolbar .wpg-reader-size-display {
+    min-width: 40px !important;
+    text-align: center !important;
+    font-size: 14px !important;
+    color: #e0e0e0 !important;
+    color: var(--wpg-reader-text-primary) !important;
+    font-variant-numeric: tabular-nums;
+    line-height: 32px !important;
+    display: inline-block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-weight: normal !important;
+}
+
+/* Font Control */
+#wpg-reader-toolbar .wpg-reader-font-control {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+#wpg-reader-toolbar .wpg-reader-label {
+    color: #aaaaaa !important;
+    color: var(--wpg-reader-text-secondary) !important;
+    font-size: 13px !important;
+    white-space: nowrap !important;
+    margin: 0 !important;
+}
+
+#wpg-reader-toolbar .wpg-reader-select {
+    background-color: #2d2d2d !important;
+    background-color: var(--wpg-reader-bg-panel) !important;
+    color: #e0e0e0 !important;
+    color: var(--wpg-reader-text-primary) !important;
+    border: 1px solid #3d3d3d !important;
+    border: 1px solid var(--wpg-reader-border) !important;
+    padding: 4px 8px !important;
+    border-radius: 4px !important;
+    font-size: 13px !important;
+    outline: none;
+    cursor: pointer !important;
+    min-width: 100px !important;
+    height: 30px !important;
+    box-shadow: none !important;
+    appearance: none;
+    /* Might need custom arrow if this hides it, but standard select usually keeps it */
+}
+
+/* Theme Buttons */
+#wpg-reader-toolbar .wpg-reader-themes {
+    display: flex !important;
+    gap: 4px !important;
+    background-color: #2d2d2d;
+    background-color: var(--wpg-reader-bg-panel);
+    padding: 6px !important;
+    border-radius: 24px !important;
+    margin: 0 !important;
+}
+
+#wpg-reader-toolbar .wpg-reader-theme-btn {
+    appearance: none !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 50% !important;
+    border: 2px solid transparent !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 13px !important;
+    line-height: 1 !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    outline: none;
+    box-shadow: none !important;
+    background: transparent !important;
+    color: #aaaaaa !important;
+    position: relative;
+    overflow: hidden;
+}
+
+#wpg-reader-toolbar .wpg-reader-theme-btn i {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    display: block;
+}
+
+#wpg-reader-toolbar .wpg-reader-theme-btn:hover {
+    transform: scale(1.15);
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+#wpg-reader-toolbar .wpg-reader-theme-btn:hover i {
+    transform: scale(1.1);
+}
+
+#wpg-reader-toolbar .wpg-reader-theme-btn.active {
+    border-color: #00bf72 !important;
+    border-color: var(--wpg-reader-accent) !important;
+    background-color: rgba(0, 191, 114, 0.15) !important;
+    transform: scale(1.1);
+    box-shadow: 0 0 8px rgba(0, 191, 114, 0.3) !important;
+}
+
+#wpg-reader-toolbar .wpg-reader-theme-btn.active i {
+    color: #00bf72 !important;
+    color: var(--wpg-reader-accent) !important;
+    transform: scale(1.2);
+}
+
+/* Button Colors */
+#wpg-reader-toolbar .wpg-theme-btn-light {
+    background-color: #ffffff !important;
+    color: #333 !important;
+}
+
+#wpg-reader-toolbar .wpg-theme-btn-sepia {
+    background-color: #f4ecd8 !important;
+    color: #5b4636 !important;
+}
+
+#wpg-reader-toolbar .wpg-theme-btn-dark {
+    background-color: #1a1a1a !important;
+    color: #ccc !important;
+}
+
+#wpg-reader-toolbar .wpg-theme-btn-green {
+    background-color: #C7EDCC !important;
+    color: #004d26 !important;
+}
+
+/* 全屏/专注模式按钮 */
+#wpg-reader-toolbar .wpg-reader-fullscreen-btn {
+    background-color: transparent !important;
+    border: 2px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 6px !important;
+    color: #aaaaaa !important;
+    color: var(--wpg-reader-text-secondary) !important;
+    font-size: 14px !important;
+    width: 36px !important;
+    height: 36px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+#wpg-reader-toolbar .wpg-reader-fullscreen-btn:hover {
+    border-color: #00bf72 !important;
+    border-color: var(--wpg-reader-accent) !important;
+    color: #00bf72 !important;
+    color: var(--wpg-reader-accent) !important;
+    background-color: rgba(0, 191, 114, 0.1) !important;
+    transform: scale(1.1);
+}
+
+#wpg-reader-toolbar .wpg-reader-fullscreen-btn i {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* 
+ * Content Container Styles 
+ * Only applies to the specific target container #w2p-book-chapters
+ */
+#w2p-book-chapters {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    padding: 30px 40px;
+    border-radius: 8px;
+    line-height: 1.8;
+    margin-top: 20px;
+    display: block !important;
+    will-change: background-color, color;
+}
+
+/* Force inherit styles on all children */
+#w2p-book-chapters * {
+    font-family: inherit;
+    color: inherit;
+}
+
+/* Font Modifiers - Only applies to #w2p-book-chapters */
+#w2p-book-chapters.wpg-font-sans {
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif !important;
+}
+
+#w2p-book-chapters.wpg-font-heiti {
+    font-family: "SimHei", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Heiti SC", sans-serif !important;
+}
+
+#w2p-book-chapters.wpg-font-songti {
+    font-family: "SimSun", "Songti SC", "NSimSun", serif !important;
+}
+
+#w2p-book-chapters.wpg-font-kaiti {
+    font-family: "KaiTi", "STKaiti", "BiauKai", "楷体", serif !important;
+}
+
+#w2p-book-chapters.wpg-font-lishu {
+    font-family: "LiSu", "隶书", serif !important;
+}
+
+#w2p-book-chapters.wpg-font-yahei {
+    font-family: "Microsoft YaHei", "微软雅黑", "PingFang SC", "Hiragino Sans GB", sans-serif !important;
+}
+
+#w2p-book-chapters.wpg-font-droidsans {
+    font-family: "Source Han Sans", "思源黑体", "Noto Sans CJK SC", sans-serif !important;
+}
+
+#w2p-book-chapters.wpg-theme-light {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+}
+
+#w2p-book-chapters.wpg-theme-sepia {
+    background-color: #f4ecd8 !important;
+    color: #5b4636 !important;
+}
+
+#w2p-book-chapters.wpg-theme-dark {
+    background-color: #1a1a1a !important;
+    color: #999999 !important;
+}
+
+#w2p-book-chapters.wpg-theme-green {
+    background-color: #C7EDCC !important;
+    color: #003300 !important;
+}
+
+/* Ensure toolbar visibility for target container only */
+#w2p-book-chapters {
+    /* max-width: 800px; */
+    margin: 10px auto;
+    padding: 20px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    #wpg-reader-toolbar {
+        flex-direction: column !important;
+        height: auto !important;
+        gap: 15px !important;
+        align-items: stretch !important;
+        padding: 15px !important;
+        width: 95% !important;
+    }
+
+    #wpg-reader-toolbar .wpg-reader-section {
+        justify-content: space-between !important;
+        width: 100% !important;
+    }
+
+    #w2p-book-chapters {
+        padding: 15px;
+        width: 95% !important;
+        margin: 10px auto !important;
+    }
+    
+    /* 移动设备上的全屏工具栏 */
+    body.wpg-reader-fullscreen #wpg-reader-toolbar {
+        top: 10px !important;
+        right: 10px !important;
+        left: 10px !important;
+        width: auto !important;
+    }
+    
+    body.wpg-reader-fullscreen #w2p-book-chapters {
+        padding: 20px !important;
+        margin-top: 60px !important;
+    }
+}

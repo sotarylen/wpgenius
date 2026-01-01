@@ -9,12 +9,12 @@
 
     /* Colors - Brand & Status */
     /* Colors - Brand & Status (Vibrant) */
-    --w2p-color-primary: #6366f1;
+    --w2p-color-primary: #10b981;
     /* Indigo 500 */
-    --w2p-color-primary-hover: #4f46e5;
+    --w2p-color-primary-hover: #0c825b;
     --w2p-color-primary-light: #eef2ff;
-    --w2p-color-primary-focus: rgba(99, 102, 241, 0.2);
-    --w2p-gradient-primary: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    --w2p-color-primary-focus: rgba(44, 110, 4, 0.2);
+    --w2p-gradient-primary: linear-gradient(135deg, #024240 0%, #10b981 100%);
 
     --w2p-color-success: #10b981;
     --w2p-color-success-bg: #ecfdf5;
@@ -401,7 +401,7 @@
     margin: 0 0 var(--w2p-spacing-xs) 0;
     font-size: var(--w2p-font-size-xl);
     font-weight: var(--w2p-font-weight-semibold);
-    color: var(--w2p-text-primary);
+    color: var(--w2p-color-primary);
 }
 
 .w2p-tab-content-description {
@@ -576,6 +576,75 @@
 .w2p-settings-tabs-content input[type="checkbox"]:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+/* RADIO GROUP (For animation selection and other grouped options) */
+.w2p-radio-group {
+    display: flex;
+    gap: var(--w2p-spacing-md);
+}
+
+.w2p-radio-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--w2p-spacing-xs);
+    padding: var(--w2p-spacing-md);
+    border: 2px solid var(--w2p-border-color);
+    border-radius: var(--w2p-radius-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    background: var(--w2p-bg-surface);
+    min-width: 100px;
+}
+
+.w2p-radio-item:hover {
+    border-color: var(--w2p-color-primary);
+    background: var(--w2p-bg-surface-secondary);
+}
+
+.w2p-radio-item input[type="radio"] {
+    border: 0;
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.w2p-radio-item input[type="radio"]:checked {
+    + .w2p-radio-label {
+        color: var(--w2p-color-primary);
+    }
+    + .w2p-radio-label i {
+        color: var(--w2p-color-primary);
+    }
+    ~ * {
+        border-color: var(--w2p-color-primary);
+        box-shadow: 0 0 0 2px var(--w2p-color-primary-focus);
+    }
+}
+
+.w2p-radio-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--w2p-spacing-xs);
+    font-weight: var(--w2p-font-weight-medium);
+    color: var(--w2p-text-primary);
+}
+
+.w2p-radio-label i {
+    font-size: var(--w2p-font-size-lg);
+    width: 20px;
+    text-align: center;
+    transition: color 0.2s ease;
+}
+
+.w2p-radio-desc {
+    color: var(--w2p-text-muted);
+    font-size: var(--w2p-font-size-sm);
+    text-align: center;
 }
 
 /* Fix for existing specialized switch wrapper (w2p-switch) to double apply style */
@@ -1767,4 +1836,571 @@
 .w2p-info-value {
     color: var(--w2p-color-primary);
     font-family: monospace;
+}
+
+/* ============================== */
+/* FRONTEND ENHANCEMENT MODULE */
+/* ============================== */
+
+/* Lightbox Container */
+.wpg-lightbox-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: var(--w2p-z-index-modal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    /* transition: opacity 0.3s ease, visibility 0.5s ease; */
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+}
+
+.wpg-lightbox-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Lightbox Content - Image display area with transition support */
+.wpg-lightbox-content {
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+}
+
+/* ==================== Animation: Fade ==================== */
+.wpg-lightbox-content.anim-fade-out {
+    animation: wpg-lightbox-fade-out 0.25s ease forwards;
+}
+
+@keyframes wpg-lightbox-fade-out {
+    from { 
+        opacity: 1; 
+        transform: scale(1);
+    }
+    to { 
+        opacity: 0; 
+        transform: scale(0.95);
+    }
+}
+
+/* ==================== Animation: Slide ==================== */
+.wpg-lightbox-content.anim-slide-out {
+    animation: wpg-lightbox-slide-out 0.25s ease forwards;
+}
+
+@keyframes wpg-lightbox-slide-out {
+    from { 
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to { 
+        opacity: 0.5;
+        transform: translateX(-100%);
+    }
+}
+
+/* ==================== Animation: Zoom ==================== */
+.wpg-lightbox-content.anim-zoom-out {
+    animation: wpg-lightbox-zoom-out 0.25s ease forwards;
+}
+
+@keyframes wpg-lightbox-zoom-out {
+    from { 
+        opacity: 1;
+        transform: scale(1);
+    }
+    to { 
+        opacity: 0;
+        transform: scale(1.2);
+    }
+}
+
+.wpg-lightbox-image {
+    max-width: 100%;
+    max-height: 90vh;
+    object-fit: contain;
+    cursor: zoom-in;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.wpg-lightbox-image.zoomed {
+    cursor: grab;
+}
+
+.wpg-lightbox-image.zoomed:active {
+    cursor: grabbing;
+}
+
+/* Loading & Error States */
+.wpg-lightbox-loading,
+.wpg-lightbox-error {
+    color: var(--w2p-text-inverted);
+    font-size: var(--w2p-font-size-lg);
+    padding: var(--w2p-spacing-xl);
+    text-align: center;
+}
+
+.wpg-lightbox-loading::after {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 40px;
+    margin: var(--w2p-spacing-md) auto 0;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top-color: var(--w2p-text-inverted);
+    border-radius: 50%;
+    animation: wpg-spin 0.8s linear infinite;
+}
+
+@keyframes wpg-spin {
+    to { transform: rotate(360deg); }
+}
+
+.wpg-lightbox-error {
+    color: var(--w2p-color-error);
+}
+
+/* Lightbox Toolbar - Floating capsule-shaped semi-transparent bar */
+.wpg-lightbox-toolbar {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--w2p-spacing-lg);
+    background: rgba(0, 0, 0, 0.2);
+    padding: var(--w2p-spacing-md) var(--w2p-spacing-2xl);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 50px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    z-index: 10;
+    max-width: 90%;
+    transition: all 0.5s ease;
+}
+
+.wpg-lightbox-toolbar:hover {
+    background:  rgba(0, 0, 0, 0.35);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+}
+
+.wpg-lightbox-btn {
+    background: transparent;
+    color: var(--w2p-text-inverted);
+    padding: var(--w2p-spacing-sm);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.25rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    white-space: nowrap;
+    justify-content: center;
+}
+
+.wpg-lightbox-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.2);
+}
+
+.wpg-lightbox-btn.active {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.wpg-lightbox-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Navigation Arrows - Left & Right sides (no border) */
+.wpg-lightbox-nav {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    color: var(--w2p-text-inverted);
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    font-size: 24px;
+    z-index: 5;
+}
+
+.wpg-lightbox-nav:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-50%) scale(1.15);
+}
+
+.wpg-lightbox-nav-prev {
+    left: 30px;
+}
+
+.wpg-lightbox-nav-next {
+    right: 30px;
+}
+
+/* Close Button - Top right corner (no border) */
+.wpg-lightbox-close {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    color: var(--w2p-text-inverted);
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 50%;
+    font-size: 20px;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.wpg-lightbox-close:hover {
+    background: rgba(255, 0, 0, 0.85);
+    transform: rotate(90deg) scale(1.15);
+}
+
+/* Image Counter - In toolbar */
+.wpg-lightbox-counter {
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--w2p-text-inverted);
+    font-size: var(--w2p-font-size-lg);
+    font-weight: var(--w2p-font-weight-regular);
+    padding: 0 var(--w2p-spacing-lg);
+    letter-spacing: 0.5px;
+}
+
+/* Font Awesome icon animations */
+.wpg-lightbox .fa-spinner {
+    animation: wpg-spin 1s linear infinite;
+}
+
+@keyframes wpg-fa-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Video Optimization */
+.wpg-video-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.wpg-video-lightbox-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: var(--w2p-text-inverted);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: var(--w2p-spacing-xs) var(--w2p-spacing-sm);
+    border-radius: var(--w2p-radius-md);
+    cursor: pointer;
+    font-size: var(--w2p-font-size-xs);
+    transition: all 0.2s ease;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.wpg-video-lightbox-btn:hover {
+    background: var(--w2p-color-primary);
+    border-color: var(--w2p-color-primary);
+    transform: scale(1.05);
+}
+
+/* Lightbox Video Container */
+.wpg-lightbox-video-container {
+    max-width: 90vw;
+    max-height: 90vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wpg-lightbox-video-container video {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: var(--w2p-radius-lg);
+}
+
+/* Animations */
+@keyframes wpg-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes wpg-zoom-in {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes wpg-slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Fade Animation */
+.wpg-lightbox-overlay.anim-fade .wpg-lightbox-content {
+    animation: wpg-fade-in 0.3s ease;
+}
+
+/* Zoom Animation */
+.wpg-lightbox-overlay.anim-zoom .wpg-lightbox-content {
+    animation: wpg-zoom-in 0.3s ease;
+}
+
+/* Slide Animation */
+.wpg-lightbox-overlay.anim-slide .wpg-lightbox-content {
+    animation: wpg-slide-up 0.3s ease;
+}
+
+/* Disabled Section Style */
+.w2p-section-disabled {
+    opacity: 0.6;
+    pointer-events: none;
+    position: relative;
+}
+
+.w2p-section-disabled::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(0, 0, 0, 0.02) 10px,
+        rgba(0, 0, 0, 0.02) 20px
+    );
+    pointer-events: none;
+}
+
+.w2p-section-disabled .w2p-section-header h4 {
+    display: flex;
+    align-items: center;
+    gap: var(--w2p-spacing-sm);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .wpg-lightbox-toolbar {
+        flex-wrap: wrap;
+        padding: var(--w2p-spacing-xs);
+        gap: var(--w2p-spacing-xs);
+        bottom: 10px;
+    }
+    
+    .wpg-lightbox-btn {
+        font-size: var(--w2p-font-size-xs);
+        padding: var(--w2p-spacing-2xs) var(--w2p-spacing-xs);
+    }
+    
+    .wpg-lightbox-nav {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+    
+    .wpg-lightbox-nav-prev {
+        left: 10px;
+    }
+    
+    .wpg-lightbox-nav-next {
+        right: 10px;
+    }
+    
+    .wpg-lightbox-close {
+        top: 10px;
+        right: 10px;
+        width: 35px;
+        height: 35px;
+        font-size: 16px;
+    }
+    
+    .wpg-lightbox-counter {
+        top: 10px;
+        left: 10px;
+        font-size: var(--w2p-font-size-xs);
+        padding: var(--w2p-spacing-2xs) var(--w2p-spacing-xs);
+    }
+}
+
+/* ============================== */
+/* PLYR VIDEO PLAYER STYLES */
+/* ============================== */
+
+/* Fix WPBakery video container width */
+.w-video,
+.w-video-h,
+.wpg-video-wrapper {
+    width: 100% !important;
+    display: block !important;
+}
+
+/* Video container - stretch to full width */
+.plyr {
+    width: 100% !important;
+    min-width: 100% !important;
+    display: block !important;
+}
+
+.plyr__video-wrapper {
+    width: 100% !important;
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+}
+
+.plyr__video-wrapper video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain;
+}
+
+.plyr video {
+    width: 100% !important;
+    display: block;
+    max-width: 100%;
+}
+
+/* Override WPBakery styles if present */
+.vc_video .plyr,
+.wpb_video_wrapper .plyr,
+.vc_column_inner .plyr {
+    width: 100% !important;
+}
+
+/* Maintain aspect ratio */
+.plyr--video {
+    position: relative;
+    width: 100% !important;
+}
+
+/* Plyr wrapper inside content */
+.entry-content .plyr,
+.post-content .plyr,
+article .plyr,
+.vc_column_container .plyr,
+.wpb_wrapper .plyr {
+    margin: 0;
+    border-radius: var(--w2p-border-radius-md);
+    overflow: hidden !important; /* 裁剪超出部分 */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    width: 100% !important;
+    position: relative !important;
+}
+
+/* Control bar styling */
+.plyr__controls {
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 100%) !important;
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: auto !important;
+}
+
+/* Ensure no white background on progress bar */
+.plyr__progress,
+.plyr__progress__container {
+    background: transparent !important;
+}
+
+.plyr__progress input[type=range] {
+    background: transparent !important;
+}
+
+/* Progress buffer and played track */
+.plyr__progress__buffer,
+.plyr__progress__played,
+.plyr__volume input[type=range] {
+    background: transparent !important;
+}
+
+/* Seek tooltip background */
+.plyr__tooltip {
+    background: rgba(0, 0, 0, 0.9) !important;
+    color: white !important;
+}
+
+.plyr--full-ui input[type=range] {
+    color: var(--w2p-color-primary);
+}
+
+.plyr__control--overlaid {
+    background: var(--w2p-color-primary);
+}
+
+.plyr__control--overlaid:hover,
+.plyr__control--overlaid:focus {
+    background: var(--w2p-color-primary-hover);
+}
+
+/* Loading state */
+.plyr--loading .plyr__controls {
+    display: flex;
+}
+
+/* Poster image */
+.plyr__poster {
+    background-size: cover;
+    background-position: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .entry-content .plyr,
+    .post-content .plyr,
+    article .plyr {
+        margin: var(--w2p-spacing-sm) 0;
+        border-radius: var(--w2p-border-radius-sm);
+    }
 }

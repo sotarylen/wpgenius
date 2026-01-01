@@ -245,6 +245,7 @@ class W2P_Admin_Settings {
             'w2p_smart_aui_nonce',
             'w2p_image_watermark_nonce',
             'w2p_post_duplicator_nonce',
+            'w2p_frontend_enhancement_nonce',
         ];
         
         foreach ($possible_nonce_fields as $nonce_field) {
@@ -561,6 +562,41 @@ class W2P_Admin_Settings {
             ];
             
             update_option('w2p_post_duplicator_settings', $clean_settings);
+        }
+
+        // Frontend Enhancement Module
+        if ($module_id === 'frontend-enhancement') {
+            $settings = isset($_POST['w2p_frontend_enhancement_settings']) ? (array) $_POST['w2p_frontend_enhancement_settings'] : [];
+            
+            $clean_settings = [
+                // Lightbox settings
+                'lightbox_enabled'              => !empty($settings['lightbox_enabled']),
+                'lightbox_animation'            => in_array($settings['lightbox_animation'] ?? '', ['fade', 'slide', 'zoom']) ? $settings['lightbox_animation'] : 'fade',
+                'lightbox_close_on_backdrop'    => !empty($settings['lightbox_close_on_backdrop']),
+                'lightbox_keyboard_nav'         => !empty($settings['lightbox_keyboard_nav']),
+                'lightbox_show_counter'         => !empty($settings['lightbox_show_counter']),
+                'lightbox_allow_set_featured'   => !empty($settings['lightbox_allow_set_featured']),
+                'lightbox_autoplay_enabled'     => !empty($settings['lightbox_autoplay_enabled']),
+                'lightbox_autoplay_interval'    => max(2, min(5, absint($settings['lightbox_autoplay_interval'] ?? 3))),
+                'lightbox_zoom_enabled'         => !empty($settings['lightbox_zoom_enabled']),
+                'lightbox_zoom_step'            => floatval($settings['lightbox_zoom_step'] ?? 0.2),
+                'lightbox_max_zoom'             => max(1, min(5, floatval($settings['lightbox_max_zoom'] ?? 3))),
+                
+                // Video optimization settings
+                'video_enabled'                 => !empty($settings['video_enabled']),
+                'video_extract_poster'          => !empty($settings['video_extract_poster']),
+                'video_exclusive_playback'      => !empty($settings['video_exclusive_playback']),
+                'video_lightbox_button'         => !empty($settings['video_lightbox_button']),
+                'video_lightbox_on_click'       => !empty($settings['video_lightbox_on_click']),
+                'video_autoplay_prevention'     => !empty($settings['video_autoplay_prevention']),
+                'video_supported_formats'       => isset($settings['video_supported_formats']) ? sanitize_text_field($settings['video_supported_formats']) : 'mp4,webm,ogg,ogv,mkv,mov,avi,m4v,3gp,flv',
+                
+                // Audio player settings (reserved)
+                'audio_enabled'                 => !empty($settings['audio_enabled']),
+                'audio_custom_player'           => !empty($settings['audio_custom_player']),
+            ];
+            
+            update_option('w2p_frontend_enhancement_settings', $clean_settings);
         }
 
         wp_redirect(admin_url('tools.php?page=wp-genius-settings&updated=1'));

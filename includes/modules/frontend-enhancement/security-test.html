@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WP Genius Reader 安全性测试</title>
+    
+    <!-- Include Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Include jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Reader CSS -->
+    <link rel="stylesheet" href="assets/css/reader.css">
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .security-test {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .page-structure {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .expected-result {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .debug-info {
+            background: #e2e3e5;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .container-check {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+        
+        .container-status {
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .found {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .not-found {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1><i class="fas fa-shield-alt"></i> WP Genius Reader 安全性测试</h1>
+    
+    <div class="security-test">
+        <h2><i class="fas fa-exclamation-triangle"></i> 重要安全说明</h2>
+        <p>此页面用于测试Reader功能的安全性，确保：</p>
+        <ul>
+            <li>✅ Reader功能只在存在 <code>#w2p-book-chapters</code> 容器的页面激活</li>
+            <li>✅ 不会创建任何备用容器或修改页面结构</li>
+            <li>✅ 在不含目标容器的页面完全无操作</li>
+            <li>✅ 不影响其他页面元素和功能</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2><i class="fas fa-search"></i> 页面容器检测</h2>
+        <p>检查当前页面是否包含Reader功能所需的目标容器：</p>
+        
+        <div class="container-check">
+            <div class="container-status <?php echo file_exists('assets/css/reader.css') ? 'found' : 'not-found'; ?>">
+                <i class="fas fa-file-code"></i> #w2p-book-chapters: <span id="target-container-status">检测中...</span>
+            </div>
+        </div>
+        
+        <div class="page-structure">
+            <strong>页面DOM结构：</strong><br>
+            <body><br>
+            &nbsp;&nbsp;<h1>安全性测试页面</h1><br>
+            &nbsp;&nbsp;<div class="test-section">...</div><br>
+            &nbsp;&nbsp;<div class="another-section">...</div><br>
+            &nbsp;&nbsp;<!-- 注意：此页面没有 #w2p-book-chapters 容器 --><br>
+            </body>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2><i class="fas fa-cogs"></i> Reader功能状态</h2>
+        
+        <div class="expected-result">
+            <h4><i class="fas fa-check-circle"></i> 预期结果</h4>
+            <p>由于此页面<strong>没有</strong> <code>#w2p-book-chapters</code> 容器，Reader功能应该：</p>
+            <ul>
+                <li>❌ 不显示工具栏</li>
+                <li>❌ 不创建进度条</li>
+                <li>❌ 不修改任何页面元素</li>
+                <li>✅ 控制台显示安全退出信息</li>
+                <li>✅ 保持页面原始结构</li>
+            </ul>
+        </div>
+        
+        <div class="debug-info" id="reader-debug">
+            <strong>Reader状态监控:</strong><br>
+            页面加载时间: <span id="load-time">检测中...</span><br>
+            Reader初始化: <span id="init-status">等待中...</span><br>
+            工具栏状态: <span id="toolbar-status">未检测到</span><br>
+            进度条状态: <span id="progress-status">未检测到</span><br>
+            页面修改: <span id="page-modifications">无</span>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2><i class="fas fa-list"></i> 其他页面元素</h2>
+        <p>此区域包含常见的页面元素，验证Reader不会意外修改它们：</p>
+        
+        <div class="another-section">
+            <h3>普通内容区域</h3>
+            <p>这是一个普通的 <code><div></code> 容器，应该保持原样。</p>
+            <p>包含一些 <strong>粗体文字</strong> 和 <em>斜体文字</em>。</p>
+            
+            <ul>
+                <li>列表项1</li>
+                <li>列表项2</li>
+                <li>列表项3</li>
+            </ul>
+            
+            <button onclick="testButtonClick()">测试按钮</button>
+            <input type="text" placeholder="测试输入框" style="padding: 5px; margin: 5px;">
+        </div>
+    </div>
+    
+    <div class="warning">
+        <h4><i class="fas fa-info-circle"></i> 测试说明</h4>
+        <p>如果Reader功能正常工作，此页面应该：</p>
+        <ol>
+            <li>在控制台显示 "Reader will not be initialized on this page" 信息</li>
+            <li>不显示任何Reader相关的UI元素</li>
+            <li>所有其他页面元素保持原样</li>
+            <li>点击测试按钮应该显示正常alert</li>
+        </ol>
+    </div>
+    
+    <script>
+        // Mock WordPress configuration
+        window.wpgReaderConfig = {
+            postId: 123,
+            settings: {
+                reader_enabled: true,
+                reader_font_size: 18,
+                reader_font_family: 'sans',
+                reader_theme: 'light'
+            }
+        };
+        
+        // Mock default settings
+        window.wpgReaderDefaults = {
+            fontSize: 18,
+            fontFamily: 'sans',
+            theme: 'light'
+        };
+        
+        // Page monitoring
+        let pageLoadTime = Date.now();
+        
+        // Check for target container
+        function checkTargetContainer() {
+            const $target = $('#w2p-book-chapters');
+            const statusEl = document.getElementById('target-container-status');
+            
+            if ($target.length > 0) {
+                statusEl.innerHTML = '<i class="fas fa-check"></i> 找到 (应该初始化)';
+                statusEl.className = 'found';
+            } else {
+                statusEl.innerHTML = '<i class="fas fa-times"></i> 未找到 (应该跳过)';
+                statusEl.className = 'not-found';
+            }
+        }
+        
+        // Monitor Reader status
+        function monitorReaderStatus() {
+            const initStatusEl = document.getElementById('init-status');
+            const toolbarStatusEl = document.getElementById('toolbar-status');
+            const progressStatusEl = document.getElementById('progress-status');
+            const pageModEl = document.getElementById('page-modifications');
+            
+            // Check if Reader attempted initialization
+            if (window.wpGeniusReader) {
+                initStatusEl.innerHTML = '<i class="fas fa-check"></i> 已初始化';
+            } else {
+                initStatusEl.innerHTML = '<i class="fas fa-times"></i> 未初始化 (安全)';
+            }
+            
+            // Check for toolbar
+            const $toolbar = $('#wpg-reader-toolbar');
+            toolbarStatusEl.innerHTML = $toolbar.length > 0 ? 
+                '<i class="fas fa-check"></i> 已创建' : 
+                '<i class="fas fa-times"></i> 未创建 (安全)';
+            
+            // Check for progress bar
+            const $progress = $('#wpg-reader-progress-bar');
+            progressStatusEl.innerHTML = $progress.length > 0 ? 
+                '<i class="fas fa-check"></i> 已创建' : 
+                '<i class="fas fa-times"></i> 未创建 (安全)';
+            
+            // Check page modifications
+            const hasModifications = $toolbar.length > 0 || $progress.length > 0;
+            pageModEl.innerHTML = hasModifications ? 
+                '<i class="fas fa-exclamation"></i> 有修改' : 
+                '<i class="fas fa-check"></i> 无修改 (安全)';
+        }
+        
+        // Test button function
+        window.testButtonClick = function() {
+            alert('按钮点击正常！页面结构未被破坏。');
+        };
+        
+        // Update load time
+        document.getElementById('load-time').textContent = (Date.now() - pageLoadTime) + 'ms';
+        
+        // Initialize monitoring
+        $(document).ready(function() {
+            console.log('🔒 安全性测试页面加载完成');
+            console.log('🔍 检查目标容器...');
+            
+            checkTargetContainer();
+            
+            // Monitor Reader status every second
+            setInterval(monitorReaderStatus, 1000);
+            
+            // Check after Reader initialization
+            setTimeout(() => {
+                monitorReaderStatus();
+                console.log('📊 Reader状态检查完成');
+            }, 2000);
+        });
+    </script>
+    
+    <!-- Reader JavaScript -->
+    <script src="assets/js/reader.js"></script>
+    
+    <script>
+        // Final check after Reader loads
+        $(document).ready(function() {
+            setTimeout(() => {
+                monitorReaderStatus();
+                console.log('🛡️ 安全性测试完成 - Reader应该在没有目标容器的页面保持静默');
+            }, 3000);
+        });
+    </script>
+</body>
+</html>

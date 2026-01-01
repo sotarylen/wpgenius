@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reader 专注模式修复测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .test-header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            margin: -20px -20px 20px -20px;
+            text-align: center;
+        }
+        
+        .word-content-container {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        #w2p-book-chapters {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #333;
+        }
+        
+        #w2p-book-chapters h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        #w2p-book-chapters h2 {
+            color: #34495e;
+            margin-top: 30px;
+        }
+        
+        .test-instructions {
+            background: #e8f4fd;
+            border: 1px solid #3498db;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .test-instructions h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        
+        .test-instructions ol {
+            margin-bottom: 0;
+        }
+    </style>
+    
+    <!-- Reader CSS -->
+    <link rel="stylesheet" href="assets/css/reader.css">
+</head>
+<body>
+    <div class="test-header">
+        <h1>Reader 专注模式修复测试</h1>
+        <p>测试专注模式的元素隐藏和工具栏功能</p>
+    </div>
+    
+    <div class="test-instructions">
+        <h3>🧪 测试步骤</h3>
+        <ol>
+            <li>等待工具栏加载完成</li>
+            <li>点击右下角的专注模式按钮（两个箭头图标）</li>
+            <li>验证页面其他元素被隐藏，只显示阅读内容</li>
+            <li>再次点击按钮退出专注模式</li>
+            <li>检查页面恢复正常，无错误信息</li>
+        </ol>
+        <p><strong>预期结果：</strong>专注模式能正确隐藏其他元素，切换稳定无错误</p>
+    </div>
+    
+    <div class="word-content-container">
+        <div id="w2p-book-chapters">
+            <h1>第一章：专注阅读测试</h1>
+            
+            <p>这是一段测试文本，用于验证Reader功能的专注模式。专注模式应该能够隐藏页面上的其他元素，只保留阅读内容，提供更好的阅读体验。</p>
+            
+            <h2>测试内容</h2>
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+            
+            <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+            
+            <h2>更多测试内容</h2>
+            <p>中文测试内容：这是一段中文测试文本，用于验证中文字体显示和阅读体验。专注模式应该能够正确处理中英文混合内容。</p>
+            
+            <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
+            
+            <h2>技术细节</h2>
+            <p>本测试页面验证以下功能：</p>
+            <ul>
+                <li>专注模式的正确激活和退出</li>
+                <li>页面元素的正确隐藏和恢复</li>
+                <li>工具栏按钮的状态切换</li>
+                <li>错误处理机制的有效性</li>
+                <li>跨浏览器兼容性</li>
+            </ul>
+            
+            <p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.</p>
+            
+            <p>最后，这段文本用于测试专注模式的完整功能。如果专注模式工作正常，你应该能够看到页面上的其他元素（如header、instructions等）被隐藏，只保留这段阅读内容。</p>
+        </div>
+    </div>
+    
+    <!-- WordPress模拟的header -->
+    <header style="background: #1a1a1a; color: white; padding: 20px; margin: 20px -20px -20px -20px; text-align: center;">
+        <h2>WordPress Header（应该在专注模式中被隐藏）</h2>
+        <nav>
+            <a href="#" style="color: #3498db; margin: 0 10px;">首页</a>
+            <a href="#" style="color: #3498db; margin: 0 10px;">文章</a>
+            <a href="#" style="color: #3498db; margin: 0 10px;">关于</a>
+            <a href="#" style="color: #3498db; margin: 0 10px;">联系</a>
+        </nav>
+    </header>
+    
+    <!-- Reader JavaScript -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="assets/js/reader.js"></script>
+    
+    <script>
+        // 初始化Reader
+        jQuery(document).ready(function($) {
+            if (typeof WPGeniusReader !== 'undefined') {
+                new WPGeniusReader();
+            }
+        });
+    </script>
+</body>
+</html>
