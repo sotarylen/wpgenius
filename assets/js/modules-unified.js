@@ -7,7 +7,61 @@
     'use strict';
 
     // 全局命名空间
+    // 全局命名空间
     window.WPGenius = window.WPGenius || {};
+
+    // ==============================
+    // UI Helpers
+    // ==============================
+    WPGenius.UI = {
+        /**
+         * Show feedback on a button (changes text and adds success class)
+         * @param {jQuery} $btn The button element
+         * @param {string} message The message to display (e.g., "Saved!")
+         * @param {string} type Feedback type ('success', 'error', 'normal')
+         * @param {number} duration Duration in ms to show feedback
+         */
+        showFeedback: function ($btn, message, type = 'success', duration = 2000) {
+            if (!$btn || !$btn.length) return;
+
+            var originalText = $btn.data('original-text') || $btn.text();
+            var originalWidth = $btn.outerWidth();
+            var originalHtml = $btn.html();
+
+            // Save original state if not already saved
+            if (!$btn.data('original-text')) {
+                $btn.data('original-text', originalText);
+                $btn.data('original-html', originalHtml);
+            }
+
+            // Fix width to prevent jumping
+            if ($btn.css('width') === 'auto' || !$btn[0].style.width) {
+                $btn.css('min-width', originalWidth + 'px');
+            }
+
+            var iconClass = type === 'success' ? 'dashicons-yes' :
+                type === 'error' ? 'dashicons-warning' : '';
+            var btnClass = type === 'success' ? 'w2p-btn-success' :
+                type === 'error' ? 'w2p-btn-danger' : '';
+
+            // Construct content
+            var content = '';
+            if (iconClass) {
+                content += '<span class="dashicons ' + iconClass + '"></span> ';
+            }
+            content += message;
+
+            $btn.html(content)
+                .addClass(btnClass)
+                .prop('disabled', true);
+
+            setTimeout(function () {
+                $btn.html($btn.data('original-html'))
+                    .removeClass(btnClass)
+                    .prop('disabled', false);
+            }, duration);
+        }
+    };
 
     // ==============================
     // AI助手模块 (AI Assistant)
@@ -319,7 +373,13 @@
             var $btn = $(e.currentTarget);
             var scanLimit = parseInt($('#w2p-scan-limit').val()) || 100;
 
-            $btn.prop('disabled', true).text('Scanning...');
+            // Save state
+            if (!$btn.data('original-html')) {
+                $btn.data('original-html', $btn.html());
+                $btn.data('original-text', $btn.text());
+            }
+
+            $btn.prop('disabled', true).html('<span class="dashicons dashicons-update w2p-spin" style="margin-top: 4px; margin-right: 4px;"></span> Scanning...');
 
             $.post(w2pMediaTurbo.ajax_url, {
                 action: 'w2p_media_turbo_get_stats',
@@ -345,18 +405,37 @@
                 if (this.allIds.length > 0) {
                     $('#w2p-start-bulk').fadeIn();
                     $('#w2p-scan-results-wrapper').fadeIn();
+                    if (window.WPGenius.UI) {
+                        WPGenius.UI.showFeedback($btn, 'Scan Complete', 'success');
+                    }
                 } else {
-                    alert('No images found that need conversion.');
+                    if (window.WPGenius.UI) {
+                        WPGenius.UI.showFeedback($btn, 'No Images', 'warning');
+                    } else {
+                        alert('No images found that need conversion.');
+                    }
                 }
             } else {
-                alert('Scan failed: ' + (response.data || 'Unknown error'));
+                if (window.WPGenius.UI) {
+                    WPGenius.UI.showFeedback($btn, 'Scan Failed', 'error');
+                } else {
+                    alert('Scan failed: ' + (response.data || 'Unknown error'));
+                }
             }
-            $btn.prop('disabled', false).text('Scan Media Library');
+            if (!window.WPGenius.UI) {
+                $btn.prop('disabled', false).text($btn.data('original-text'));
+            } else {
+                // UI helper handles reset
+            }
         },
 
         handleScanError: function ($btn) {
-            alert('Network error or server-side failure during scan.');
-            $btn.prop('disabled', false).text('Scan Media Library');
+            if (window.WPGenius.UI) {
+                WPGenius.UI.showFeedback($btn, 'Network Error', 'error');
+            } else {
+                alert('Network error or server-side failure during scan.');
+                $btn.prop('disabled', false).text($btn.data('original-text'));
+            }
         },
 
         renderScanResults: function () {
@@ -393,7 +472,7 @@
             this.stopRequested = false;
 
             $(e.currentTarget).prop('disabled', true).hide();
-            $('#w2p-stop-bulk').fadeIn().prop('disabled', false).text('Stop');
+            $('#w2p-stop-bulk').fadeIn().prop('disabled', false).html('<span class="dashicons dashicons-no-alt" style="margin-top: 4px; margin-right: 4px;"></span> Stop');
             $('#w2p-scan-media').prop('disabled', true);
             $('#w2p-bulk-progress-wrapper').fadeIn();
 
@@ -562,10 +641,13 @@
             this.isRunning = false;
             this.currentXHR = null;
             $('#w2p-stop-bulk').hide();
-            $('#w2p-start-bulk').show().text('Optimize Again').prop('disabled', false);
+            $('#w2p-start-bulk').show().html('<span class="dashicons dashicons-update" style="margin-top: 4px; margin-right: 4px;"></span> Optimize Again').prop('disabled', false); // Assuming icon for optimize again
             $('#w2p-scan-media').prop('disabled', false);
             // 去除弹窗提示，仅在状态栏显示
             $('#w2p-bulk-status-detailed').html('<strong style="color:#10a754;">' + message + '</strong>');
+            if (window.WPGenius.UI) {
+                WPGenius.UI.showFeedback($('#w2p-start-bulk'), 'Finished!', 'success');
+            }
         },
 
         resetProcessed: function () {
@@ -574,15 +656,27 @@
             }
 
             var $btn = $('#w2p-reset-processed');
-            $btn.prop('disabled', true).text('Resetting...');
+            $btn.prop('disabled', true).addClass('w2p-btn-loading'); // Unified loading class
+
+            // Save state
+            if (!$btn.data('original-html')) {
+                $btn.data('original-html', $btn.html());
+            }
+
 
             $.post(w2pMediaTurbo.ajax_url, {
                 action: 'w2p_media_turbo_reset_processed',
                 nonce: w2pMediaTurbo.nonce
             }, function (response) {
+                $btn.removeClass('w2p-btn-loading');
                 if (response.success) {
-                    alert('Processed posts list has been reset!');
-                    location.reload();
+                    if (window.WPGenius.UI) {
+                        WPGenius.UI.showFeedback($btn, 'Reset Successful', 'success');
+                        setTimeout(() => { location.reload(); }, 1000);
+                    } else {
+                        alert('Processed posts list has been reset!');
+                        location.reload();
+                    }
                 } else {
                     alert('Failed to reset: ' + (response.data || 'Unknown error'));
                     $btn.prop('disabled', false).text('Reset Processed Posts');
@@ -608,6 +702,12 @@
             var $btn = $(e.currentTarget);
             var $counts = $('.w2p-health-count');
 
+            // Save original state explicitly
+            if (!$btn.data('original-html')) {
+                $btn.data('original-html', $btn.html());
+                $btn.data('original-text', $btn.text());
+            }
+
             $btn.prop('disabled', true).html('<span class="dashicons dashicons-update w2p-spin" style="margin-top: 4px; margin-right: 4px;"></span> Scanning...');
             $counts.text('...');
 
@@ -619,16 +719,24 @@
                     $.each(response.data, function (key, count) {
                         $('.w2p-health-card[data-type="' + key + '"] .w2p-health-count').text(count);
                     });
-                    WPGenius.SystemHealth.showMessage('Scan complete.', 'success');
+
+                    // Use UI helper for success
+                    if (window.WPGenius.UI) {
+                        WPGenius.UI.showFeedback($btn, 'Scan Complete', 'success');
+                    } else {
+                        // Fallback
+                        $btn.prop('disabled', false).html($btn.data('original-html'));
+                        WPGenius.SystemHealth.showMessage('Scan complete.', 'success');
+                    }
                 } else {
                     WPGenius.SystemHealth.showMessage('Scan failed: ' + (response.data || 'Unknown error'), 'error');
                     $counts.text('-');
+                    $btn.prop('disabled', false).html($btn.data('original-html'));
                 }
-                $btn.prop('disabled', false).html('<span class="dashicons dashicons-search" style="margin-top: 4px; margin-right: 4px;"></span> Scan System Status');
             }).fail(function () {
                 WPGenius.SystemHealth.showMessage('Network error during scan.', 'error');
                 $counts.text('-');
-                $btn.prop('disabled', false).html('<span class="dashicons dashicons-search" style="margin-top: 4px; margin-right: 4px;"></span> Scan System Status');
+                $btn.prop('disabled', false).html($btn.data('original-html'));
             });
         },
 
@@ -639,36 +747,49 @@
             var action = $btn.data('action');
             var $card = $btn.closest('.w2p-health-card');
             var $count = $card.find('.w2p-health-count');
-            var originalText = $btn.text();
 
             if (!action) {
                 console.error('System Health: Missing action for button', $btn);
                 return;
             }
 
-            $btn.prop('disabled', true).text(w2pSystemHealth.cleaning);
+            // Save original state explicitly
+            if (!$btn.data('original-html')) {
+                $btn.data('original-html', $btn.html());
+                $btn.data('original-text', $btn.text());
+            }
+
+            $btn.prop('disabled', true).addClass('w2p-btn-loading');
 
             $.post(w2pSystemHealth.ajax_url, {
                 action: 'w2p_system_health_clean',
                 cleanup_type: action,
                 nonce: w2pSystemHealth.nonce
-            }, this.handleHealthResponse.bind(this, $btn, $count, originalText))
-                .fail(this.handleHealthError.bind(this, $btn, originalText));
+            }, this.handleHealthResponse.bind(this, $btn, $count))
+                .fail(this.handleHealthError.bind(this, $btn));
         },
 
-        handleHealthResponse: function ($btn, $count, originalText, response) {
+        handleHealthResponse: function ($btn, $count, response) {
+            $btn.removeClass('w2p-btn-loading');
+
             if (response.success) {
                 $count.text('0');
-                this.showMessage(response.data.message, 'success');
+                if (window.WPGenius.UI) {
+                    WPGenius.UI.showFeedback($btn, 'Cleaned!', 'success');
+                } else {
+                    $btn.prop('disabled', false).html($btn.data('original-html'));
+                    this.showMessage(response.data.message, 'success');
+                }
             } else {
                 this.showMessage(response.data.message || 'Error occurred', 'error');
+                $btn.prop('disabled', false).html($btn.data('original-html'));
             }
-            $btn.prop('disabled', false).text(originalText);
         },
 
-        handleHealthError: function ($btn, originalText) {
+        handleHealthError: function ($btn) {
+            $btn.removeClass('w2p-btn-loading');
             this.showMessage('Network error', 'error');
-            $btn.prop('disabled', false).text(originalText);
+            $btn.prop('disabled', false).html($btn.data('original-html'));
         },
 
         showMessage: function (msg, type) {
@@ -684,6 +805,7 @@
         },
 
         getButtonText: function (action) {
+            // Deprecated helper, kept just in case but likely unused now with showFeedback
             switch (action) {
                 case 'revisions': return 'Clean Revisions';
                 case 'auto_drafts': return 'Clean Auto Drafts';
@@ -714,6 +836,12 @@
             var $btn = $(e.currentTarget);
             var categoryId = $('#w2p-image-link-category').val();
 
+            // Save original state explicitly
+            if (!$btn.data('original-html')) {
+                $btn.data('original-html', $btn.html());
+                $btn.data('original-text', $btn.text());
+            }
+
             $btn.prop('disabled', true).html('<span class="dashicons dashicons-update w2p-spin" style="margin-top: 4px; margin-right: 4px;"></span> ' + w2pSystemHealth.scanning);
 
             $.post(w2pSystemHealth.ajax_url, {
@@ -727,13 +855,28 @@
                     $('#w2p-image-link-status').text('Found ' + this.allPosts.length + ' posts with linked images.');
                     $('#w2p-image-link-results-wrapper').fadeIn();
                     $('#w2p-image-link-execute-btn').prop('disabled', this.allPosts.length === 0);
+
+                    if (window.WPGenius.UI) {
+                        WPGenius.UI.showFeedback($btn, 'Scan Complete', 'success');
+                    } else {
+                        $btn.prop('disabled', false).html($btn.data('original-html'));
+                    }
                 } else {
-                    alert('Scan failed: ' + (response.data.message || 'Unknown error'));
+                    if (window.WPGenius.UI) {
+                        WPGenius.UI.showFeedback($btn, 'Scan Failed', 'error');
+                        this.showNotice('Scan failed: ' + (response.data.message || 'Unknown error'), 'error');
+                    } else {
+                        alert('Scan failed: ' + (response.data.message || 'Unknown error'));
+                        $btn.prop('disabled', false).html($btn.data('original-html'));
+                    }
                 }
-                $btn.prop('disabled', false).html('<span class="dashicons dashicons-search" style="margin-top: 4px; margin-right: 4px;"></span> Scan for Linked Images');
             }).fail(() => {
-                alert('Network error during scan.');
-                $btn.prop('disabled', false).html('<span class="dashicons dashicons-search" style="margin-top: 4px; margin-right: 4px;"></span> Scan for Linked Images');
+                if (window.WPGenius.UI) {
+                    WPGenius.UI.showFeedback($btn, 'Network Error', 'error');
+                } else {
+                    alert('Network error during scan.');
+                    $btn.prop('disabled', false).html($btn.data('original-html'));
+                }
             });
         },
 
@@ -802,7 +945,9 @@
             });
 
             var $firstRow = $('#w2p-post-' + batchPosts[0].id);
-            $firstRow[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if ($firstRow.length) {
+                $firstRow[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
 
             $.post(w2pSystemHealth.ajax_url, {
                 action: 'w2p_system_health_remove_links',
@@ -1137,29 +1282,48 @@
 
                         if ($group) {
                             // Single group cleanup
-                            $btn.prop('disabled', true).removeClass('is-loading').addClass('button-primary');
-                            $btn.find('.btn-text').text($btn.data('text-done'));
-                            $btn.find('.dashicons').removeClass('dashicons-trash').addClass('dashicons-yes');
-
-                            setTimeout(() => {
-                                $group.fadeOut(300, function () {
-                                    $(this).remove();
-                                    var remaining = $('.w2p-duplicate-group').length;
-                                    if (remaining === 0) {
-                                        $('#w2p-duplicate-results-wrapper').fadeOut(300, function () {
-                                            $(this).addClass('w2p-hidden');
-                                        });
-                                    }
-                                });
-                            }, 1500);
+                            if (window.WPGenius.UI) {
+                                WPGenius.UI.showFeedback($btn, 'Cleaned!', 'success');
+                                setTimeout(() => {
+                                    $group.fadeOut(300, function () {
+                                        $(this).remove();
+                                        var remaining = $('.w2p-duplicate-group').length;
+                                        if (remaining === 0) {
+                                            $('#w2p-duplicate-results-wrapper').fadeOut(300, function () {
+                                                $(this).addClass('w2p-hidden');
+                                            });
+                                        }
+                                    });
+                                }, 1000);
+                            } else {
+                                $btn.prop('disabled', true).removeClass('is-loading').addClass('button-primary');
+                                $btn.find('.btn-text').text($btn.data('text-done'));
+                                $btn.find('.dashicons').removeClass('dashicons-trash').addClass('dashicons-yes');
+                                setTimeout(() => {
+                                    $group.fadeOut(300, function () {
+                                        $(this).remove();
+                                        var remaining = $('.w2p-duplicate-group').length;
+                                        if (remaining === 0) {
+                                            $('#w2p-duplicate-results-wrapper').fadeOut(300, function () {
+                                                $(this).addClass('w2p-hidden');
+                                            });
+                                        }
+                                    });
+                                }, 1500);
+                            }
                         } else {
                             // Batch cleanup
-                            WPGenius.DuplicateCleaner.showNotice('Successfully processed ' + totalProcessed + ' posts!', 'success');
+                            if (window.WPGenius.UI) {
+                                WPGenius.UI.showFeedback($btn, 'Cleanup Complete!', 'success');
+                            } else {
+                                WPGenius.DuplicateCleaner.showNotice('Successfully processed ' + totalProcessed + ' posts!', 'success');
+                                $btn.prop('disabled', false).removeClass('is-loading');
+                                $btn.find('.btn-text').text($btn.data('text-default'));
+                            }
+
                             setTimeout(() => {
                                 $('#w2p-duplicate-scan-btn').click();
                             }, 1500);
-                            $btn.prop('disabled', false).removeClass('is-loading');
-                            $btn.find('.btn-text').text($btn.data('text-default'));
                         }
                     } else {
                         // Some batches failed
@@ -1167,6 +1331,9 @@
                         WPGenius.DuplicateCleaner.showNotice('Partially completed: ' + totalProcessed + ' succeeded, ' + failedBatches + ' failed', 'error');
                         $btn.prop('disabled', false).removeClass('is-loading');
                         $btn.find('.btn-text').text($btn.data('text-default'));
+                        if (window.WPGenius.UI) {
+                            WPGenius.UI.showFeedback($btn, 'Partial Error', 'error');
+                        }
                     }
                     return;
                 }
@@ -1271,9 +1438,23 @@
             var $btn = $(e.currentTarget);
             var categoryId = $('#w2p-duplicate-category').val();
 
+            // Save state
+            if (!$btn.data('original-html')) {
+                $btn.data('original-html', $btn.html());
+                $btn.data('original-text', $btn.find('.btn-text').text());
+            }
+
             // Set loading state
-            $btn.prop('disabled', true).addClass('is-loading');
-            $btn.find('.btn-text').text($btn.data('text-scanning'));
+            $btn.prop('disabled', true);
+            if (window.WPGenius.UI) {
+                // Use the UI helper which handles spinner and text
+                WPGenius.UI.showFeedback($btn, $btn.data('text-scanning'), 'loading');
+                // Manually add spinner class if showFeedback doesn't (it usually adds w2p-btn-loading)
+                $btn.addClass('w2p-btn-loading');
+            } else {
+                $btn.addClass('is-loading');
+                $btn.find('.btn-text').text($btn.data('text-scanning'));
+            }
 
             $.post(w2pSystemHealth.ajax_url, {
                 action: 'w2p_system_health_scan_duplicates',
@@ -1292,6 +1473,10 @@
                     $('#w2p-duplicate-status').text('Found ' + this.duplicateGroups.length + ' duplicate groups (' + totalDuplicates + ' posts to clean).');
                     $('#w2p-duplicate-results-wrapper').removeClass('w2p-hidden').fadeIn();
                     $('#w2p-duplicate-clean-btn').prop('disabled', this.duplicateGroups.length === 0);
+
+                    if (window.WPGenius.UI) {
+                        WPGenius.UI.showFeedback($btn, 'Scan Complete', 'success');
+                    }
                 } else {
                     console.error('Scan failed:', response);
                     var errorMsg = 'Unknown error';
@@ -1302,11 +1487,21 @@
                             errorMsg = response.data.message;
                         }
                     }
-                    alert('Scan failed: ' + errorMsg);
+
+                    if (window.WPGenius.UI) {
+                        // Display error next to button instead of alert
+                        WPGenius.UI.showFeedback($btn, 'Error: ' + errorMsg, 'error', 3000);
+                    } else {
+                        alert('Scan failed: ' + errorMsg);
+                    }
                 }
                 // Reset button state
-                $btn.prop('disabled', false).removeClass('is-loading');
-                $btn.find('.btn-text').text($btn.data('text-default'));
+                if (!window.WPGenius.UI) {
+                    $btn.prop('disabled', false).removeClass('is-loading');
+                    $btn.find('.btn-text').text($btn.data('text-default'));
+                } else {
+                    $btn.removeClass('is-loading'); // Remove loading class but let showFeedback handle text reset
+                }
             }, 'json').fail((xhr, status, error) => {
                 console.error('Scan AJAX error:', {
                     status: status,
@@ -1327,11 +1522,12 @@
                     }
                 }
 
-                alert('Scan failed: ' + errorMsg);
-
-                // Reset button state
-                $btn.prop('disabled', false).removeClass('is-loading');
-                $btn.find('.btn-text').text($btn.data('text-default'));
+                if (window.WPGenius.UI) {
+                    WPGenius.UI.showFeedback($btn, 'Error: ' + errorMsg, 'error', 4000);
+                } else {
+                    alert('Scan failed: ' + errorMsg);
+                    $btn.prop('disabled', false).removeClass('is-loading');
+                }
             });
         }
     };

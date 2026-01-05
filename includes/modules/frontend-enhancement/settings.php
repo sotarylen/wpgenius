@@ -558,9 +558,10 @@ $settings = wp_parse_args( $settings, $defaults );
 		
 		<!-- Save Button -->
 		<div class="w2p-settings-actions">
-			<input type="submit" name="submit" id="w2p-frontend-enhancement-submit" 
-				   class="button button-primary" 
-				   value="<?php esc_attr_e( 'Save Frontend Enhancement Settings', 'wp-genius' ); ?>">
+			<button type="submit" name="submit" id="w2p-frontend-enhancement-submit" class="w2p-btn w2p-btn-primary">
+				<span class="dashicons dashicons-saved"></span>
+				<?php esc_html_e( 'Save Frontend Enhancement Settings', 'wp-genius' ); ?>
+			</button>
 		</div>
 	</form>
 </div>

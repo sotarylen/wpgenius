@@ -63,8 +63,14 @@ $options = $module->options;
                     <div class="w2p-form-control">
                         <div class="w2p-flex w2p-items-center w2p-gap-sm iw_watermark_image">
                             <input id="iw_upload_image" type="hidden" name="iw_options[watermark_image][url]" value="<?php echo (int) $options['watermark_image']['url']; ?>" />
-                            <input id="iw_upload_image_button" type="button" class="button button-secondary" value="<?php _e('Select Image', 'wp-genius'); ?>" />
-                            <input id="iw_turn_off_image_button" type="button" class="button button-secondary" value="<?php _e('Remove Image', 'wp-genius'); ?>" <?php echo empty($options['watermark_image']['url']) ? 'disabled="disabled"' : ''; ?>/>
+                            <button type="button" id="iw_upload_image_button" class="w2p-btn w2p-btn-secondary">
+                                <span class="dashicons dashicons-format-image"></span>
+                                <?php _e('Select Image', 'wp-genius'); ?>
+                            </button>
+                            <button type="button" id="iw_turn_off_image_button" class="w2p-btn w2p-btn-secondary" <?php echo empty($options['watermark_image']['url']) ? 'disabled="disabled"' : ''; ?>>
+                                <span class="dashicons dashicons-trash"></span>
+                                <?php _e('Remove Image', 'wp-genius'); ?>
+                            </button>
                         </div>
                         
                         <div id="previewImg_imageDiv" style="margin-top: 20px; border: 1px dashed var(--w2p-border-color); padding: 10px; border-radius: var(--w2p-radius-md); display: inline-block;">
@@ -308,7 +314,21 @@ $options = $module->options;
         </div>
 
         <div class="w2p-settings-actions">
-            <input type="submit" name="submit" id="w2p-image-watermark-submit" class="button button-primary" value="<?php esc_attr_e( 'Save Watermark Settings', 'wp-genius' ); ?>">
+            <button type="submit" name="submit" id="w2p-image-watermark-submit" class="w2p-btn w2p-btn-primary">
+                <span class="dashicons dashicons-saved"></span>
+                <?php esc_html_e( 'Save Watermark Settings', 'wp-genius' ); ?>
+            </button>
         </div>
     </form>
+    <script>
+        jQuery(document).ready(function($) {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('settings-updated') === 'true') {
+                const $btn = $('#w2p-image-watermark-submit');
+                if (window.WPGenius && WPGenius.UI) {
+                    WPGenius.UI.showFeedback($btn, '<?php esc_js( __( 'Settings Saved', 'wp-genius' ) ); ?>', 'success');
+                }
+            }
+        });
+    </script>
 </div>

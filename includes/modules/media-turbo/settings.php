@@ -136,7 +136,10 @@ $webp_supported = MediaTurboConverterService::is_webp_supported();
                 </div>
                 
                 <div class="w2p-settings-actions">
-                    <input type="submit" name="w2p_media_turbo_save" id="w2p-media-turbo-submit" class="button button-primary" value="<?php esc_attr_e( 'Save All Settings', 'wp-genius' ); ?>">
+                    <button type="submit" name="w2p_media_turbo_save" id="w2p-media-turbo-submit" class="w2p-btn w2p-btn-primary">
+                        <span class="dashicons dashicons-saved"></span>
+                        <?php esc_attr_e( 'Save All Settings', 'wp-genius' ); ?>
+                    </button>
                 </div>
             </form>
         </div>
@@ -150,16 +153,20 @@ $webp_supported = MediaTurboConverterService::is_webp_supported();
                 
                 <div class="w2p-section-body">
                     <div class="w2p-bulk-actions w2p-flex w2p-flex-wrap w2p-gap-sm">
-                        <button type="button" id="w2p-scan-media" class="button button-primary">
+                        <button type="button" id="w2p-scan-media" class="w2p-btn w2p-btn-primary">
+                            <span class="dashicons dashicons-images-alt2"></span>
                             <?php esc_html_e( 'Scan Media Library', 'wp-genius' ); ?>
                         </button>
-                        <button type="button" id="w2p-start-bulk" class="button button-primary" style="display:none; background:var(--w2p-color-success); border-color:var(--w2p-color-success);">
+                        <button type="button" id="w2p-start-bulk" class="w2p-btn w2p-btn-success" style="display:none;">
+                            <span class="dashicons dashicons-controls-play"></span>
                             <?php esc_html_e( 'Start Bulk Conversion', 'wp-genius' ); ?>
                         </button>
-                        <button type="button" id="w2p-stop-bulk" class="button button-secondary" style="display:none; color:var(--w2p-color-danger); border-color:var(--w2p-color-danger);">
+                        <button type="button" id="w2p-stop-bulk" class="w2p-btn w2p-btn-stop" style="display:none;">
+                            <span class="dashicons dashicons-controls-pause"></span>
                             <?php esc_html_e( 'Stop', 'wp-genius' ); ?>
                         </button>
-                        <button type="button" id="w2p-reset-processed" class="button button-secondary">
+                        <button type="button" id="w2p-reset-processed" class="w2p-btn w2p-btn-secondary">
+                            <span class="dashicons dashicons-update"></span>
                             <?php esc_html_e( 'Reset Processed Posts', 'wp-genius' ); ?>
                         </button>
                     </div>

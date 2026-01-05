@@ -203,7 +203,10 @@ $post_types = get_post_types( [ 'public' => true ], 'objects' );
             </div>
 
             <div class="w2p-settings-actions">
-                <input type="submit" name="submit" id="w2p-smart-aui-submit" class="button button-primary" value="<?php esc_attr_e('Save All Settings', 'wp-genius'); ?>">
+                <button type="submit" name="submit" id="w2p-smart-aui-submit" class="w2p-btn w2p-btn-primary">
+                    <span class="dashicons dashicons-saved"></span>
+                    <?php esc_attr_e('Save All Settings', 'wp-genius'); ?>
+                </button>
             </div>
         </form>
         </div>
@@ -213,8 +216,8 @@ $post_types = get_post_types( [ 'public' => true ], 'objects' );
         <div class="w2p-section">
             <div class="w2p-section-header">
                 <h4><?php _e('Capture Failure Logs', 'wp-genius'); ?></h4>
-                <button type="button" id="w2p-smart-aui-clear-logs" class="button button-secondary">
-                    <span class="dashicons dashicons-trash" style="margin-top: 4px;"></span>
+                <button type="button" id="w2p-smart-aui-clear-logs" class="w2p-btn w2p-btn-secondary">
+                    <span class="dashicons dashicons-trash"></span>
                     <?php _e('Clear All Logs', 'wp-genius'); ?>
                 </button>
             </div>
@@ -266,6 +269,15 @@ $post_types = get_post_types( [ 'public' => true ], 'objects' );
 
 <script>
 jQuery(document).ready(function($) {
+    // Check for settings saved param and show feedback on Save button
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('settings-updated') === 'true') {
+        const $saveBtn = $('#w2p-smart-aui-submit');
+        if ($saveBtn.length && window.WPGenius && WPGenius.UI) {
+            WPGenius.UI.showFeedback($saveBtn, '<?php _e('Settings Saved', 'wp-genius'); ?>', 'success');
+        }
+    }
+
     // Clear logs
     $('#w2p-smart-aui-clear-logs').on('click', function() {
         if (!confirm('<?php _e('Are you sure you want to clear all capture logs?', 'wp-genius'); ?>')) {
@@ -273,7 +285,9 @@ jQuery(document).ready(function($) {
         }
 
         var $btn = $(this);
-        $btn.prop('disabled', true).text('<?php _e('Clearing...', 'wp-genius'); ?>');
+        var originalText = $btn.text();
+        
+        $btn.prop('disabled', true).addClass('w2p-btn-loading');
 
         $.ajax({
             url: ajaxurl,
@@ -283,16 +297,29 @@ jQuery(document).ready(function($) {
                 nonce: '<?php echo wp_create_nonce("w2p_smart_aui_progress"); ?>'
             },
             success: function(response) {
+                $btn.removeClass('w2p-btn-loading');
                 if (response.success) {
-                    location.reload();
+                    if (window.WPGenius && WPGenius.UI) {
+                        WPGenius.UI.showFeedback($btn, '<?php _e('Logs Cleared', 'wp-genius'); ?>', 'success');
+                    }
+                    setTimeout(function() { location.reload(); }, 1500);
                 } else {
-                    alert('Error: ' + response.data);
-                    $btn.prop('disabled', false).text('<?php _e('Clear All Logs', 'wp-genius'); ?>');
+                    if (window.WPGenius && WPGenius.UI) {
+                        WPGenius.UI.showFeedback($btn, 'Error: ' + response.data, 'error');
+                    } else {
+                        alert('Error: ' + response.data);
+                        $btn.prop('disabled', false);
+                    }
                 }
             },
             error: function() {
-                alert('Connection error');
-                $btn.prop('disabled', false).text('<?php _e('Clear All Logs', 'wp-genius'); ?>');
+                $btn.removeClass('w2p-btn-loading');
+                if (window.WPGenius && WPGenius.UI) {
+                    WPGenius.UI.showFeedback($btn, 'Connection Error', 'error');
+                } else {
+                    alert('Connection error');
+                    $btn.prop('disabled', false);
+                }
             }
         });
     });
