@@ -24,8 +24,8 @@
             };
 
             // Use config defaults if available, otherwise use defaults
-            this.state = { 
-                ...defaults, 
+            this.state = {
+                ...defaults,
                 ...this.loadSettings(),
                 ...(window.wpgReaderDefaults || {})
             };
@@ -38,13 +38,13 @@
 
             // 严格检查：只允许在存在 #w2p-book-chapters 的页面激活
             this.$container = $(this.containerSelector);
-            
+
             if (this.$container.length === 0) {
                 console.log('WP Genius Reader: #w2p-book-chapters container not found. Reader will not be initialized on this page.');
                 console.log('WP Genius Reader: This is expected behavior for pages without book chapters.');
                 return; // 直接退出，不做任何操作
             }
-            
+
             console.log('WP Genius Reader: Target container #w2p-book-chapters found. Initializing reader functionality...');
 
             // 只有在找到目标容器时才初始化功能
@@ -55,7 +55,7 @@
             this.applyStyles();
             this.bindEvents();
             this.restorePosition();
-            
+
             console.log('WP Genius Reader: Initialization completed successfully!');
         }
 
@@ -83,7 +83,7 @@
 
         createToolbar() {
             console.log('WP Genius Reader: Creating toolbar...');
-            
+
             // Remove any existing toolbar
             $('#wpg-reader-toolbar, #wpg-reader-toolbar-container').remove();
 
@@ -137,10 +137,10 @@
             $fontSelect.on('change', (e) => {
                 const selectedFont = $(e.target).val();
                 console.log('Font family changed to:', selectedFont);
-                
+
                 // Early return if same font
                 if (this.state.fontFamily === selectedFont) return;
-                
+
                 this.setFontFamily(selectedFont);
             });
             $fontSection.append($fontSelect);
@@ -163,7 +163,7 @@
                     title: t.title,
                     'data-theme': t.id
                 });
-                
+
                 // Add Font Awesome icon
                 $btn.append($('<i>', { class: t.icon }));
 
@@ -190,16 +190,16 @@
                 title: '全屏/专注模式',
                 'data-fullscreen': 'false'
             });
-            
+
             $fullscreenBtn.append($('<i>', { class: 'fas fa-expand-alt' }));
-            
+
             $fullscreenBtn.on('click', (e) => {
                 e.preventDefault();
                 this.toggleFullscreen();
             });
-            
+
             $fullscreenSection.append($fullscreenBtn);
-            
+
             // Store reference for later use
             this.$fullscreenBtn = $fullscreenBtn;
 
@@ -212,10 +212,10 @@
 
             // Insert toolbar BEFORE content container
             this.$container.before($toolbar);
-            
+
             // Ensure toolbar is visible
             $toolbar.show();
-            
+
             console.log('WP Genius Reader: Toolbar created and inserted successfully!');
         }
 
@@ -229,30 +229,30 @@
 
             // Early return if no change
             if (this.state.fontSize === newSize) return;
-            
+
             this.state.fontSize = newSize;
 
             // Smooth visual updates using requestAnimationFrame
             requestAnimationFrame(() => {
                 // Update display
                 this.$sizeDisplay.text(newSize + 'px');
-                
+
                 // Apply font styles only (more efficient)
                 this.applyFontStyles();
-                
+
                 // Save settings (non-blocking)
                 setTimeout(() => this.saveSettings(), 0);
             });
-            
+
             console.log('Font size changed to:', newSize + 'px');
         }
 
         setFontFamily(font) {
             // Early return if same font
             if (this.state.fontFamily === font) return;
-            
+
             this.state.fontFamily = font;
-            
+
             // Smooth update using requestAnimationFrame
             requestAnimationFrame(() => {
                 this.applyFontStyles();
@@ -262,13 +262,13 @@
 
         setTheme(theme) {
             console.log('Switching to theme:', theme);
-            
+
             // Early return if same theme
             if (this.state.theme === theme) {
                 console.log('Same theme, skipping...');
                 return;
             }
-            
+
             // Update state immediately
             this.state.theme = theme;
 
@@ -278,7 +278,7 @@
                 this.$toolbar.find('.wpg-reader-theme-btn').each((index, btn) => {
                     const $btn = $(btn);
                     const isActive = $btn.data('theme') === theme;
-                    
+
                     if (isActive) {
                         $btn.addClass('active');
                     } else {
@@ -288,11 +288,11 @@
 
                 // Apply theme styles with smooth transition
                 this.applyThemeStyles();
-                
+
                 // Save settings (non-blocking)
                 setTimeout(() => this.saveSettings(), 0);
             });
-            
+
             console.log('Theme switched successfully to:', theme);
         }
 
@@ -302,15 +302,15 @@
             // Apply theme
             this.applyThemeStyles();
         }
-        
+
         applyFontStyles() {
             const $container = this.$container;
-            
+
             // Remove all font classes
             $container.removeClass(
                 'wpg-font-sans wpg-font-heiti wpg-font-songti wpg-font-kaiti wpg-font-lishu wpg-font-yahei wpg-font-droidsans wpg-font-serif'
             );
-            
+
             // Add new font class
             $container.addClass(`wpg-font-${this.state.fontFamily}`);
 
@@ -318,15 +318,15 @@
             $container[0].style.fontSize = `${this.state.fontSize}px`;
             $container[0].style.lineHeight = '1.8';
         }
-        
+
         applyThemeStyles() {
             const $container = this.$container;
-            
+
             // Remove all theme classes
             $container.removeClass(
                 'wpg-theme-light wpg-theme-sepia wpg-theme-dark wpg-theme-green'
             );
-            
+
             // Add new theme class
             $container.addClass(`wpg-theme-${this.state.theme}`);
         }
@@ -336,7 +336,7 @@
                 this.updateProgress();
                 this.savePosition();
             });
-            
+
             // 键盘支持：ESC退出全屏模式
             $(document).on('keydown', (e) => {
                 if (e.key === 'Escape' && this.$fullscreenBtn && this.$fullscreenBtn.data('fullscreen') === 'true') {
@@ -373,96 +373,50 @@
                 }, 300);
             }
         }
-        
+
         toggleFullscreen() {
             const isFullscreen = this.$fullscreenBtn.data('fullscreen') === 'true';
-            
+
             if (isFullscreen) {
                 this.exitFullscreen();
             } else {
                 this.enterFullscreen();
             }
         }
-        
+
         enterFullscreen() {
             console.log('Entering fullscreen/focus mode...');
-            
+
             try {
                 // Update button state
                 this.$fullscreenBtn.data('fullscreen', 'true');
                 this.$fullscreenBtn.find('i').removeClass('fas fa-expand-alt').addClass('fas fa-compress-alt');
                 this.$fullscreenBtn.attr('title', '退出全屏模式');
-                
-                // 只添加全屏模式类
+
+                // Add fullscreen mode class
                 $('body').addClass('wpg-reader-fullscreen');
-                
-                // Hide all elements except reader container, toolbar, and progress bar
-                this.hideNonReaderElements();
-                
+
                 console.log('Fullscreen mode activated successfully');
             } catch (error) {
                 console.error('Error entering fullscreen mode:', error);
             }
         }
-        
+
         exitFullscreen() {
             console.log('Exiting fullscreen/focus mode...');
-            
+
             try {
                 // Update button state
                 this.$fullscreenBtn.data('fullscreen', 'false');
                 this.$fullscreenBtn.find('i').removeClass('fas fa-compress-alt').addClass('fas fa-expand-alt');
                 this.$fullscreenBtn.attr('title', '全屏/专注模式');
-                
-                // 只移除全屏模式类
+
+                // Remove fullscreen mode class
                 $('body').removeClass('wpg-reader-fullscreen');
-                
-                // Show all hidden elements
-                this.showAllElements();
-                
+
                 console.log('Fullscreen mode exited successfully');
             } catch (error) {
                 console.error('Error exiting fullscreen mode:', error);
-            }
-        }
-        
-        hideNonReaderElements() {
-            console.log('Hiding non-reader elements for fullscreen mode...');
-            
-            try {
-                // 简单的隐藏策略：隐藏body下除了reader相关元素的所有直接子元素
-                this.$hiddenElements = $('body').children().filter((index, element) => {
-                    const $element = $(element);
-                    // 不隐藏reader相关元素
-                    return !$element.is('#wpg-reader-toolbar') && 
-                           !$element.is('#wpg-reader-progress-bar') &&
-                           !$element.is('#w2p-book-chapters') &&
-                           $element.find('#w2p-book-chapters').length === 0;
-                });
-                
-                console.log('Found', this.$hiddenElements.length, 'elements to hide');
-                this.$hiddenElements.hide();
-                console.log('Elements hidden successfully');
-            } catch (error) {
-                console.error('Error hiding elements:', error);
-                this.$hiddenElements = $(); // 设置为空jQuery对象
-            }
-        }
-        
-        showAllElements() {
-            console.log('Showing hidden elements...');
-            
-            try {
-                if (this.$hiddenElements && this.$hiddenElements.length > 0) {
-                    console.log('Showing', this.$hiddenElements.length, 'elements');
-                    this.$hiddenElements.show();
-                } else {
-                    console.log('No hidden elements to show');
-                }
-            } catch (error) {
-                console.error('Error showing elements:', error);
-            } finally {
-                this.$hiddenElements = null;
             }
         }
     }

@@ -103,6 +103,7 @@ class ImageProcessorExtended {
 		$success_count     = 0;
 		$failed_count      = 0;
 		$max_retries       = 3; // 最大重试次数
+		$url_to_id_mapping = []; // [NEW] 用于最终 pass 注入 class
 		
 		// 获取本地域名配置
 		$smart_aui_settings = \SmartAutoUploadImages\Plugin::get_settings();
@@ -121,15 +122,17 @@ class ImageProcessorExtended {
 				continue;
 			}
 			
-			// [FIX 7] 检查域名是否被排除
+			// [FIX 7] 检查域名是否被排除或为内部链接
 			$validation = $this->validator->validate_image_url( $image['url'], $post_data );
-			if ( is_wp_error( $validation ) && $validation->get_error_code() === 'excluded_domain' ) {
-				$logger->info( 'Skipped excluded domain', [ 'url' => $image['url'] ] );
-				// 标记为成功（跳过），触发事件以便进度条更新
-				do_action( 'smart_aui_image_processed', $image, [ 'skipped' => true ], $index );
-				$success_count++;
-				$processed_count++;
-				continue;
+			if ( is_wp_error( $validation ) ) {
+				$error_code = $validation->get_error_code();
+				if ( 'excluded_domain' === $error_code || 'internal_url' === $error_code || 'invalid_url' === $error_code ) {
+					$logger->info( 'Skipped image validation', [ 'url' => $image['url'], 'reason' => $error_code ] );
+					do_action( 'smart_aui_image_processed', $image, [ 'skipped' => true, 'reason' => $error_code ], $index );
+					$success_count++;
+					$processed_count++;
+					continue;
+				}
 			}
 
 			// 检查域名是否匹配
@@ -209,6 +212,13 @@ class ImageProcessorExtended {
 			
 			// Fire action for successful image (包括已存在的图片)
 			do_action( 'smart_aui_image_processed', $image, $result, $index );
+
+			// [NEW] 记录 ID 映射
+			if ( ! empty( $result['attachment_id'] ) ) {
+				$new_url_parts = wp_parse_url( $result['url'] );
+				$final_new_url = $base_url . $new_url_parts['path'];
+				$url_to_id_mapping[ $final_new_url ] = $result['attachment_id'];
+			}
 		}
 
 		// [NEW] Final pass to clean up attributes using WP_HTML_Tag_Processor
@@ -220,6 +230,22 @@ class ImageProcessorExtended {
 				$final_processor->remove_attribute( 'srcset' );
 				$final_processor->remove_attribute( 'sizes' );
 				$final_processor->remove_attribute( 'data-smush-webp-fallback' );
+
+				// [NEW] 注入 WordPress 标准 ID 类名
+				if ( ! empty( $url_to_id_mapping[ $img_src ] ) ) {
+					$attachment_id = $url_to_id_mapping[ $img_src ];
+					$existing_classes = $final_processor->get_attribute( 'class' ) ?? '';
+					$new_classes = 'wp-image-' . $attachment_id . ' size-full';
+					
+					if ( ! empty( $existing_classes ) ) {
+						if ( strpos( $existing_classes, 'wp-image-' ) === false ) {
+							$new_classes = trim( $existing_classes ) . ' ' . $new_classes;
+						} else {
+							$new_classes = preg_replace( '/wp-image-\d+/', 'wp-image-' . $attachment_id, $existing_classes );
+						}
+					}
+					$final_processor->set_attribute( 'class', $new_classes );
+				}
 			}
 		}
 		$processed_content = $final_processor->get_updated_html();

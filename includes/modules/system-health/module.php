@@ -42,6 +42,8 @@ class SystemHealthModule extends W2P_Abstract_Module {
         add_action( 'wp_ajax_w2p_system_health_scan_duplicates_improved', [ $this, 'ajax_scan_duplicates_improved_handler' ] );
         add_action( 'wp_ajax_w2p_system_health_get_duplicate_stats', [ $this, 'ajax_get_duplicate_stats_handler' ] );
         
+
+        
         // Settings page assets
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
     }
@@ -55,14 +57,14 @@ class SystemHealthModule extends W2P_Abstract_Module {
         wp_enqueue_script( 'w2p-modules-unified', plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/modules-unified.js', [ 'jquery' ], '1.0.0', true );
         
         $service = new SystemHealthCleanupService();
-        $categories = $service->get_categories();
+        $sh_categories = $service->get_categories();
 
         wp_localize_script( 'w2p-modules-unified', 'w2pSystemHealth', [
             'ajax_url' => admin_url( 'admin-ajax.php' ),
             'nonce'    => wp_create_nonce( 'w2p_system_health_nonce' ),
             'confirm'  => __( 'Are you sure you want to perform this cleanup?', 'wp-genius' ),
             'cleaning' => __( 'Cleaning...', 'wp-genius' ),
-            'categories' => $categories,
+            'categories' => $sh_categories,
             'scanning' => __( 'Scanning...', 'wp-genius' ),
             'executing' => __( 'Executing...', 'wp-genius' ),
         ] );
@@ -200,6 +202,8 @@ class SystemHealthModule extends W2P_Abstract_Module {
             'count'   => $count
         ] );
     }
+
+
 
     public function activate() {
         // Optional initialization on activation

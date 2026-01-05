@@ -410,11 +410,11 @@ class W2P_Admin_Settings {
             if (isset($settings['alt_text_pattern'])) {
                 $core_settings['alt_text_pattern'] = sanitize_text_field($settings['alt_text_pattern']);
             }
-            if (isset($settings['max_width'])) {
-                $core_settings['max_width'] = absint($settings['max_width']);
+            if (isset($settings['min_width'])) {
+                $core_settings['min_width'] = absint($settings['min_width']);
             }
-            if (isset($settings['max_height'])) {
-                $core_settings['max_height'] = absint($settings['max_height']);
+            if (isset($settings['min_height'])) {
+                $core_settings['min_height'] = absint($settings['min_height']);
             }
             if (isset($settings['exclude_domains'])) {
                 $core_settings['exclude_domains'] = sanitize_textarea_field($settings['exclude_domains']);
@@ -594,6 +594,12 @@ class W2P_Admin_Settings {
                 // Audio player settings (reserved)
                 'audio_enabled'                 => !empty($settings['audio_enabled']),
                 'audio_custom_player'           => !empty($settings['audio_custom_player']),
+
+                // Reader settings
+                'reader_enabled'                => !empty($settings['reader_enabled']),
+                'reader_font_size'              => isset($settings['reader_font_size']) ? absint($settings['reader_font_size']) : 18,
+                'reader_font_family'            => isset($settings['reader_font_family']) ? sanitize_text_field($settings['reader_font_family']) : 'sans',
+                'reader_theme'                  => isset($settings['reader_theme']) ? sanitize_text_field($settings['reader_theme']) : 'light',
             ];
             
             update_option('w2p_frontend_enhancement_settings', $clean_settings);

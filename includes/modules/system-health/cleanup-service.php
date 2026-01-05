@@ -102,9 +102,19 @@ class SystemHealthCleanupService {
      * Get all categories
      */
     public function get_categories() {
-        return get_categories( [
+        $terms = get_terms( [
+            'taxonomy'   => 'category',
             'hide_empty' => false,
         ] );
+        
+        if ( is_wp_error( $terms ) || empty( $terms ) ) {
+            return [];
+        }
+
+        // Force convert to objects if they are arrays for some reason
+        return array_map( function( $term ) {
+            return (object) $term;
+        }, $terms );
     }
 
     /**
