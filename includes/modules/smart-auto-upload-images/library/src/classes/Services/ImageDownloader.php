@@ -137,10 +137,6 @@ class ImageDownloader {
 			return $attachment_id;
 		}
 
-		$resized_image = $this->handle_image_resize( $save_result );
-		if ( $resized_image ) {
-			$save_result = $resized_image;
-		}
 
 		// Ensure we use the actual attachment URL (handles WP-scaled images like -scaled.jpg)
 		$actual_url = wp_get_attachment_url( $attachment_id );
@@ -338,36 +334,6 @@ class ImageDownloader {
 		return $attachment_id ? intval( $attachment_id ) : false;
 	}
 
-	/**
-	 * Handle image resizing if needed
-	 *
-	 * @param array $file_info File information.
-	 * @return array|false Resized file info or false.
-	 */
-	private function handle_image_resize( array $file_info ) {
-		$max_width  = $this->settings_manager->get_setting( 'max_width', 0 );
-		$max_height = $this->settings_manager->get_setting( 'max_height', 0 );
-
-		if ( 0 === $max_width && 0 === $max_height ) {
-			return false;
-		}
-
-		if ( ! function_exists( 'image_make_intermediate_size' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/image.php';
-		}
-
-		$resized = image_make_intermediate_size( $file_info['file'], $max_width, $max_height );
-
-		if ( ! $resized ) {
-			return false;
-		}
-
-		$upload_dir        = wp_upload_dir();
-		$file_info['file'] = $upload_dir['path'] . '/' . $resized['file'];
-		$file_info['url']  = $upload_dir['url'] . '/' . $resized['file'];
-
-		return $file_info;
-	}
 
 	/**
 	 * Handle existing image reuse - checks if image exists and processes it

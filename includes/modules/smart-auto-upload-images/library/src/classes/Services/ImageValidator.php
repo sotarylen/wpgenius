@@ -42,7 +42,7 @@ class ImageValidator {
 	 */
 	public function validate_image_url( string $url, array $post_data ) {
 		if ( ! $this->is_external_url( $url ) ) {
-			return new \WP_Error( 'invalid_url', esc_html__( 'Image URL is not external', 'smart-auto-upload-images' ) );
+			return new \WP_Error( 'internal_url', esc_html__( 'Image URL is not external', 'smart-auto-upload-images' ) );
 		}
 
 		if ( $this->is_domain_excluded( $url ) ) {
@@ -118,7 +118,6 @@ class ImageValidator {
 		$file_validation = wp_check_filetype_and_ext( $temp_file, $filename );
 
 		$image_info = getimagesize( $temp_file );
-
 		wp_delete_file( $temp_file );
 
 		if ( false === $file_validation['type'] || empty( $file_validation['type'] ) ) {
@@ -127,6 +126,19 @@ class ImageValidator {
 
 		if ( false === $image_info ) {
 			return false;
+		}
+
+		// Check minimum dimensions if configured
+		$min_width  = (int) $this->settings_manager->get_setting( 'min_width', 0 );
+		$min_height = (int) $this->settings_manager->get_setting( 'min_height', 0 );
+
+		if ( $min_width > 0 && $min_height > 0 ) {
+			$width  = $image_info[0] ?? 0;
+			$height = $image_info[1] ?? 0;
+
+			if ( $width < $min_width && $height < $min_height ) {
+				return false; // Skip small images (both width and height must be below threshold)
+			}
 		}
 
 		return true;
@@ -141,6 +153,11 @@ class ImageValidator {
 	private function is_external_url( string $url ): bool {
 		$site_host = wp_parse_url( site_url(), PHP_URL_HOST );
 		$url_host  = wp_parse_url( $url, PHP_URL_HOST );
+
+		// If no host (e.g. relative path), treat as internal
+		if ( empty( $url_host ) ) {
+			return false;
+		}
 
 		return $site_host !== $url_host;
 	}
@@ -158,7 +175,11 @@ class ImageValidator {
 			return false;
 		}
 
-		$url_host      = wp_parse_url( $url, PHP_URL_HOST );
+		$url_host = wp_parse_url( $url, PHP_URL_HOST );
+		if ( ! $url_host ) {
+			return false;
+		}
+
 		$excluded_list = explode( "\n", $excluded_domains );
 
 		foreach ( $excluded_list as $domain ) {
@@ -167,14 +188,26 @@ class ImageValidator {
 				continue;
 			}
 
-			// 检查是否是完整的URL或是简单的域名字符串
+			// Extract host if it's a full URL
 			if ( strpos( $domain, '://' ) !== false ) {
 				$domain_host = wp_parse_url( $domain, PHP_URL_HOST );
 			} else {
 				$domain_host = $domain;
 			}
 
-			if ( $url_host === $domain_host ) {
+			if ( ! $domain_host ) {
+				continue;
+			}
+
+			// Wildcard support (e.g. *.xuite.net)
+			if ( strpos( $domain_host, '*' ) !== false ) {
+				$pattern = preg_quote( $domain_host, '/' );
+				$pattern = str_replace( '\\*', '.*', $pattern );
+				if ( preg_match( '/^' . $pattern . '$/i', $url_host ) ) {
+					return true;
+				}
+			} elseif ( $url_host === $domain_host ) {
+				// Exact match
 				return true;
 			}
 		}

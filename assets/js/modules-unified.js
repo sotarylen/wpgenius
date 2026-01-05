@@ -883,17 +883,17 @@
                 console.error('DuplicateCleaner: w2pSystemHealth is not defined');
                 return;
             }
-            
+
             if (!w2pSystemHealth.ajax_url || !w2pSystemHealth.nonce) {
                 console.error('DuplicateCleaner: Missing ajax_url or nonce', w2pSystemHealth);
                 return;
             }
-            
+
             console.log('DuplicateCleaner initialized with:', {
                 ajax_url: w2pSystemHealth.ajax_url,
                 nonce: w2pSystemHealth.nonce ? 'present' : 'missing'
             });
-            
+
             $('#w2p-duplicate-scan-btn').on('click', this.handleScan.bind(this));
             $('#w2p-duplicate-clear-btn').on('click', this.handleClearSelection.bind(this));
             $('#w2p-duplicate-clean-btn').on('click', this.handleCleanAll.bind(this));
@@ -912,12 +912,12 @@
             if (slug.length <= maxLength) {
                 return slug;
             }
-            
+
             var headLength = Math.floor(maxLength * 0.4);
             var tailLength = Math.floor(maxLength * 0.4);
             var head = slug.substring(0, headLength);
             var tail = slug.substring(slug.length - tailLength);
-            
+
             return head + '...' + tail;
         },
 
@@ -951,21 +951,21 @@
             this.duplicateGroups.forEach((group, groupIndex) => {
                 // Clone group template
                 var $group = $(groupTemplate.content.cloneNode(true));
-                
+
                 // Set group title
                 $group.find('.group-title').text(group.group_title);
-                
+
                 var $tbody = $group.find('.duplicate-posts-body');
 
                 // Render each post in the group
                 group.posts.forEach((post, postIndex) => {
                     var $postRow = $(postTemplate.content.cloneNode(true));
                     var $row = $postRow.find('.duplicate-post-row');
-                    
+
                     // Set row data attributes
                     $row.attr('data-group', groupIndex);
                     $row.attr('data-post', postIndex);
-                    
+
                     // Set checkbox - all checkboxes are enabled and clickable
                     var $checkbox = $postRow.find('.w2p-duplicate-checkbox');
                     $checkbox.attr('data-post-id', post.id);
@@ -974,10 +974,10 @@
                         $checkbox.prop('checked', true);
                     }
                     // No checkbox is disabled - user can freely choose
-                    
+
                     // Set post data
                     $postRow.find('.post-id').text(post.id);
-                    
+
                     // Set post title (with link if available)
                     var $titleCell = $postRow.find('.post-title');
                     if (post.edit_url) {
@@ -989,13 +989,13 @@
                     } else {
                         $titleCell.text(post.title);
                     }
-                    
+
                     // Set truncated slug with full slug in title attribute
                     var truncatedSlug = this.truncateSlug(post.slug);
                     $postRow.find('.post-slug code').text(truncatedSlug).attr('title', post.slug);
-                    
+
                     $postRow.find('.post-date').text(post.date);
-                    
+
                     // Show status badge - recommended keep or to delete
                     var $statusCell = $postRow.find('.post-status');
                     if (post.recommended_keep) {
@@ -1005,7 +1005,7 @@
                         $statusCell.find('.status-keep').hide();
                         $statusCell.find('.status-delete').show();
                     }
-                    
+
                     $tbody.append($postRow);
                 });
 
@@ -1030,10 +1030,10 @@
         updateStatus: function () {
             var count = 0;
             // Count all checked checkboxes
-            $('.w2p-duplicate-checkbox:checked').each(function() {
+            $('.w2p-duplicate-checkbox:checked').each(function () {
                 count++;
             });
-            
+
             var totalGroups = this.duplicateGroups.length;
             $('#w2p-duplicate-status').text('Found ' + totalGroups + ' duplicate groups (' + count + ' posts selected for deletion).');
         },
@@ -1052,7 +1052,7 @@
         handleCleanAll: function (e) {
             var selectedIds = [];
             // Collect all checked checkboxes
-            $('.w2p-duplicate-checkbox:checked').each(function() {
+            $('.w2p-duplicate-checkbox:checked').each(function () {
                 selectedIds.push($(this).data('post-id'));
             });
 
@@ -1080,9 +1080,9 @@
             var $btn = $(e.currentTarget);
             var $group = $btn.closest('.w2p-duplicate-group');
             var selectedIds = [];
-            
+
             // Collect checked checkboxes in this group
-            $group.find('.w2p-duplicate-checkbox:checked').each(function() {
+            $group.find('.w2p-duplicate-checkbox:checked').each(function () {
                 selectedIds.push($(this).data('post-id'));
             });
 
@@ -1104,49 +1104,49 @@
         cleanPosts: function (postIds, $btn, $group) {
             console.log('W2P DuplicateCleaner: cleanPosts called');
             console.log('W2P DuplicateCleaner: postIds count:', postIds.length);
-            
+
             if (this.isProcessing) {
                 console.log('W2P DuplicateCleaner: Already processing, skipping');
                 return;
             }
-            
+
             this.isProcessing = true;
-            
+
             // Fix: Split into smaller batches to avoid max_input_vars limit
             var batchSize = 50; // Reduced from 25 to be safer
             var batches = [];
-            
+
             for (var i = 0; i < postIds.length; i += batchSize) {
                 batches.push(postIds.slice(i, i + batchSize));
             }
-            
+
             console.log('W2P DuplicateCleaner: Split into', batches.length, 'batches of max', batchSize, 'items each');
-            
+
             var processedBatches = 0;
             var totalProcessed = 0;
             var failedBatches = 0;
-            
-            var processBatch = function(batchIndex) {
+
+            var processBatch = function (batchIndex) {
                 if (batchIndex >= batches.length) {
                     // All batches processed
                     console.log('W2P DuplicateCleaner: All batches processed. Success:', totalProcessed, 'Failed:', failedBatches);
-                    
+
                     if (failedBatches === 0) {
                         // Success - show success message and refresh
                         WPGenius.DuplicateCleaner.isProcessing = false;
-                        
+
                         if ($group) {
                             // Single group cleanup
                             $btn.prop('disabled', true).removeClass('is-loading').addClass('button-primary');
                             $btn.find('.btn-text').text($btn.data('text-done'));
                             $btn.find('.dashicons').removeClass('dashicons-trash').addClass('dashicons-yes');
-                            
+
                             setTimeout(() => {
-                                $group.fadeOut(300, function() {
+                                $group.fadeOut(300, function () {
                                     $(this).remove();
                                     var remaining = $('.w2p-duplicate-group').length;
                                     if (remaining === 0) {
-                                        $('#w2p-duplicate-results-wrapper').fadeOut(300, function() {
+                                        $('#w2p-duplicate-results-wrapper').fadeOut(300, function () {
                                             $(this).addClass('w2p-hidden');
                                         });
                                     }
@@ -1170,10 +1170,10 @@
                     }
                     return;
                 }
-                
+
                 var currentBatch = batches[batchIndex];
                 console.log('W2P DuplicateCleaner: Processing batch', (batchIndex + 1), 'of', batches.length, 'with', currentBatch.length, 'items');
-                
+
                 // Use $.ajax with timeout instead of $.post for better control
                 $.ajax({
                     url: w2pSystemHealth.ajax_url,
@@ -1186,39 +1186,39 @@
                     },
                     success: (response) => {
                         console.log('W2P DuplicateCleaner: Batch', (batchIndex + 1), 'response:', response);
-                        
+
                         processedBatches++;
-                        
+
                         if (response && response.success) {
                             var processedCount = response.data && response.data.count ? response.data.count : 0;
                             totalProcessed += processedCount;
                             console.log('W2P DuplicateCleaner: Batch', (batchIndex + 1), 'success, processed:', processedCount, 'total:', totalProcessed);
-                            
+
                             // Update UI for this batch
                             var batchStart = batchIndex * batchSize + 1;
                             var batchEnd = Math.min((batchIndex + 1) * batchSize, postIds.length);
                             WPGenius.DuplicateCleaner.showNotice('Processed batch ' + (batchIndex + 1) + ' of ' + batches.length + ' (' + batchStart + '-' + batchEnd + ' of ' + postIds.length + ' posts)', 'success');
-                            
+
                         } else {
                             failedBatches++;
                             var errorMsg = response && response.data && response.data.message ? response.data.message : 'Unknown error';
                             console.error('W2P DuplicateCleaner: Batch', (batchIndex + 1), 'failed:', errorMsg);
-                            
+
                             // Show error but continue with next batch
                             WPGenius.DuplicateCleaner.showNotice('Batch ' + (batchIndex + 1) + ' failed: ' + errorMsg, 'error');
                         }
-                        
+
                         // Process next batch after a small delay
                         setTimeout(() => {
                             processBatch(batchIndex + 1);
                         }, 500); // 0.5 second delay between batches
-                        
+
                     },
                     error: (xhr, status, error) => {
                         console.error('W2P DuplicateCleaner: Batch', (batchIndex + 1), 'AJAX failed:', { xhr: xhr, status: status, error: error });
                         processedBatches++;
                         failedBatches++;
-                        
+
                         // Try to extract error message from response
                         var errorMsg = 'Network error';
                         if (xhr.responseText) {
@@ -1231,12 +1231,12 @@
                                 errorMsg = 'Server error: ' + xhr.status;
                             }
                         }
-                        
+
                         console.error('W2P DuplicateCleaner: Batch', (batchIndex + 1), 'detailed error:', errorMsg);
-                        
+
                         // Show error but continue with next batch
                         WPGenius.DuplicateCleaner.showNotice('Batch ' + (batchIndex + 1) + ' network error: ' + errorMsg, 'error');
-                        
+
                         // Continue with next batch even if this one failed
                         setTimeout(() => {
                             processBatch(batchIndex + 1);
@@ -1244,7 +1244,7 @@
                     }
                 });
             };
-            
+
             // Start processing batches
             processBatch(0);
         },
@@ -1256,9 +1256,9 @@
                 .text(msg)
                 .removeClass('w2p-hidden')
                 .fadeIn();
-            
-            setTimeout(function() {
-                $msg.fadeOut(300, function() {
+
+            setTimeout(function () {
+                $msg.fadeOut(300, function () {
                     $(this).addClass('w2p-hidden');
                 });
             }, 5000);
@@ -1281,12 +1281,12 @@
                 nonce: w2pSystemHealth.nonce
             }, (response) => {
                 console.log('Scan response:', response);
-                
+
                 if (response && response.success) {
                     // Ensure response.data is an array
                     this.duplicateGroups = Array.isArray(response.data) ? response.data : [];
                     console.log('Duplicate groups found:', this.duplicateGroups.length);
-                    
+
                     this.renderResults();
                     var totalDuplicates = this.getTotalDuplicates();
                     $('#w2p-duplicate-status').text('Found ' + this.duplicateGroups.length + ' duplicate groups (' + totalDuplicates + ' posts to clean).');
@@ -1314,7 +1314,7 @@
                     responseText: xhr.responseText,
                     statusCode: xhr.status
                 });
-                
+
                 var errorMsg = 'Network error';
                 if (xhr.responseText) {
                     try {
@@ -1326,9 +1326,9 @@
                         errorMsg = 'Server error: ' + xhr.status;
                     }
                 }
-                
+
                 alert('Scan failed: ' + errorMsg);
-                
+
                 // Reset button state
                 $btn.prop('disabled', false).removeClass('is-loading');
                 $btn.find('.btn-text').text($btn.data('text-default'));
@@ -1649,6 +1649,8 @@
         }
     };
 
+
+
     // ==============================
     // 初始化所有模块
     // ==============================
@@ -1662,6 +1664,7 @@
             WPGenius.SystemHealth.init();
             WPGenius.ImageLinkRemover.init();
             WPGenius.DuplicateCleaner.init();
+
         }
         // Smart Auto Upload is now handled by smart-auto-upload-progress-ui.js
         // if (window.w2pSmartAuiParams) WPGenius.SmartAutoUpload.init();
@@ -1692,20 +1695,20 @@
             $container.find('.w2p-sub-tab-content').removeClass('active');
             $container.find('#w2p-tab-' + tab).addClass('active');
         });
-        
+
         // Module-specific tab switching logic for frontend enhancement settings
         $(document).on('click', '.w2p-tab-btn', function (e) {
             e.preventDefault();
             var $btn = $(this);
             var tab = $btn.data('tab');
             var module = $btn.closest('.w2p-tabs').data('module');
-            
+
             if (!tab || !module) return;
-            
+
             // Toggle active button within this module
             $btn.siblings('.w2p-tab-btn').removeClass('active');
             $btn.addClass('active');
-            
+
             // Toggle active pane within this module
             $btn.closest('.w2p-tabs').find('.w2p-tab-pane').removeClass('active');
             $btn.closest('.w2p-tabs').find('[data-pane="' + tab + '"]').addClass('active');

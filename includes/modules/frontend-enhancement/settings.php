@@ -465,9 +465,6 @@ $settings = wp_parse_args( $settings, $defaults );
 			</div>
 			<!-- End Tab: Video Player -->
 			
-			</div>
-			<!-- End Tab: Audio Player -->
-			
 			<!-- ==================== Tab: Reader Mode ==================== -->
 			<div class="w2p-sub-tab-content" id="w2p-tab-reader">
 				<div class="w2p-section">

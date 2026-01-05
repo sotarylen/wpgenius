@@ -15,8 +15,8 @@ $defaults = [
 	'base_url' => get_site_url(),
 	'image_name_pattern' => '%filename%',
 	'alt_text_pattern' => '%image_alt%',
-	'max_width' => 0,
-	'max_height' => 0,
+	'min_width' => 300,
+	'min_height' => 200,
 	'exclude_post_types' => [],
 	'exclude_domains' => '',
 	'auto_set_featured_image' => true,
@@ -83,19 +83,19 @@ $post_types = get_post_types( [ 'public' => true ], 'objects' );
                     </div>
 
                     <div class="w2p-form-row">
-                        <div class="w2p-form-label"><?php _e('Image Size Limits', 'wp-genius'); ?></div>
+                        <div class="w2p-form-label"><?php _e('Image Size Rules', 'wp-genius'); ?></div>
                         <div class="w2p-form-control">
                             <div class="w2p-flex w2p-gap-md">
                                 <div class="w2p-flex w2p-items-center w2p-gap-xs">
-                                    <label for="max_width"><?php _e('Max Width', 'wp-genius'); ?>:</label>
-                                    <input type="number" id="max_width" name="smart_aui_settings[max_width]" value="<?php echo esc_attr($settings['max_width']); ?>" min="0" class="w2p-input-small" /> <span>px</span>
+                                    <label for="min_width"><?php _e('Min Width', 'wp-genius'); ?>:</label>
+                                    <input type="number" id="min_width" name="smart_aui_settings[min_width]" value="<?php echo esc_attr($settings['min_width']); ?>" min="0" class="w2p-input-small" /> <span>px</span>
                                 </div>
                                 <div class="w2p-flex w2p-items-center w2p-gap-xs">
-                                    <label for="max_height"><?php _e('Max Height', 'wp-genius'); ?>:</label>
-                                    <input type="number" id="max_height" name="smart_aui_settings[max_height]" value="<?php echo esc_attr($settings['max_height']); ?>" min="0" class="w2p-input-small" /> <span>px</span>
+                                    <label for="min_height"><?php _e('Min Height', 'wp-genius'); ?>:</label>
+                                    <input type="number" id="min_height" name="smart_aui_settings[min_height]" value="<?php echo esc_attr($settings['min_height']); ?>" min="0" class="w2p-input-small" /> <span>px</span>
                                 </div>
                             </div>
-                            <p class="description"><?php _e('Set maximum dimensions for uploaded images. (0 = no limit)', 'wp-genius'); ?></p>
+                            <p class="description"><?php _e('Skip images with dimensions smaller than these values (useful for filtering out icons/avatars). Set to 0 to process all images.', 'wp-genius'); ?></p>
                         </div>
                     </div>
 
@@ -104,8 +104,8 @@ $post_types = get_post_types( [ 'public' => true ], 'objects' );
                             <label for="exclude_domains"><?php _e('Exclude Domains', 'wp-genius'); ?></label>
                         </div>
                         <div class="w2p-form-control">
-                            <textarea id="exclude_domains" name="smart_aui_settings[exclude_domains]" class="w2p-input-large" rows="4"><?php echo esc_textarea($settings['exclude_domains']); ?></textarea>
-                            <p class="description"><?php _e('Enter domains to exclude from image upload (one per line).', 'wp-genius'); ?></p>
+                            <textarea id="exclude_domains" name="smart_aui_settings[exclude_domains]" class="w2p-input-large w2p-textarea-large" placeholder="example.com"><?php echo esc_textarea($settings['exclude_domains']); ?></textarea>
+                            <p class="description"><?php _e('Enter domains to exclude from processing, one per line. Supports wildcards (e.g., *.xuite.net).', 'wp-genius'); ?></p>
                         </div>
                     </div>
                 </div>

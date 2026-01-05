@@ -85,6 +85,21 @@ class ImageProcessor {
 
 					$processor->set_attribute( 'src', $new_url );
 					
+					// Add WordPress standard classes for better identification
+					if ( ! empty( $result['attachment_id'] ) ) {
+						$existing_classes = $processor->get_attribute( 'class' ) ?? '';
+						$new_classes = 'wp-image-' . $result['attachment_id'] . ' size-full';
+						if ( ! empty( $existing_classes ) ) {
+							// Avoid duplicates
+							if ( strpos( $existing_classes, 'wp-image-' ) === false ) {
+								$new_classes = trim( $existing_classes ) . ' ' . $new_classes;
+							} else {
+								$new_classes = preg_replace( '/wp-image-\d+/', 'wp-image-' . $result['attachment_id'], $existing_classes );
+							}
+						}
+						$processor->set_attribute( 'class', $new_classes );
+					}
+
 					if ( ! empty( $result['alt_text'] ) ) {
 						$processor->set_attribute( 'alt', $result['alt_text'] );
 					}

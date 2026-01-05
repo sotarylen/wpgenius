@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WP Genius\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-12-30 15:03+0000\n"
+"POT-Creation-Date: 2025-12-31 17:55+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: \n"
@@ -15,23 +15,6 @@ msgstr ""
 "X-Generator: Loco https://localise.biz/\n"
 "X-Loco-Version: 2.8.0; wp-6.9; php-8.3.28\n"
 "X-Domain: wp-genius"
-
-#: includes/modules/upload-rename/settings.php:28
-msgid ""
-"\n"
-"                                可用标签：\n"
-"                                {timestamp} - Unix 时间戳\n"
-"                                {sanitized} - 已清理的原始基名\n"
-"                                {rand} - 随机数\n"
-"                                {date} / {date:FORMAT} - 日期 (例: {date:Ymd})\n"
-"                                {datetime} - YmdHis 格式\n"
-"                                {year} {month} {day} {hour} {minute} {second}"
-"\n"
-"                                {user_id} {user_login} - 用户信息\n"
-"                                {orig} - 原始基名\n"
-"                                {ext} - 扩展名\n"
-"                                {uniqid} - PHP uniqid"
-msgstr ""
 
 #: includes/templates/reader.php:5
 msgid "+ Line height"
@@ -53,17 +36,13 @@ msgstr ""
 msgid "0 (transparent) to 100 (opaque)."
 msgstr ""
 
-#: includes/modules/avatar-manager/settings.php:24
-msgid "96×96px circular avatar display"
-msgstr ""
-
-#: includes/modules/auto-publish/settings.php:178
+#: includes/modules/auto-publish/settings.php:186
 msgid ""
 "A scheduled publishing task is currently running. Please wait for it to "
 "finish."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:67
+#: includes/modules/accelerate/settings.php:72
 msgid "About WordPress"
 msgstr ""
 
@@ -71,11 +50,11 @@ msgstr ""
 msgid "Accelerate"
 msgstr ""
 
-#: includes/class-admin-settings.php:107
+#: includes/class-admin-settings.php:108
 msgid "Active"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:107
+#: includes/modules/accelerate/settings.php:112
 msgid "Activity"
 msgstr ""
 
@@ -83,7 +62,7 @@ msgstr ""
 msgid "Add Keyword Mapping"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:60
+#: includes/modules/accelerate/settings.php:65
 msgid "Admin Bar"
 msgstr ""
 
@@ -108,6 +87,11 @@ msgstr ""
 msgid "AI Content Assistant Settings"
 msgstr ""
 
+#: includes/modules/system-health/settings.php:106
+#: includes/modules/system-health/settings.php:177
+msgid "All Categories"
+msgstr ""
+
 #: includes/class-word-to-posts.php:221
 #: includes/class-word-to-posts-backup.php:132
 msgid "All chapters have been published successfully."
@@ -121,7 +105,7 @@ msgstr ""
 msgid "Allow pasting images directly into the editor and media library."
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:68
+#: includes/modules/smart-auto-upload-images/settings.php:77
 msgid "Alt Text Pattern"
 msgstr ""
 
@@ -129,7 +113,7 @@ msgstr ""
 msgid "API Base URL"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:72
+#: includes/modules/accelerate/settings.php:77
 msgid "Appearance"
 msgstr ""
 
@@ -153,13 +137,21 @@ msgstr ""
 msgid "Apply watermark to images as they are uploaded."
 msgstr ""
 
+#: includes/modules/smart-auto-upload-images/module.php:225
+msgid "Are you sure you want to cancel the image upload?"
+msgstr ""
+
 #: includes/modules/word-publish/settings.php:144
 msgid ""
 "Are you sure you want to clean the uploads directory? All temporary files "
 "will be deleted."
 msgstr ""
 
-#: includes/modules/auto-publish/settings.php:205
+#: includes/modules/smart-auto-upload-images/settings.php:271
+msgid "Are you sure you want to clear all capture logs?"
+msgstr ""
+
+#: includes/modules/auto-publish/settings.php:213
 msgid "Are you sure you want to clear all publish logs?"
 msgstr ""
 
@@ -167,11 +159,18 @@ msgstr ""
 msgid "Are you sure you want to extract metadata from %d selected PNG images?"
 msgstr ""
 
-#: includes/modules/system-health/module.php:51
+#: includes/modules/system-health/module.php:59
 msgid "Are you sure you want to perform this cleanup?"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:111
+#: includes/modules/smart-auto-upload-images/module.php:226
+msgid ""
+"Are you sure you want to stop the current image capture and publish the "
+"article directly?\\n\\nNote: Successfully captured images will be replaced, "
+"failed images will keep their original URLs."
+msgstr ""
+
+#: includes/modules/accelerate/settings.php:116
 msgid "At a Glance"
 msgstr ""
 
@@ -187,7 +186,7 @@ msgstr ""
 msgid "Auto Conversion"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:59
+#: includes/modules/system-health/settings.php:61
 msgid "Auto Drafts"
 msgstr ""
 
@@ -207,7 +206,7 @@ msgstr ""
 msgid "Auto Publish"
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:113
+#: includes/modules/smart-auto-upload-images/settings.php:122
 msgid "Auto Set Featured Image"
 msgstr ""
 
@@ -251,8 +250,10 @@ msgid ""
 "visualization and auto-set featured image."
 msgstr ""
 
-#: includes/modules/upload-rename/module.php:22
-msgid "Automatically normalize and rename uploaded files."
+#: includes/modules/accelerate/settings.php:168
+msgid ""
+"Automatically normalize and rename uploaded files using customizable "
+"patterns."
 msgstr ""
 
 #: includes/modules/auto-publish/module.php:33
@@ -260,7 +261,7 @@ msgid ""
 "Automatically publish drafts at scheduled intervals or manually in bulk."
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:120
+#: includes/modules/smart-auto-upload-images/settings.php:129
 msgid ""
 "Automatically set the first uploaded image as featured image if none exists."
 msgstr ""
@@ -269,7 +270,7 @@ msgstr ""
 msgid "Automatically suggest AI tags when saving a post if no tags are set."
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:146
+#: includes/modules/smart-auto-upload-images/settings.php:155
 msgid ""
 "Automatically upload remote images when content is created via REST API."
 msgstr ""
@@ -280,7 +281,7 @@ msgid ""
 "watermark previously uploaded images."
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:108
+#: includes/modules/smart-auto-upload-images/settings.php:117
 msgid "Automation Behavior"
 msgstr ""
 
@@ -288,11 +289,15 @@ msgstr ""
 msgid "Automation Settings"
 msgstr ""
 
+#: includes/modules/accelerate/settings.php:182
+msgid "Available Variables (Click to Insert):"
+msgstr ""
+
 #: includes/templates/reader.php:9
 msgid "Background"
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:48
+#: includes/modules/smart-auto-upload-images/settings.php:57
 msgid "Base URL"
 msgstr ""
 
@@ -300,7 +305,7 @@ msgstr ""
 msgid "Basic (Quick Duplicate)"
 msgstr ""
 
-#: includes/modules/png-metadata-extractor/settings.php:27
+#: includes/modules/png-metadata-extractor/settings.php:24
 msgid "Batch extract PNG metadata from media library"
 msgstr ""
 
@@ -309,19 +314,23 @@ msgstr ""
 msgid "Batch Size"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:166
+#: includes/modules/system-health/settings.php:127
+msgid "Batch Size:"
+msgstr ""
+
+#: includes/modules/accelerate/settings.php:227
 msgid "Block ACF Updates"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:191
+#: includes/modules/accelerate/settings.php:252
 msgid "Block External HTTP"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:141
+#: includes/modules/accelerate/settings.php:146
 msgid "Block slow \"All dates\" queries in post list and media library."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:166
+#: includes/modules/accelerate/settings.php:227
 msgid "Blocks Advanced Custom Fields update requests."
 msgstr ""
 
@@ -337,11 +346,27 @@ msgstr ""
 msgid "Bulk Optimization Center"
 msgstr ""
 
+#: includes/modules/smart-auto-upload-images/progress-template.php:61
+msgid "Cancel Task"
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/settings.php:215
+msgid "Capture Failure Logs"
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/settings.php:38
+msgid "Capture Logs"
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/module.php:227
+msgid "Capture stopped, preparing to publish..."
+msgstr ""
+
 #: includes/modules/word-publish/settings.php:29
 msgid "Category"
 msgstr ""
 
-#: includes/modules/png-metadata-extractor/settings.php:63
+#: includes/modules/png-metadata-extractor/settings.php:60
 msgid "CFG scale"
 msgstr ""
 
@@ -355,7 +380,12 @@ msgstr ""
 msgid "Choose the image to use as your watermark."
 msgstr ""
 
-#: includes/modules/system-health/settings.php:63
+#: includes/modules/system-health/settings.php:200
+#: includes/modules/system-health/settings.php:202
+msgid "Clean All Selected"
+msgstr ""
+
+#: includes/modules/system-health/settings.php:65
 msgid "Clean Auto Drafts"
 msgstr ""
 
@@ -363,11 +393,11 @@ msgstr ""
 msgid "Clean Directory"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:73
+#: includes/modules/system-health/settings.php:75
 msgid "Clean Orphaned Meta"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:53
+#: includes/modules/system-health/settings.php:55
 msgid "Clean Revisions"
 msgstr ""
 
@@ -375,11 +405,16 @@ msgstr ""
 msgid "Clean Temporary Files"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:83
+#: includes/modules/system-health/settings.php:221
+#: includes/modules/system-health/settings.php:223
+msgid "Clean This Group"
+msgstr ""
+
+#: includes/modules/system-health/settings.php:85
 msgid "Clean Transients"
 msgstr ""
 
-#: includes/modules/system-health/module.php:92
+#: includes/modules/system-health/module.php:103
 msgid "Cleaned up %d items."
 msgstr ""
 
@@ -387,7 +422,9 @@ msgstr ""
 msgid "Cleaning uploads folder..."
 msgstr ""
 
-#: includes/modules/system-health/module.php:52
+#: includes/modules/system-health/settings.php:200
+#: includes/modules/system-health/settings.php:221
+#: includes/modules/system-health/module.php:60
 msgid "Cleaning..."
 msgstr ""
 
@@ -395,8 +432,26 @@ msgstr ""
 msgid "Cleanup Tools"
 msgstr ""
 
+#: includes/modules/smart-auto-upload-images/settings.php:218
+#: includes/modules/smart-auto-upload-images/settings.php:290
+#: includes/modules/smart-auto-upload-images/settings.php:295
+msgid "Clear All Logs"
+msgstr ""
+
 #: includes/modules/auto-publish/settings.php:122
 msgid "Clear Logs"
+msgstr ""
+
+#: includes/modules/system-health/settings.php:198
+msgid "Clear Selection"
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/settings.php:276
+msgid "Clearing..."
+msgstr ""
+
+#: includes/modules/accelerate/settings.php:179
+msgid "Click any variable below to insert it into the pattern field."
 msgstr ""
 
 #: includes/modules/clipboard-image-upload/module.php:31
@@ -407,7 +462,7 @@ msgstr ""
 msgid "Clipboard Upload Settings"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:68
+#: includes/modules/accelerate/settings.php:73
 msgid "Comments"
 msgstr ""
 
@@ -415,11 +470,11 @@ msgstr ""
 msgid "Common Providers"
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:176
+#: includes/modules/smart-auto-upload-images/settings.php:185
 msgid "Concurrent Threads"
 msgstr ""
 
-#: includes/class-admin-settings.php:121
+#: includes/class-admin-settings.php:122
 msgid "Configure"
 msgstr ""
 
@@ -439,7 +494,7 @@ msgstr ""
 msgid "Connection successful"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:153
+#: includes/modules/accelerate/settings.php:214
 msgid "Control automatic updates and update checks"
 msgstr ""
 
@@ -461,11 +516,11 @@ msgstr ""
 msgid "Copy fileContent"
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:43
+#: includes/modules/smart-auto-upload-images/settings.php:51
 msgid "Core Configuration"
 msgstr ""
 
-#: includes/modules/avatar-manager/module.php:82
+#: includes/modules/accelerate/module.php:453
 msgid "Current Avatar"
 msgstr ""
 
@@ -493,16 +548,32 @@ msgstr ""
 msgid "Daily"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:99
+#: includes/modules/accelerate/settings.php:104
 msgid "Dashboard Widgets to Remove"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:33
+#: includes/modules/system-health/settings.php:35
 msgid "Database Cleaning & Optimization"
+msgstr ""
+
+#: includes/modules/system-health/settings.php:233
+msgid "Date"
+msgstr ""
+
+#: includes/modules/accelerate/settings.php:187
+msgid "Date (Y-m-d)"
+msgstr ""
+
+#: includes/modules/accelerate/settings.php:188
+msgid "Date (Ymd)"
 msgstr ""
 
 #: includes/modules/post-duplicator/settings.php:155
 msgid "Date Offset"
+msgstr ""
+
+#: includes/modules/accelerate/settings.php:192
+msgid "Day"
 msgstr ""
 
 #: includes/modules/post-duplicator/settings.php:177
@@ -532,43 +603,39 @@ msgstr ""
 msgid "Directory Maintenance"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:162
+#: includes/modules/accelerate/settings.php:223
 msgid "Disable Core Check"
 msgstr ""
 
-#: includes/modules/avatar-manager/settings.php:25
-msgid "Disable Gravatar completely"
-msgstr ""
-
-#: includes/modules/accelerate/settings.php:160
+#: includes/modules/accelerate/settings.php:221
 msgid "Disable Plugin Check"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:163
+#: includes/modules/accelerate/settings.php:224
 msgid "Disable Plugin Check (Admin)"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:158
+#: includes/modules/accelerate/settings.php:219
 msgid "Disable Plugin Updates"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:161
+#: includes/modules/accelerate/settings.php:222
 msgid "Disable Theme Check"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:164
+#: includes/modules/accelerate/settings.php:225
 msgid "Disable Theme Check (Admin)"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:159
+#: includes/modules/accelerate/settings.php:220
 msgid "Disable Theme Updates"
 msgstr ""
 
-#: includes/class-admin-settings.php:107
+#: includes/class-admin-settings.php:108
 msgid "Disabled"
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:133
+#: includes/modules/smart-auto-upload-images/settings.php:142
 msgid "Display a progress bar when saving posts with external images."
 msgstr ""
 
@@ -576,12 +643,16 @@ msgstr ""
 msgid "Display Notice"
 msgstr ""
 
-#: includes/modules/png-metadata-extractor/settings.php:28
+#: includes/modules/png-metadata-extractor/settings.php:25
 msgid "Display Stable Diffusion parameters in media library"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:74
+#: includes/modules/accelerate/settings.php:79
 msgid "Documentation"
+msgstr ""
+
+#: includes/modules/system-health/settings.php:221
+msgid "Done"
 msgstr ""
 
 #: includes/modules/post-duplicator/settings.php:122
@@ -599,6 +670,11 @@ msgstr ""
 
 #: includes/modules/post-duplicator/module.php:45
 msgid "Duplicate any post type including custom fields and taxonomies."
+msgstr ""
+
+#: includes/modules/system-health/settings.php:27
+#: includes/modules/system-health/settings.php:170
+msgid "Duplicate Post Clean"
 msgstr ""
 
 #: includes/modules/post-duplicator/settings.php:108
@@ -637,7 +713,7 @@ msgstr ""
 msgid "Enable Offset"
 msgstr ""
 
-#: includes/class-admin-settings.php:86
+#: includes/class-admin-settings.php:87
 msgid "Enable or disable WP Genius modules and manage their basic preferences."
 msgstr ""
 
@@ -645,7 +721,7 @@ msgstr ""
 msgid "Enable Table of Contents"
 msgstr ""
 
-#: includes/class-admin-settings.php:125
+#: includes/class-admin-settings.php:126
 msgid "Enable to configure"
 msgstr ""
 
@@ -657,7 +733,7 @@ msgstr ""
 msgid "Encryption method for SMTP connection"
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:99
+#: includes/modules/smart-auto-upload-images/settings.php:108
 msgid "Enter domains to exclude from image upload (one per line)."
 msgstr ""
 
@@ -692,19 +768,27 @@ msgstr ""
 msgid "Everywhere"
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:95
+#: includes/modules/smart-auto-upload-images/settings.php:104
 msgid "Exclude Domains"
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:159
+#: includes/modules/smart-auto-upload-images/settings.php:168
 msgid "Exclude Post Types"
+msgstr ""
+
+#: includes/modules/system-health/settings.php:132
+msgid "Execute Removal"
+msgstr ""
+
+#: includes/modules/system-health/module.php:63
+msgid "Executing..."
 msgstr ""
 
 #: includes/modules/auto-publish/settings.php:57
 msgid "Execution Interval"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:79
+#: includes/modules/system-health/settings.php:81
 msgid "Expired Transients"
 msgstr ""
 
@@ -723,8 +807,12 @@ msgstr ""
 msgid "Extracting metadata..."
 msgstr ""
 
-#: includes/modules/png-metadata-extractor/settings.php:40
+#: includes/modules/png-metadata-extractor/settings.php:37
 msgid "Extracting Metadata:"
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/progress-template.php:37
+msgid "Failed"
 msgstr ""
 
 #: includes/class-word-to-posts.php:153
@@ -742,7 +830,7 @@ msgstr ""
 msgid "Failed to upload clipboard image."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:76
+#: includes/modules/accelerate/settings.php:81
 msgid "Feedback"
 msgstr ""
 
@@ -756,6 +844,10 @@ msgstr ""
 
 #: includes/class-word-to-posts.php:85
 msgid "file deletion failed"
+msgstr ""
+
+#: includes/modules/accelerate/settings.php:199
+msgid "File extension"
 msgstr ""
 
 #: includes/class-word-to-posts.php:135
@@ -780,7 +872,7 @@ msgstr ""
 msgid "Full Backup"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:130
+#: includes/modules/accelerate/settings.php:135
 msgid "General Interface"
 msgstr ""
 
@@ -792,7 +884,7 @@ msgstr ""
 msgid "Generate AI Excerpt"
 msgstr ""
 
-#: includes/modules/png-metadata-extractor/settings.php:42
+#: includes/modules/png-metadata-extractor/settings.php:39
 msgid ""
 "Go to Media > Library, select PNG images, choose \"Extract PNG Metadata\" "
 "from the bulk actions dropdown, and click Apply."
@@ -806,12 +898,16 @@ msgstr ""
 msgid "Height:"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:165
+#: includes/modules/accelerate/settings.php:226
 msgid "Hide Plugin Notices"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:165
+#: includes/modules/accelerate/settings.php:226
 msgid "Hides update notices for plugins."
+msgstr ""
+
+#: includes/modules/accelerate/settings.php:193
+msgid "Hour"
 msgstr ""
 
 #: includes/modules/auto-publish/settings.php:64
@@ -826,8 +922,7 @@ msgstr ""
 msgid "How many recent posts to scan for images."
 msgstr ""
 
-#: includes/modules/avatar-manager/settings.php:34
-#: includes/modules/png-metadata-extractor/settings.php:37
+#: includes/modules/png-metadata-extractor/settings.php:34
 msgid "How to Use"
 msgstr ""
 
@@ -839,7 +934,12 @@ msgstr ""
 msgid "If enabled, TOC will appear at the start of the post content."
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:58
+#: includes/modules/system-health/settings.php:26
+#: includes/modules/system-health/settings.php:99
+msgid "Image Link Remover"
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/settings.php:67
 msgid "Image Name Pattern"
 msgstr ""
 
@@ -855,12 +955,16 @@ msgstr ""
 msgid "Image Quality"
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:77
+#: includes/modules/smart-auto-upload-images/settings.php:86
 msgid "Image Size Limits"
 msgstr ""
 
 #: includes/modules/clipboard-image-upload/module.php:138
 msgid "Image uploaded successfully!"
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/settings.php:243
+msgid "Image URL"
 msgstr ""
 
 #: includes/modules/image-watermark/module.php:23
@@ -883,7 +987,7 @@ msgid ""
 "Genius)."
 msgstr ""
 
-#: includes/modules/png-metadata-extractor/settings.php:46
+#: includes/modules/png-metadata-extractor/settings.php:43
 msgid ""
 "In the media library, click on an image to view its metadata in the "
 "attachment details. On the frontend, click the 📊 icon that appears on images "
@@ -894,11 +998,12 @@ msgstr ""
 msgid "Initializing..."
 msgstr ""
 
-#: includes/modules/system-health/module.php:67
+#: includes/modules/system-health/module.php:78
+#: includes/modules/system-health/module.php:160
 msgid "Insufficient permissions."
 msgstr ""
 
-#: includes/modules/system-health/module.php:88
+#: includes/modules/system-health/module.php:99
 msgid "Invalid cleanup type."
 msgstr ""
 
@@ -911,12 +1016,21 @@ msgstr ""
 msgid "Invalid image ID"
 msgstr ""
 
-#: includes/class-admin-settings.php:262
+#: includes/class-admin-settings.php:263
 msgid "Invalid module"
+msgstr ""
+
+#: includes/modules/system-health/module.php:141
+#: includes/modules/system-health/module.php:188
+msgid "Invalid post IDs."
 msgstr ""
 
 #: includes/modules/media-turbo/settings.php:132
 msgid "Items to process per AJAX request."
+msgstr ""
+
+#: includes/modules/system-health/settings.php:257
+msgid "Keep"
 msgstr ""
 
 #: includes/modules/media-turbo/settings.php:66
@@ -927,14 +1041,13 @@ msgstr ""
 msgid "Keep original image without watermark."
 msgstr ""
 
-#: includes/modules/system-health/settings.php:38
+#: includes/modules/system-health/settings.php:40
 msgid ""
 "Keep your site fast by removing unnecessary data from your database. Click "
 "the scan button to check current system health."
 msgstr ""
 
-#: includes/modules/avatar-manager/settings.php:19
-#: includes/modules/png-metadata-extractor/settings.php:23
+#: includes/modules/png-metadata-extractor/settings.php:20
 msgid "Key Features"
 msgstr ""
 
@@ -954,16 +1067,12 @@ msgstr ""
 msgid "Link Title"
 msgstr ""
 
-#: includes/modules/avatar-manager/module.php:78
+#: includes/modules/accelerate/module.php:449
 msgid "Local Avatar"
 msgstr ""
 
-#: includes/modules/avatar-manager/module.php:12
+#: includes/modules/accelerate/settings.php:151
 msgid "Local Avatar Manager"
-msgstr ""
-
-#: includes/modules/avatar-manager/settings.php:9
-msgid "Local Avatar Manager Overview"
 msgstr ""
 
 #: includes/modules/word-publish/settings.php:117
@@ -971,7 +1080,7 @@ msgid "Manage temporary files and directories used during the import process."
 msgstr ""
 
 #: includes/modules/auto-publish/settings.php:143
-#: includes/modules/auto-publish/settings.php:419
+#: includes/modules/auto-publish/settings.php:427
 msgid "Manual"
 msgstr ""
 
@@ -983,23 +1092,23 @@ msgstr ""
 msgid "Manual Watermarking"
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:85
+#: includes/modules/smart-auto-upload-images/settings.php:94
 msgid "Max Height"
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:186
+#: includes/modules/smart-auto-upload-images/settings.php:195
 msgid "Max Retries"
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:81
+#: includes/modules/smart-auto-upload-images/settings.php:90
 msgid "Max Width"
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:180
+#: includes/modules/smart-auto-upload-images/settings.php:189
 msgid "Maximum number of concurrent image downloads per post."
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:190
+#: includes/modules/smart-auto-upload-images/settings.php:199
 msgid "Maximum retry attempts when an image download fails."
 msgstr ""
 
@@ -1015,6 +1124,10 @@ msgstr ""
 msgid "Min File Size"
 msgstr ""
 
+#: includes/modules/accelerate/settings.php:194
+msgid "Minute"
+msgstr ""
+
 #: includes/modules/post-duplicator/settings.php:185
 msgid "Minutes"
 msgstr ""
@@ -1027,15 +1140,19 @@ msgstr ""
 msgid "Model"
 msgstr ""
 
-#: includes/modules/png-metadata-extractor/settings.php:65
+#: includes/modules/png-metadata-extractor/settings.php:62
 msgid "Model hash"
 msgstr ""
 
-#: includes/class-admin-settings.php:48 includes/class-admin-settings.php:85
+#: includes/class-admin-settings.php:48 includes/class-admin-settings.php:86
 msgid "Module Management"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:135
+#: includes/modules/accelerate/settings.php:191
+msgid "Month"
+msgstr ""
+
+#: includes/modules/accelerate/settings.php:140
 msgid "Months Dropdown"
 msgstr ""
 
@@ -1043,11 +1160,15 @@ msgstr ""
 msgid "Most SMTP servers require authentication to send mail."
 msgstr ""
 
+#: includes/modules/system-health/module.php:195
+msgid "Moved %d posts to trash."
+msgstr ""
+
 #: includes/modules/smtp-mailer/settings.php:130
 msgid "Name that appears as sender"
 msgstr ""
 
-#: includes/modules/png-metadata-extractor/settings.php:61
+#: includes/modules/png-metadata-extractor/settings.php:58
 msgid "Negative prompt"
 msgstr ""
 
@@ -1055,7 +1176,7 @@ msgstr ""
 msgid "New book name"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:69
+#: includes/modules/accelerate/settings.php:74
 msgid "New Content"
 msgstr ""
 
@@ -1064,13 +1185,21 @@ msgid "Newer"
 msgstr ""
 
 #: includes/modules/auto-publish/settings.php:139
-#: includes/modules/auto-publish/settings.php:415
+#: includes/modules/auto-publish/settings.php:423
 msgid "No activity logged yet."
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/settings.php:234
+msgid "No capture failures recorded."
 msgstr ""
 
 #: includes/class-word-to-posts.php:160
 #: includes/class-word-to-posts-backup.php:79
 msgid "No chapters found in the document."
+msgstr ""
+
+#: includes/modules/system-health/settings.php:213
+msgid "No duplicate posts found."
 msgstr ""
 
 #: includes/class-word-to-posts.php:116
@@ -1089,15 +1218,15 @@ msgstr ""
 msgid "No metadata found"
 msgstr ""
 
-#: includes/class-admin-settings.php:29 includes/class-admin-settings.php:229
-#: includes/class-admin-settings.php:588
+#: includes/class-admin-settings.php:29 includes/class-admin-settings.php:230
+#: includes/class-admin-settings.php:594
 #: includes/modules/smtp-mailer/test-connection.php:32
 msgid "No permission"
 msgstr ""
 
 #: includes/class-word-to-posts.php:42 includes/class-word-to-posts.php:70
-#: includes/class-word-to-posts.php:107 includes/class-admin-settings.php:257
-#: includes/class-admin-settings.php:592
+#: includes/class-word-to-posts.php:107 includes/class-admin-settings.php:258
+#: includes/class-admin-settings.php:598
 #: includes/class-word-to-posts-backup.php:35
 #: includes/class-word-to-posts-backup.php:139
 msgid "Nonce verification failed"
@@ -1176,6 +1305,10 @@ msgstr ""
 msgid "Original"
 msgstr ""
 
+#: includes/modules/accelerate/settings.php:198
+msgid "Original filename"
+msgstr ""
+
 #: includes/modules/post-duplicator/settings.php:146
 msgid "Original Post Author"
 msgstr ""
@@ -1188,7 +1321,7 @@ msgstr ""
 msgid "Orphaned"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:69
+#: includes/modules/system-health/settings.php:71
 msgid "Orphaned Metadata"
 msgstr ""
 
@@ -1196,13 +1329,13 @@ msgstr ""
 msgid "Output image compression level."
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:72
+#: includes/modules/smart-auto-upload-images/settings.php:81
 msgid ""
 "Pattern for alt text of uploaded images. Available variables: %image_alt%, "
 "%filename%, %post_title%. Default: %image_alt%"
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:62
+#: includes/modules/smart-auto-upload-images/settings.php:71
 msgid ""
 "Pattern for naming uploaded images. Available variables: %filename%, "
 "%post_title%, %post_date%, %random%. Default: %filename%"
@@ -1212,12 +1345,16 @@ msgstr ""
 msgid "Pending"
 msgstr ""
 
-#: includes/modules/png-metadata-extractor/settings.php:72
+#: includes/modules/png-metadata-extractor/settings.php:69
 msgid "Performance"
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:155
+#: includes/modules/smart-auto-upload-images/settings.php:164
 msgid "Performance & Rules"
+msgstr ""
+
+#: includes/modules/accelerate/settings.php:200
+msgid "PHP uniqid"
 msgstr ""
 
 #: includes/modules/smtp-mailer/test-connection.php:39
@@ -1232,12 +1369,8 @@ msgstr ""
 msgid "PNG Metadata Extractor"
 msgstr ""
 
-#: includes/modules/png-metadata-extractor/settings.php:13
+#: includes/modules/png-metadata-extractor/settings.php:10
 msgid "PNG Metadata Extractor Overview"
-msgstr ""
-
-#: includes/modules/png-metadata-extractor/settings.php:8
-msgid "PNG Metadata Extractor Settings"
 msgstr ""
 
 #: includes/modules/smtp-mailer/test-connection.php:62
@@ -1261,11 +1394,16 @@ msgstr ""
 msgid "Post Duplicator"
 msgstr ""
 
+#: includes/modules/system-health/settings.php:152
+#: includes/modules/system-health/settings.php:230
+msgid "Post ID"
+msgstr ""
+
 #: includes/modules/post-duplicator/settings.php:78
 msgid "Post List Screen"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:49
+#: includes/modules/system-health/settings.php:51
 msgid "Post Revisions"
 msgstr ""
 
@@ -1277,7 +1415,7 @@ msgstr ""
 msgid "Post Types"
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:170
+#: includes/modules/smart-auto-upload-images/settings.php:179
 msgid "Post types that should skip automatic image processing."
 msgstr ""
 
@@ -1287,15 +1425,27 @@ msgid ""
 "prefix_uniqueid.png)."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:158
+#: includes/modules/smart-auto-upload-images/module.php:229
+msgid "Preparing to process and publish batch posts..."
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/module.php:228
+msgid "Preparing to process batch posts..."
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/progress-template.php:16
+msgid "Preparing..."
+msgstr ""
+
+#: includes/modules/accelerate/settings.php:219
 msgid "Prevents plugins from updating automatically."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:159
+#: includes/modules/accelerate/settings.php:220
 msgid "Prevents themes from updating automatically."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:108
+#: includes/modules/accelerate/settings.php:113
 msgid "Primary Sidebar"
 msgstr ""
 
@@ -1303,11 +1453,15 @@ msgstr ""
 msgid "Processed posts: %d"
 msgstr ""
 
+#: includes/modules/smart-auto-upload-images/module.php:240
+msgid "Processing external images in parallel..."
+msgstr ""
+
 #: includes/modules/auto-publish/module.php:249
 msgid "Processing image %d..."
 msgstr ""
 
-#: includes/modules/png-metadata-extractor/settings.php:60
+#: includes/modules/png-metadata-extractor/settings.php:57
 msgid "Prompt text"
 msgstr ""
 
@@ -1325,8 +1479,12 @@ msgstr ""
 msgid "px"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:112
+#: includes/modules/accelerate/settings.php:117
 msgid "Quick Draft"
+msgstr ""
+
+#: includes/modules/accelerate/settings.php:186
+msgid "Random number"
 msgstr ""
 
 #: includes/modules/media-turbo/settings.php:118
@@ -1343,125 +1501,121 @@ msgstr ""
 msgid "Remove"
 msgstr ""
 
-#: includes/modules/avatar-manager/module.php:100
+#: includes/modules/accelerate/module.php:471
 msgid "Remove Avatar"
-msgstr ""
-
-#: includes/modules/avatar-manager/settings.php:27
-msgid "Remove avatar option"
 msgstr ""
 
 #: includes/modules/image-watermark/settings.php:67
 msgid "Remove Image"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:162
+#: includes/modules/accelerate/settings.php:223
 msgid "Removes core update checks."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:74
+#: includes/modules/accelerate/settings.php:79
 msgid "Removes documentation links."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:163
+#: includes/modules/accelerate/settings.php:224
 msgid "Removes plugin checks in admin."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:75
+#: includes/modules/accelerate/settings.php:80
 msgid "Removes support forum links."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:69
+#: includes/modules/accelerate/settings.php:74
 msgid "Removes the \"+ New\" menu."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:67
+#: includes/modules/accelerate/settings.php:72
 msgid "Removes the \"About WordPress\" link."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:107
+#: includes/modules/accelerate/settings.php:112
 msgid "Removes the \"Activity\" widget."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:111
+#: includes/modules/accelerate/settings.php:116
 msgid "Removes the \"At a Glance\" widget."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:77
+#: includes/modules/accelerate/settings.php:82
 msgid "Removes the \"View Site\" link."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:72
+#: includes/modules/accelerate/settings.php:77
 msgid "Removes the Appearance/Customize menu."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:68
+#: includes/modules/accelerate/settings.php:73
 msgid "Removes the comments moderation icon."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:76
+#: includes/modules/accelerate/settings.php:81
 msgid "Removes the feedback link."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:108
+#: includes/modules/accelerate/settings.php:113
 msgid "Removes the primary WordPress events widget."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:112
+#: includes/modules/accelerate/settings.php:117
 msgid "Removes the Quick Draft widget."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:70
+#: includes/modules/accelerate/settings.php:75
 msgid "Removes the search bar from admin bar."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:109
+#: includes/modules/accelerate/settings.php:114
 msgid "Removes the secondary WordPress widget."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:110
+#: includes/modules/accelerate/settings.php:115
 msgid "Removes the Site Health status widget."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:71
+#: includes/modules/accelerate/settings.php:76
 msgid "Removes the updates notification icon."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:66
+#: includes/modules/accelerate/settings.php:71
 msgid "Removes the WP logo from the top left."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:160
+#: includes/modules/accelerate/settings.php:221
 msgid "Removes the wp_update_plugins schedule."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:161
+#: includes/modules/accelerate/settings.php:222
 msgid "Removes the wp_update_themes schedule."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:164
+#: includes/modules/accelerate/settings.php:225
 msgid "Removes theme checks in admin."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:73
+#: includes/modules/accelerate/settings.php:78
 msgid "Removes WordPress.org external links."
 msgstr ""
 
-#: includes/modules/upload-rename/settings.php:20
+#: includes/modules/accelerate/settings.php:175
 msgid "Rename Pattern"
 msgstr ""
 
-#: includes/modules/avatar-manager/module.php:16
+#: includes/modules/accelerate/settings.php:157
 msgid ""
-"Replace WordPress Gravatar with local user avatar management. Upload and "
-"store avatars directly in your media library."
+"Replace Gravatar with local user avatar management. Upload and store avatars "
+"directly in your media library."
 msgstr ""
 
 #: includes/modules/media-turbo/settings.php:163
 msgid "Reset Processed Posts"
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:139
+#: includes/modules/smart-auto-upload-images/settings.php:148
 msgid "REST API Support"
 msgstr ""
 
@@ -1484,11 +1638,15 @@ msgstr ""
 msgid "Same as original"
 msgstr ""
 
-#: includes/modules/png-metadata-extractor/settings.php:62
+#: includes/modules/png-metadata-extractor/settings.php:59
 msgid "Sampling steps"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:207
+#: includes/modules/accelerate/settings.php:185
+msgid "Sanitized original filename"
+msgstr ""
+
+#: includes/modules/accelerate/settings.php:268
 msgid "Save Accelerate Settings"
 msgstr ""
 
@@ -1496,7 +1654,7 @@ msgstr ""
 msgid "Save AI Settings"
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:197
+#: includes/modules/smart-auto-upload-images/settings.php:206
 #: includes/modules/media-turbo/settings.php:139
 msgid "Save All Settings"
 msgstr ""
@@ -1517,12 +1675,8 @@ msgstr ""
 msgid "Save failed"
 msgstr ""
 
-#: includes/class-admin-settings.php:142
+#: includes/class-admin-settings.php:143
 msgid "Save Module Preferences"
-msgstr ""
-
-#: includes/modules/upload-rename/settings.php:46
-msgid "Save Rename Settings"
 msgstr ""
 
 #: includes/modules/seo-linker/settings.php:125
@@ -1549,12 +1703,25 @@ msgstr ""
 msgid "Scaled"
 msgstr ""
 
+#: includes/modules/system-health/settings.php:175
+msgid "Scan and remove duplicate posts based on title and slug matching."
+msgstr ""
+
 #: includes/modules/media-turbo/settings.php:110
 msgid "Scan by Posts (ignore file size limit)"
 msgstr ""
 
 #: includes/modules/word-publish/settings.php:123
 msgid "Scan Directory"
+msgstr ""
+
+#: includes/modules/system-health/settings.php:185
+#: includes/modules/system-health/settings.php:187
+msgid "Scan for Duplicates"
+msgstr ""
+
+#: includes/modules/system-health/settings.php:117
+msgid "Scan for Linked Images"
 msgstr ""
 
 #: includes/modules/media-turbo/settings.php:92
@@ -1570,7 +1737,13 @@ msgstr ""
 msgid "Scan Mode"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:41
+#: includes/modules/system-health/settings.php:104
+msgid ""
+"Scan posts for images wrapped in links and remove the links while keeping "
+"the images."
+msgstr ""
+
+#: includes/modules/system-health/settings.php:43
 msgid "Scan System Status"
 msgstr ""
 
@@ -1582,8 +1755,13 @@ msgstr ""
 msgid "Scanning uploads folder..."
 msgstr ""
 
+#: includes/modules/system-health/settings.php:185
+#: includes/modules/system-health/module.php:62
+msgid "Scanning..."
+msgstr ""
+
 #: includes/modules/auto-publish/settings.php:143
-#: includes/modules/auto-publish/settings.php:419
+#: includes/modules/auto-publish/settings.php:427
 msgid "Scheduled"
 msgstr ""
 
@@ -1591,11 +1769,11 @@ msgstr ""
 msgid "Scheduled Publishing in Progress..."
 msgstr ""
 
-#: includes/modules/auto-publish/settings.php:396
+#: includes/modules/auto-publish/settings.php:404
 msgid "Scheduled task running"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:70
+#: includes/modules/accelerate/settings.php:75
 msgid "Search"
 msgstr ""
 
@@ -1605,7 +1783,11 @@ msgid ""
 "records."
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:109
+#: includes/modules/accelerate/settings.php:195
+msgid "Second"
+msgstr ""
+
+#: includes/modules/accelerate/settings.php:114
 msgid "Secondary Sidebar"
 msgstr ""
 
@@ -1627,7 +1809,7 @@ msgstr ""
 msgid "Security check failed. Please try again."
 msgstr ""
 
-#: includes/modules/png-metadata-extractor/settings.php:64
+#: includes/modules/png-metadata-extractor/settings.php:61
 msgid "Seed"
 msgstr ""
 
@@ -1639,7 +1821,7 @@ msgstr ""
 msgid "Select a book..."
 msgstr ""
 
-#: includes/modules/avatar-manager/module.php:125
+#: includes/modules/accelerate/module.php:493
 msgid "Select Avatar"
 msgstr ""
 
@@ -1655,7 +1837,7 @@ msgstr ""
 msgid "Select Watermark"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:102
+#: includes/modules/accelerate/settings.php:107
 msgid "Select which dashboard widgets to remove"
 msgstr ""
 
@@ -1671,31 +1853,48 @@ msgstr ""
 msgid "Separate tags with commas"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:100
+#: includes/modules/system-health/settings.php:275
 msgid "Server Environment"
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:89
+#: includes/modules/smart-auto-upload-images/settings.php:98
 msgid "Set maximum dimensions for uploaded images. (0 = no limit)"
 msgstr ""
 
-#: includes/modules/png-metadata-extractor/settings.php:29
+#: includes/modules/smart-auto-upload-images/settings.php:37
+msgid "Settings"
+msgstr ""
+
+#: includes/modules/png-metadata-extractor/settings.php:26
 msgid "Show metadata icon on images in posts/pages"
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:126
+#: includes/modules/smart-auto-upload-images/settings.php:135
 msgid "Show Upload Progress"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:110
+#: includes/modules/accelerate/settings.php:115
 msgid "Site Health"
 msgstr ""
 
+#: includes/modules/smart-auto-upload-images/progress-template.php:60
+msgid "Skip and Publish"
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/progress-template.php:33
+msgid "Skipped"
+msgstr ""
+
+#: includes/modules/system-health/settings.php:232
+msgid "Slug"
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/progress-template.php:5
 #: includes/modules/smart-auto-upload-images/module.php:35
 msgid "Smart Auto Upload Images"
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/module.php:108
+#: includes/modules/smart-auto-upload-images/module.php:109
 msgid ""
 "Smart Auto Upload Images: 请在 smart-auto-upload-images 目录运行 composer install"
 msgstr ""
@@ -1787,16 +1986,23 @@ msgstr ""
 
 #: includes/modules/auto-publish/settings.php:132
 #: includes/modules/media-turbo/settings.php:189
+#: includes/modules/system-health/settings.php:154
+#: includes/modules/system-health/settings.php:234
 msgid "Status"
 msgstr ""
 
 #: includes/modules/auto-publish/settings.php:101
 #: includes/modules/media-turbo/settings.php:160
+#: includes/modules/system-health/settings.php:136
 msgid "Stop"
 msgstr ""
 
-#: includes/modules/png-metadata-extractor/settings.php:30
+#: includes/modules/png-metadata-extractor/settings.php:27
 msgid "Store metadata as custom fields for easy access"
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/progress-template.php:29
+msgid "Success"
 msgstr ""
 
 #: includes/modules/png-metadata-extractor/module.php:339
@@ -1811,11 +2017,11 @@ msgstr ""
 msgid "Suggest AI Tags"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:75
+#: includes/modules/accelerate/settings.php:80
 msgid "Support Forums"
 msgstr ""
 
-#: includes/modules/png-metadata-extractor/settings.php:53
+#: includes/modules/png-metadata-extractor/settings.php:50
 msgid "Supported Parameters"
 msgstr ""
 
@@ -1823,7 +2029,7 @@ msgstr ""
 msgid "System Health"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:26
+#: includes/modules/system-health/settings.php:28
 msgid "System Info"
 msgstr ""
 
@@ -1859,37 +2065,41 @@ msgstr ""
 msgid "Testing..."
 msgstr ""
 
-#: includes/modules/smart-auto-upload-images/settings.php:52
+#: includes/modules/smart-auto-upload-images/settings.php:61
 msgid "The base URL to use for uploaded images. Defaults to your site URL."
 msgstr ""
 
-#: includes/modules/png-metadata-extractor/settings.php:18
+#: includes/modules/smart-auto-upload-images/settings.php:223
+msgid ""
+"The following image URLs failed to download and will be skipped in future "
+"attempts to avoid infinite retry loops."
+msgstr ""
+
+#: includes/modules/png-metadata-extractor/settings.php:15
 msgid ""
 "This module extracts Stable Diffusion parameters from PNG images and allows "
 "you to view them in the media library and on the frontend."
 msgstr ""
 
-#: includes/modules/png-metadata-extractor/settings.php:57
+#: includes/modules/png-metadata-extractor/settings.php:54
 msgid ""
 "This module extracts the following Stable Diffusion parameters from PNG "
 "files:"
 msgstr ""
 
-#: includes/modules/avatar-manager/settings.php:14
-msgid ""
-"This module replaces WordPress Gravatar with a local avatar system. Each "
-"user can upload and manage their own avatar image stored directly in your "
-"media library."
-msgstr ""
-
-#: includes/modules/accelerate/settings.php:198
+#: includes/modules/accelerate/settings.php:259
 msgid ""
 "This will block all plugins and themes from checking for updates, "
 "dramatically speeding up the backend load times. Use only for local "
 "development!"
 msgstr ""
 
+#: includes/modules/smart-auto-upload-images/progress-template.php:41
+msgid "Threads"
+msgstr ""
+
 #: includes/modules/auto-publish/settings.php:129
+#: includes/modules/smart-auto-upload-images/settings.php:244
 #: includes/modules/media-turbo/settings.php:190
 msgid "Time"
 msgstr ""
@@ -1898,11 +2108,20 @@ msgstr ""
 msgid "Tips"
 msgstr ""
 
+#: includes/modules/system-health/settings.php:153
+#: includes/modules/system-health/settings.php:231
+msgid "Title"
+msgstr ""
+
 #: includes/modules/smtp-mailer/settings.php:71
 msgid "TLS (port 587)"
 msgstr ""
 
-#: includes/modules/png-metadata-extractor/settings.php:76
+#: includes/modules/system-health/settings.php:259
+msgid "To Delete"
+msgstr ""
+
+#: includes/modules/png-metadata-extractor/settings.php:73
 msgid ""
 "To minimize server load, this module does not automatically extract metadata "
 "when images are uploaded. Metadata extraction is performed only when "
@@ -1913,6 +2132,10 @@ msgstr ""
 msgid "Top:"
 msgstr ""
 
+#: includes/modules/smart-auto-upload-images/progress-template.php:25
+msgid "Total"
+msgstr ""
+
 #: includes/modules/auto-publish/settings.php:65
 msgid "Twice Daily"
 msgstr ""
@@ -1921,11 +2144,15 @@ msgstr ""
 msgid "Typical ports: 465 (SSL), 587 (TLS), 25 (unencrypted)"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:150
+#: includes/modules/accelerate/settings.php:184
+msgid "Unix timestamp"
+msgstr ""
+
+#: includes/modules/accelerate/settings.php:211
 msgid "Update Behaviors"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:71
+#: includes/modules/accelerate/settings.php:76
 msgid "Updates"
 msgstr ""
 
@@ -1937,7 +2164,7 @@ msgstr ""
 msgid "Upload & Import Word Document"
 msgstr ""
 
-#: includes/modules/avatar-manager/module.php:97
+#: includes/modules/accelerate/module.php:468
 msgid "Upload / Select Avatar"
 msgstr ""
 
@@ -1945,16 +2172,8 @@ msgstr ""
 msgid "Upload and Begin Import"
 msgstr ""
 
-#: includes/modules/upload-rename/module.php:18
+#: includes/modules/accelerate/settings.php:162
 msgid "Upload Rename"
-msgstr ""
-
-#: includes/modules/upload-rename/settings.php:10
-msgid "Upload Rename Settings"
-msgstr ""
-
-#: includes/modules/avatar-manager/settings.php:23
-msgid "Upload/select avatar via media library"
 msgstr ""
 
 #: includes/modules/clipboard-image-upload/module.php:137
@@ -1974,24 +2193,15 @@ msgstr ""
 msgid "Use AI to automatically generate excerpts, tags, and image alt text."
 msgstr ""
 
-#: includes/modules/avatar-manager/settings.php:26
-msgid "Use local avatars across frontend and admin"
+#: includes/modules/accelerate/settings.php:196
+msgid "User ID"
 msgstr ""
 
-#: includes/modules/upload-rename/settings.php:24
-msgid ""
-"Use {timestamp}, {sanitized}, {rand} in the pattern. Example: {timestamp}"
-"_{sanitized}"
+#: includes/modules/accelerate/settings.php:197
+msgid "User login name"
 msgstr ""
 
-#: includes/modules/avatar-manager/settings.php:38
-msgid ""
-"Users can manage their avatars on their profile page (User > Your Profile). "
-"Simply click \"Upload / Select Avatar\" to choose an image from your media "
-"library, or \"Remove Avatar\" to delete it."
-msgstr ""
-
-#: includes/modules/accelerate/settings.php:77
+#: includes/modules/accelerate/settings.php:82
 msgid "View Site"
 msgstr ""
 
@@ -2000,8 +2210,12 @@ msgstr ""
 msgid "View Stable Diffusion Parameters"
 msgstr ""
 
-#: includes/modules/png-metadata-extractor/settings.php:44
+#: includes/modules/png-metadata-extractor/settings.php:41
 msgid "Viewing Metadata:"
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/progress-template.php:51
+msgid "Waiting for task to start..."
 msgstr ""
 
 #: includes/modules/image-watermark/settings.php:133
@@ -2056,15 +2270,15 @@ msgstr ""
 msgid "Word to Posts"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:119
+#: includes/modules/system-health/settings.php:294
 msgid "WordPress Configuration"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:66
+#: includes/modules/accelerate/settings.php:71
 msgid "WordPress Logo"
 msgstr ""
 
-#: includes/modules/accelerate/settings.php:73
+#: includes/modules/accelerate/settings.php:78
 msgid "WordPress.org"
 msgstr ""
 
@@ -2090,6 +2304,14 @@ msgstr ""
 msgid "WP Genius — Module Settings"
 msgstr ""
 
+#: includes/modules/accelerate/settings.php:190
+msgid "Year"
+msgstr ""
+
+#: includes/modules/accelerate/settings.php:189
+msgid "YmdHis format"
+msgstr ""
+
 #: includes/modules/png-metadata-extractor/module.php:322
 #: includes/modules/word-publish/module.php:64
 #: includes/modules/word-publish/module.php:87
@@ -2099,4 +2321,48 @@ msgstr ""
 
 #: includes/modules/image-watermark/module.php:159
 msgid "You do not have sufficient permissions to access this page."
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/module.php:241
+msgid "✅ Image processing complete! Saving..."
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/module.php:235
+msgid "🎉 All batch processing completed!"
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/module.php:236
+msgid "🎉 All posts have been processed and published!"
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/module.php:237
+msgid "🎉 All posts have been processed and set as drafts!"
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/module.php:238
+msgid "🎉 All posts have been processed and set as pending!"
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/module.php:239
+msgid "🎉 All posts have been processed and set as private!"
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/module.php:231
+msgid "📝 Process and Publish"
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/module.php:232
+msgid "📝 Process and Set as Draft"
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/module.php:233
+msgid "📝 Process and Set as Pending"
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/module.php:234
+msgid "📝 Process and Set as Private"
+msgstr ""
+
+#: includes/modules/smart-auto-upload-images/module.php:230
+msgid "📝 Processing"
 msgstr ""

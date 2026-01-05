@@ -6,7 +6,7 @@
  * @subpackage Frontend_Enhancement
  */
 
-(function($) {
+(function ($) {
     'use strict';
 
     /**
@@ -20,7 +20,7 @@
             this.postId = config.postId || 0;
             this.ajaxUrl = config.ajaxUrl || '';
             this.nonce = config.nonce || '';
-            
+
             // State
             this.images = [];
             this.currentIndex = 0;
@@ -28,13 +28,13 @@
             this.isPlaying = false;
             this.playInterval = null;
             this.overlay = null;
-            
+
             // Drag state
             this.isDragging = false;
             this.dragStart = { x: 0, y: 0 };
             this.dragOffset = { x: 0, y: 0 };
             this.currentTranslate = { x: 0, y: 0 };
-            
+
             this.init();
         }
 
@@ -42,18 +42,18 @@
          * Initialize Lightbox
          */
         init() {
-            console.log('WP Genius Lightbox: Initializing instance...');
-            
+
+
             // Create overlay DOM structure
             this.createOverlay();
-            console.log('WP Genius Lightbox: Overlay created');
-            
+
+
             // Collect images from content
             this.collectImages();
-            
+
+            // Bind events
             // Bind events
             this.bindEvents();
-            console.log('WP Genius Lightbox: Events bound');
         }
 
         /**
@@ -61,7 +61,7 @@
          */
         createOverlay() {
             const animClass = 'anim-' + (this.settings.lightbox_animation || 'fade');
-            
+
             this.overlay = $('<div>', {
                 'class': 'wpg-lightbox-overlay ' + animClass
             });
@@ -115,7 +115,7 @@
             });
 
             const buttons = [];
-            
+
             // Counter (added to toolbar)
             const counter = $('<div>', {
                 'class': 'wpg-lightbox-counter'
@@ -167,57 +167,27 @@
          */
         collectImages() {
             const self = this;
-            console.log('WP Genius Lightbox: Starting to collect images...');
-            
-            // Priority 1: Custom container with specific ID (recommended)
+
+            // Priority 1: Custom container with specific ID (Strict Mode)
             let $articleContainer = $('#w2p-post-content').first();
-            
-            // Priority 2: Standard WordPress content classes
+
             if ($articleContainer.length === 0) {
-                $articleContainer = $('.entry-content, .post-content, article.post, article[id^="post-"]').first();
-            }
-            
-            // Priority 3: Try w-grid-item articles (theme-specific)
-            if ($articleContainer.length === 0) {
-                $articleContainer = $('article.w-grid-item').first();
-            }
-            
-            // Priority 4: Fallback to body for single post/page
-            if ($articleContainer.length === 0 && $('body.single, body.single-post, body.page').length > 0) {
-                $articleContainer = $('body');
-                console.log('WP Genius Lightbox: Using body as container for single post/page');
-            }
-            
-            if ($articleContainer.length === 0) {
-                console.warn('WP Genius Lightbox: No article container found');
-                console.log('WP Genius Lightbox: Available containers:', {
-                    '#w2p-post-content': $('#w2p-post-content').length,
-                    '.entry-content': $('.entry-content').length,
-                    '.post-content': $('.post-content').length,
-                    'article.post': $('article.post').length,
-                    'article[id^="post-"]': $('article[id^="post-"]').length,
-                    'article.w-grid-item': $('article.w-grid-item').length,
-                    'body.single': $('body.single').length
-                });
                 return;
             }
-            
-            console.log('WP Genius Lightbox: Found article container:', $articleContainer[0]);
-            console.log('WP Genius Lightbox: Container selector used:', $articleContainer.attr('id') || $articleContainer.attr('class') || $articleContainer[0].tagName);
-            
-            $articleContainer.find('img').each(function() {
+
+            $articleContainer.find('img').each(function () {
                 const $img = $(this);
                 const src = $img.attr('src');
                 const dataSrc = $img.attr('data-src'); // For lazy loading
                 const alt = $img.attr('alt') || '';
-                
+
                 // Try multiple methods to get attachment ID
-                let attachmentId = $img.attr('data-id') || 
-                                  $img.attr('data-attachment-id') || 
-                                  $img.closest('[data-id]').attr('data-id') || 
-                                  $img.closest('[data-attachment-id]').attr('data-attachment-id') || 
-                                  0;
-                
+                let attachmentId = $img.attr('data-id') ||
+                    $img.attr('data-attachment-id') ||
+                    $img.closest('[data-id]').attr('data-id') ||
+                    $img.closest('[data-attachment-id]').attr('data-attachment-id') ||
+                    0;
+
                 // Try to extract ID from WordPress image classes (wp-image-{ID})
                 if (!attachmentId) {
                     const classMatch = $img.attr('class')?.match(/wp-image-(\d+)/);
@@ -225,12 +195,12 @@
                         attachmentId = classMatch[1];
                     }
                 }
-                
+
                 // Try to extract from parent link if it's a WordPress attachment page
                 const $link = $img.closest('a');
                 if (!attachmentId && $link.length) {
-                    const hrefMatch = $link.attr('href')?.match(/attachment_id=(\d+)/) || 
-                                     $link.attr('href')?.match(/\/(\d+)\/?$/);
+                    const hrefMatch = $link.attr('href')?.match(/attachment_id=(\d+)/) ||
+                        $link.attr('href')?.match(/\/(\d+)\/?$/);
                     if (hrefMatch) {
                         attachmentId = hrefMatch[1];
                     }
@@ -251,17 +221,6 @@
                     loaded: false // Track if full image is loaded
                 });
             });
-            
-            console.log('WP Genius Lightbox: Collected ' + self.images.length + ' images from article');
-            if (self.images.length > 0) {
-                console.log('WP Genius Lightbox: First image:', self.images[0]);
-                console.log('WP Genius Lightbox: Attachment IDs:', self.images.map(img => ({ 
-                    src: img.src.substring(img.src.lastIndexOf('/') + 1), 
-                    attachmentId: img.attachmentId 
-                })));
-            } else {
-                console.warn('WP Genius Lightbox: No images found in container. Total img elements in page:', $('img').length);
-            }
         }
 
         /**
@@ -273,20 +232,17 @@
             // Image click - respond to all images (even without links)
             // Priority selector: custom container ID first, then fallbacks
             const clickSelector = '#w2p-post-content img, body.single img, body.single-post img, body.page img, .entry-content img, .post-content img, article.post img, article[id^="post-"] img, article.w-grid-item img';
-            
-            $(document).on('click', clickSelector, function(e) {
-                console.log('WP Genius Lightbox: Image clicked!', this);
+
+            $(document).on('click', clickSelector, function (e) {
+
                 e.preventDefault();
                 e.stopPropagation(); // Prevent link navigation
-                
+
                 const index = self.images.findIndex(img => img.element === this);
-                console.log('WP Genius Lightbox: Image index:', index);
-                
+
+
                 if (index >= 0) {
-                    console.log('WP Genius Lightbox: Opening lightbox for image:', self.images[index]);
                     self.open(index);
-                } else {
-                    console.warn('WP Genius Lightbox: Image not found in collection');
                 }
             });
 
@@ -310,8 +266,8 @@
             if (this.settings.lightbox_keyboard_nav) {
                 $(document).on('keydown.lightbox', (e) => {
                     if (!this.overlay.hasClass('active')) return;
-                    
-                    switch(e.key) {
+
+                    switch (e.key) {
                         case 'Escape':
                             this.close();
                             break;
@@ -326,7 +282,7 @@
             }
 
             // Toolbar buttons
-            this.$toolbar.on('click', '.wpg-lightbox-btn', function(e) {
+            this.$toolbar.on('click', '.wpg-lightbox-btn', function (e) {
                 e.preventDefault();
                 const action = $(this).attr('data-action');
                 self.handleToolbarAction(action, $(this));
@@ -335,19 +291,15 @@
             // Mouse wheel zoom/navigate - attached to overlay instead of content
             this.overlay.on('wheel', (e) => {
                 if (!this.overlay.hasClass('active')) return;
-                
+
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 const $img = this.$content.find('img');
                 const targetIsImage = $(e.target).is('img') || $(e.target).closest('.wpg-lightbox-image').length > 0;
-                
-                console.log('Wheel event:', { 
-                    targetIsImage, 
-                    target: e.target.tagName,
-                    targetClass: e.target.className 
-                });
-                
+
+
+
                 // If over image and zoom enabled: zoom control
                 // If NOT over image: navigate images
                 if (targetIsImage && this.settings.lightbox_zoom_enabled) {
@@ -366,29 +318,19 @@
                 }
             });
 
-            // Image dragging when zoomed
+            // Image dragging
             this.$content.on('mousedown', 'img', (e) => {
-                const $img = $(e.currentTarget);
-                if (this.zoomLevel > 1 && this.isImageOverflowing($img)) {
-                    this.startDrag(e);
-                }
+                this.startDrag(e);
             });
-            
+
             $(document).on('mousemove.lightbox-drag', (e) => {
                 if (this.isDragging) {
                     this.onDrag(e);
                 }
             });
-            
+
             $(document).on('mouseup.lightbox-drag', () => {
                 this.stopDrag();
-            });
-
-            // Image click for zoom toggle
-            this.$content.on('click', 'img', () => {
-                if (!this.isDragging && this.settings.lightbox_zoom_enabled) {
-                    this.toggleZoom();
-                }
             });
         }
 
@@ -396,7 +338,7 @@
          * Handle toolbar actions
          */
         handleToolbarAction(action, $btn) {
-            switch(action) {
+            switch (action) {
                 case 'zoom-in':
                     this.zoomIn();
                     break;
@@ -414,7 +356,7 @@
                     break;
             }
         }
-        
+
         /**
          * Check if image overflows viewport
          */
@@ -423,7 +365,7 @@
             const rect = $img[0].getBoundingClientRect();
             return rect.width > window.innerWidth || rect.height > window.innerHeight;
         }
-        
+
         /**
          * Start dragging
          */
@@ -436,21 +378,21 @@
             };
             this.$content.find('img').css('cursor', 'grabbing');
         }
-        
+
         /**
          * On drag
          */
         onDrag(e) {
             if (!this.isDragging) return;
-            
+
             e.preventDefault();
-            
+
             // Direct transform update for better performance
             this.currentTranslate = {
                 x: e.clientX - this.dragStart.x,
                 y: e.clientY - this.dragStart.y
             };
-            
+
             // Apply immediately without transition for smooth dragging
             const $img = this.$content.find('img');
             const transform = `translate(${this.currentTranslate.x}px, ${this.currentTranslate.y}px) scale(${this.zoomLevel})`;
@@ -459,7 +401,7 @@
                 'transition': 'none' // Disable transition during drag
             });
         }
-        
+
         /**
          * Stop dragging
          */
@@ -468,14 +410,12 @@
                 this.isDragging = false;
                 // Re-enable transition after drag
                 this.$content.find('img').css('transition', 'transform 0.3s ease');
-                // Update cursor based on zoom state
+                // Update cursor
                 const $img = this.$content.find('img');
-                if (this.zoomLevel > 1 && this.isImageOverflowing($img)) {
+                if (this.isImageOverflowing($img)) {
                     $img.css('cursor', 'grab');
-                } else if (this.zoomLevel > 1) {
-                    $img.css('cursor', 'zoom-out');
                 } else {
-                    $img.css('cursor', 'zoom-in');
+                    $img.css('cursor', 'default');
                 }
             }
         }
@@ -498,7 +438,7 @@
             $('body').css('overflow', '');
             this.stopAutoplay();
             this.resetZoom();
-            
+
             // Reset autoplay button state
             this.$toolbar.find('[data-action="autoplay"]')
                 .removeClass('active')
@@ -513,21 +453,21 @@
 
             const image = this.images[this.currentIndex];
             const animation = this.settings.lightbox_animation || 'fade';
-            
-            console.log('showImage called, useTransition:', useTransition, 'animation:', animation);
-            
+
+
+
             // Create loading placeholder
             const $placeholder = $('<div>', {
                 'class': 'wpg-lightbox-loading',
                 'text': 'Loading...'
             });
-            
+
             // Add fade-out animation to current content if transition enabled
             if (useTransition && this.$content.children().length > 0) {
                 // Apply animation class based on settings
                 const animationClass = 'anim-' + animation + '-out';
                 this.$content.addClass(animationClass);
-                
+
                 setTimeout(() => {
                     this.$content.removeClass(animationClass).html($placeholder);
                     this.loadAndShowImage(image, useTransition, animation);
@@ -537,7 +477,7 @@
                 this.loadAndShowImage(image, useTransition, animation);
             }
         }
-        
+
         /**
          * Load and show image with transition
          */
@@ -547,7 +487,7 @@
                 // Add fade-in animation if transition enabled
                 if (useTransition) {
                     // Initial state based on animation type
-                    switch(animation) {
+                    switch (animation) {
                         case 'slide':
                             $img.css({
                                 'opacity': '1',
@@ -568,12 +508,12 @@
                             });
                             break;
                     }
-                    
+
                     this.$content.html($img);
-                    
+
                     // Trigger animation
                     setTimeout(() => {
-                        switch(animation) {
+                        switch (animation) {
                             case 'slide':
                                 $img.css({
                                     'transform': 'translateX(0)',
@@ -599,7 +539,7 @@
                 } else {
                     this.$content.html($img);
                 }
-                
+
                 // Update counter
                 if (this.settings.lightbox_show_counter) {
                     this.$counter.text((this.currentIndex + 1) + ' / ' + this.images.length);
@@ -613,11 +553,10 @@
                 this.zoomLevel = 1;
                 this.currentTranslate = { x: 0, y: 0 };
             }).catch((error) => {
-                console.error('Failed to load image:', error);
                 this.$content.html('<div class="wpg-lightbox-error">Failed to load image</div>');
             });
         }
-        
+
         /**
          * Load full image (lazy loading)
          */
@@ -628,25 +567,25 @@
                     resolve(image.$cachedImg.clone());
                     return;
                 }
-                
+
                 // Create new image element
                 const $img = $('<img>', {
                     'class': 'wpg-lightbox-image',
                     'alt': image.alt
                 });
-                
+
                 // Handle load success
                 $img.on('load', () => {
                     image.loaded = true;
                     image.$cachedImg = $img.clone();
                     resolve($img);
                 });
-                
+
                 // Handle load error
                 $img.on('error', () => {
                     reject(new Error('Image failed to load'));
                 });
-                
+
                 // Trigger load
                 $img.attr('src', image.src);
             });
@@ -676,7 +615,7 @@
         zoomIn() {
             const maxZoom = parseFloat(this.settings.lightbox_max_zoom) || 3;
             const step = parseFloat(this.settings.lightbox_zoom_step) || 0.2;
-            
+
             if (this.zoomLevel < maxZoom) {
                 this.zoomLevel = Math.min(this.zoomLevel + step, maxZoom);
                 this.applyZoom();
@@ -688,7 +627,7 @@
          */
         zoomOut() {
             const step = parseFloat(this.settings.lightbox_zoom_step) || 0.2;
-            
+
             if (this.zoomLevel > 1) {
                 this.zoomLevel = Math.max(this.zoomLevel - step, 1);
                 this.applyZoom();
@@ -723,14 +662,12 @@
             const transform = `translate(${this.currentTranslate.x}px, ${this.currentTranslate.y}px) scale(${this.zoomLevel})`;
             $img.css('transform', transform);
             $img.toggleClass('zoomed', this.zoomLevel > 1);
-            
+
             // Update cursor
-            if (this.zoomLevel > 1 && this.isImageOverflowing($img)) {
+            if (this.isImageOverflowing($img)) {
                 $img.css('cursor', 'grab');
-            } else if (this.zoomLevel > 1) {
-                $img.css('cursor', 'zoom-out');
             } else {
-                $img.css('cursor', 'zoom-in');
+                $img.css('cursor', 'default');
             }
         }
 
@@ -744,11 +681,9 @@
             }
 
             const image = this.images[this.currentIndex];
-            console.log('WP Genius Lightbox: Set as featured - image data:', image);
-            
+
             if (!image.attachmentId) {
                 alert(this.i18n.noAttachmentId || 'Cannot set this image as featured. Image attachment ID not found.');
-                console.warn('WP Genius Lightbox: Image has no attachment ID:', image);
                 return;
             }
 
@@ -765,7 +700,6 @@
                     attachment_id: image.attachmentId
                 },
                 success: (response) => {
-                    console.log('WP Genius Lightbox: Set featured response:', response);
                     if (response.success) {
                         alert(response.data.message || this.i18n.success || 'Featured image updated!');
                     } else {
@@ -773,7 +707,6 @@
                     }
                 },
                 error: (xhr, status, error) => {
-                    console.error('WP Genius Lightbox: AJAX error:', { xhr, status, error });
                     alert(this.i18n.error || 'Request failed.');
                 },
                 complete: () => {
@@ -824,59 +757,19 @@
     /**
      * Initialize on document ready
      */
-    $(document).ready(function() {
-        console.log('WP Genius Lightbox: Starting initialization...');
-        
+    $(document).ready(function () {
         // Check if config is available
         if (typeof wpgLightboxConfig === 'undefined') {
-            console.error('WP Genius Lightbox: wpgLightboxConfig is not defined. Lightbox module may not be enabled.');
             return;
         }
-        
-        console.log('WP Genius Lightbox: Config found:', wpgLightboxConfig);
 
-        // Check if other lightbox plugins exist
-        const detectedPlugins = [];
-        if (window.lightGallery) detectedPlugins.push('lightGallery');
-        if (window.PhotoSwipe) detectedPlugins.push('PhotoSwipe');
-        if (window.fancybox) detectedPlugins.push('fancybox');
-        if ($.magnificPopup) detectedPlugins.push('Magnific Popup');
-        if ($.fn.magnificPopup) detectedPlugins.push('Magnific Popup (jQuery)');
-        
-        if (detectedPlugins.length > 0) {
-            console.warn('WP Genius Lightbox: Other lightbox plugins detected:', detectedPlugins.join(', '));
-            console.warn('WP Genius Lightbox: Attempting to disable conflicts and initialize WP Genius Lightbox...');
-            
-            // Try to disable Magnific Popup on article images
-            if ($.fn.magnificPopup) {
-                console.log('WP Genius Lightbox: Unbinding Magnific Popup from article images...');
-                
-                // Unbind magnificPopup from links
-                $('.entry-content a, .post-content a, article a').each(function() {
-                    const $link = $(this);
-                    if ($link.find('img').length > 0) {
-                        // This link contains an image
-                        try {
-                            $link.magnificPopup('close');
-                            $link.off('.mfp'); // Remove magnificPopup events
-                            console.log('WP Genius Lightbox: Unbound Magnific Popup from:', $link[0]);
-                        } catch(e) {
-                            // Ignore errors
-                        }
-                    }
-                });
-                
-                // Prevent magnificPopup from auto-binding
-                $(document).off('click.magnificPopup');
-            }
+        // Strict Mode: Only initialize if the specific container exists
+        if ($('#w2p-post-content').length === 0) {
+            return;
         }
-        
-        console.log('WP Genius Lightbox: No conflicts detected, initializing...');
 
         // Initialize Lightbox
         window.wpgLightbox = new WPGeniusLightbox(wpgLightboxConfig);
-        
-        console.log('WP Genius Lightbox: Initialization complete. Total images:', window.wpgLightbox.images.length);
     });
 
 })(jQuery);

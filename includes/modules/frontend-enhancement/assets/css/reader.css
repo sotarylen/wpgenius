@@ -88,18 +88,21 @@ body.wpg-reader-fullscreen #wpg-reader-progress-bar {
 
 /* 简化的全屏模式容器样式 */
 html body.wpg-reader-fullscreen #w2p-book-chapters {
-    position: relative !important;
+    position: fixed !important;
     top: 0 !important;
     left: 0 !important;
-    transform: none !important;
+    right: 0 !important;
+    bottom: 0 !important;
     width: 100% !important;
+    height: 100vh !important;
     max-width: none !important;
-    height: auto !important;
-    padding: 40px !important;
-    margin: 80px auto 0 !important;
+    padding: 80px max(20px, env(safe-area-inset-right)) 40px max(20px, env(safe-area-inset-left)) !important;
+    margin: 0 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
     z-index: 9998 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Ensure all children of toolbar are visible and inherit styles */
@@ -414,7 +417,7 @@ html body.wpg-reader-fullscreen #w2p-book-chapters {
         width: 95% !important;
         margin: 10px auto !important;
     }
-    
+
     /* 移动设备上的全屏工具栏 */
     body.wpg-reader-fullscreen #wpg-reader-toolbar {
         top: 10px !important;
@@ -422,7 +425,7 @@ html body.wpg-reader-fullscreen #w2p-book-chapters {
         left: 10px !important;
         width: auto !important;
     }
-    
+
     body.wpg-reader-fullscreen #w2p-book-chapters {
         padding: 20px !important;
         margin-top: 60px !important;

@@ -342,15 +342,24 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 	/**
 	 * Auto Set Featured Image
 	 */
-	public function auto_set_featured_image( $post_id, $post ) {
+	public function auto_set_featured_image( $post_id, $post = null ) {
 		// 检查是否启用
 		$settings = get_option( 'smart_aui_settings', [] );
 		if ( empty( $settings['auto_set_featured_image'] ) ) {
 			return;
 		}
 	
-		// 只处理 post 类型，跳过 attachment 和其他类型
-		if ( ! $post || $post->post_type !== 'post' ) {
+		// 如果未传入 post 对象，则获取
+		if ( ! $post ) {
+			$post = get_post( $post_id );
+		}
+
+		if ( ! $post ) {
+			return;
+		}
+	
+		// 检查文章类型是否支持特色图片
+		if ( ! post_type_supports( $post->post_type, 'thumbnail' ) ) {
 			return;
 		}
 	
@@ -364,25 +373,36 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 			return;
 		}
 	
-		// 如果已有封面图，跳过
-		if ( has_post_thumbnail( $post_id ) ) {
-			return;
-		}
-	
-		// 获取文章中所有的图片标签
-		preg_match_all( '/<img[^>]+src=["\']([^"\']+)["\'][^>]*>/i', $post->post_content, $matches );
-				
-		if ( empty( $matches[1] ) ) {
-			return;
-		}
-		
-		// 依次尝试设置每一张图片为封面，直到成功
-		foreach ( $matches[1] as $image_url ) {
-			$attachment_id = $this->get_attachment_id_from_url( $image_url );
-					
+		// 使用 WP_HTML_Tag_Processor 精准解析图片标签
+		$processor = new \WP_HTML_Tag_Processor( $post->post_content );
+		$current_thumbnail_id = get_post_thumbnail_id( $post_id );
+		$found_intended_id = false;
+
+		while ( $processor->next_tag( 'img' ) ) {
+			$attachment_id = false;
+			$src = $processor->get_attribute( 'src' );
+
+			// 1. 优先尝试从 class 属性提取 ID (wp-image-{id})
+			$classes = $processor->get_attribute( 'class' ) ?? '';
+			if ( preg_match( '/wp-image-(\d+)/', $classes, $class_matches ) ) {
+				$attachment_id = intval( $class_matches[1] );
+			}
+
+			// 2. 如果没找到，尝试通过 URL 匹配附件
+			if ( ! $attachment_id && $src ) {
+				$attachment_id = $this->get_attachment_id_from_url( $src );
+			}
+
 			if ( $attachment_id ) {
-				set_post_thumbnail( $post_id, $attachment_id );
-				return; // 成功设置后退出循环
+				$found_intended_id = $attachment_id;
+				break; // 找到第一张可用的本地图片后退出循环
+			}
+		}
+
+		if ( $found_intended_id ) {
+			// 如果找到的图片 ID 与当前特色图片 ID 不同，则更新
+			if ( intval( $found_intended_id ) !== intval( $current_thumbnail_id ) ) {
+				set_post_thumbnail( $post_id, $found_intended_id );
 			}
 		}
 	}
@@ -391,9 +411,27 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 	 * Get Attachment ID from URL
 	 */
 	private function get_attachment_id_from_url( $image_url ) {
-		// 检查是否是本地图片
-		$upload_dir = wp_upload_dir();
-		if ( strpos( $image_url, $upload_dir['baseurl'] ) === false ) {
+		// 获取本地域名（从 site_url 获取）
+		$site_url = site_url();
+		$site_domain = wp_parse_url( $site_url, PHP_URL_HOST );
+		$image_domain = wp_parse_url( $image_url, PHP_URL_HOST );
+
+		// 检查是否在同一域名下（支持 OSS 或其他自定义目录）
+		// 如果没有域名（相对路径），也认为是本地的
+		$is_local = false;
+		if ( ! $image_domain || $image_domain === $site_domain ) {
+			$is_local = true;
+		} else {
+			// 检查是否匹配配置的 base_url
+			$settings = get_option( 'smart_aui_settings', [] );
+			$base_url = ! empty( $settings['base_url'] ) ? $settings['base_url'] : $site_url;
+			$base_domain = wp_parse_url( $base_url, PHP_URL_HOST );
+			if ( $image_domain === $base_domain ) {
+				$is_local = true;
+			}
+		}
+
+		if ( ! $is_local ) {
 			return false;
 		}
 
@@ -401,18 +439,46 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 		$attachment_id = attachment_url_to_postid( $image_url );
 		
 		if ( ! $attachment_id ) {
+			// 尝试使用去掉协议的 URL 进行匹配
+			$clean_url = preg_replace( '/^https?:/i', '', $image_url );
+			$attachment_id = attachment_url_to_postid( $clean_url );
+		}
+
+		if ( ! $attachment_id ) {
 			// 尝试通过文件名查找（处理 scaled 或 resized 图片）
 			global $wpdb;
 			$filename = basename( $image_url );
 			
 			// 如果 pathinfo 可用，提取文件名
 			$path_info = pathinfo( $filename );
-			$base_name_only = preg_replace( '/(-\d+x\d+|-scaled)$/i', '', $path_info['filename'] );
-			
-			$attachment_id = $wpdb->get_var( $wpdb->prepare(
-				"SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND meta_value LIKE %s LIMIT 1",
-				'%' . $wpdb->esc_like( $base_name_only ) . '%'
-			) );
+			if ( ! empty( $path_info['filename'] ) ) {
+				$base_name_only = preg_replace( '/(-\d+x\d+|-scaled)$/i', '', $path_info['filename'] );
+				
+				// 阿里云 OSS 可能会在文件名后加样式处理，如 !style
+				$base_name_only = explode( '!', $base_name_only )[0];
+				
+				// [NEW] 尝试获取路径上下文 (YYYY/MM)
+				$path_prefix = '';
+				if ( preg_match( '/(\d{4}\/\d{2})\//', $image_url, $path_matches ) ) {
+					$path_prefix = $path_matches[1] . '/';
+				}
+
+				// 精准搜索：完全匹配或带有 -scaled 后缀（避免匹配 _gallery 等无关文件）
+				$attachment_id = $wpdb->get_var( $wpdb->prepare(
+					"SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND (meta_value = %s OR meta_value = %s) LIMIT 1",
+					$path_prefix . $base_name_only . '.' . $path_info['extension'],
+					$path_prefix . $base_name_only . '-scaled.' . $path_info['extension']
+				) );
+
+				// 如果还是没找到，且文件名包含 -scaled，尝试去掉它再搜
+				if ( ! $attachment_id && strpos( $path_info['filename'], '-scaled' ) !== false ) {
+					$unscaled_name = str_replace( '-scaled', '', $path_info['filename'] );
+					$attachment_id = $wpdb->get_var( $wpdb->prepare(
+						"SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND meta_value = %s LIMIT 1",
+						$path_prefix . $unscaled_name . '.' . $path_info['extension']
+					) );
+				}
+			}
 		}
 
 		return $attachment_id ? intval( $attachment_id ) : false;
@@ -509,9 +575,26 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 
 		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
 
-		$post_id   = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
-		$image_url = isset( $_POST['image_url'] ) ? esc_url_raw( wp_unslash( $_POST['image_url'] ) ) : '';
+		$post_id    = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
+		$raw_url    = isset( $_POST['image_url'] ) ? wp_unslash( $_POST['image_url'] ) : '';
 		$process_id = isset( $_POST['process_id'] ) ? sanitize_text_field( wp_unslash( $_POST['process_id'] ) ) : '';
+
+		// [FIX] Strict check for relative paths
+		// esc_url_raw converts "attachment/..." to "http://attachment/...", causing is_external_url to fail.
+		// We only want to process absolute URLs or protocol-relative URLs.
+		if ( ! empty( $raw_url ) && ! preg_match( '/^(https?:)?\/\//i', $raw_url ) && substr( $raw_url, 0, 5 ) !== 'data:' ) {
+			wp_send_json_success(
+				[
+					'source_url'     => $raw_url,
+					'downloaded_url' => $raw_url,
+					'skipped'        => true,
+					'process_id'     => $process_id,
+					'message'        => 'Skipped: Relative path',
+				]
+			);
+		}
+
+		$image_url = esc_url_raw( $raw_url );
 
 		if ( ! $post_id || empty( $image_url ) ) {
 			wp_send_json_error(
@@ -558,21 +641,25 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 			);
 		}
 
-		// [FIX 8] 检查域名是否被排除
+		// [FIX 8] 检查域名是否被排除或为内部链接
 		$container  = \SmartAutoUploadImages\get_container();
 		$validator  = new \SmartAutoUploadImages\Services\ImageValidator();
 		$validation = $validator->validate_image_url( $image_url, $post_data );
 		
-		if ( is_wp_error( $validation ) && $validation->get_error_code() === 'excluded_domain' ) {
-			wp_send_json_success(
-				[
-					'source_url'     => $image_url,
-					'downloaded_url' => $image_url,
-					'skipped'        => true,
-					'process_id'     => $process_id,
-					'message'        => 'Domain excluded',
-				]
-			);
+		if ( is_wp_error( $validation ) ) {
+			$error_code = $validation->get_error_code();
+			// Treat these as skips, not failures
+			if ( 'excluded_domain' === $error_code || 'internal_url' === $error_code || 'invalid_url' === $error_code ) {
+				wp_send_json_success(
+					[
+						'source_url'     => $image_url,
+						'downloaded_url' => $image_url,
+						'skipped'        => true,
+						'process_id'     => $process_id,
+						'message'        => 'Skipped: ' . $error_code,
+					]
+				);
+			}
 		}
 
 		$downloader = $container->get( 'image_downloader' );
@@ -669,6 +756,11 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 			'process_id'     => $process_id,
 		];
 
+		// 尝试自动设置封面
+		if ( ! empty( $response['attachment_id'] ) ) {
+			$this->auto_set_featured_image( $post_id );
+		}
+
 		wp_send_json_success( $response );
 	}
 	
@@ -730,6 +822,9 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 			
 			// Clean post cache
 			clean_post_cache( $post_id );
+			
+			// 尝试自动设置封面
+			$this->auto_set_featured_image( $post_id );
 		}
 		
 		$progress = W2P_Smart_AUI_Progress_Tracker::get_progress( null, $process_id );
@@ -891,11 +986,12 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 		// 验证状态是否真的更新了
 		$updated_post = get_post( $post_id );
 		
-		wp_send_json_success( [ 
-			'updated' => true,
-			'status' => $post_status,
-			'actual_status' => $updated_post->post_status,
-			'post_id' => $post_id
+		// 尝试设置封面
+		$this->auto_set_featured_image( $post_id );
+
+		wp_send_json_success( [
+			'success' => true,
+			'message' => 'Post content saved successfully'
 		] );
 	}
 

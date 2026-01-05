@@ -25,6 +25,7 @@ $system_info = $service->get_system_info();
         <a class="w2p-sub-tab-link active" data-tab="cleanup"><?php esc_html_e( 'Cleanup Tools', 'wp-genius' ); ?></a>
         <a class="w2p-sub-tab-link" data-tab="image-remover"><?php esc_html_e( 'Image Link Remover', 'wp-genius' ); ?></a>
         <a class="w2p-sub-tab-link" data-tab="duplicate-cleaner"><?php esc_html_e( 'Duplicate Post Clean', 'wp-genius' ); ?></a>
+
         <a class="w2p-sub-tab-link" data-tab="info"><?php esc_html_e( 'System Info', 'wp-genius' ); ?></a>
     </div>
 
@@ -101,13 +102,17 @@ $system_info = $service->get_system_info();
             <div class="w2p-section-body">
                 <div class="w2p-info-box w2p-flex w2p-items-center w2p-gap-md">
                     <div class="w2p-flex-1">
-                        <p style="margin:0 0 10px 0;"><?php esc_html_e( 'Scan posts for images wrapped in links and remove the links while keeping the images.', 'wp-genius' ); ?></p>
+                        <p><?php esc_html_e( 'Scan posts for images wrapped in links and remove the links while keeping the images.', 'wp-genius' ); ?></p>
                         <select id="w2p-image-link-category" class="w2p-select" style="min-width: 200px;">
                             <option value="0"><?php esc_html_e( 'All Categories', 'wp-genius' ); ?></option>
                             <?php 
-                            $categories = $service->get_categories();
-                            foreach ( $categories as $cat ) {
-                                echo '<option value="' . esc_attr( $cat->term_id ) . '">' . esc_html( $cat->name ) . ' (' . esc_html( $cat->count ) . ')</option>';
+                            $sh_categories = $service->get_categories();
+                            foreach ( (array) $sh_categories as $cat ) {
+                                $cat_id = is_object($cat) ? ($cat->term_id ?? 0) : (is_array($cat) ? ($cat['term_id'] ?? 0) : 0);
+                                $cat_name = is_object($cat) ? ($cat->name ?? '') : (is_array($cat) ? ($cat['name'] ?? '') : '');
+                                $cat_count = is_object($cat) ? ($cat->count ?? 0) : (is_array($cat) ? ($cat['count'] ?? 0) : 0);
+                                if ( !$cat_id ) continue;
+                                echo '<option value="' . esc_attr( $cat_id ) . '">' . esc_html( $cat_name ) . ' (' . esc_html( $cat_count ) . ')</option>';
                             }
                             ?>
                         </select>
@@ -138,12 +143,12 @@ $system_info = $service->get_system_info();
                         </div>
                     </div>
 
-                    <div class="w2p-progress-container" id="w2p-image-link-progress-wrapper" style="display:none; margin: 15px 0;">
+                    <!-- <div class="w2p-progress-container" id="w2p-image-link-progress-wrapper" style="display:none; margin: 15px 0;">
                         <div class="w2p-progress-bar">
                             <div class="w2p-progress-fill" id="w2p-image-link-progress-fill" style="width: 0%;"></div>
                         </div>
                         <div class="w2p-progress-status" id="w2p-image-link-progress-status" style="margin-top: 5px; font-size: 12px; color: var(--w2p-text-secondary);"></div>
-                    </div>
+                    </div> -->
 
                     <div class="w2p-scroll-area" style="max-height: 400px; overflow-y: auto; border: 1px solid var(--w2p-border-color); border-radius: 4px; margin-top: 10px;">
                         <table class="wp-list-table widefat fixed striped">
@@ -176,8 +181,12 @@ $system_info = $service->get_system_info();
                         <select id="w2p-duplicate-category" class="w2p-select w2p-min-w-200">
                             <option value="0"><?php esc_html_e( 'All Categories', 'wp-genius' ); ?></option>
                             <?php 
-                            foreach ( $categories as $cat ) {
-                                echo '<option value="' . esc_attr( $cat->term_id ) . '">' . esc_html( $cat->name ) . ' (' . esc_html( $cat->count ) . ')</option>';
+                            foreach ( (array) $sh_categories as $cat ) {
+                                $cat_id = is_object($cat) ? ($cat->term_id ?? 0) : (is_array($cat) ? ($cat['term_id'] ?? 0) : 0);
+                                $cat_name = is_object($cat) ? ($cat->name ?? '') : (is_array($cat) ? ($cat['name'] ?? '') : '');
+                                $cat_count = is_object($cat) ? ($cat->count ?? 0) : (is_array($cat) ? ($cat['count'] ?? 0) : 0);
+                                if ( !$cat_id ) continue;
+                                echo '<option value="' . esc_attr( $cat_id ) . '">' . esc_html( $cat_name ) . ' (' . esc_html( $cat_count ) . ')</option>';
                             }
                             ?>
                         </select>
@@ -264,6 +273,8 @@ $system_info = $service->get_system_info();
             </div>
         </div>
     </div>
+
+
 
     <!-- System Info Tab -->
     <div class="w2p-sub-tab-content" id="w2p-tab-info">
