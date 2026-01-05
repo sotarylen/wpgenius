@@ -160,6 +160,10 @@ class SystemHealthModule extends W2P_Abstract_Module {
      * AJAX Handler for Scanning Duplicate Posts
      */
     public function ajax_scan_duplicates_handler() {
+        // Increase time limit for potentially long scans
+        if ( function_exists( 'set_time_limit' ) ) {
+            set_time_limit( 300 );
+        }
         check_ajax_referer( 'w2p_system_health_nonce', 'nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {

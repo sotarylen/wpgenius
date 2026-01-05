@@ -80,8 +80,11 @@ $draft_count = count( get_posts( [
 					</div>
 				</div>
 
-				<div class="w2p-settings-actions" style="margin-top: 20px;">
-					<input type="submit" name="submit" id="w2p-auto-publish-submit" class="button button-primary" value="<?php esc_attr_e( 'Save Automation Settings', 'wp-genius' ); ?>">
+				<div class="w2p-settings-actions w2p-margin-lg">
+					<button type="submit" name="submit" id="w2p-auto-publish-submit" class="w2p-btn w2p-btn-primary">
+						<span class="dashicons dashicons-saved"></span>
+						<?php esc_attr_e( 'Save Automation Settings', 'wp-genius' ); ?>
+					</button>
 				</div>
 			</form>
 			<!-- Progress Panel is now rendered via admin_notices hook in module.php -->
@@ -94,10 +97,12 @@ $draft_count = count( get_posts( [
 			<div class="w2p-section-header">
 				<h4><?php _e( 'Manual Bulk Publish', 'wp-genius' ); ?></h4>
 				<div class="w2p-header-actions">
-					<button type="button" id="w2p-start-publish" class="button button-primary" <?php disabled( $draft_count == 0 ); ?>>
+					<button type="button" id="w2p-start-publish" class="w2p-btn w2p-btn-primary" <?php disabled( $draft_count == 0 ); ?>>
+						<span class="dashicons dashicons-controls-play"></span>
 						<?php _e( 'Start Now', 'wp-genius' ); ?>
 					</button>
-					<button type="button" id="w2p-stop-publish" class="button button-secondary" style="display:none;">
+					<button type="button" id="w2p-stop-publish" class="w2p-btn w2p-btn-stop" style="display:none;">
+						<span class="dashicons dashicons-controls-pause"></span>
 						<?php _e( 'Stop', 'wp-genius' ); ?>
 					</button>
 				</div>
@@ -119,7 +124,10 @@ $draft_count = count( get_posts( [
 
 			<div class="w2p-section-header w2p-section-spacing">
 				<h4><?php _e( 'Publish Logs', 'wp-genius' ); ?></h4>
-				<button type="button" id="w2p-clean-logs" class="button button-small"><?php _e( 'Clear Logs', 'wp-genius' ); ?></button>
+				<button type="button" id="w2p-clean-logs" class="w2p-btn w2p-btn-secondary w2p-btn-small">
+					<span class="dashicons dashicons-trash"></span>
+					<?php _e( 'Clear Logs', 'wp-genius' ); ?>
+				</button>
 			</div>
 			
 			<div class="w2p-log-container">
@@ -183,7 +191,11 @@ jQuery(document).ready(function($) {
 		// Check for scheduled lock before starting
 		refreshStats().done(function(response) {
 			if (response.success && response.data.active_lock === 'scheduled') {
-				alert('<?php _e("A scheduled publishing task is currently running. Please wait for it to finish.", "wp-genius"); ?>');
+				if (window.WPGenius.UI) {
+                    WPGenius.UI.showFeedback(btn, 'Scheduled Task Running', 'warning');
+                } else {
+				    alert('<?php _e("A scheduled publishing task is currently running. Please wait for it to finish.", "wp-genius"); ?>');
+                }
 				return;
 			}
 
@@ -213,7 +225,11 @@ jQuery(document).ready(function($) {
 		if (!confirm('<?php _e("Are you sure you want to clear all publish logs?", "wp-genius"); ?>')) return;
 		
 		let btn = $(this);
-		btn.prop('disabled', true);
+		btn.prop('disabled', true).addClass('w2p-btn-loading');
+        // Save original html only if not already saved (though w2p-btn usually has icon separate)
+        if (!btn.data('original-html')) {
+             btn.data('original-html', btn.html());
+        }
 		
 		$.ajax({
 			url: ajaxurl,
@@ -223,11 +239,24 @@ jQuery(document).ready(function($) {
 				nonce: nonce
 			},
 			success: function(response) {
-				btn.prop('disabled', false);
+				btn.prop('disabled', false).removeClass('w2p-btn-loading');
 				if (response.success) {
 					refreshStats();
-				}
-			}
+                    if (window.WPGenius.UI) {
+                        WPGenius.UI.showFeedback(btn, 'Logs Cleared', 'success');
+                    }
+				} else {
+                     if (window.WPGenius.UI) {
+                        WPGenius.UI.showFeedback(btn, 'Error Clearing Logs', 'error');
+                    }
+                }
+			},
+            error: function() {
+                btn.prop('disabled', false).removeClass('w2p-btn-loading');
+                if (window.WPGenius.UI) {
+                    WPGenius.UI.showFeedback(btn, 'Network Error', 'error');
+                }
+            }
 		});
 	});
 
@@ -367,6 +396,9 @@ jQuery(document).ready(function($) {
         $('.progress-text').text('All finished!');
         $('#w2p-stop-publish').hide();
         $('#w2p-start-publish').show().prop('disabled', true);
+        if (window.WPGenius.UI) {
+             WPGenius.UI.showFeedback($('#w2p-start-publish'), 'All Finished!', 'success');
+        }
         updateProgress(100);
         isRunning = false;
     }

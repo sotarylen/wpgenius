@@ -86,9 +86,23 @@ $settings = get_option( 'w2p_ai_assistant_settings', [] );
             </div>
 
             <div class="w2p-settings-actions">
-                <input type="submit" name="submit" id="w2p-ai-assistant-submit" class="button button-primary" value="<?php esc_attr_e( 'Save AI Settings', 'wp-genius' ); ?>">
+                <button type="submit" name="submit" id="w2p-ai-assistant-submit" class="w2p-btn w2p-btn-primary">
+                    <span class="dashicons dashicons-saved"></span>
+                    <?php esc_html_e( 'Save AI Settings', 'wp-genius' ); ?>
+                </button>
             </div>
         </form>
+        <script>
+            jQuery(document).ready(function($) {
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('settings-updated') === 'true') {
+                    const $btn = $('#w2p-ai-assistant-submit');
+                    if (window.WPGenius && WPGenius.UI) {
+                        WPGenius.UI.showFeedback($btn, '<?php esc_js( __( 'Settings Saved', 'wp-genius' ) ); ?>', 'success');
+                    }
+                }
+            });
+        </script>
     </div>
 </div>
 </div>

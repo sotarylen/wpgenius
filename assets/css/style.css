@@ -538,90 +538,133 @@
     /* for dropdown arrow */
 }
 
-/* Universal Buttons */
+/* Universal Buttons & Icons */
 .w2p-smart-aui-footer .button,
 .w2p-settings-tabs-content .button,
-.w2p-settings-tabs-content .w2p-btn {
+.w2p-settings-tabs-content .w2p-btn,
+.w2p-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     padding: var(--w2p-spacing-sm) var(--w2p-spacing-lg);
     font-size: 13px;
     font-weight: 500;
-    border-radius: var(--w2p-radius-sm);
-    cursor: pointer;
-    transition: all 0.2s;
-    /* height: 32px; */
-    line-height: normal;
-}
-
-.w2p-smart-aui-footer .button-primary,
-.w2p-settings-tabs-content .button-primary {
-    background: var(--w2p-gradient-primary);
-    border: 1px solid var(--w2p-color-transparent);
     border-radius: 50px;
-    color: white;
-    box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.4);
-    font-weight: var(--w2p-font-weight-semibold);
+    /* Standardize on pill shape */
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    line-height: normal;
+    border: 1px solid transparent;
+    text-decoration: none;
+    gap: 6px;
+    /* Space between icon and text */
 }
 
-.w2p-smart-aui-footer .button-primary:hover,
-.w2p-settings-tabs-content .button-primary:hover {
+/* Button Variants */
+.w2p-smart-aui-footer .button-primary,
+.w2p-settings-tabs-content .button-primary,
+.w2p-button-primary,
+.w2p-btn-primary {
+    background: var(--w2p-gradient-primary);
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+    font-weight: var(--w2p-font-weight-semibold);
+    border-color: transparent;
+}
+
+.w2p-button-primary:hover,
+.w2p-btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.5);
+    box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4);
     filter: brightness(1.1);
+    color: white;
 }
 
 .w2p-smart-aui-footer .button-secondary,
-.w2p-settings-tabs-content .button-secondary {
+.w2p-settings-tabs-content .button-secondary,
+.w2p-button-secondary,
+.w2p-btn-secondary {
     background: var(--w2p-bg-surface);
-    border: 1px solid var(--w2p-color-primary);
-    padding: var(--w2p-spacing-sm) var(--w2p-spacing-md);
-    border-radius: 50px;
+    border-color: var(--w2p-color-primary);
     color: var(--w2p-color-primary);
     font-weight: var(--w2p-font-weight-semibold);
 }
 
-.w2p-smart-aui-footer .button-secondary:hover,
-.w2p-settings-tabs-content .button-secondary:hover {
+.w2p-button-secondary:hover,
+.w2p-btn-secondary:hover {
     background: var(--w2p-color-primary-light);
     transform: translateY(-1px);
-}
-
-.w2p-button-primary {
-    background: var(--w2p-gradient-primary);
-    border: 1px solid var(--w2p-color-transparent);
-    border-radius: 50px;
-    color: white;
-    box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.4);
-    font-weight: var(--w2p-font-weight-semibold);
-}
-
-.w2p-button-secondary {
-    background: var(--w2p-color-primary-light);
-    border: 1px solid var(--w2p-color-primary);
-    border-radius: 50px;
     color: var(--w2p-color-primary);
-    font-weight: var(--w2p-font-weight-semibold);
-    transform: translateY(-1px);
 }
 
-.w2p-button-error {
-    background: var(--w2p-color-danger);
-    border: 1px solid var(--w2p-color-transparent);
-    border-radius: 50px;
-    color: white;
-    box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.4);
-    transform: translateY(-1px);
-}
-
-.w2p-button-success {
+.w2p-button-success,
+.w2p-btn-success {
     background: var(--w2p-color-success);
-    border: 1px solid var(--w2p-color-transparent);
-    border-radius: 50px;
     color: white;
-    box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+}
+
+.w2p-button-success:hover,
+.w2p-btn-success:hover {
     transform: translateY(-1px);
+    filter: brightness(1.1);
+    color: white;
+    box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4);
+}
+
+.w2p-button-error,
+.w2p-btn-danger,
+.w2p-btn-stop {
+    background: var(--w2p-color-error);
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.3);
+}
+
+.w2p-button-error:hover,
+.w2p-btn-danger:hover,
+.w2p-btn-stop:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.1);
+    color: white;
+    box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.4);
+}
+
+.w2p-btn-warning {
+    background: var(--w2p-color-warning);
+    color: white;
+}
+
+/* Loading State */
+.w2p-btn-loading {
+    opacity: 0.8;
+    pointer-events: none;
+    position: relative;
+    cursor: not-allowed;
+}
+
+.w2p-btn-loading .dashicons {
+    animation: w2p-spin 1.5s infinite linear;
+}
+
+@keyframes w2p-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Icon Utilities inside Buttons */
+.w2p-btn .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    line-height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* UNIVERSAL SWITCHES (Checkbox replacement) */
@@ -2552,4 +2595,76 @@ article .plyr,
         margin: var(--w2p-spacing-sm) 0;
         border-radius: var(--w2p-border-radius-sm);
     }
+}
+/* SMTP Provider Cards */
+.w2p-provider-card {
+    background: var(--w2p-bg-surface-secondary);
+    padding: var(--w2p-spacing-md);
+    border-radius: var(--w2p-radius-lg);
+    border: 1px solid var(--w2p-border-color-light);
+}
+
+.w2p-provider-card strong {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--w2p-color-primary);
+}
+
+.w2p-provider-card p {
+    margin: 0;
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+/* Global Button Loading State */
+.w2p-btn-loading {
+    position: relative !important;
+    color: transparent !important;
+    pointer-events: none;
+}
+
+.w2p-btn-loading > * {
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+.w2p-btn-loading::after {
+    content: "" !important;
+    position: absolute !important;
+    width: 16px !important;
+    height: 16px !important;
+    top: 50% !important;
+    left: 50% !important;
+    margin-top: -8px !important;
+    margin-left: -8px !important;
+    border: 2px solid rgba(255, 255, 255, 0.5) !important;
+    border-radius: 50% !important;
+    border-top-color: #fff !important;
+    animation: w2p-spin 0.8s linear infinite !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: block !important;
+}
+
+/* Spinner Animation */
+@keyframes w2p-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Ensure secondary/ghost buttons have a visible spinner color */
+.w2p-btn-secondary.w2p-btn-loading::after,
+.w2p-btn-ghost.w2p-btn-loading::after,
+.button-secondary.w2p-btn-loading::after {
+    border-color: rgba(0, 0, 0, 0.2) !important;
+    border-top-color: var(--w2p-color-primary) !important;
+}
+
+/* Fix for specific buttons that might not have w2p classes but get loading state */
+.button.w2p-btn-loading::after {
+     border-color: rgba(0, 0, 0, 0.2) !important;
+     border-top-color: #0073aa !important;
+}
+.button-primary.w2p-btn-loading::after {
+     border-color: rgba(255, 255, 255, 0.5) !important;
+     border-top-color: #fff !important;
 }

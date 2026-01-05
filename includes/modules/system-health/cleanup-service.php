@@ -188,106 +188,121 @@ class SystemHealthCleanupService {
      * Scan for duplicate posts by title and slug
      */
     public function scan_duplicate_posts( $category_id = 0 ) {
+        global $wpdb;
+
         try {
-            $args = [
-                'post_type'      => 'post',
-                'post_status'    => [ 'publish', 'draft', 'pending', 'private', 'future' ],
-                'posts_per_page' => -1,
-                'orderby'        => 'date',
-                'order'          => 'ASC',
-            ];
+            // 1. First, find titles that have duplicates using a lightweight SQL query
+            // We only care about post titles that appear more than once.
+            
+            $post_types = "'post'";
+            $post_statuses = "'publish', 'draft', 'pending', 'private', 'future'";
+            
+            $sql_find_duplicates = "
+                SELECT post_title, COUNT(*) as count
+                FROM $wpdb->posts
+                WHERE post_type = $post_types
+                AND post_status IN ($post_statuses)
+                AND post_title != ''
+            ";
 
             if ( $category_id > 0 ) {
-                $args['tax_query'] = [
-                    [
-                        'taxonomy' => 'category',
-                        'field'    => 'term_id',
-                        'terms'    => $category_id,
-                    ],
-                ];
+                // If category filtering is needed, we need a JOIN
+                $sql_find_duplicates .= "
+                    AND ID IN (
+                        SELECT object_id 
+                        FROM $wpdb->term_relationships tr
+                        LEFT JOIN $wpdb->term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+                        WHERE tt.term_id = %d
+                    )
+                ";
+                $sql_find_duplicates = $wpdb->prepare( $sql_find_duplicates, $category_id );
             }
 
-            $query = new WP_Query( $args );
-            $posts = $query->posts;
+            $sql_find_duplicates .= "
+                GROUP BY post_title
+                HAVING count > 1
+            ";
 
-            if ( empty( $posts ) ) {
+            // Optimize: limit results if too many? No, user wants to find all.
+            // But to avoid OOM on millions of rows, maybe we process in chunks?
+            // For now, getting just titles having duplicates is relatively light.
+            
+            $duplicate_titles_rows = $wpdb->get_results( $sql_find_duplicates );
+
+            if ( empty( $duplicate_titles_rows ) ) {
+                return [];
+            }
+
+            $duplicate_titles = wp_list_pluck( $duplicate_titles_rows, 'post_title' );
+            
+            // 2. Now fetch the actual post data only for these titles
+            // To prevent huge queries, we might need to chunk this if there are thousands of duplicate titles.
+            // But let's assume a reasonable limit or fetch all since we are only fetching minimal fields.
+            
+            // Escape titles for IN clause
+            $escaped_titles = [];
+            foreach ( $duplicate_titles as $t ) {
+                $escaped_titles[] = $wpdb->prepare( '%s', $t );
+            }
+            
+            if ( empty( $escaped_titles ) ) {
                 return [];
             }
 
             $duplicates = [];
-            $title_slug_map = [];
+            
+            // Chunking titles to avoid "Query too large" error
+            $chunk_size = 100;
+            $chunks = array_chunk( $escaped_titles, $chunk_size );
 
-            // Group posts by title
-            foreach ( $posts as $post ) {
-                if ( ! isset( $post->post_title ) || ! isset( $post->post_name ) ) {
-                    continue;
-                }
+            foreach ( $chunks as $title_chunk ) {
+                $in_clause = implode( ',', $title_chunk );
                 
-                $title = trim( $post->post_title );
-                $slug = $post->post_name;
+                $sql_get_posts = "
+                    SELECT ID, post_title, post_name, post_date
+                    FROM $wpdb->posts
+                    WHERE post_title IN ($in_clause)
+                    AND post_type = 'post'
+                    AND post_status IN ($post_statuses)
+                    ORDER BY post_title ASC, post_date ASC
+                ";
                 
-                // Skip empty titles
-                if ( empty( $title ) ) {
-                    continue;
-                }
-                
-                // Create a key for grouping: use title as primary key
-                if ( ! isset( $title_slug_map[ $title ] ) ) {
-                    $title_slug_map[ $title ] = [];
-                }
-                
-                $edit_url = get_edit_post_link( $post->ID, 'raw' );
-                
-                $title_slug_map[ $title ][] = [
-                    'id'         => $post->ID,
-                    'title'      => $post->post_title,
-                    'slug'       => $slug,
-                    'date'       => $post->post_date,
-                    'edit_url'   => $edit_url ? $edit_url : '',
-                ];
-            }
+                $posts = $wpdb->get_results( $sql_get_posts );
 
-            // Filter out groups with only one post and check for slug matches
-            foreach ( $title_slug_map as $title => $posts_group ) {
-                if ( count( $posts_group ) > 1 ) {
-                    // Check if slugs match or have suffixes (e.g., post-name, post-name-2, post-name-3)
-                    $base_slug = $this->get_base_slug( $posts_group[0]['slug'] );
-                    $is_duplicate_group = true;
-                    
-                    foreach ( $posts_group as $post_item ) {
-                        $current_base_slug = $this->get_base_slug( $post_item['slug'] );
-                        if ( $current_base_slug !== $base_slug ) {
-                            $is_duplicate_group = false;
-                            break;
-                        }
+                if ( ! empty( $posts ) ) {
+                    // Group by title
+                    $grouped_posts = [];
+                    foreach ( $posts as $p ) {
+                        $grouped_posts[ $p->post_title ][] = $p;
                     }
-                    
-                    if ( $is_duplicate_group ) {
-                        // Recommend keeping the oldest (first in ASC order), but user can change
-                        $duplicate_items = [];
-                        
-                        foreach ( $posts_group as $index => $post_item ) {
-                            if ( $index === 0 ) {
-                                // First (oldest) post: recommended to keep, not selected for deletion
-                                $post_item['recommended_keep'] = true;
-                                $post_item['selected'] = false;
-                            } else {
-                                // Other posts: recommended to delete, selected by default
-                                $post_item['recommended_keep'] = false;
-                                $post_item['selected'] = true;
+
+                    foreach ( $grouped_posts as $title => $group ) {
+                        if ( count( $group ) > 1 ) {
+                            $duplicate_items = [];
+                            foreach ( $group as $index => $p ) {
+                                $edit_url = get_edit_post_link( $p->ID, 'raw' );
+                                $duplicate_items[] = [
+                                    'id'               => $p->ID,
+                                    'title'            => $p->post_title,
+                                    'slug'             => $p->post_name,
+                                    'date'             => $p->post_date,
+                                    'edit_url'         => $edit_url ? $edit_url : '', // Can be slow if called many times, but ID-based link generation is fast
+                                    'recommended_keep' => ( $index === 0 ), // Keep the oldest
+                                    'selected'         => ( $index !== 0 ), // Select others
+                                ];
                             }
-                            $duplicate_items[] = $post_item;
+
+                            $duplicates[] = [
+                                'group_title' => $title,
+                                'posts'       => $duplicate_items,
+                            ];
                         }
-                        
-                        $duplicates[] = [
-                            'group_title' => $title,
-                            'posts'       => $duplicate_items,
-                        ];
                     }
                 }
             }
 
             return $duplicates;
+
         } catch ( Exception $e ) {
             error_log( 'Duplicate scan error: ' . $e->getMessage() );
             return [];

@@ -134,12 +134,15 @@ $settings = wp_parse_args( $settings, $defaults );
                 </div>
 
                 <div class="w2p-settings-actions">
-                    <button type="submit" class="button button-primary" id="w2p-save-smtp">
+                    <button type="submit" class="w2p-btn w2p-btn-primary" id="w2p-save-smtp">
+                        <span class="dashicons dashicons-saved"></span>
                         <?php esc_html_e('Save SMTP Settings', 'wp-genius'); ?>
                     </button>
+                    <!-- Status span kept for fallback or specific messages if needed, but primary feedback will be on button -->
                     <span class="w2p-save-status" id="w2p-save-status"></span>
                     
-                    <button type="button" class="button button-secondary" id="w2p-test-smtp">
+                    <button type="button" class="w2p-btn w2p-btn-secondary" id="w2p-test-smtp">
+                         <span class="dashicons dashicons-email-alt"></span>
                         <?php esc_html_e('Test Connection', 'wp-genius'); ?>
                     </button>
                     <span class="w2p-test-result" id="smtp-test-result"></span>
@@ -155,32 +158,32 @@ $settings = wp_parse_args( $settings, $defaults );
                 </div>
                 <div class="w2p-section-body">
                     <div class="w2p-flex-col w2p-gap-md">
-                        <div class="w2p-provider-card" style="background: var(--w2p-bg-surface-secondary); padding: var(--w2p-spacing-md); border-radius: var(--w2p-radius-lg); border: 1px solid var(--w2p-border-color-light);">
-                            <strong style="display: block; margin-bottom: 5px; color: var(--w2p-color-primary);">Gmail / Google Workspace</strong>
-                            <p style="margin: 0; font-size: 12px; opacity: 0.8;">
+                        <div class="w2p-provider-card">
+                            <strong>Gmail / Google Workspace</strong>
+                            <p>
                                 Host: <code>smtp.gmail.com</code><br>
                                 Port: <code>465 (SSL) / 587 (TLS)</code><br>
                                 Note: Use App Password if 2FA enabled.
                             </p>
                         </div>
-                        <div class="w2p-provider-card" style="background: var(--w2p-bg-surface-secondary); padding: var(--w2p-spacing-md); border-radius: var(--w2p-radius-lg); border: 1px solid var(--w2p-border-color-light);">
-                            <strong style="display: block; margin-bottom: 5px; color: var(--w2p-color-primary);">SendGrid</strong>
-                            <p style="margin: 0; font-size: 12px; opacity: 0.8;">
+                        <div class="w2p-provider-card">
+                            <strong>SendGrid</strong>
+                            <p>
                                 Host: <code>smtp.sendgrid.net</code><br>
                                 Port: <code>465 (SSL) / 587 (TLS)</code><br>
                                 User: <code>apikey</code>
                             </p>
                         </div>
-                        <div class="w2p-provider-card" style="background: var(--w2p-bg-surface-secondary); padding: var(--w2p-spacing-md); border-radius: var(--w2p-radius-lg); border: 1px solid var(--w2p-border-color-light);">
-                            <strong style="display: block; margin-bottom: 5px; color: var(--w2p-color-primary);">AWS SES</strong>
-                            <p style="margin: 0; font-size: 12px; opacity: 0.8;">
+                        <div class="w2p-provider-card">
+                            <strong>AWS SES</strong>
+                            <p>
                                 Host: <code>email-smtp.{region}.amazonaws.com</code><br>
                                 Port: <code>465 / 587</code>
                             </p>
                         </div>
-                        <div class="w2p-provider-card" style="background: var(--w2p-bg-surface-secondary); padding: var(--w2p-spacing-md); border-radius: var(--w2p-radius-lg); border: 1px solid var(--w2p-border-color-light);">
-                            <strong style="display: block; margin-bottom: 5px; color: var(--w2p-color-primary);">Mailgun</strong>
-                            <p style="margin: 0; font-size: 12px; opacity: 0.8;">
+                        <div class="w2p-provider-card">
+                            <strong>Mailgun</strong>
+                            <p>
                                 Host: <code>smtp.mailgun.org</code><br>
                                 Port: <code>465 / 587</code>
                             </p>
@@ -195,95 +198,133 @@ $settings = wp_parse_args( $settings, $defaults );
 
 
 <script>
-document.addEventListener( 'DOMContentLoaded', function() {
-	const form = document.getElementById( 'w2p-smtp-form' );
-	const submitBtn = document.getElementById( 'w2p-save-smtp' );
-	const saveStatus = document.getElementById( 'w2p-save-status' );
-	const testBtn = document.getElementById( 'w2p-test-smtp' );
-	const testResult = document.getElementById( 'smtp-test-result' );
-	
-	if ( ! form ) return;
+jQuery(document).ready(function($) {
+    const $form = $('#w2p-smtp-form');
+    const $submitBtn = $('#w2p-save-smtp');
+    const $testBtn = $('#w2p-test-smtp');
+    const $saveStatus = $('#w2p-save-status');
+    const $testResult = $('#smtp-test-result');
 
-	// Handle form submission with AJAX
-	form.addEventListener( 'submit', function( e ) {
-		e.preventDefault();
+    if (!$form.length) return;
 
-		if ( saveStatus ) {
-			saveStatus.textContent = '<?php esc_html_e( 'Saving...', 'wp-genius' ); ?>';
-			saveStatus.className = 'w2p-save-status saving';
-		}
+    // Handle form submission with AJAX
+    $form.on('submit', function(e) {
+        e.preventDefault();
 
-		const formData = new FormData( form );
+        if (window.WPGenius && WPGenius.UI) {
+            WPGenius.UI.showFeedback($submitBtn, '<?php esc_js( __( 'Saving...', 'wp-genius' ) ); ?>', 'loading');
+        } else {
+             $submitBtn.addClass('w2p-btn-loading').prop('disabled', true);
+        }
 
-		fetch( form.action, {
-			method: 'POST',
-			body: formData,
-		} )
-		.then( response => response.text() )
-		.then( data => {
-			if ( saveStatus ) {
-				saveStatus.textContent = '✓ <?php esc_html_e( 'Saved', 'wp-genius' ); ?>';
-				saveStatus.className = 'w2p-save-status success';
+        if ($saveStatus.length) {
+            $saveStatus.text('<?php esc_html_e( 'Saving...', 'wp-genius' ); ?>').attr('class', 'w2p-save-status saving');
+        }
 
-				// 清除状态文本（3秒后）
-				setTimeout( function() {
-					saveStatus.textContent = '';
-					saveStatus.className = 'w2p-save-status';
-				}, 3000 );
-			}
-		} )
-		.catch( error => {
-			console.error( 'Save error:', error );
-			if ( saveStatus ) {
-				saveStatus.textContent = '✗ <?php esc_html_e( 'Save failed', 'wp-genius' ); ?>';
-				saveStatus.className = 'w2p-save-status error';
-			}
-		} );
-	} );
+        const formData = new FormData(this);
 
-	// Handle test connection
-	if ( testBtn ) {
-		testBtn.addEventListener( 'click', function( e ) {
-			e.preventDefault();
+        $.ajax({
+            url: $form.attr('action'),
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (window.WPGenius && WPGenius.UI) {
+                    WPGenius.UI.showFeedback($submitBtn, '<?php esc_js( __( 'Saved', 'wp-genius' ) ); ?>', 'success');
+                } else {
+                     $submitBtn.removeClass('w2p-btn-loading').prop('disabled', false);
+                }
 
-			if ( testResult ) {
-				testResult.textContent = '<?php esc_html_e( 'Testing...', 'wp-genius' ); ?>';
-				testResult.className = 'w2p-test-result testing';
-			}
+                if ($saveStatus.length) {
+                    $saveStatus.text('✓ <?php esc_html_e( 'Saved', 'wp-genius' ); ?>').attr('class', 'w2p-save-status success');
+                    setTimeout(function() {
+                        $saveStatus.text('').attr('class', 'w2p-save-status');
+                    }, 3000);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Save error:', error);
+                if (window.WPGenius && WPGenius.UI) {
+                    WPGenius.UI.showFeedback($submitBtn, '<?php esc_js( __( 'Error', 'wp-genius' ) ); ?>', 'error');
+                } else {
+                     $submitBtn.removeClass('w2p-btn-loading').prop('disabled', false);
+                }
 
-			// Build test URL
-			const testUrl = new URL( window.location.href );
-			testUrl.searchParams.set( 'smtp_test', '1' );
+                if ($saveStatus.length) {
+                    $saveStatus.text('✗ <?php esc_html_e( 'Save failed', 'wp-genius' ); ?>').attr('class', 'w2p-save-status error');
+                }
+            }
+        });
+    });
 
-			// Get form data for test
-			const formData = new FormData( form );
+    // Handle test connection
+    $testBtn.on('click', function(e) {
+        e.preventDefault();
 
-			fetch( testUrl.toString(), {
-				method: 'POST',
-				body: formData,
-			} )
-			.then( response => response.json() )
-			.then( data => {
-				if ( testResult ) {
-					if ( data.success ) {
-						testResult.textContent = '✓ <?php esc_html_e( 'Connection successful', 'wp-genius' ); ?>';
-						testResult.className = 'w2p-test-result success';
-					} else {
-						const errorMsg = data.data ? String( data.data ).substring( 0, 100 ) : '<?php esc_html_e( 'Connection failed', 'wp-genius' ); ?>';
-						testResult.textContent = '✗ ' + errorMsg;
-						testResult.className = 'w2p-test-result error';
-						testResult.title = data.data;
-					}
-				}
-			} )
-			.catch( error => {
-				console.error( 'Test connection error:', error );
-				if ( testResult ) {
-					testResult.textContent = '✗ <?php esc_html_e( 'Test error', 'wp-genius' ); ?>';
-					testResult.className = 'w2p-test-result error';
-				}
-			} );
-		} );
-	}
-} );
+        if (window.WPGenius && WPGenius.UI) {
+            WPGenius.UI.showFeedback($testBtn, '<?php esc_js( __( 'Testing...', 'wp-genius' ) ); ?>', 'loading');
+        } else {
+            $testBtn.addClass('w2p-btn-loading').prop('disabled', true);
+        }
+
+        if ($testResult.length) {
+            $testResult.text('<?php esc_html_e( 'Testing...', 'wp-genius' ); ?>').attr('class', 'w2p-test-result testing');
+        }
+
+        // Build test URL
+        const testUrl = new URL(window.location.href);
+        testUrl.searchParams.set('smtp_test', '1');
+
+        const formData = new FormData($form[0]);
+
+        $.ajax({
+            url: testUrl.toString(),
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            success: function(data) {
+                // Determine success based on response structure
+                const isSuccess = data.success || (data.data && data.data.success);
+                
+                if (isSuccess) {
+                    if (window.WPGenius && WPGenius.UI) {
+                        WPGenius.UI.showFeedback($testBtn, '<?php esc_js( __( 'Connected', 'wp-genius' ) ); ?>', 'success');
+                    } else {
+                        $testBtn.removeClass('w2p-btn-loading').prop('disabled', false);
+                    }
+                    
+                    if ($testResult.length) {
+                        $testResult.text('✓ <?php esc_html_e( 'Connection successful', 'wp-genius' ); ?>').attr('class', 'w2p-test-result success');
+                    }
+                } else {
+                    if (window.WPGenius && WPGenius.UI) {
+                        WPGenius.UI.showFeedback($testBtn, '<?php esc_js( __( 'Failed', 'wp-genius' ) ); ?>', 'error');
+                    } else {
+                         $testBtn.removeClass('w2p-btn-loading').prop('disabled', false);
+                    }
+                    
+                    if ($testResult.length) {
+                        const errorMsg = data.data ? String(data.data).substring(0, 100) : '<?php esc_html_e( 'Connection failed', 'wp-genius' ); ?>';
+                        $testResult.text('✗ ' + errorMsg).attr('class', 'w2p-test-result error').attr('title', data.data);
+                    }
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Test connection error:', error);
+                 if (window.WPGenius && WPGenius.UI) {
+                    WPGenius.UI.showFeedback($testBtn, '<?php esc_js( __( 'Test Error', 'wp-genius' ) ); ?>', 'error');
+                } else {
+                    $testBtn.removeClass('w2p-btn-loading').prop('disabled', false);
+                }
+                
+                if ($testResult.length) {
+                    $testResult.text('✗ <?php esc_html_e( 'Test error', 'wp-genius' ); ?>').attr('class', 'w2p-test-result error');
+                }
+            }
+        });
+    });
+});
 </script>
