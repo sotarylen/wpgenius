@@ -106,7 +106,7 @@ class SeoLinkerModule extends W2P_Abstract_Module {
     }
 
     public function render_settings() {
-        include __DIR__ . '/settings.php';
+        $this->render_view( 'settings' );
     }
 
     public function activate() {}

@@ -32,6 +32,7 @@ $settings = wp_parse_args( $settings, $defaults );
                 <?php wp_nonce_field('word2posts_save_module_settings', 'w2p_smtp_mailer_nonce'); ?>
                 <input type="hidden" name="action" value="word2posts_save_module_settings" />
                 <input type="hidden" name="module_id" value="smtp-mailer" />
+                <input type="hidden" name="w2p_smtp_test_nonce" value="<?php echo wp_create_nonce('w2p_smtp_test_nonce'); ?>" id="w2p-smtp-test-nonce" />
 
                 <div class="w2p-section">
                     <div class="w2p-section-header">
@@ -142,7 +143,7 @@ $settings = wp_parse_args( $settings, $defaults );
                     <span class="w2p-save-status" id="w2p-save-status"></span>
                     
                     <button type="button" class="w2p-btn w2p-btn-secondary" id="w2p-test-smtp">
-                         <span class="dashicons dashicons-email-alt"></span>
+                         <span class="dashicons dashicons-admin-plugins"></span>
                         <?php esc_html_e('Test Connection', 'wp-genius'); ?>
                     </button>
                     <span class="w2p-test-result" id="smtp-test-result"></span>
@@ -211,15 +212,10 @@ jQuery(document).ready(function($) {
     $form.on('submit', function(e) {
         e.preventDefault();
 
-        if (window.WPGenius && WPGenius.UI) {
-            WPGenius.UI.showFeedback($submitBtn, '<?php esc_js( __( 'Saving...', 'wp-genius' ) ); ?>', 'loading');
-        } else {
-             $submitBtn.addClass('w2p-btn-loading').prop('disabled', true);
-        }
+        // Clear old status just in case
+        $saveStatus.empty();
 
-        if ($saveStatus.length) {
-            $saveStatus.text('<?php esc_html_e( 'Saving...', 'wp-genius' ); ?>').attr('class', 'w2p-save-status saving');
-        }
+        w2p.loading($submitBtn, true);
 
         const formData = new FormData(this);
 
@@ -230,30 +226,13 @@ jQuery(document).ready(function($) {
             processData: false,
             contentType: false,
             success: function(response) {
-                if (window.WPGenius && WPGenius.UI) {
-                    WPGenius.UI.showFeedback($submitBtn, '<?php esc_js( __( 'Saved', 'wp-genius' ) ); ?>', 'success');
-                } else {
-                     $submitBtn.removeClass('w2p-btn-loading').prop('disabled', false);
-                }
-
-                if ($saveStatus.length) {
-                    $saveStatus.text('✓ <?php esc_html_e( 'Saved', 'wp-genius' ); ?>').attr('class', 'w2p-save-status success');
-                    setTimeout(function() {
-                        $saveStatus.text('').attr('class', 'w2p-save-status');
-                    }, 3000);
-                }
+                w2p.loading($submitBtn, false);
+                w2p.toast('<?php esc_js( __( 'Settings saved successfully', 'wp-genius' ) ); ?>', 'success');
             },
             error: function(xhr, status, error) {
                 console.error('Save error:', error);
-                if (window.WPGenius && WPGenius.UI) {
-                    WPGenius.UI.showFeedback($submitBtn, '<?php esc_js( __( 'Error', 'wp-genius' ) ); ?>', 'error');
-                } else {
-                     $submitBtn.removeClass('w2p-btn-loading').prop('disabled', false);
-                }
-
-                if ($saveStatus.length) {
-                    $saveStatus.text('✗ <?php esc_html_e( 'Save failed', 'wp-genius' ); ?>').attr('class', 'w2p-save-status error');
-                }
+                w2p.loading($submitBtn, false);
+                w2p.toast('<?php esc_js( __( 'Error saving settings', 'wp-genius' ) ); ?>', 'error');
             }
         });
     });
@@ -262,21 +241,17 @@ jQuery(document).ready(function($) {
     $testBtn.on('click', function(e) {
         e.preventDefault();
 
-        if (window.WPGenius && WPGenius.UI) {
-            WPGenius.UI.showFeedback($testBtn, '<?php esc_js( __( 'Testing...', 'wp-genius' ) ); ?>', 'loading');
-        } else {
-            $testBtn.addClass('w2p-btn-loading').prop('disabled', true);
-        }
+        // Clear old status
+        $testResult.empty();
 
-        if ($testResult.length) {
-            $testResult.text('<?php esc_html_e( 'Testing...', 'wp-genius' ); ?>').attr('class', 'w2p-test-result testing');
-        }
+        w2p.loading($testBtn, true);
 
         // Build test URL
         const testUrl = new URL(window.location.href);
         testUrl.searchParams.set('smtp_test', '1');
 
         const formData = new FormData($form[0]);
+        formData.append('nonce', $('#w2p-smtp-test-nonce').val());
 
         $.ajax({
             url: testUrl.toString(),
@@ -286,43 +261,21 @@ jQuery(document).ready(function($) {
             contentType: false,
             dataType: 'json',
             success: function(data) {
-                // Determine success based on response structure
+                w2p.loading($testBtn, false);
+
                 const isSuccess = data.success || (data.data && data.data.success);
                 
                 if (isSuccess) {
-                    if (window.WPGenius && WPGenius.UI) {
-                        WPGenius.UI.showFeedback($testBtn, '<?php esc_js( __( 'Connected', 'wp-genius' ) ); ?>', 'success');
-                    } else {
-                        $testBtn.removeClass('w2p-btn-loading').prop('disabled', false);
-                    }
-                    
-                    if ($testResult.length) {
-                        $testResult.text('✓ <?php esc_html_e( 'Connection successful', 'wp-genius' ); ?>').attr('class', 'w2p-test-result success');
-                    }
+                    w2p.toast('<?php esc_js( __( 'Connection successful', 'wp-genius' ) ); ?>', 'success');
                 } else {
-                    if (window.WPGenius && WPGenius.UI) {
-                        WPGenius.UI.showFeedback($testBtn, '<?php esc_js( __( 'Failed', 'wp-genius' ) ); ?>', 'error');
-                    } else {
-                         $testBtn.removeClass('w2p-btn-loading').prop('disabled', false);
-                    }
-                    
-                    if ($testResult.length) {
-                        const errorMsg = data.data ? String(data.data).substring(0, 100) : '<?php esc_html_e( 'Connection failed', 'wp-genius' ); ?>';
-                        $testResult.text('✗ ' + errorMsg).attr('class', 'w2p-test-result error').attr('title', data.data);
-                    }
+                    const errorMsg = data.data ? String(data.data).substring(0, 100) : '<?php esc_html_e( 'Connection failed', 'wp-genius' ); ?>';
+                    w2p.toast('<?php esc_js( __( 'Connection failed: ', 'wp-genius' ) ); ?>' + errorMsg, 'error');
                 }
             },
             error: function(xhr, status, error) {
                 console.error('Test connection error:', error);
-                 if (window.WPGenius && WPGenius.UI) {
-                    WPGenius.UI.showFeedback($testBtn, '<?php esc_js( __( 'Test Error', 'wp-genius' ) ); ?>', 'error');
-                } else {
-                    $testBtn.removeClass('w2p-btn-loading').prop('disabled', false);
-                }
-                
-                if ($testResult.length) {
-                    $testResult.text('✗ <?php esc_html_e( 'Test error', 'wp-genius' ); ?>').attr('class', 'w2p-test-result error');
-                }
+                w2p.loading($testBtn, false);
+                w2p.toast('<?php esc_js( __( 'Network error during test', 'wp-genius' ) ); ?>', 'error');
             }
         });
     });

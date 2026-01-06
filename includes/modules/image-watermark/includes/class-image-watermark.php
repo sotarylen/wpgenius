@@ -234,7 +234,7 @@ final class W2P_Image_Watermark {
      * Enqueue admin scripts and styles.
      */
     public function wp_enqueue_media($page) {
-        wp_enqueue_style('w2p-watermark-style', plugin_dir_url(WP_GENIUS_FILE) . 'assets/css/style.css', [], $this->defaults['version']);
+        wp_enqueue_style('w2p-core-css');
     }
 
     /**
@@ -245,13 +245,13 @@ final class W2P_Image_Watermark {
     public function admin_enqueue_scripts($page) {
         global $pagenow;
 
-        wp_register_style('w2p-watermark-style', plugin_dir_url(WP_GENIUS_FILE) . 'assets/css/style.css', [], $this->defaults['version']);
+        wp_register_style('w2p-watermark-style', plugin_dir_url(WP_GENIUS_FILE) . 'assets/css/modules/core.css', [], $this->defaults['version']);
 
         // 原始插件设置页面
         if ($page === 'settings_page_watermark-options') {
             wp_enqueue_media();
 
-            wp_enqueue_script('w2p-modules-unified', W2P_IMAGE_WATERMARK_URL . 'js/modules-unified.js', [], $this->defaults['version']);
+            wp_enqueue_script('w2p-image-watermark');
 
             // prepare script data
             $script_data = [
@@ -265,18 +265,18 @@ final class W2P_Image_Watermark {
                 'multiple'      => false
             ];
 
-            wp_add_inline_script('w2p-modules-unified', 'var iwArgsUpload = ' . wp_json_encode($script_data) . ";\n", 'before');
+            wp_add_inline_script('w2p-image-watermark', 'var iwArgsUpload = ' . wp_json_encode($script_data) . ";\n", 'before');
 
-            wp_enqueue_script('w2p-modules-unified', W2P_IMAGE_WATERMARK_URL . 'js/modules-unified.js', ['jquery', 'jquery-ui-core', 'jquery-ui-button', 'jquery-ui-slider'], $this->defaults['version']);
+            wp_enqueue_script('w2p-image-watermark');
 
             // prepare script data
             $script_data = [
                 'resetToDefaults' => __('Are you sure you want to reset settings to defaults?', 'image-watermark')
             ];
 
-            wp_add_inline_script('w2p-modules-unified', 'var iwArgsSettings = ' . wp_json_encode($script_data) . ";\n", 'before');
+            wp_add_inline_script('w2p-image-watermark', 'var iwArgsSettings = ' . wp_json_encode($script_data) . ";\n", 'before');
 
-            wp_enqueue_style('w2p-wp-like-ui-theme', plugin_dir_url(WP_GENIUS_FILE) . 'assets/css/style.css', [], $this->defaults['version']);
+            wp_enqueue_style('w2p-core-css');
             wp_enqueue_style('w2p-watermark-style');
 
             wp_enqueue_script('postbox');
@@ -287,7 +287,7 @@ final class W2P_Image_Watermark {
         if ($page === 'tools_page_wp-genius-settings') {
             wp_enqueue_media();
 
-            wp_enqueue_script('w2p-modules-unified', W2P_IMAGE_WATERMARK_URL . 'js/modules-unified.js', [], $this->defaults['version']);
+            wp_enqueue_script('w2p-image-watermark');
 
             // prepare script data
             $script_data = [
@@ -301,7 +301,7 @@ final class W2P_Image_Watermark {
                 'multiple'      => false
             ];
 
-            wp_add_inline_script('w2p-modules-unified', 'var iwArgsUpload = ' . wp_json_encode($script_data) . ";\n", 'before');
+            wp_add_inline_script('w2p-image-watermark', 'var iwArgsUpload = ' . wp_json_encode($script_data) . ";\n", 'before');
 
             wp_enqueue_script('w2p-modules-unified', W2P_IMAGE_WATERMARK_URL . 'js/modules-unified.js', ['jquery', 'jquery-ui-core', 'jquery-ui-button', 'jquery-ui-slider'], $this->defaults['version']);
 
@@ -310,15 +310,15 @@ final class W2P_Image_Watermark {
                 'resetToDefaults' => __('Are you sure you want to reset settings to defaults?', 'image-watermark')
             ];
 
-            wp_add_inline_script('w2p-modules-unified', 'var iwArgsSettings = ' . wp_json_encode($script_data) . ";\n", 'before');
+            wp_add_inline_script('w2p-image-watermark', 'var iwArgsSettings = ' . wp_json_encode($script_data) . ";\n", 'before');
 
-            wp_enqueue_style('watermark-style', plugin_dir_url(WP_GENIUS_FILE) . 'assets/css/style.css', [], $this->defaults['version']);
-            wp_enqueue_style('wp-like-ui-theme', plugin_dir_url(WP_GENIUS_FILE) . 'assets/css/style.css', [], $this->defaults['version']);
+            wp_enqueue_style('w2p-core-css');
+            wp_enqueue_style('w2p-core-css');
         }
 
         if ($pagenow === 'upload.php') {
             if ($this->options['watermark_image']['manual_watermarking'] == 1 && current_user_can('upload_files')) {
-                wp_enqueue_script('w2p-modules-unified', W2P_IMAGE_WATERMARK_URL . 'js/modules-unified.js', ['jquery'], $this->defaults['version'], false);
+                wp_enqueue_script('w2p-image-watermark');
 
                 // prepare script data
                 $script_data = [
@@ -327,7 +327,7 @@ final class W2P_Image_Watermark {
                     'removeWatermark'  => __('Remove watermark', 'image-watermark')
                 ];
 
-                wp_add_inline_script('w2p-modules-unified', 'var iwArgsMedia = ' . wp_json_encode($script_data) . ";\n", 'before');
+                wp_add_inline_script('w2p-image-watermark', 'var iwArgsMedia = ' . wp_json_encode($script_data) . ";\n", 'before');
             }
 
             wp_enqueue_style('w2p-watermark-style');
@@ -335,7 +335,7 @@ final class W2P_Image_Watermark {
 
         // image modal could be loaded in various places
         if ($this->options['watermark_image']['manual_watermarking'] == 1) {
-            wp_enqueue_script('w2p-modules-unified', W2P_IMAGE_WATERMARK_URL . 'js/modules-unified.js', ['jquery'], $this->defaults['version'], true);
+            wp_enqueue_script('w2p-image-watermark');
 
             // prepare script data
             $script_data = [
@@ -352,7 +352,7 @@ final class W2P_Image_Watermark {
                 '__dismiss'           => __('Dismiss this notice.') // WordPress default string
             ];
 
-            wp_add_inline_script('w2p-modules-unified', 'var iwArgsImageActions = ' . wp_json_encode($script_data) . ";\n", 'before');
+            wp_add_inline_script('w2p-image-watermark', 'var iwArgsImageActions = ' . wp_json_encode($script_data) . ";\n", 'before');
         }
     }
 
@@ -366,7 +366,7 @@ final class W2P_Image_Watermark {
             $right_click = false;
 
         if (apply_filters('iw_block_right_click', (bool) $right_click) === true) {
-            wp_enqueue_script('w2p-modules-unified', W2P_IMAGE_WATERMARK_URL . 'js/modules-unified.js', [], $this->defaults['version']);
+            wp_enqueue_script('w2p-image-watermark');
 
             // prepare script data
             $script_data = [
@@ -374,7 +374,7 @@ final class W2P_Image_Watermark {
                 'draganddrop'   => ($this->options['image_protection']['draganddrop'] == 1 ? 'Y' : 'N')
             ];
 
-            wp_add_inline_script('w2p-modules-unified', 'var iwArgsNoRightClick = ' . wp_json_encode($script_data) . ";\n", 'before');
+            wp_add_inline_script('w2p-image-watermark', 'var iwArgsNoRightClick = ' . wp_json_encode($script_data) . ";\n", 'before');
         }
     }
 

@@ -67,11 +67,11 @@ class MediaTurboConverterService {
      */
     public function convert_attachment( $attachment_id, $quality = 80 ) {
         $start_time = microtime( true );
-        error_log( "[Media Turbo] >>> Starting conversion for attachment ID: $attachment_id" );
+        W2P_Logger::info( ">>> Starting conversion for attachment ID: $attachment_id", 'media-turbo' );
         
         $file_path = get_attached_file( $attachment_id );
         if ( ! $file_path ) {
-            error_log( "[Media Turbo] ERROR: Cannot get file path for attachment ID: $attachment_id" );
+            W2P_Logger::error( "Cannot get file path for attachment ID: $attachment_id", 'media-turbo' );
             return false;
         }
 
@@ -86,10 +86,10 @@ class MediaTurboConverterService {
         $convert_start = microtime( true );
         $new_original = $this->convert_to_webp( $file_path, $quality );
         if ( ! $new_original ) {
-            error_log( "[Media Turbo] ERROR: Failed to convert original image: $file_path" );
+            W2P_Logger::error( "Failed to convert original image: $file_path", 'media-turbo' );
             return false;
         }
-        error_log( sprintf( "[Media Turbo] Original converted in %.2fs: %s", microtime( true ) - $convert_start, basename( $new_original ) ) );
+        W2P_Logger::info( sprintf( "Original converted in %.2fs: %s", microtime( true ) - $convert_start, basename( $new_original ) ), 'media-turbo' );
 
         $old_url = wp_get_attachment_url( $attachment_id );
         $new_url = str_replace( basename( $file_path ), basename( $new_original ), $old_url );
@@ -118,7 +118,7 @@ class MediaTurboConverterService {
                     }
                 }
             }
-            error_log( sprintf( "[Media Turbo] %d thumbnails converted in %.2fs", $thumb_count, microtime( true ) - $thumb_start ) );
+            W2P_Logger::info( sprintf( "%d thumbnails converted in %.2fs", $thumb_count, microtime( true ) - $thumb_start ), 'media-turbo' );
         }
 
         // 3. Update Metadata and Post
@@ -133,13 +133,13 @@ class MediaTurboConverterService {
             [ 'post_mime_type' => 'image/webp', 'guid' => $new_url ], 
             [ 'ID' => $attachment_id ] 
         );
-        error_log( sprintf( "[Media Turbo] Database updated in %.2fs", microtime( true ) - $db_start ) );
+        W2P_Logger::info( sprintf( "Database updated in %.2fs", microtime( true ) - $db_start ), 'media-turbo' );
 
         // 4. Replace in Content
         $replace_start = microtime( true );
-        error_log( "[Media Turbo] Starting URL replacement. Old URL: $old_url, New URL: $new_url, Attachment ID: $attachment_id" );
+        W2P_Logger::info( "Starting URL replacement. Old URL: $old_url, New URL: $new_url, Attachment ID: $attachment_id", 'media-turbo' );
         $affected = $this->replace_url_in_content( $old_url, $new_url, $attachment_id );
-        error_log( sprintf( "[Media Turbo] URL replacement completed in %.2fs. Posts affected: %d", microtime( true ) - $replace_start, $affected ) );
+        W2P_Logger::info( sprintf( "URL replacement completed in %.2fs. Posts affected: %d", microtime( true ) - $replace_start, $affected ), 'media-turbo' );
 
         // 5. Delete Original Files (if keep_original is disabled)
         $deleted_count = 0;
@@ -148,15 +148,15 @@ class MediaTurboConverterService {
                 if ( file_exists( $file_to_delete ) && @unlink( $file_to_delete ) ) {
                     $deleted_count++;
                 } else {
-                    error_log( "[Media Turbo] Failed to delete: $file_to_delete" );
+                    W2P_Logger::warning( "Failed to delete: $file_to_delete", 'media-turbo' );
                 }
             }
-            error_log( "[Media Turbo] Deleted $deleted_count original files" );
+            W2P_Logger::info( "Deleted $deleted_count original files", 'media-turbo' );
         }
 
         $total_time = microtime( true ) - $start_time;
-        error_log( sprintf( "[Media Turbo] <<< Conversion complete for ID %d in %.2fs (converted: 1 original + %d thumbs, replaced: %d posts, deleted: %d files)", 
-            $attachment_id, $total_time, $thumb_count, $affected, $deleted_count ) );
+        W2P_Logger::info( sprintf( "<<< Conversion complete for ID %d in %.2fs (converted: 1 original + %d thumbs, replaced: %d posts, deleted: %d files)", 
+            $attachment_id, $total_time, $thumb_count, $affected, $deleted_count ), 'media-turbo' );
 
         return [
             'success' => true,
@@ -376,12 +376,12 @@ class MediaTurboConverterService {
         global $wpdb;
         @set_time_limit( 300 );
 
-        error_log( "[Media Turbo Replace] Old URL: $old_url" );
-        error_log( "[Media Turbo Replace] New URL: $new_url" );
+        W2P_Logger::debug( "[Replace] Old URL: $old_url", 'media-turbo' );
+        W2P_Logger::debug( "[Replace] New URL: $new_url", 'media-turbo' );
 
         $upload_dir = wp_get_upload_dir();
         $base_url = $upload_dir['baseurl'];
-        error_log( "[Media Turbo Replace] Upload base URL: $base_url" );
+        W2P_Logger::debug( "[Replace] Upload base URL: $base_url", 'media-turbo' );
         
         // Extract the path relative to the uploads base
         $old_rel_path = str_replace( $base_url, '', $old_url );
@@ -415,7 +415,7 @@ class MediaTurboConverterService {
         
         // Remove empty or duplicate searches
         $searches = array_unique( array_filter( $searches ) );
-        error_log( "[Media Turbo Replace] Search patterns: " . print_r( $searches, true ) );
+        W2P_Logger::debug( "[Replace] Search patterns: " . print_r( $searches, true ), 'media-turbo' );
 
         $total_affected = 0;
         $processed_posts = [];
@@ -425,22 +425,22 @@ class MediaTurboConverterService {
             $parent_id = get_post_field( 'post_parent', $attachment_id );
             if ( $parent_id ) {
                 $content = get_post_field( 'post_content', $parent_id );
-                error_log( "[Media Turbo Replace] Parent post content length: " . strlen( $content ) . " chars" );
+                W2P_Logger::debug( "[Replace] Parent post content length: " . strlen( $content ) . " chars", 'media-turbo' );
                 
                 // Show a sample of content containing the image filename
                 if ( strpos( $content, $old_base_name ) !== false ) {
                     preg_match( '/.{0,100}' . preg_quote( $old_base_name, '/' ) . '.{0,100}/s', $content, $matches );
                     if ( ! empty( $matches[0] ) ) {
-                        error_log( "[Media Turbo Replace] Sample content around image: " . substr( $matches[0], 0, 200 ) );
+                        W2P_Logger::debug( "[Replace] Sample content around image: " . substr( $matches[0], 0, 200 ), 'media-turbo' );
                     }
                 } else {
-                    error_log( "[Media Turbo Replace] WARNING: Filename '$old_base_name' NOT found in post content!" );
+                    W2P_Logger::warning( "[Replace] WARNING: Filename '$old_base_name' NOT found in post content!", 'media-turbo' );
                 }
                 
                 $new_content = $this->apply_replacements_to_content( $content, $searches, $old_base_name, $old_ext, $new_base_name );
                 
                 if ( $new_content !== $content ) {
-                    error_log( "[Media Turbo Replace] Content changed, updating database..." );
+                    W2P_Logger::debug( "[Replace] Content changed, updating database...", 'media-turbo' );
                     
                     // First clear cache BEFORE update to prevent race conditions
                     clean_post_cache( $parent_id );
@@ -458,9 +458,9 @@ class MediaTurboConverterService {
                     );
                     
                     if ( $updated === false ) {
-                        error_log( "[Media Turbo Replace] ERROR: Database update failed for post ID: $parent_id. wpdb error: " . $wpdb->last_error );
+                        W2P_Logger::error( "[Replace] ERROR: Database update failed for post ID: $parent_id. wpdb error: " . $wpdb->last_error, 'media-turbo' );
                     } else {
-                        error_log( "[Media Turbo Replace] Database update returned: $updated (rows affected)" );
+                        W2P_Logger::debug( "[Replace] Database update returned: $updated (rows affected)", 'media-turbo' );
                         
                         // Clear cache again after update
                         clean_post_cache( $parent_id );
@@ -474,25 +474,25 @@ class MediaTurboConverterService {
                         ) );
                         
                         if ( strpos( $verify_content, '.webp' ) !== false ) {
-                            error_log( "[Media Turbo Replace] ✓ VERIFIED: Database contains .webp" );
+                            W2P_Logger::debug( "[Replace] ✓ VERIFIED: Database contains .webp", 'media-turbo' );
                         } else {
-                            error_log( "[Media Turbo Replace] ✗ CRITICAL ERROR: Database still contains old format!" );
-                            error_log( "[Media Turbo Replace] Sample of DB content: " . substr( $verify_content, 0, 300 ) );
+                            W2P_Logger::error( "[Replace] ✗ CRITICAL ERROR: Database still contains old format!", 'media-turbo' );
+                            W2P_Logger::debug( "[Replace] Sample of DB content: " . substr( $verify_content, 0, 300 ), 'media-turbo' );
                         }
                     }
                     
                     $total_affected++;
                     $processed_posts[] = $parent_id;
-                    error_log( "[Media Turbo Replace] ✓ Replaced in parent post ID: $parent_id" );
+                    W2P_Logger::info( "[Replace] ✓ Replaced in parent post ID: $parent_id", 'media-turbo' );
                 } else {
-                    error_log( "[Media Turbo Replace] ✗ No changes in parent post ID: $parent_id (image not found in content)" );
+                    W2P_Logger::debug( "[Replace] ✗ No changes in parent post ID: $parent_id (image not found in content)", 'media-turbo' );
                 }
             }
         }
 
         // Now search all other relevant posts using basename only (much faster)
         $basename_pattern = pathinfo( $old_rel_path, PATHINFO_BASENAME );
-        error_log( "[Media Turbo Replace] Searching for basename: $basename_pattern" );
+        W2P_Logger::debug( "[Replace] Searching for basename: $basename_pattern", 'media-turbo' );
         
         $query = "SELECT ID, post_content FROM {$wpdb->posts} WHERE post_content LIKE %s AND post_type IN ('post', 'page')";
         if ( ! empty( $processed_posts ) ) {
@@ -500,7 +500,7 @@ class MediaTurboConverterService {
         }
 
         $posts = $wpdb->get_results( $wpdb->prepare( $query, '%' . $wpdb->esc_like( $basename_pattern ) . '%' ) );
-        error_log( "[Media Turbo Replace] Found " . count( $posts ) . " posts to check" );
+        W2P_Logger::debug( "[Replace] Found " . count( $posts ) . " posts to check", 'media-turbo' );
         
         if ( ! empty( $posts ) ) {
             foreach ( $posts as $post ) {
@@ -516,17 +516,17 @@ class MediaTurboConverterService {
                     );
                     
                     if ( $updated === false ) {
-                        error_log( "[Media Turbo Replace] ERROR: Database update failed for post ID: {$post->ID}. wpdb error: " . $wpdb->last_error );
+                        W2P_Logger::error( "[Replace] ERROR: Database update failed for post ID: {$post->ID}. wpdb error: " . $wpdb->last_error, 'media-turbo' );
                     } else {
                         clean_post_cache( $post->ID );
                         $total_affected++;
-                        error_log( "[Media Turbo Replace] ✓ Replaced in post ID: {$post->ID} (rows affected: $updated)" );
+                        W2P_Logger::info( "[Replace] ✓ Replaced in post ID: {$post->ID} (rows affected: $updated)", 'media-turbo' );
                     }
                 }
             }
         }
 
-        error_log( "[Media Turbo Replace] Final result: $total_affected posts updated" );
+        W2P_Logger::info( "[Replace] Final result: $total_affected posts updated", 'media-turbo' );
         return $total_affected;
     }
 
@@ -537,13 +537,13 @@ class MediaTurboConverterService {
         $result = $content;
         $changes_made = false;
             
-        error_log( "[Media Turbo Replace] apply_replacements_to_content called" );
-        error_log( "[Media Turbo Replace] old_base: $old_base, ext: $ext, new_base: $new_base" );
+        W2P_Logger::debug( "[Replace] apply_replacements_to_content called", 'media-turbo' );
+        W2P_Logger::debug( "[Replace] old_base: $old_base, ext: $ext, new_base: $new_base", 'media-turbo' );
             
         // Replace exact variations
         foreach ( $searches as $search ) {
             $replace = str_replace( $old_base . '.' . $ext, $new_base . '.webp', $search );
-            error_log( "[Media Turbo Replace] Trying to replace: '$search' -> '$replace'" );
+            W2P_Logger::debug( "[Replace] Trying to replace: '$search' -> '$replace'", 'media-turbo' );
                 
             $before_length = strlen( $result );
             $result = str_replace( $search, $replace, $result );
@@ -551,15 +551,15 @@ class MediaTurboConverterService {
                 
             if ( $before_length !== $after_length ) {
                 $changes_made = true;
-                error_log( "[Media Turbo Replace] ✓ Replaced! Content length changed: $before_length -> $after_length" );
+                W2P_Logger::debug( "[Replace] ✓ Replaced! Content length changed: $before_length -> $after_length", 'media-turbo' );
             } else {
-                error_log( "[Media Turbo Replace] ✗ No match found for this pattern" );
+                W2P_Logger::debug( "[Replace] ✗ No match found for this pattern", 'media-turbo' );
             }
         }
     
         // Replace thumbnails specifically (e.g. filename-300x200.jpg -> filename-300x200.webp)
         $pattern = '/' . preg_quote( $old_base, '/' ) . '-(\\d+x\\d+)\\.' . preg_quote( $ext, '/' ) . '/i';
-        error_log( "[Media Turbo Replace] Thumbnail regex pattern: $pattern" );
+        W2P_Logger::debug( "[Replace] Thumbnail regex pattern: $pattern", 'media-turbo' );
             
         $before_length = strlen( $result );
         $result = preg_replace( $pattern, $new_base . '-$1.webp', $result );
@@ -567,11 +567,11 @@ class MediaTurboConverterService {
             
         if ( $before_length !== $after_length ) {
             $changes_made = true;
-            error_log( "[Media Turbo Replace] ✓ Thumbnail replacements made! Content length changed: $before_length -> $after_length" );
+            W2P_Logger::debug( "[Replace] ✓ Thumbnail replacements made! Content length changed: $before_length -> $after_length", 'media-turbo' );
         }
             
         if ( ! $changes_made ) {
-            error_log( "[Media Turbo Replace] WARNING: No replacements were made in content!" );
+            W2P_Logger::debug( "[Replace] WARNING: No replacements were made in content!", 'media-turbo' );
         }
     
         return $result;

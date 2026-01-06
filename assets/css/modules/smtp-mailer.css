@@ -1,0 +1,20 @@
+/* SMTP Mailer Styles */
+
+.w2p-provider-card {
+    background: var(--w2p-bg-surface-secondary);
+    padding: var(--w2p-spacing-md);
+    border-radius: var(--w2p-radius-lg);
+    border: 1px solid var(--w2p-border-color-light);
+}
+
+.w2p-provider-card strong {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--w2p-color-primary);
+}
+
+.w2p-provider-card p {
+    margin: 0;
+    font-size: 12px;
+    opacity: 0.8;
+}

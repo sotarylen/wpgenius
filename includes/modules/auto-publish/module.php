@@ -65,23 +65,12 @@ class AutoPublishModule extends W2P_Abstract_Module {
 			return;
 		}
 
-		wp_enqueue_style(
-			'w2p-auto-publish-status',
-			plugin_dir_url( WP_GENIUS_FILE ) . 'assets/css/style.css',
-			[],
-			'1.0.0'
-		);
+		wp_enqueue_style( 'w2p-auto-publish' );
 
-		wp_enqueue_script(
-			'w2p-modules-unified',
-			plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/modules-unified.js',
-			[ 'jquery' ],
-			'1.0.0',
-			true
-		);
+		wp_enqueue_script( 'w2p-auto-publish' );
 
 		wp_localize_script(
-			'w2p-modules-unified',
+			'w2p-auto-publish',
 			'w2pAutoPublishParams',
 			[
 				'ajax_url' => admin_url( 'admin-ajax.php' ),
@@ -221,19 +210,22 @@ class AutoPublishModule extends W2P_Abstract_Module {
 	/**
 	 * Publish a single post and log it
 	 */
-	public function publish_post( $post_id, $source = 'manual' ) {
+	public function publish_post( $post_id, $source = 'manual', $custom_content = null ) {
 		$post = get_post( $post_id );
 		if ( ! $post || 'draft' !== $post->post_status ) {
 			return false;
 		}
 
-		// Allow image processing even during AJAX/Cron for auto-publish
-		if ( ! defined( 'W2P_FORCE_IMAGE_PROCESS' ) ) {
-			define( 'W2P_FORCE_IMAGE_PROCESS', true );
+		// Use custom content if provided (from frontend JS)
+		if ( ! empty( $custom_content ) ) {
+			$post->post_content = $custom_content;
 		}
 
-		// Use Smart Auto Upload Images manually if available
-		if ( class_exists( 'SmartAutoUploadImages\Services\ImageProcessorExtended' ) ) {
+		// Allow image processing even during AJAX/Cron for auto-publish
+		// Unless explicitly skipped by frontend
+		$skip_processing = isset( $_POST['skip_image_processing'] ) && $_POST['skip_image_processing'] == '1';
+
+		if ( ! $skip_processing && class_exists( 'SmartAutoUploadImages\Services\ImageProcessorExtended' ) ) {
 			// Hook for progress updates
 			$progress_callback = function( $image, $result, $index ) use ( $post_id, $post ) {
 				// Get current status to preserve title/time
@@ -371,7 +363,9 @@ class AutoPublishModule extends W2P_Abstract_Module {
 		}
 
 		$post_id = $drafts[0];
-		if ( $this->publish_post( $post_id ) ) {
+		$custom_content = isset( $_POST['post_content'] ) ? wp_kses_post( wp_unslash( $_POST['post_content'] ) ) : null;
+		
+		if ( $this->publish_post( $post_id, 'manual', $custom_content ) ) {
 			wp_send_json_success( [
 				'finished' => false,
 				'post_id'  => $post_id,
@@ -386,12 +380,19 @@ class AutoPublishModule extends W2P_Abstract_Module {
 	 * AJAX Get Stats
 	 */
 	public function ajax_get_stats() {
+		check_ajax_referer( 'w2p_auto_publish_nonce', 'nonce' );
+		
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'No permission' );
+		}
+
 		if ( session_status() === PHP_SESSION_ACTIVE ) {
 			session_write_close();
 		}
 		$exclude = isset( $_POST['exclude'] ) ? array_map( 'absint', (array) $_POST['exclude'] ) : [];
 		
-		$draft_count = (int) wp_count_posts( 'post' )->draft;
+		global $wpdb;
+		$draft_count = (int) $wpdb->get_var( "SELECT COUNT(ID) FROM $wpdb->posts WHERE post_status = 'draft' AND post_type = 'post'" );
 
 		$next_draft = get_posts( [
 			'post_status'    => 'draft',
@@ -443,5 +444,12 @@ class AutoPublishModule extends W2P_Abstract_Module {
 	 */
 	public function disable() {
 		wp_clear_scheduled_hook( 'w2p_auto_publish_cron' );
+	}
+
+	/**
+	 * Render settings page
+	 */
+	public function render_settings() {
+		$this->render_view( 'settings' );
 	}
 }

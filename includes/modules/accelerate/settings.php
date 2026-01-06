@@ -263,7 +263,7 @@ $settings = wp_parse_args( $settings, $defaults );
             </div>
         </div>
 
-		<div class="w2p-settings-actions" style="margin-top: 30px;">
+		<div class="w2p-settings-actions">
 			<button type="submit" class="w2p-btn w2p-btn-primary" id="w2p-save-accelerate">
                 <span class="dashicons dashicons-saved"></span>
                 <?php esc_html_e( 'Save Accelerate Settings', 'wp-genius' ); ?>

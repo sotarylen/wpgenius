@@ -14,7 +14,7 @@ class W2P_Admin_Settings {
     }
 
     public function register_menu() {
-        add_submenu_page(
+        $page_hook = add_submenu_page(
             'tools.php',
             __('WP Genius Settings', 'wp-genius'),
             __('WP Genius Modules', 'wp-genius'),
@@ -22,6 +22,18 @@ class W2P_Admin_Settings {
             'wp-genius-settings',
             array($this, 'render_settings_page')
         );
+
+        add_action('admin_enqueue_scripts', function($hook) use ($page_hook) {
+            if ($hook !== $page_hook) {
+                return;
+            }
+
+            // Admin UI is now enqueued globally in wp-genius.php via word_to_posts_enqueue_scripts
+            // However, we ensure it's loaded here if needed, but it should be handled by the main plugin file.
+            // We can keep a simple enqueue just in case, but no need to register/localize again.
+            wp_enqueue_style('w2p-admin-ui');
+            wp_enqueue_script('w2p-admin-ui');
+        });
     }
 
     public function render_settings_page() {
@@ -55,7 +67,8 @@ class W2P_Admin_Settings {
                         foreach ($modules as $id => $module) {
                             $is = !empty($enabled[$id]);
                             $settings_path = plugin_dir_path(__FILE__) . 'modules/' . $id . '/settings.php';
-                            if ($is && file_exists($settings_path)) {
+                            $has_settings = file_exists($settings_path) || method_exists($module, 'render_settings');
+                            if ($is && $has_settings) {
                                 $enabled_modules_with_settings[$id] = array(
                                     'module' => $module,
                                     'name' => method_exists($module, 'name') ? call_user_func(array($module, 'name')) : $id,
@@ -83,7 +96,7 @@ class W2P_Admin_Settings {
                          class="w2p-tab-content active"
                          data-module="module-management">
                         <div class="w2p-tab-content-header">
-                            <h3><?php _e('Module Management', 'wp-genius'); ?></h3>
+                            <h1><?php _e('Module Management', 'wp-genius'); ?></h1>
                             <p class="w2p-tab-content-description"><?php _e('Enable or disable WP Genius modules and manage their basic preferences.', 'wp-genius'); ?></p>
                         </div>
                         <div class="w2p-tab-content-body">
@@ -96,7 +109,8 @@ class W2P_Admin_Settings {
                                         $is = !empty($enabled[$id]);
                                         $name = method_exists($module, 'name') ? call_user_func(array($module, 'name')) : $id;
                                         $desc = method_exists($module, 'description') ? call_user_func(array($module, 'description')) : '';
-                                        $has_settings = file_exists(plugin_dir_path(__FILE__) . 'modules/' . $id . '/settings.php');
+                                        $settings_path = plugin_dir_path(__FILE__) . 'modules/' . $id . '/settings.php';
+                                        $has_settings = file_exists($settings_path) || method_exists($module, 'render_settings');
                                     ?>
                                         <div class="w2p-module-card <?php echo $is ? 'enabled' : 'disabled'; ?>">
                                             <div class="w2p-module-card-content">
@@ -139,8 +153,11 @@ class W2P_Admin_Settings {
                                     <?php endforeach; ?>
                                 </div>
                                 
-                                <div class="w2p-form-actions">
-                                    <?php submit_button(__('Save Module Preferences', 'wp-genius'), 'primary', 'submit', false, array('id' => 'w2p-save-modules')); ?>
+                                <div class="w2p-settings-actions">
+                                    <button type="submit" class="w2p-btn w2p-btn-primary" id="w2p-save-modules">
+                                    <span class="dashicons dashicons-saved"></span>
+                                    <?php esc_html_e( 'Save Modules', 'wp-genius' ); ?>
+                                    </button>
                                 </div>
                             </form>
                         </div>
@@ -151,14 +168,18 @@ class W2P_Admin_Settings {
                              class="w2p-tab-content"
                              data-module="<?php echo esc_attr($module_id); ?>">
                             <div class="w2p-tab-content-header">
-                                <h3><?php echo esc_html($module_info['name']); ?></h3>
+                                <h1><?php echo esc_html($module_info['name']); ?></h1>
                                 <p class="w2p-tab-content-description"><?php echo esc_html($module_info['description']); ?></p>
                             </div>
                             <div class="w2p-tab-content-body">
                                 <?php
-                                $settings_path = plugin_dir_path(__FILE__) . 'modules/' . $module_id . '/settings.php';
-                                if (file_exists($settings_path)) {
-                                    include $settings_path;
+                                if (method_exists($module_info['module'], 'render_settings')) {
+                                    $module_info['module']->render_settings();
+                                } else {
+                                    $settings_path = plugin_dir_path(__FILE__) . 'modules/' . $module_id . '/settings.php';
+                                    if (file_exists($settings_path)) {
+                                        include $settings_path;
+                                    }
                                 }
                                 ?>
                             </div>
@@ -260,6 +281,7 @@ class W2P_Admin_Settings {
         }
 
         $module_id = isset($_POST['module_id']) ? sanitize_text_field($_POST['module_id']) : '';
+        
         if (empty($module_id)) {
             wp_die(__('Invalid module', 'wp-genius'));
         }

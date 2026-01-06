@@ -644,4 +644,12 @@ class AccelerateModule extends W2P_Abstract_Module {
 
         return $data;
     }
+
+    public function render_settings() {
+        $this->render_view( 'settings' );
+    }
+
+    public function settings_key() {
+        return 'w2p_accelerate_settings';
+    }
 }

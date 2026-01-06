@@ -23,7 +23,7 @@ class SystemHealthCleanupService {
         $stats = [
             'revisions'     => $wpdb->get_var( "SELECT COUNT(*) FROM $wpdb->posts WHERE post_type = 'revision'" ),
             'auto_drafts'   => $wpdb->get_var( "SELECT COUNT(*) FROM $wpdb->posts WHERE post_status = 'auto-draft'" ),
-            'orphaned_meta' => $wpdb->get_var( "SELECT COUNT(*) FROM $wpdb->postmeta WHERE post_id NOT IN (SELECT ID FROM $wpdb->posts)" ),
+            'orphaned_meta' => $wpdb->get_var( "SELECT COUNT(*) FROM $wpdb->postmeta pm LEFT JOIN $wpdb->posts p ON pm.post_id = p.ID WHERE p.ID IS NULL" ),
             'transients'    => $wpdb->get_var( "SELECT COUNT(*) FROM $wpdb->options WHERE option_name LIKE '_transient_%' OR option_name LIKE '_site_transient_%'" ),
         ];
 
@@ -53,7 +53,7 @@ class SystemHealthCleanupService {
      */
     public function clean_orphaned_meta() {
         global $wpdb;
-        $count = $wpdb->query( "DELETE FROM $wpdb->postmeta WHERE post_id NOT IN (SELECT ID FROM $wpdb->posts)" );
+        $count = $wpdb->query( "DELETE pm FROM $wpdb->postmeta pm LEFT JOIN $wpdb->posts p ON pm.post_id = p.ID WHERE p.ID IS NULL" );
         return (int) $count;
     }
 
@@ -197,31 +197,31 @@ class SystemHealthCleanupService {
             $post_types = "'post'";
             $post_statuses = "'publish', 'draft', 'pending', 'private', 'future'";
             
-            $sql_find_duplicates = "
-                SELECT post_title, COUNT(*) as count
-                FROM $wpdb->posts
-                WHERE post_type = $post_types
-                AND post_status IN ($post_statuses)
-                AND post_title != ''
-            ";
-
             if ( $category_id > 0 ) {
-                // If category filtering is needed, we need a JOIN
-                $sql_find_duplicates .= "
-                    AND ID IN (
-                        SELECT object_id 
-                        FROM $wpdb->term_relationships tr
-                        LEFT JOIN $wpdb->term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
-                        WHERE tt.term_id = %d
-                    )
+                $sql_find_duplicates = "
+                    SELECT p.post_title, COUNT(*) as count
+                    FROM $wpdb->posts p
+                    INNER JOIN $wpdb->term_relationships tr ON (p.ID = tr.object_id)
+                    INNER JOIN $wpdb->term_taxonomy tt ON (tr.term_taxonomy_id = tt.term_taxonomy_id)
+                    WHERE p.post_type = 'post'
+                    AND p.post_status IN ($post_statuses)
+                    AND p.post_title != ''
+                    AND tt.term_id = %d
+                    GROUP BY p.post_title
+                    HAVING count > 1
                 ";
                 $sql_find_duplicates = $wpdb->prepare( $sql_find_duplicates, $category_id );
+            } else {
+                $sql_find_duplicates = "
+                    SELECT post_title, COUNT(*) as count
+                    FROM $wpdb->posts
+                    WHERE post_type = $post_types
+                    AND post_status IN ($post_statuses)
+                    AND post_title != ''
+                    GROUP BY post_title
+                    HAVING count > 1
+                ";
             }
-
-            $sql_find_duplicates .= "
-                GROUP BY post_title
-                HAVING count > 1
-            ";
 
             // Optimize: limit results if too many? No, user wants to find all.
             // But to avoid OOM on millions of rows, maybe we process in chunks?
@@ -304,7 +304,7 @@ class SystemHealthCleanupService {
             return $duplicates;
 
         } catch ( Exception $e ) {
-            error_log( 'Duplicate scan error: ' . $e->getMessage() );
+            W2P_Logger::error( 'Duplicate scan error: ' . $e->getMessage(), 'system-health' );
             return [];
         }
     }
@@ -322,28 +322,28 @@ class SystemHealthCleanupService {
      */
     public function trash_duplicate_posts( $post_ids ) {
         if ( empty( $post_ids ) || ! is_array( $post_ids ) ) {
-            error_log( 'W2P DuplicateCleaner: Invalid post_ids provided: ' . print_r( $post_ids, true ) );
+            W2P_Logger::error( 'Invalid post_ids provided: ' . print_r( $post_ids, true ), 'system-health' );
             return 0;
         }
 
         $count = 0;
         $total = count( $post_ids );
-        error_log( 'W2P DuplicateCleaner: trash_duplicate_posts called with ' . $total . ' post IDs: ' . implode( ',', array_slice( $post_ids, 0, 10 ) ) . ( $total > 10 ? '...' : '' ) );
+        W2P_Logger::info( 'trash_duplicate_posts called with ' . $total . ' post IDs: ' . implode( ',', array_slice( $post_ids, 0, 10 ) ) . ( $total > 10 ? '...' : '' ), 'system-health' );
         
         foreach ( $post_ids as $index => $post_id ) {
             if ( ! is_numeric( $post_id ) || $post_id <= 0 ) {
-                error_log( 'W2P DuplicateCleaner: Invalid post ID at index ' . $index . ': ' . $post_id );
+                W2P_Logger::error( 'Invalid post ID at index ' . $index . ': ' . $post_id, 'system-health' );
                 continue;
             }
             
             $post = get_post( $post_id );
             if ( ! $post ) {
-                error_log( 'W2P DuplicateCleaner: Post ID ' . $post_id . ' not found or already deleted' );
+                W2P_Logger::warning( 'Post ID ' . $post_id . ' not found or already deleted', 'system-health' );
                 continue;
             }
             
             if ( $post->post_status === 'trash' ) {
-                error_log( 'W2P DuplicateCleaner: Post ID ' . $post_id . ' is already in trash' );
+                W2P_Logger::info( 'Post ID ' . $post_id . ' is already in trash', 'system-health' );
                 $count++;
                 continue;
             }
@@ -351,9 +351,9 @@ class SystemHealthCleanupService {
             $result = wp_trash_post( $post_id );
             if ( $result !== false ) {
                 $count++;
-                error_log( 'W2P DuplicateCleaner: Successfully trashed post ID ' . $post_id );
+                W2P_Logger::info( 'Successfully trashed post ID ' . $post_id, 'system-health' );
             } else {
-                error_log( 'W2P DuplicateCleaner: Failed to trash post ID ' . $post_id . '. Error: ' . print_r( $result, true ) );
+                W2P_Logger::error( 'Failed to trash post ID ' . $post_id . '. Error: ' . print_r( $result, true ), 'system-health' );
             }
             
             // Add small delay every 10 posts to prevent overwhelming the database
@@ -362,7 +362,7 @@ class SystemHealthCleanupService {
             }
         }
 
-        error_log( 'W2P DuplicateCleaner: Processed ' . $total . ' posts, successfully trashed ' . $count . ' posts' );
+        W2P_Logger::info( 'Processed ' . $total . ' posts, successfully trashed ' . $count . ' posts', 'system-health' );
         return $count;
     }
 }

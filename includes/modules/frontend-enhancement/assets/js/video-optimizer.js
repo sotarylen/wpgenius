@@ -67,16 +67,12 @@
             });
 
             if (allVideos.length === 0) {
-                console.log('WP Genius: No video elements found on page');
                 return;
             }
-
-            console.log('WP Genius: Initializing Plyr for ' + allVideos.length + ' video(s)');
 
             allVideos.forEach((video) => {
                 // Skip if already initialized
                 if (video.plyr) {
-                    console.log('WP Genius: Video already has Plyr instance, skipping');
                     return;
                 }
 
@@ -120,8 +116,6 @@
                         ratio: null
                     });
 
-                    console.log('WP Genius: Plyr initialized successfully for video');
-
                     // Force resize after initialization
                     player.on('ready', () => {
                         // Remove any problematic inline styles
@@ -147,8 +141,6 @@
 
                         video.style.width = '100%';
                         video.style.removeProperty('height');
-
-                        console.log('WP Genius: Video container widths fixed');
                     });
 
                     // Get video ID for progress tracking
@@ -162,7 +154,6 @@
                                 // Only restore if duration is valid and progress is within range
                                 if (player.duration > 0 && savedProgress < player.duration) {
                                     player.currentTime = savedProgress;
-                                    console.log('WP Genius: Restored video progress to', savedProgress, 'seconds');
                                 } else {
                                     // Clear invalid progress
                                     self.clearProgress(videoId);
@@ -198,7 +189,7 @@
                         });
                     }
                 } catch (error) {
-                    console.error('WP Genius: Failed to initialize Plyr:', error);
+                    // console.error('WP Genius: Failed to initialize Plyr:', error);
                 }
             });
 
@@ -210,13 +201,10 @@
                     setTimeout(() => {
                         // Try direct play first (works if user previously interacted)
                         firstPlayer.play().then(() => {
-                            console.log('WP Genius: Video autoplay started');
                         }).catch(err => {
                             // If direct play fails, try muted autoplay
-                            console.log('WP Genius: Direct autoplay prevented, trying muted autoplay');
                             firstPlayer.muted = true;
                             firstPlayer.play().then(() => {
-                                console.log('WP Genius: Video autoplay started (muted)');
                                 // Unmute after 1 second if still playing
                                 setTimeout(() => {
                                     if (!firstPlayer.paused) {
@@ -225,7 +213,6 @@
                                     }
                                 }, 1000);
                             }).catch(err2 => {
-                                console.log('WP Genius: Autoplay prevented by browser, user can click play button');
                                 firstPlayer.muted = false;
                             });
                         });
@@ -269,7 +256,6 @@
             // Check if it's from an external platform
             for (const platform of externalPlatforms) {
                 if (lowerUrl.includes(platform)) {
-                    console.log('WP Genius: Skipping external video platform:', platform);
                     return false;
                 }
             }
@@ -289,9 +275,9 @@
             if (isLocal && isVideoFile) {
                 // Warn about formats with limited browser support
                 if (lowerUrl.includes('.mkv')) {
-                    console.warn('WP Genius: MKV format detected. Browser support depends on installed codecs.');
+                    // console.warn('WP Genius: MKV format detected. Browser support depends on installed codecs.');
                 } else if (lowerUrl.includes('.avi') || lowerUrl.includes('.mov')) {
-                    console.warn('WP Genius: ' + (lowerUrl.includes('.avi') ? 'AVI' : 'MOV') + ' format detected. Browser support may be limited.');
+                    // console.warn('WP Genius: ' + (lowerUrl.includes('.avi') ? 'AVI' : 'MOV') + ' format detected. Browser support may be limited.');
                 }
             }
 
@@ -320,11 +306,9 @@
                 // Replace iframe with video
                 iframe.parentNode.replaceChild(video, iframe);
 
-                console.log('WP Genius: Converted iframe to video element for:', src);
-
                 return video;
             } catch (error) {
-                console.error('WP Genius: Failed to convert iframe:', error);
+                // console.error('WP Genius: Failed to convert iframe:', error);
                 return null;
             }
         }
@@ -365,7 +349,7 @@
             try {
                 localStorage.setItem(this.storageKey + videoId, currentTime.toString());
             } catch (error) {
-                console.warn('WP Genius: Failed to save video progress:', error);
+                // console.warn('WP Genius: Failed to save video progress:', error);
             }
         }
 
@@ -377,7 +361,7 @@
                 const saved = localStorage.getItem(this.storageKey + videoId);
                 return saved ? parseFloat(saved) : 0;
             } catch (error) {
-                console.warn('WP Genius: Failed to get saved progress:', error);
+                // console.warn('WP Genius: Failed to get saved progress:', error);
                 return 0;
             }
         }
@@ -389,7 +373,7 @@
             try {
                 localStorage.removeItem(this.storageKey + videoId);
             } catch (error) {
-                console.warn('WP Genius: Failed to clear progress:', error);
+                // console.warn('WP Genius: Failed to clear progress:', error);
             }
         }
     }
@@ -400,13 +384,11 @@
     function initWhenReady() {
         // Check if config is available
         if (typeof wpgVideoConfig === 'undefined') {
-            console.warn('WP Genius: Video config not found');
             return;
         }
 
         // Check if Plyr is loaded
         if (typeof Plyr === 'undefined') {
-            console.warn('WP Genius: Plyr library not loaded, retrying...');
             // Retry after a short delay
             setTimeout(initWhenReady, 100);
             return;

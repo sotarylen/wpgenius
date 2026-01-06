@@ -178,7 +178,7 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 	 */
 	public function enqueue_progress_ui_scripts( $hook ) {
         // Monitor hook for specific pages
-        $is_settings_page = isset( $_GET['page'] ) && $_GET['page'] === 'wp-genius-settings';
+        $is_settings_page = isset( $_GET['page'] ) && ( $_GET['page'] === 'wp-genius-settings' || $_GET['page'] === 'wp-genius' );
         
 		if ( ! in_array( $hook, [ 'post.php', 'post-new.php', 'edit.php' ] ) && ! $is_settings_page ) {
 			return;
@@ -205,16 +205,11 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 		// 使用WP_GENIUS_FILE常量计算插件根目录URL
 		$plugin_url = plugin_dir_url( WP_GENIUS_FILE );
 		
-		wp_enqueue_script(
-			'w2p-smart-aui-progress',
-			$plugin_url . 'assets/js/smart-auto-upload-progress-ui.js',
-			[ 'jquery' ],
-			time(), // Force cache bust for debugging
-			true
-		);
+		wp_enqueue_script( 'w2p-smart-auto-upload' );
+		wp_enqueue_style( 'w2p-smart-auto-upload' );
 
 		wp_localize_script(
-			'w2p-smart-aui-progress',
+			'w2p-smart-auto-upload',
 			'w2pSmartAuiParams',
 			[
 				'ajax_url' => admin_url( 'admin-ajax.php' ),
@@ -324,9 +319,9 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 			return;
 		}
 
-		// 允许在文章编辑页面和文章列表页面加载
-		$allowed_bases = [ 'post', 'edit' ];
-		if ( ! in_array( $screen->base, $allowed_bases ) ) {
+		// 允许在文章编辑页面、文章列表页面以及插件设置页面加载
+		$allowed_bases = [ 'post', 'edit', 'toplevel_page_wp-genius', 'wp-genius_page_wp-genius-settings' ];
+		if ( ! in_array( $screen->base, $allowed_bases ) && strpos($screen->id, 'wp-genius') === false ) {
 			return;
 		}
 
@@ -489,6 +484,10 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 	 */
 	public function ajax_get_progress() {
 		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
+		
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
 
 		$process_id = isset( $_POST['process_id'] ) ? sanitize_text_field( $_POST['process_id'] ) : '';
 
@@ -519,6 +518,10 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 		}
 		
 		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
+		
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
 		
 		$post_id = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
 		$content = isset( $_POST['content'] ) ? wp_unslash( $_POST['content'] ) : '';
@@ -574,6 +577,10 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 		}
 
 		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
+		
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
 
 		$post_id    = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
 		$raw_url    = isset( $_POST['image_url'] ) ? wp_unslash( $_POST['image_url'] ) : '';
@@ -774,6 +781,10 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 		
 		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
 		
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
+		
 		$post_id = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
 		$process_id = isset( $_POST['process_id'] ) ? sanitize_text_field( $_POST['process_id'] ) : '';
 		
@@ -846,6 +857,10 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 		
 		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
 		
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
+		
 		$post_id = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
 		$content = isset( $_POST['content'] ) ? wp_unslash( $_POST['content'] ) : '';
 		$images = isset( $_POST['images'] ) ? $_POST['images'] : [];
@@ -880,6 +895,10 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 	public function ajax_get_settings() {
 		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
 		
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
+		
 		$settings = get_option( 'smart_aui_settings', [] );
 		
 		// 返回设置但不包含敏感信息
@@ -906,6 +925,10 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 	 */
 	public function ajax_get_post_details() {
 		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
+		
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
 		
 		$post_id = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
 		
@@ -934,6 +957,10 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 		}
 
 		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
+		
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
 		
 		$post_id = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
 		$content = isset( $_POST['content'] ) ? wp_unslash( $_POST['content'] ) : '';
@@ -1034,5 +1061,13 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 	 */
 	public function deactivate() {
 		do_action( 'w2p_smart_aui_deactivated' );
+	}
+
+	public function render_settings() {
+		$this->render_view( 'settings' );
+	}
+
+	public function settings_key() {
+		return 'smart_aui_settings';
 	}
 }

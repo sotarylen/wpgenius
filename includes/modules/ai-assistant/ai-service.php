@@ -75,7 +75,7 @@ class AiAssistantService {
         $response = wp_remote_post( $this->base_url, $args );
 
         if ( is_wp_error( $response ) ) {
-            error_log( 'WP Genius AI Error: ' . $response->get_error_message() );
+            W2P_Logger::error( 'AI API call failed: ' . $response->get_error_message(), 'ai-assistant' );
             return false;
         }
 
