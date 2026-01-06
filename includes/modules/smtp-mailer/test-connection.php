@@ -14,22 +14,13 @@ if ( ! isset( $_GET['smtp_test'] ) || '1' !== $_GET['smtp_test'] || 'POST' !== $
 	return;
 }
 
-// Load WordPress
-if ( ! function_exists( 'wp_send_json_error' ) ) {
-	// Find and load wp-load.php
-	$wp_load = dirname( __FILE__ );
-	for ( $i = 0; $i < 10; $i++ ) {
-		$wp_load = dirname( $wp_load );
-		if ( file_exists( $wp_load . '/wp-load.php' ) ) {
-			require_once $wp_load . '/wp-load.php';
-			break;
-		}
-	}
-}
-
-// Check permissions
+// Check permissions and nonce
 if ( ! is_user_logged_in() || ! current_user_can( 'manage_options' ) ) {
 	wp_send_json_error( __( 'No permission', 'wp-genius' ) );
+}
+
+if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'w2p_smtp_test_nonce' ) ) {
+    wp_send_json_error( __( 'Invalid security token', 'wp-genius' ) );
 }
 
 // Get SMTP settings from POST

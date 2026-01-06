@@ -50,8 +50,8 @@ class MediaTurboModule extends W2P_Abstract_Module {
             return;
         }
 
-        wp_enqueue_script( 'w2p-modules-unified', plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/modules-unified.js', [ 'jquery' ], '1.0.0', true );
-        wp_localize_script( 'w2p-modules-unified', 'w2pMediaTurbo', [
+        wp_enqueue_script( 'w2p-media-turbo' );
+        wp_localize_script( 'w2p-media-turbo', 'w2pMediaTurbo', [
             'ajax_url' => admin_url( 'admin-ajax.php' ),
             'nonce'    => wp_create_nonce( 'w2p_media_turbo_nonce' ),
         ] );
@@ -62,6 +62,10 @@ class MediaTurboModule extends W2P_Abstract_Module {
             session_write_close();
         }
         check_ajax_referer( 'w2p_media_turbo_nonce', 'nonce' );
+        
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( 'Permission denied' );
+        }
         
         $settings = get_option( 'w2p_media_turbo_settings', [] );
         $limit = isset( $_POST['limit'] ) ? absint( $_POST['limit'] ) : ( isset( $settings['scan_limit'] ) ? absint( $settings['scan_limit'] ) : 100 );
@@ -84,6 +88,10 @@ class MediaTurboModule extends W2P_Abstract_Module {
             session_write_close();
         }
         check_ajax_referer( 'w2p_media_turbo_nonce', 'nonce' );
+        
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( 'Permission denied' );
+        }
         
         $item_ids = isset( $_POST['ids'] ) ? array_map( 'absint', (array) $_POST['ids'] ) : [];
         if ( empty( $item_ids ) ) {
@@ -110,13 +118,13 @@ class MediaTurboModule extends W2P_Abstract_Module {
                 // 仅记录成功的消息
                 $file_name = basename( get_attached_file( $item_id ) );
                 $post_parent = get_post_field( 'post_parent', $item_id );
-                error_log( sprintf(
+                W2P_Logger::info( sprintf(
                     '[Media Turbo] Success: %s (ID: %d, Post: %d, Affected: %d)',
                     $file_name,
                     $item_id,
                     $post_parent,
                     $conversion_result['affected']
-                ) );
+                ), 'media-turbo' );
                 
                 // Mark parent post as processed if in posts scan mode
                 if ( $post_parent ) {
@@ -199,7 +207,7 @@ class MediaTurboModule extends W2P_Abstract_Module {
         // Performance: Skip synchronous conversion for large files (e.g., > 5MB)
         $file_size = filesize( $file_path );
         if ( $file_size > 5 * 1024 * 1024 ) {
-            error_log( 'WP Genius: Skipping synchronous WebP conversion for large file (' . round( $file_size / 1024 / 1024, 2 ) . 'MB). Use Bulk Optimization instead.' );
+            W2P_Logger::info( 'Skipping synchronous WebP conversion for large file (' . round( $file_size / 1024 / 1024, 2 ) . 'MB). Use Bulk Optimization instead.', 'media-turbo' );
             return $upload;
         }
 
@@ -220,7 +228,7 @@ class MediaTurboModule extends W2P_Abstract_Module {
     }
 
     public function render_settings() {
-        include __DIR__ . '/settings.php';
+        $this->render_view( 'settings' );
     }
 
     public function activate() {}

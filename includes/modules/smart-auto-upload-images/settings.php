@@ -273,54 +273,38 @@ jQuery(document).ready(function($) {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('settings-updated') === 'true') {
         const $saveBtn = $('#w2p-smart-aui-submit');
-        if ($saveBtn.length && window.WPGenius && WPGenius.UI) {
-            WPGenius.UI.showFeedback($saveBtn, '<?php _e('Settings Saved', 'wp-genius'); ?>', 'success');
+        if ($saveBtn.length) {
+            w2p.toast('<?php _e('Settings Saved', 'wp-genius'); ?>', 'success');
         }
     }
 
     // Clear logs
     $('#w2p-smart-aui-clear-logs').on('click', function() {
-        if (!confirm('<?php _e('Are you sure you want to clear all capture logs?', 'wp-genius'); ?>')) {
-            return;
-        }
-
         var $btn = $(this);
-        var originalText = $btn.text();
-        
-        $btn.prop('disabled', true).addClass('w2p-btn-loading');
+        w2p.confirm('<?php _e('Are you sure you want to clear all capture logs?', 'wp-genius'); ?>', () => {
+             w2p.loading($btn, true);
 
-        $.ajax({
-            url: ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'w2p_smart_aui_clear_failed_logs',
-                nonce: '<?php echo wp_create_nonce("w2p_smart_aui_progress"); ?>'
-            },
-            success: function(response) {
-                $btn.removeClass('w2p-btn-loading');
-                if (response.success) {
-                    if (window.WPGenius && WPGenius.UI) {
-                        WPGenius.UI.showFeedback($btn, '<?php _e('Logs Cleared', 'wp-genius'); ?>', 'success');
-                    }
-                    setTimeout(function() { location.reload(); }, 1500);
-                } else {
-                    if (window.WPGenius && WPGenius.UI) {
-                        WPGenius.UI.showFeedback($btn, 'Error: ' + response.data, 'error');
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'w2p_smart_aui_clear_failed_logs',
+                    nonce: '<?php echo wp_create_nonce("w2p_smart_aui_progress"); ?>'
+                },
+                success: function(response) {
+                    w2p.loading($btn, false);
+                    if (response.success) {
+                        w2p.toast('<?php _e('Logs Cleared', 'wp-genius'); ?>', 'success');
+                        setTimeout(function() { location.reload(); }, 1500);
                     } else {
-                        alert('Error: ' + response.data);
-                        $btn.prop('disabled', false);
+                        w2p.toast('Error: ' + response.data, 'error');
                     }
+                },
+                error: function() {
+                    w2p.loading($btn, false);
+                    w2p.toast('Connection Error', 'error');
                 }
-            },
-            error: function() {
-                $btn.removeClass('w2p-btn-loading');
-                if (window.WPGenius && WPGenius.UI) {
-                    WPGenius.UI.showFeedback($btn, 'Connection Error', 'error');
-                } else {
-                    alert('Connection error');
-                    $btn.prop('disabled', false);
-                }
-            }
+            });
         });
     });
 });

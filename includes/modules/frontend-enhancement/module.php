@@ -120,6 +120,21 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 		}
 		
 		$settings = get_option( 'w2p_frontend_enhancement_settings', [] );
+
+		// Core frontend module styles (Lightbox, Video, etc.)
+		wp_enqueue_style(
+			'w2p-core-css',
+			plugin_dir_url( WP_GENIUS_FILE ) . 'assets/css/modules/core.css',
+			[],
+			'1.0.5'
+		);
+
+		wp_enqueue_style(
+			'wpg-frontend-enhancements',
+			plugin_dir_url( WP_GENIUS_FILE ) . 'assets/css/modules/frontend-enhancements.css',
+			[ 'w2p-core-css' ],
+			'1.0.5'
+		);
 		
 		// Lightbox assets
 		if ( ! empty( $settings['lightbox_enabled'] ) ) {
@@ -153,7 +168,7 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 								e.stopImmediatePropagation();
 								
 								// Manually trigger WP Genius Lightbox after preventing theme lightbox
-								if (window.wpgLightbox && window.wpgLightbox.images) {
+								if (window.wpgLightbox && window.wpgLightbox.open) {
 									var index = window.wpgLightbox.images.findIndex(function(img) {
 										return img.element === target;
 									});
@@ -245,12 +260,6 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 				'postId'   => get_the_ID(),
 				'settings' => $settings,
 			] );
-
-			// Add debug information
-			wp_add_inline_script( 'wpg-reader-js', '
-				console.log("WP Genius Reader: Script loaded with config:", wpgReaderConfig);
-				console.log("WP Genius Reader: Reader enabled: true");
-			', 'before' );
 		}
 	}
 
@@ -322,5 +331,12 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 		} else {
 			wp_send_json_error( __( 'Failed to update featured image.', 'wp-genius' ) );
 		}
+	}
+	public function render_settings() {
+		$this->render_view( 'settings' );
+	}
+
+	public function settings_key() {
+		return 'w2p_frontend_enhancement_settings';
 	}
 }

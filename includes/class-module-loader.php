@@ -29,23 +29,34 @@ class W2P_Module_Loader {
     
     // 从指定目录加载模块
     protected function load_modules_from_directory($directory) {
-        $dirs = scandir($directory);
-        foreach ($dirs as $d) {
-            if ($d === '.' || $d === '..') continue;
-            $path = $directory . $d;
-            if (is_dir($path)) {
+        // Use simpler glob which is faster than scandir + custom filtering often
+        $dirs = glob($directory . '*', GLOB_ONLYDIR);
+        if (!$dirs) return;
+
+        foreach ($dirs as $path) {
+            $dirname = basename($path);
+            $class = $this->class_name_from_dir($dirname);
+            $found = false;
+
+            // 1. Check if class is already loaded or can be autoloaded (Composer)
+            if (class_exists($class)) {
+                $found = true;
+            } else {
+                // 2. Fallback to manual file check
                 $main = $path . '/module.php';
                 if (file_exists($main)) {
                     include_once $main;
-                    $class = $this->class_name_from_dir($d);
                     if (class_exists($class)) {
-                        try {
-                            $instance = new $class();
-                            $this->modules[$d] = $instance;
-                        } catch (Exception $e) {
-                            error_log('W2P Module instantiation failed: ' . $e->getMessage());
-                        }
+                        $found = true;
                     }
+                }
+            }
+
+            if ($found) {
+                try {
+                    $this->modules[$dirname] = new $class();
+                } catch (Exception $e) {
+                    W2P_Logger::error( 'Module instantiation failed: ' . $e->getMessage(), 'module-loader' );
                 }
             }
         }
@@ -67,7 +78,7 @@ class W2P_Module_Loader {
                 try {
                     $module->init();
                 } catch (Exception $e) {
-                    error_log('W2P Module init error (' . $id . '): ' . $e->getMessage());
+                    W2P_Logger::error( 'Module init error (' . $id . '): ' . $e->getMessage(), 'module-loader' );
                 }
             }
         }

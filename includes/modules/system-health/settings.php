@@ -17,7 +17,7 @@ $stats = [
     'orphaned_meta' => '-',
     'transients'    => '-',
 ];
-$system_info = $service->get_system_info();
+// Moved system info to AJAX
 ?>
 
 <div class="w2p-sub-tabs" id="w2p-system-health-tabs">
@@ -32,10 +32,6 @@ $system_info = $service->get_system_info();
     <!-- Cleanup Tools Tab -->
     <div class="w2p-sub-tab-content active" id="w2p-tab-cleanup">
         <div class="w2p-section">
-            <div class="w2p-section-header">
-                <h4><?php esc_html_e( 'Database Cleaning & Optimization', 'wp-genius' ); ?></h4>
-            </div>
-
             <div class="w2p-section-body">
                 <div class="w2p-info-box w2p-flex w2p-justify-between w2p-items-center">
                     <p style="margin:0;"><?php esc_html_e( 'Keep your site fast by removing unnecessary data from your database. Click the scan button to check current system health.', 'wp-genius' ); ?></p>
@@ -100,9 +96,6 @@ $system_info = $service->get_system_info();
     <!-- Image Link Remover Tab -->
     <div class="w2p-sub-tab-content" id="w2p-tab-image-remover">
         <div class="w2p-section">
-            <div class="w2p-section-header">
-                <h4><?php esc_html_e( 'Image Link Remover', 'wp-genius' ); ?></h4>
-            </div>
             <div class="w2p-section-body">
                 <div class="w2p-info-box w2p-flex w2p-items-center w2p-gap-md">
                     <div class="w2p-flex-1">
@@ -175,9 +168,6 @@ $system_info = $service->get_system_info();
     <!-- Duplicate Post Cleaner Tab -->
     <div class="w2p-sub-tab-content" id="w2p-tab-duplicate-cleaner">
         <div class="w2p-section">
-            <div class="w2p-section-header">
-                <h4><?php esc_html_e( 'Duplicate Post Clean', 'wp-genius' ); ?></h4>
-            </div>
             <div class="w2p-section-body">
                 <div class="w2p-info-box w2p-flex w2p-items-center w2p-gap-md">
                     <div class="w2p-flex-1">
@@ -282,44 +272,13 @@ $system_info = $service->get_system_info();
 
     <!-- System Info Tab -->
     <div class="w2p-sub-tab-content" id="w2p-tab-info">
-        <div class="w2p-flex w2p-gap-lg">
-            <!-- Server Environment -->
-            <div class="w2p-flex-1">
-                <div class="w2p-section">
-                    <div class="w2p-section-header">
-                        <h4><?php esc_html_e( 'Server Environment', 'wp-genius' ); ?></h4>
-                    </div>
-                    <div class="w2p-section-body">
-                        <div class="w2p-info-grid">
-                            <?php foreach ( $system_info['server'] as $key => $value ) : ?>
-                                <div class="w2p-info-row">
-                                    <div class="w2p-info-label"><?php echo esc_html( ucwords( str_replace( '_', ' ', $key ) ) ); ?></div>
-                                    <div class="w2p-info-value"><?php echo esc_html( $value ); ?></div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                </div>
+        <div id="w2p-health-info-container" class="w2p-loading-container">
+            <div class="w2p-skeleton-loader">
+                <div class="w2p-skeleton-row"></div>
+                <div class="w2p-skeleton-row"></div>
+                <div class="w2p-skeleton-row"></div>
             </div>
-
-            <!-- WordPress Configuration -->
-            <div class="w2p-flex-1">
-                <div class="w2p-section">
-                    <div class="w2p-section-header">
-                        <h4><?php esc_html_e( 'WordPress Configuration', 'wp-genius' ); ?></h4>
-                    </div>
-                    <div class="w2p-section-body">
-                        <div class="w2p-info-grid">
-                            <?php foreach ( $system_info['wordpress'] as $key => $value ) : ?>
-                                <div class="w2p-info-row">
-                                    <div class="w2p-info-label"><?php echo esc_html( ucwords( str_replace( '_', ' ', $key ) ) ); ?></div>
-                                    <div class="w2p-info-value"><?php echo esc_html( $value ); ?></div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <p class="w2p-text-center w2p-mt-md"><?php esc_html_e( 'Loading system information...', 'wp-genius' ); ?></p>
         </div>
     </div>
 </div>

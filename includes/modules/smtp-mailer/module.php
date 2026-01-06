@@ -226,4 +226,12 @@ class SMTPMailerModule extends W2P_Abstract_Module {
 	public function deactivate() {
 		do_action( 'w2p_smtp_deactivated' );
 	}
+
+	public function render_settings() {
+		$this->render_view( 'settings' );
+	}
+
+	public function settings_key() {
+		return 'w2p_smtp_settings';
+	}
 }

@@ -1,0 +1,230 @@
+/**
+ * WPGenius Admin UI Styles
+ * 
+ * Provides styles for global notifications (Toasts) and confirmation modals.
+ */
+
+/* ==========================================================================
+   Toast Notifications
+   ========================================================================== */
+.w2p-toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 99999;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.w2p-toast {
+    background: #fff;
+    color: #1e1e1e;
+    padding: 12px 16px;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 280px;
+    max-width: 400px;
+    transform: translateY(20px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    pointer-events: auto;
+    font-size: 14px;
+    line-height: 1.4;
+    border-left: 4px solid #2271b1;
+    /* Default Info Blue */
+}
+
+.w2p-toast.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+/* Toast Variants */
+.w2p-toast.success {
+    border-left-color: #00a32a;
+}
+
+.w2p-toast.success .w2p-toast-icon {
+    color: #00a32a;
+}
+
+.w2p-toast.error {
+    border-left-color: #d63638;
+}
+
+.w2p-toast.error .w2p-toast-icon {
+    color: #d63638;
+}
+
+.w2p-toast.warning {
+    border-left-color: #dba617;
+}
+
+.w2p-toast.warning .w2p-toast-icon {
+    color: #dba617;
+}
+
+.w2p-toast.info {
+    border-left-color: #2271b1;
+}
+
+.w2p-toast.info .w2p-toast-icon {
+    color: #2271b1;
+}
+
+.w2p-toast-icon {
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+}
+
+.w2p-toast-message {
+    flex: 1;
+}
+
+.w2p-toast-close {
+    color: #787c82;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    line-height: 1;
+}
+
+.w2p-toast-close:hover {
+    color: #1e1e1e;
+}
+
+/* ==========================================================================
+   Confirm Modal
+   ========================================================================== */
+.w2p-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 100000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease;
+}
+
+.w2p-modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.w2p-confirm-modal {
+    background: #fff;
+    width: 400px;
+    max-width: 90%;
+    border-radius: 4px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+    transform: scale(0.95);
+    transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+.w2p-modal-overlay.active .w2p-confirm-modal {
+    transform: scale(1);
+}
+
+.w2p-modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f0f0f1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.w2p-modal-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e1e1e;
+}
+
+.w2p-modal-body {
+    padding: 20px;
+    font-size: 14px;
+    color: #3c434a;
+    line-height: 1.5;
+}
+
+.w2p-modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #f0f0f1;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    background: #f8f9fa;
+    border-radius: 0 0 4px 4px;
+}
+
+/* 
+.w2p-btn-secondary {
+    background: #f6f7f7;
+    border: 1px solid #dcdcde;
+    color: #2271b1;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 3px;
+    font-size: 13px;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.w2p-btn-secondary:hover {
+    background: #f0f0f1;
+    border-color: #c3c4c7;
+    color: #135e96;
+} */
+
+/* ==========================================================================
+   Loading State
+   ========================================================================== */
+.w2p-btn-loading {
+    position: relative;
+    background: var(--w2p-color-primary-focus) !important;
+    color: var(--w2p-color-primary-light) !important;
+    /* color: transparent !important; */
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+.w2p-btn-loading::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin-top: -8px;
+    margin-left: -8px;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: w2p-spin 0.8s linear infinite;
+}
+
+/* 
+.w2p-btn-secondary.w2p-btn-loading::after {
+    border-color: rgba(34, 113, 177, 0.4);
+    border-top-color: #2271b1;
+} */
+
+@keyframes w2p-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

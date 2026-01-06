@@ -69,4 +69,12 @@ class PostDuplicatorModule extends W2P_Abstract_Module {
         // We can hook into admin_enqueue_scripts here if we moved logic from scripts.php to here
         // But for now, letting scripts.php handle it via its own hook in init() is fine
     }
+
+    public function render_settings() {
+        $this->render_view( 'settings' );
+    }
+
+    public function settings_key() {
+        return 'w2p_post_duplicator_settings';
+    }
 }

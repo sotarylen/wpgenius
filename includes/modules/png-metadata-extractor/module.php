@@ -192,7 +192,7 @@ class PngMetadataExtractorModule extends W2P_Abstract_Module {
      * 前端资源加载
      */
     public function enqueue_frontend_assets() {
-        wp_enqueue_style('png-metadata-extractor', plugin_dir_url(dirname(dirname(__FILE__))) . 'assets/css/style.css');
+        wp_enqueue_style('w2p-core-css');
         wp_enqueue_script('png-metadata-extractor', plugin_dir_url(dirname(dirname(__FILE__))) . 'assets/js/png-metadata-extractor.js', array('jquery'), null, true);
         
         wp_localize_script('png-metadata-extractor', 'pngMetadataExtractor', array(

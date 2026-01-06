@@ -1,0 +1,282 @@
+/* Smart Auto Upload Images Styles */
+
+/* Backdrop */
+#w2p-smart-aui-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.4);
+    z-index: var(--w2p-z-index-overlay);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    animation: w2p-fade-in 0.3s ease;
+}
+
+/* Main Modal Container */
+#w2p-smart-aui-progress-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 680px;
+    max-width: 95%;
+    background: var(--w2p-bg-surface);
+    border-radius: var(--w2p-radius-lg);
+    box-shadow: var(--w2p-shadow-overlay);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: w2p-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.w2p-smart-aui-header {
+    padding: var(--w2p-spacing-lg) var(--w2p-spacing-xl);
+    background: var(--w2p-bg-surface);
+    border-bottom: 1px solid var(--w2p-border-color-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.w2p-smart-aui-header h3 {
+    margin: 0;
+    font-size: var(--w2p-font-size-lg);
+    font-weight: var(--w2p-font-weight-bold);
+    color: var(--w2p-text-primary);
+}
+
+#w2p-smart-aui-close-btn {
+    background: none;
+    border: none;
+    color: var(--w2p-text-muted);
+    cursor: pointer;
+    transition: color 0.2s;
+    font-size: 24px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#w2p-smart-aui-close-btn:hover {
+    color: var(--w2p-color-error);
+}
+
+.w2p-smart-aui-body {
+    padding: var(--w2p-spacing-lg) var(--w2p-spacing-xl);
+    flex: 1;
+}
+
+/* Progress Section */
+.w2p-smart-aui-progress-bar {
+    height: 15px;
+    background: var(--w2p-bg-surface-secondary);
+    /* border-radius: var(--w2p-radius-full); */
+    overflow: hidden;
+    margin-bottom: var(--w2p-spacing-md);
+}
+
+.w2p-smart-aui-progress-fill {
+    height: 100%;
+    background: var(--w2p-gradient-primary);
+    width: 0%;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.w2p-smart-aui-status-bar {
+    background: var(--w2p-bg-surface-secondary);
+    border-radius: var(--w2p-radius-lg);
+    display: flex;
+    padding: var(--w2p-spacing-md);
+    margin: 0 var(--w2p-spacing-xl);
+    justify-content: space-between;
+    align-items: center;
+}
+
+.w2p-smart-aui-status-text {
+    font-size: var(--w2p-font-size-md);
+    color: var(--w2p-text-secondary);
+    font-weight: var(--w2p-font-weight-medium);
+}
+
+/* Stats Row - Card based */
+.w2p-smart-aui-stats-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--w2p-spacing-md);
+    margin-bottom: var(--w2p-spacing-lg);
+}
+
+.stat-item {
+    background: var(--w2p-bg-surface-secondary);
+    padding: var(--w2p-spacing-lg);
+    border-radius: var(--w2p-radius-lg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: transform 0.3s;
+}
+
+.stat-item:hover {
+    transform: translateY(-2px);
+}
+
+.stat-item .label {
+    font-size: var(--w2p-font-size-xs);
+    color: var(--w2p-text-muted);
+    text-transform: uppercase;
+    font-weight: var(--w2p-font-weight-bold);
+    margin-bottom: 10px;
+}
+
+.stat-item .value {
+    font-size: var(--w2p-font-size-xl);
+    font-weight: var(--w2p-font-weight-bold);
+    color: var(--w2p-text-primary);
+}
+
+.stat-item.success .value {
+    color: var(--w2p-color-success);
+}
+
+.stat-item.skipped .value {
+    color: var(--w2p-color-warning);
+}
+
+.stat-item.failed .value {
+    color: var(--w2p-color-error);
+}
+
+.stat-item.threads .value {
+    color: var(--w2p-color-info);
+}
+
+/* Preview Area */
+.w2p-smart-aui-preview-area {
+    background: var(--w2p-bg-body);
+    border-radius: var(--w2p-radius-lg);
+    padding: var(--w2p-spacing-md);
+    min-height: 120px;
+    /* max-height: 300px; */
+    overflow-y: auto;
+    border: 1px dashed var(--w2p-border-color);
+}
+
+.w2p-smart-aui-preview-area.grid-mode {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
+    gap: var(--w2p-spacing-sm);
+    align-content: start;
+}
+
+.w2p-smart-aui-grid-item {
+    aspect-ratio: 1;
+    border-radius: var(--w2p-radius-md);
+    overflow: hidden;
+    background: var(--w2p-bg-surface-tertiary);
+    position: relative;
+    border: 1px solid var(--w2p-border-color);
+}
+
+.w2p-smart-aui-grid-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s;
+}
+
+.w2p-smart-aui-grid-item:hover img {
+    transform: scale(1.1);
+}
+
+.w2p-smart-aui-grid-placeholder {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--w2p-text-muted);
+    opacity: 0.5;
+}
+
+.w2p-smart-aui-grid-placeholder .dashicons {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+}
+
+.loading .w2p-smart-aui-grid-placeholder .dashicons {
+    animation: w2p-spin 2s linear infinite;
+}
+
+.w2p-smart-aui-grid-item .status-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.w2p-smart-aui-grid-item.done .status-overlay {
+    opacity: 1;
+}
+
+.w2p-smart-aui-grid-item .status-line {
+    font-size: 20px;
+    color: white;
+}
+
+.w2p-smart-aui-grid-item.success .status-line {
+    color: var(--w2p-color-success);
+}
+
+.w2p-smart-aui-grid-item.error .status-line {
+    color: var(--w2p-color-error);
+}
+
+/* Footer */
+.w2p-smart-aui-footer {
+    padding: var(--w2p-spacing-md) var(--w2p-spacing-xl);
+    background: var(--w2p-bg-body);
+    border-top: 1px solid var(--w2p-border-color-light);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--w2p-spacing-md);
+}
+
+/* Structural & Legacy Alignment Fixes */
+.w2p-smart-aui-preview-area.grid-mode {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.w2p-smart-aui-grid-item {
+    position: relative;
+    aspect-ratio: 1;
+    background: #eee;
+    overflow: hidden;
+}
+
+.w2p-smart-aui-grid-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.w2p-smart-aui-grid-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}

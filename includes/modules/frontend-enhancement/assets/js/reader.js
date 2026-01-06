@@ -34,18 +34,12 @@
         }
 
         init() {
-            console.log('WP Genius Reader: Starting initialization...');
-
             // 严格检查：只允许在存在 #w2p-book-chapters 的页面激活
             this.$container = $(this.containerSelector);
 
             if (this.$container.length === 0) {
-                console.log('WP Genius Reader: #w2p-book-chapters container not found. Reader will not be initialized on this page.');
-                console.log('WP Genius Reader: This is expected behavior for pages without book chapters.');
                 return; // 直接退出，不做任何操作
             }
-
-            console.log('WP Genius Reader: Target container #w2p-book-chapters found. Initializing reader functionality...');
 
             // 只有在找到目标容器时才初始化功能
             this.createProgressBar();
@@ -55,8 +49,6 @@
             this.applyStyles();
             this.bindEvents();
             this.restorePosition();
-
-            console.log('WP Genius Reader: Initialization completed successfully!');
         }
 
 
@@ -66,7 +58,6 @@
                 const saved = localStorage.getItem('wpg_reader_settings');
                 return saved ? JSON.parse(saved) : {};
             } catch (e) {
-                console.error('WP Genius Reader: Error loading settings', e);
                 return {};
             }
         }
@@ -82,7 +73,6 @@
         }
 
         createToolbar() {
-            console.log('WP Genius Reader: Creating toolbar...');
 
             // Remove any existing toolbar
             $('#wpg-reader-toolbar, #wpg-reader-toolbar-container').remove();
@@ -136,7 +126,6 @@
 
             $fontSelect.on('change', (e) => {
                 const selectedFont = $(e.target).val();
-                console.log('Font family changed to:', selectedFont);
 
                 // Early return if same font
                 if (this.state.fontFamily === selectedFont) return;
@@ -215,8 +204,6 @@
 
             // Ensure toolbar is visible
             $toolbar.show();
-
-            console.log('WP Genius Reader: Toolbar created and inserted successfully!');
         }
 
         changeFontSize(delta) {
@@ -243,8 +230,6 @@
                 // Save settings (non-blocking)
                 setTimeout(() => this.saveSettings(), 0);
             });
-
-            console.log('Font size changed to:', newSize + 'px');
         }
 
         setFontFamily(font) {
@@ -265,7 +250,6 @@
 
             // Early return if same theme
             if (this.state.theme === theme) {
-                console.log('Same theme, skipping...');
                 return;
             }
 
@@ -292,8 +276,6 @@
                 // Save settings (non-blocking)
                 setTimeout(() => this.saveSettings(), 0);
             });
-
-            console.log('Theme switched successfully to:', theme);
         }
 
         applyStyles() {
@@ -385,25 +367,20 @@
         }
 
         enterFullscreen() {
-            console.log('Entering fullscreen/focus mode...');
-
             try {
                 // Update button state
                 this.$fullscreenBtn.data('fullscreen', 'true');
                 this.$fullscreenBtn.find('i').removeClass('fas fa-expand-alt').addClass('fas fa-compress-alt');
-                this.$fullscreenBtn.attr('title', '退出全屏模式');
+                this.$fullscreenBtn.attr('title', '退出全屏/专注模式');
 
                 // Add fullscreen mode class
                 $('body').addClass('wpg-reader-fullscreen');
-
-                console.log('Fullscreen mode activated successfully');
             } catch (error) {
-                console.error('Error entering fullscreen mode:', error);
+                // Ignore
             }
         }
 
         exitFullscreen() {
-            console.log('Exiting fullscreen/focus mode...');
 
             try {
                 // Update button state
@@ -414,9 +391,8 @@
                 // Remove fullscreen mode class
                 $('body').removeClass('wpg-reader-fullscreen');
 
-                console.log('Fullscreen mode exited successfully');
             } catch (error) {
-                console.error('Error exiting fullscreen mode:', error);
+                // Ignore
             }
         }
     }
@@ -425,10 +401,7 @@
     $(document).ready(function () {
         // Check if we have configuration
         if (typeof wpgReaderConfig !== 'undefined') {
-            console.log('WP Genius Reader: Configuration found, initializing...');
             new WPGeniusReader(wpgReaderConfig);
-        } else {
-            console.warn('WP Genius Reader: No configuration found. Reader functionality will not be initialized.');
         }
     });
 

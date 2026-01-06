@@ -167,9 +167,21 @@
          */
         collectImages() {
             const self = this;
+            this.images = []; // Reset
 
             // Priority 1: Custom container with specific ID (Strict Mode)
             let $articleContainer = $('#w2p-post-content').first();
+
+            if ($articleContainer.length === 0) {
+                const fallbacks = ['.entry-content', '.post-content', 'article.post', 'article[id^="post-"]'];
+                for (const selector of fallbacks) {
+                    const $found = $(selector).first();
+                    if ($found.length > 0) {
+                        $articleContainer = $found;
+                        break;
+                    }
+                }
+            }
 
             if ($articleContainer.length === 0) {
                 return;
@@ -177,8 +189,14 @@
 
             $articleContainer.find('img').each(function () {
                 const $img = $(this);
+
+                // Skip if hidden or specifically excluded
+                if ($img.hasClass('no-lightbox') || !$img.is(':visible')) {
+                    return;
+                }
+
                 const src = $img.attr('src');
-                const dataSrc = $img.attr('data-src'); // For lazy loading
+                const dataSrc = $img.attr('data-src') || $img.attr('data-original') || $img.attr('data-lazy-src');
                 const alt = $img.attr('alt') || '';
 
                 // Try multiple methods to get attachment ID
@@ -196,18 +214,11 @@
                     }
                 }
 
-                // Try to extract from parent link if it's a WordPress attachment page
-                const $link = $img.closest('a');
-                if (!attachmentId && $link.length) {
-                    const hrefMatch = $link.attr('href')?.match(/attachment_id=(\d+)/) ||
-                        $link.attr('href')?.match(/\/(\d+)\/?$/);
-                    if (hrefMatch) {
-                        attachmentId = hrefMatch[1];
-                    }
-                }
-
                 // Get full size URL if available
-                let fullSrc = src || dataSrc;
+                let fullSrc = dataSrc || src;
+                const $link = $img.closest('a');
+
+                // If wrapped in a link pointing to an image, use it as full size
                 if ($link.length && $link.attr('href') && $link.attr('href').match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
                     fullSrc = $link.attr('href');
                 }
@@ -218,7 +229,7 @@
                     alt: alt,
                     attachmentId: attachmentId,
                     element: $img[0],
-                    loaded: false // Track if full image is loaded
+                    loaded: false
                 });
             });
         }
@@ -760,16 +771,31 @@
     $(document).ready(function () {
         // Check if config is available
         if (typeof wpgLightboxConfig === 'undefined') {
+            console.warn('WP Genius Lightbox: Configuration (wpgLightboxConfig) missing.');
             return;
         }
 
-        // Strict Mode: Only initialize if the specific container exists
-        if ($('#w2p-post-content').length === 0) {
-            return;
+        // Robust Initialization: Try multiple times if container not found immediately
+        let initAttempts = 0;
+        const maxAttempts = 10;
+
+        function tryInit() {
+            const $container = $('#w2p-post-content');
+
+            if ($container.length > 0) {
+                window.wpgLightbox = new WPGeniusLightbox(wpgLightboxConfig);
+            } else if (initAttempts < maxAttempts) {
+                initAttempts++;
+                setTimeout(tryInit, 500); // Retry every 0.5s
+            } else {
+                // Fallback: Try to initialize anyway if it's a single post, searching for standard containers
+                if ($('body.single, body.single-post, body.page').length > 0) {
+                    window.wpgLightbox = new WPGeniusLightbox(wpgLightboxConfig);
+                }
+            }
         }
 
-        // Initialize Lightbox
-        window.wpgLightbox = new WPGeniusLightbox(wpgLightboxConfig);
+        tryInit();
     });
 
 })(jQuery);

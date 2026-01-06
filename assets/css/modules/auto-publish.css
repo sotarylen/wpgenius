@@ -1,0 +1,119 @@
+/* Auto Publish Module Styles */
+
+/* Layout: Split View (Settings + Logs) */
+.w2p-auto-publish-split {
+    display: grid;
+    grid-template-columns: minmax(350px, 1fr) 1.5fr;
+    gap: var(--w2p-spacing-xl);
+    align-items: start;
+}
+
+@media (max-width: 1024px) {
+    .w2p-auto-publish-split {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Log Container */
+.w2p-log-container {
+    background: var(--w2p-bg-surface-secondary);
+    border-radius: var(--w2p-radius-lg);
+    border: 1px solid var(--w2p-border-color);
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.w2p-log-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--w2p-spacing-md);
+}
+
+/* Log Table Overrides */
+.w2p-auto-publish-logs .wp-list-table {
+    border: none;
+    box-shadow: none;
+    margin: 0;
+}
+
+.w2p-auto-publish-logs .wp-list-table th,
+.w2p-auto-publish-logs .wp-list-table td {
+    padding: 10px 15px;
+}
+
+/* Status Badges */
+.source-badge,
+.status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: var(--w2p-font-size-xs);
+    font-weight: var(--w2p-font-weight-semibold);
+    text-transform: uppercase;
+}
+
+.source-badge.manual {
+    background: var(--w2p-bg-soft);
+    color: var(--w2p-text-secondary);
+}
+
+.source-badge.scheduled {
+    background: var(--w2p-color-info-bg);
+    color: var(--w2p-color-info);
+}
+
+.status-badge.success {
+    background: var(--w2p-color-success-bg);
+    color: var(--w2p-color-success);
+}
+
+.status-badge.error {
+    background: var(--w2p-color-error-bg);
+    color: var(--w2p-color-error);
+}
+
+.status-badge.pending {
+    background: var(--w2p-color-warning-bg);
+    color: var(--w2p-color-warning);
+}
+
+/* Status badge with icon */
+.status-badge .dashicons {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    vertical-align: middle;
+    margin-right: 2px;
+}
+
+/* Progress Bar */
+.progress-bar-container {
+    height: 15px;
+    background: var(--w2p-color-info-bg);
+    border: 1px solid var(--w2p-border-color-dark);
+    border-radius: 50px;
+    margin-bottom: var(--w2p-spacing-xs);
+}
+
+.progress-bar-inner {
+    height: 100%;
+    background: var(--w2p-gradient-primary);
+    transition: width 0.3s ease;
+}
+
+/* Status Box */
+.w2p-status-box {
+    width: 100%;
+    background: var(--w2p-bg-surface);
+    border: 1px solid var(--w2p-border-color);
+    border-left: 5px solid var(--w2p-color-warning);
+    padding: var(--w2p-spacing-md);
+    border-radius: var(--w2p-radius-lg);
+    margin: var(--w2p-spacing-md) 0;
+    box-shadow: var(--w2p-shadow-sm);
+}
+
+.w2p-section-spacing {
+    margin-top: var(--w2p-spacing-xl);
+}

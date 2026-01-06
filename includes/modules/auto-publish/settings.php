@@ -80,7 +80,7 @@ $draft_count = count( get_posts( [
 					</div>
 				</div>
 
-				<div class="w2p-settings-actions w2p-margin-lg">
+				<div class="w2p-settings-actions">
 					<button type="submit" name="submit" id="w2p-auto-publish-submit" class="w2p-btn w2p-btn-primary">
 						<span class="dashicons dashicons-saved"></span>
 						<?php esc_attr_e( 'Save Automation Settings', 'wp-genius' ); ?>
@@ -191,11 +191,7 @@ jQuery(document).ready(function($) {
 		// Check for scheduled lock before starting
 		refreshStats().done(function(response) {
 			if (response.success && response.data.active_lock === 'scheduled') {
-				if (window.WPGenius.UI) {
-                    WPGenius.UI.showFeedback(btn, 'Scheduled Task Running', 'warning');
-                } else {
-				    alert('<?php _e("A scheduled publishing task is currently running. Please wait for it to finish.", "wp-genius"); ?>');
-                }
+				w2p.toast('<?php _e("A scheduled publishing task is currently running. Please wait for it to finish.", "wp-genius"); ?>', 'warning');
 				return;
 			}
 
@@ -222,42 +218,32 @@ jQuery(document).ready(function($) {
 	});
 
 	$('#w2p-clean-logs').on('click', function() {
-		if (!confirm('<?php _e("Are you sure you want to clear all publish logs?", "wp-genius"); ?>')) return;
-		
-		let btn = $(this);
-		btn.prop('disabled', true).addClass('w2p-btn-loading');
-        // Save original html only if not already saved (though w2p-btn usually has icon separate)
-        if (!btn.data('original-html')) {
-             btn.data('original-html', btn.html());
-        }
-		
-		$.ajax({
-			url: ajaxurl,
-			type: 'POST',
-			data: {
-				action: 'w2p_auto_publish_clean_logs',
-				nonce: nonce
-			},
-			success: function(response) {
-				btn.prop('disabled', false).removeClass('w2p-btn-loading');
-				if (response.success) {
-					refreshStats();
-                    if (window.WPGenius.UI) {
-                        WPGenius.UI.showFeedback(btn, 'Logs Cleared', 'success');
+        let btn = $(this);
+		w2p.confirm('<?php _e("Are you sure you want to clear all publish logs?", "wp-genius"); ?>', () => {
+             w2p.loading(btn, true);
+
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'w2p_auto_publish_clean_logs',
+                    nonce: nonce
+                },
+                success: function(response) {
+                    w2p.loading(btn, false);
+                    if (response.success) {
+                        refreshStats();
+                        w2p.toast('Logs Cleared', 'success');
+                    } else {
+                         w2p.toast('Error Clearing Logs', 'error');
                     }
-				} else {
-                     if (window.WPGenius.UI) {
-                        WPGenius.UI.showFeedback(btn, 'Error Clearing Logs', 'error');
-                    }
+                },
+                error: function() {
+                    w2p.loading(btn, false);
+                    w2p.toast('Network Error', 'error');
                 }
-			},
-            error: function() {
-                btn.prop('disabled', false).removeClass('w2p-btn-loading');
-                if (window.WPGenius.UI) {
-                    WPGenius.UI.showFeedback(btn, 'Network Error', 'error');
-                }
-            }
-		});
+            });
+        });
 	});
 
 	function processNext() {
@@ -330,9 +316,8 @@ jQuery(document).ready(function($) {
                         // Use the exposed method to show progress, but don't save
                         // Backend will handle both image processing and publishing
                         W2P_SmartAUI_Progress.processPostImages(postId, content, images, function(processedContent) {
-                            // Don't save content here, let backend handle it
-                            // This avoids triggering save_post hook before publishing
-                            publishPost(postId, title);
+                            // Send processed content to backend to skip redundant processing
+                            publishPost(postId, title, processedContent);
                         });
                     } else {
                         publishPost(postId, title);
@@ -347,19 +332,26 @@ jQuery(document).ready(function($) {
         });
     }
 
-    function publishPost(postId, title) {
+    function publishPost(postId, title, processedContent) {
         if (!isRunning) return;
 
         $('.progress-text').html('<strong>Publishing Post ' + postId + ':</strong> ' + title);
         
+        let postData = {
+            action: 'w2p_auto_publish_process',
+            nonce: nonce,
+            exclude: failedPostIds
+        };
+
+        if (processedContent) {
+            postData.post_content = processedContent;
+            postData.skip_image_processing = 1;
+        }
+        
         $.ajax({
 			url: ajaxurl,
 			type: 'POST',
-			data: {
-				action: 'w2p_auto_publish_process',
-				nonce: nonce,
-                exclude: failedPostIds
-			},
+			data: postData,
 			success: function(response) {
                 if (response.success) {
                     if (response.data && response.data.finished) {
@@ -396,8 +388,8 @@ jQuery(document).ready(function($) {
         $('.progress-text').text('All finished!');
         $('#w2p-stop-publish').hide();
         $('#w2p-start-publish').show().prop('disabled', true);
-        if (window.WPGenius.UI) {
-             WPGenius.UI.showFeedback($('#w2p-start-publish'), 'All Finished!', 'success');
+        if (window.w2p) {
+             w2p.toast('All Finished!', 'success');
         }
         updateProgress(100);
         isRunning = false;

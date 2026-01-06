@@ -103,8 +103,8 @@ class AiAssistantModule extends W2P_Abstract_Module {
             return;
         }
 
-        wp_enqueue_script( 'w2p-modules-unified', plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/modules-unified.js', [ 'jquery' ], '1.0.0', true );
-        wp_localize_script( 'w2p-modules-unified', 'w2pAiParams', [
+        wp_enqueue_script( 'w2p-ai-assistant' );
+        wp_localize_script( 'w2p-ai-assistant', 'w2pAiParams', [
             'ajax_url' => admin_url( 'admin-ajax.php' ),
             'nonce'    => wp_create_nonce( 'w2p_ai_nonce' ),
         ] );
@@ -115,6 +115,10 @@ class AiAssistantModule extends W2P_Abstract_Module {
      */
     public function ajax_generate_excerpt() {
         check_ajax_referer( 'w2p_ai_nonce', 'nonce' );
+        
+        if ( ! current_user_can( 'edit_posts' ) ) {
+            wp_send_json_error( 'Permission denied' );
+        }
         
         $content = isset( $_POST['content'] ) ? wp_unslash( $_POST['content'] ) : '';
         if ( empty( $content ) ) {
@@ -137,6 +141,10 @@ class AiAssistantModule extends W2P_Abstract_Module {
     public function ajax_generate_tags() {
         check_ajax_referer( 'w2p_ai_nonce', 'nonce' );
         
+        if ( ! current_user_can( 'edit_posts' ) ) {
+            wp_send_json_error( 'Permission denied' );
+        }
+        
         $content = isset( $_POST['content'] ) ? wp_unslash( $_POST['content'] ) : '';
         if ( empty( $content ) ) {
             wp_send_json_error( 'No content provided' );
@@ -153,7 +161,7 @@ class AiAssistantModule extends W2P_Abstract_Module {
     }
 
     public function render_settings() {
-        include __DIR__ . '/settings.php';
+        $this->render_view( 'settings' );
     }
 
     public function activate() {}

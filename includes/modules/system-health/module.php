@@ -30,10 +30,11 @@ class SystemHealthModule extends W2P_Abstract_Module {
         // Load cleanup service
         require_once __DIR__ . '/cleanup-service.php';
         
-        // AJAX handlers
-        add_action( 'wp_ajax_w2p_system_health_clean', [ $this, 'ajax_cleanup_handler' ] );
-        add_action( 'wp_ajax_w2p_system_health_get_stats', [ $this, 'ajax_get_stats_handler' ] );
-        add_action( 'wp_ajax_w2p_system_health_scan_links', [ $this, 'ajax_scan_links_handler' ] );
+        		// AJAX handlers
+		add_action( 'wp_ajax_w2p_system_health_clean', [ $this, 'ajax_cleanup_handler' ] );
+		add_action( 'wp_ajax_w2p_system_health_get_stats', [ $this, 'ajax_get_stats_handler' ] );
+		add_action( 'wp_ajax_w2p_system_health_get_info', [ $this, 'ajax_get_info_handler' ] );
+		add_action( 'wp_ajax_w2p_system_health_scan_links', [ $this, 'ajax_scan_links_handler' ] );
         add_action( 'wp_ajax_w2p_system_health_remove_links', [ $this, 'ajax_remove_links_handler' ] );
         add_action( 'wp_ajax_w2p_system_health_scan_duplicates', [ $this, 'ajax_scan_duplicates_handler' ] );
         add_action( 'wp_ajax_w2p_system_health_trash_duplicates', [ $this, 'ajax_trash_duplicates_handler' ] );
@@ -54,12 +55,13 @@ class SystemHealthModule extends W2P_Abstract_Module {
             return;
         }
 
-        wp_enqueue_script( 'w2p-modules-unified', plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/modules-unified.js', [ 'jquery' ], '1.0.0', true );
+        wp_enqueue_script( 'w2p-system-health' );
+        wp_enqueue_style( 'w2p-system-health' );
         
         $service = new SystemHealthCleanupService();
         $sh_categories = $service->get_categories();
 
-        wp_localize_script( 'w2p-modules-unified', 'w2pSystemHealth', [
+        wp_localize_script( 'w2p-system-health', 'w2pSystemHealth', [
             'ajax_url' => admin_url( 'admin-ajax.php' ),
             'nonce'    => wp_create_nonce( 'w2p_system_health_nonce' ),
             'confirm'  => __( 'Are you sure you want to perform this cleanup?', 'wp-genius' ),
@@ -71,7 +73,7 @@ class SystemHealthModule extends W2P_Abstract_Module {
     }
 
     public function render_settings() {
-        include __DIR__ . '/settings.php';
+        $this->render_view( 'settings' );
     }
 
     /**
@@ -112,10 +114,30 @@ class SystemHealthModule extends W2P_Abstract_Module {
     }
 
     /**
+     * AJAX Handler for System Info
+     */
+    public function ajax_get_info_handler() {
+        check_ajax_referer( 'w2p_system_health_nonce', 'nonce' );
+        
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ] );
+        }
+
+        $service = new SystemHealthCleanupService();
+        $info = $service->get_system_info();
+
+        wp_send_json_success( $info );
+    }
+
+    /**
      * AJAX Handler for Statistics
      */
     public function ajax_get_stats_handler() {
         check_ajax_referer( 'w2p_system_health_nonce', 'nonce' );
+        
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ] );
+        }
 
         $service = new SystemHealthCleanupService();
         $stats = $service->get_stats();
@@ -129,6 +151,10 @@ class SystemHealthModule extends W2P_Abstract_Module {
     public function ajax_scan_links_handler() {
         check_ajax_referer( 'w2p_system_health_nonce', 'nonce' );
 
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ] );
+        }
+
         $category_id = isset( $_POST['category_id'] ) ? intval( $_POST['category_id'] ) : 0;
         $service = new SystemHealthCleanupService();
         $results = $service->scan_posts_with_linked_images( $category_id );
@@ -141,6 +167,10 @@ class SystemHealthModule extends W2P_Abstract_Module {
      */
     public function ajax_remove_links_handler() {
         check_ajax_referer( 'w2p_system_health_nonce', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ] );
+        }
 
         $post_ids = isset( $_POST['post_ids'] ) ? array_map( 'intval', $_POST['post_ids'] ) : [];
         if ( empty( $post_ids ) ) {
@@ -192,6 +222,10 @@ class SystemHealthModule extends W2P_Abstract_Module {
      */
     public function ajax_trash_duplicates_handler() {
         check_ajax_referer( 'w2p_system_health_nonce', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ] );
+        }
 
         $post_ids = isset( $_POST['post_ids'] ) ? array_map( 'intval', $_POST['post_ids'] ) : [];
         if ( empty( $post_ids ) ) {

@@ -24,6 +24,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/class-word-to-posts.php';
 require_once plugin_dir_path(__FILE__) . 'includes/abstract-module.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-module-loader.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-admin-settings.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-logger.php';
 
 // Include Languages 加载插件文本域，以便在插件中使用多语言
 function word_to_posts_init() {
@@ -88,7 +89,8 @@ function word_to_posts_enqueue_scripts() {
             strpos($screen->id, 'word-to-posts') !== false ||
             strpos($screen->id, 'wp-genius-settings') !== false ||
             strpos($screen->id, 'wp-genius') !== false ||
-            $screen->id === 'tools'
+            in_array($screen->id, ['post', 'edit-post', 'tools', 'edit-page', 'page']) ||
+            in_array($screen->base, ['post', 'edit', 'upload'])
         )) {
             $should_load = true;
         }
@@ -96,12 +98,65 @@ function word_to_posts_enqueue_scripts() {
         if ($should_load) {
             wp_enqueue_style('jquery-ui-css', 'https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css');
             wp_enqueue_script('jquery-ui-tabs');
+            $suffix = ''; // Force uncompressed resources for auditing
+
+            // 注册核心样式表
+            wp_register_style('w2p-core-css', plugin_dir_url(__FILE__) . "assets/css/modules/core.css");
+
+            // 注册模块化 CSS
+            wp_register_style('w2p-admin-dashboard', plugin_dir_url(__FILE__) . "assets/css/modules/admin-dashboard.css", array('w2p-core-css'));
+            wp_register_style('w2p-smart-auto-upload', plugin_dir_url(__FILE__) . "assets/css/modules/smart-auto-upload.css", array('w2p-core-css'));
+            wp_register_style('w2p-watermark-style', plugin_dir_url(WP_GENIUS_FILE) . 'assets/css/modules/core.css', array('w2p-core-css'));
+            wp_register_style('w2p-system-health', plugin_dir_url(__FILE__) . "assets/css/modules/system-health.css", array('w2p-core-css'));
+            wp_register_style('w2p-auto-publish', plugin_dir_url(__FILE__) . "assets/css/modules/auto-publish.css", array('w2p-core-css'));
+            wp_register_style('w2p-frontend-enhancements', plugin_dir_url(__FILE__) . "assets/css/modules/frontend-enhancements.css", array('w2p-core-css'));
+            wp_register_style('w2p-smtp-mailer', plugin_dir_url(__FILE__) . "assets/css/modules/smtp-mailer.css", array('w2p-core-css'));
+
+            // 统一加载核心样式和仪表盘样式
+            wp_enqueue_style('w2p-core-css');
+            wp_enqueue_style('w2p-admin-dashboard');
+
+            // 如果是设置页面，加载所有模块样式
+            if (strpos($screen->id, 'wp-genius-settings') !== false) {
+                wp_enqueue_style('w2p-smart-auto-upload');
+                wp_enqueue_style('w2p-system-health');
+                wp_enqueue_style('w2p-auto-publish');
+                wp_enqueue_style('w2p-frontend-enhancements');
+                wp_enqueue_style('w2p-smtp-mailer');
+            }
+
+            // 向后兼容：保留 word-to-posts-css 句柄，指向 core.css
+            wp_register_style('word-to-posts-css', plugin_dir_url(__FILE__) . "assets/css/modules/core.css");
+
+            // 注册 Admin UI (Global Notifications)
+            wp_register_style('w2p-admin-ui', plugin_dir_url(__FILE__) . 'assets/css/w2p-admin-ui.css', array(), '1.0.0');
+            wp_register_script('w2p-admin-ui', plugin_dir_url(__FILE__) . 'assets/js/w2p-admin-ui.js', array('jquery'), '1.0.0', true);
             
-            // 统一加载CSS和JS - 使用新的统一样式表
-            wp_enqueue_style('word-to-posts-css', plugin_dir_url(__FILE__) . 'assets/css/style.css');
+            wp_localize_script('w2p-admin-ui', 'w2p_ui_i18n', array(
+                'confirm'       => __('Confirm', 'wp-genius'),
+                'cancel'        => __('Cancel', 'wp-genius'),
+                'confirm_title' => __('Confirmation', 'wp-genius'),
+                'settings_saved'=> __('Settings saved successfully!', 'wp-genius'),
+            ));
+
+            wp_enqueue_style('w2p-admin-ui');
+            wp_enqueue_script('w2p-admin-ui');
+
+            // 注册核心 JS 和模块化 JS (Depend on w2p-admin-ui)
+            wp_register_script('w2p-core-js', plugin_dir_url(__FILE__) . "assets/js/modules/core.js", array('jquery', 'w2p-admin-ui'), '1.0.0', true);
+            wp_register_script('w2p-ai-assistant', plugin_dir_url(__FILE__) . "assets/js/modules/ai-assistant.js", array('w2p-core-js'), '1.0.0', true);
+            wp_register_script('w2p-auto-publish', plugin_dir_url(__FILE__) . "assets/js/modules/auto-publish.js", array('w2p-core-js'), '1.0.0', true);
+            wp_register_script('w2p-clipboard-upload', plugin_dir_url(__FILE__) . "assets/js/modules/clipboard-upload.js", array('w2p-core-js'), '1.0.0', true);
+            wp_register_script('w2p-media-turbo', plugin_dir_url(__FILE__) . "assets/js/modules/media-turbo.js", array('w2p-core-js'), '1.0.0', true);
+            wp_register_script('w2p-system-health', plugin_dir_url(__FILE__) . "assets/js/modules/system-health.js", array('w2p-core-js'), '1.0.0', true);
+            wp_register_script('w2p-smart-auto-upload', plugin_dir_url(__FILE__) . "assets/js/modules/smart-auto-upload.js", array('w2p-core-js'), '1.0.0', true);
+            wp_register_script('w2p-image-watermark', plugin_dir_url(__FILE__) . "assets/js/modules/image-watermark.js", array('w2p-core-js'), '1.0.0', true);
+
+            // 向后兼容：保留 w2p-modules-unified 句柄
+            wp_register_script('w2p-modules-unified', plugin_dir_url(__FILE__) . "assets/js/modules/core.js", array('jquery', 'w2p-admin-ui'), '1.0.0', true);
 
             wp_enqueue_script('word-to-posts-js', plugin_dir_url(__FILE__) . 'assets/js/word-to-posts.js', array('jquery'), null, true);
-            wp_enqueue_script('w2p-admin-modules-js', plugin_dir_url(__FILE__) . 'assets/js/admin-modules.js', array('jquery'), null, true);
+            wp_enqueue_script('w2p-admin-modules-js', plugin_dir_url(__FILE__) . 'assets/js/admin-modules.js', array('jquery', 'w2p-admin-ui'), null, true);
             
             // 将插件所需的参数传递给JavaScript文件
             wp_localize_script('word-to-posts-js', 'word_to_posts_params', [
@@ -132,6 +187,6 @@ function reader_shortcode_handler($atts) {
 
  function reader_enqueue_scripts() {
     // Enqueue any scripts or styles here
-    wp_enqueue_style('reader-style', plugins_url('assets/css/style.css', __FILE__));
+    wp_enqueue_style('w2p-core-css');
     wp_enqueue_script('reader-script', plugins_url('assets/js/reader.js', __FILE__), array('jquery'), null, true);
 }

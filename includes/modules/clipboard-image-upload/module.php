@@ -70,7 +70,7 @@ class ClipboardImageUploadModule extends W2P_Abstract_Module {
 	 * Register TinyMCE Plugin
 	 */
 	public function register_tinymce_plugin( $plugin_array ) {
-		$plugin_array['w2p_clipboard_upload'] = plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/modules-unified.js';
+		$plugin_array['w2p_clipboard_upload'] = plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/modules/clipboard-upload.js';
 		return $plugin_array;
 	}
 
@@ -118,16 +118,10 @@ class ClipboardImageUploadModule extends W2P_Abstract_Module {
 
 		$settings = get_option( 'w2p_clipboard_upload_settings', [] );
 		
-		wp_enqueue_script(
-			'w2p-modules-unified',
-			plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/modules-unified.js',
-			[ 'jquery' ],
-			'1.0.0',
-			true
-		);
+		wp_enqueue_script( 'w2p-clipboard-upload' );
 
 		wp_localize_script(
-			'w2p-modules-unified',
+			'w2p-clipboard-upload',
 			'w2pClipboardParams',
 			[
 				'ajax_url' => admin_url( 'admin-ajax.php' ),
@@ -229,5 +223,13 @@ class ClipboardImageUploadModule extends W2P_Abstract_Module {
 			'id'  => $attach_id,
 			'url' => wp_get_attachment_url( $attach_id ),
 		];
+	}
+
+	public function render_settings() {
+		$this->render_view( 'settings' );
+	}
+
+	public function settings_key() {
+		return 'w2p_clipboard_upload_settings';
 	}
 }
