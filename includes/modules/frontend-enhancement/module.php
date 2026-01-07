@@ -69,6 +69,15 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 			$this->init_audio_player();
 		}
 		
+		// Code highlighting functionality
+		if ( ! empty( $settings['code_highlight_enabled'] ) ) {
+			$handler_path = plugin_dir_path( __FILE__ ) . 'includes/class-highlight-handler.php';
+			if ( file_exists( $handler_path ) ) {
+				require_once $handler_path;
+				new WPG_Highlight_Handler( $settings );
+			}
+		}
+		
 		// AJAX handlers
 		add_action( 'wp_ajax_wpg_set_featured_image', [ $this, 'ajax_set_featured_image' ] );
 	}
@@ -98,6 +107,18 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 			'video_lightbox_button'         => true,
 			'video_lightbox_on_click'       => false,
 			'video_autoplay_prevention'     => true,
+			
+			// Code highlighting settings
+			'code_highlight_enabled'        => false,
+			'code_highlight_theme'          => 'default',
+			'code_highlight_line_numbers'   => false,
+			'code_highlight_show_language'  => false,
+			'code_highlight_copy_clipboard' => false,
+			'code_highlight_line_highlight' => false,
+			'code_highlight_command_line'   => false,
+			'code_highlight_singular_only'  => true,
+			'code_highlight_custom_style'   => '',
+			'code_highlight_font_family'    => 'monospace', // New: Add font family default
 			
 			// Audio player settings (reserved)
 			'audio_enabled'                 => false,
@@ -261,6 +282,7 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 				'settings' => $settings,
 			] );
 		}
+		
 	}
 
 	/**

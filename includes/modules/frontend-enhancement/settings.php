@@ -42,6 +42,18 @@ $defaults = [
 	'reader_font_size'              => 18,
 	'reader_font_family'            => 'sans',
 	'reader_theme'                  => 'light',
+	
+	// Code highlighting settings
+	'code_highlight_enabled'        => false,
+	'code_highlight_theme'          => 'default',
+	'code_highlight_line_numbers'   => false,
+	'code_highlight_show_language'  => false,
+	'code_highlight_copy_clipboard' => false,
+	'code_highlight_line_highlight' => false,
+	'code_highlight_command_line'   => false,
+	'code_highlight_singular_only'  => true,
+	'code_highlight_custom_style'   => '',
+	'code_highlight_font_family'    => 'monospace', // Add default value for font family
 ];
 $settings = wp_parse_args( $settings, $defaults );
 ?>
@@ -66,6 +78,10 @@ $settings = wp_parse_args( $settings, $defaults );
 				<a class="w2p-sub-tab-link" data-tab="reader">
 					<i class="fas fa-book-open"></i>
 					<?php esc_html_e( 'Reader Mode', 'wp-genius' ); ?>
+				</a>
+				<a class="w2p-sub-tab-link" data-tab="code-highlight">
+					<i class="fas fa-code"></i>
+					<?php esc_html_e( 'Code Highlight', 'wp-genius' ); ?>
 				</a>
 				<a class="w2p-sub-tab-link" data-tab="audio">
 					<i class="fas fa-music"></i>
@@ -552,6 +568,225 @@ $settings = wp_parse_args( $settings, $defaults );
 				</div>
 			</div>
 			<!-- End Tab: Reader Mode -->
+			
+			<!-- ==================== Tab: Code Highlight ==================== -->
+			<div class="w2p-sub-tab-content" id="w2p-tab-code-highlight">
+				<div class="w2p-section">
+					<div class="w2p-section-header">
+						<h4><?php esc_html_e( 'Code Highlighting', 'wp-genius' ); ?></h4>
+					</div>
+					<div class="w2p-section-body">
+						
+						<!-- Enable Code Highlighting -->
+						<div class="w2p-form-row">
+							<div class="w2p-form-label">
+								<label for="code_highlight_enabled">
+									<?php esc_html_e( 'Enable Code Highlighting', 'wp-genius' ); ?>
+								</label>
+							</div>
+							<div class="w2p-form-control">
+								<label class="w2p-switch">
+									<input type="checkbox" id="code_highlight_enabled" 
+										   name="w2p_frontend_enhancement_settings[code_highlight_enabled]" 
+										   value="1" <?php checked( isset( $settings['code_highlight_enabled'] ) ? $settings['code_highlight_enabled'] : 0, 1 ); ?> />
+									<span class="w2p-slider"></span>
+								</label>
+								<p class="description">
+									<?php esc_html_e( 'Enable syntax highlighting for code blocks.', 'wp-genius' ); ?>
+								</p>
+							</div>
+						</div>
+						
+						<!-- Theme Selection -->
+						<div class="w2p-form-row">
+							<div class="w2p-form-label">
+								<label for="code_highlight_theme">
+									<?php esc_html_e( 'Highlighting Theme', 'wp-genius' ); ?>
+								</label>
+							</div>
+							<div class="w2p-form-control">
+								<select id="code_highlight_theme" 
+										name="w2p_frontend_enhancement_settings[code_highlight_theme]">
+									<option value="default" <?php selected( isset( $settings['code_highlight_theme'] ) ? $settings['code_highlight_theme'] : 'default', 'default' ); ?>><?php esc_html_e( 'Default', 'wp-genius' ); ?></option>
+									<option value="coy" <?php selected( isset( $settings['code_highlight_theme'] ) ? $settings['code_highlight_theme'] : '', 'coy' ); ?>><?php esc_html_e( 'Coy', 'wp-genius' ); ?></option>
+									<option value="dark" <?php selected( isset( $settings['code_highlight_theme'] ) ? $settings['code_highlight_theme'] : '', 'dark' ); ?>><?php esc_html_e( 'Dark', 'wp-genius' ); ?></option>
+									<option value="funky" <?php selected( isset( $settings['code_highlight_theme'] ) ? $settings['code_highlight_theme'] : '', 'funky' ); ?>><?php esc_html_e( 'Funky', 'wp-genius' ); ?></option>
+									<option value="okaidia" <?php selected( isset( $settings['code_highlight_theme'] ) ? $settings['code_highlight_theme'] : '', 'okaidia' ); ?>><?php esc_html_e( 'Okaidia', 'wp-genius' ); ?></option>
+									<option value="solarizedlight" <?php selected( isset( $settings['code_highlight_theme'] ) ? $settings['code_highlight_theme'] : '', 'solarizedlight' ); ?>><?php esc_html_e( 'Solarized Light', 'wp-genius' ); ?></option>
+									<option value="tomorrow" <?php selected( isset( $settings['code_highlight_theme'] ) ? $settings['code_highlight_theme'] : '', 'tomorrow' ); ?>><?php esc_html_e( 'Tomorrow', 'wp-genius' ); ?></option>
+									<option value="twilight" <?php selected( isset( $settings['code_highlight_theme'] ) ? $settings['code_highlight_theme'] : '', 'twilight' ); ?>><?php esc_html_e( 'Twilight', 'wp-genius' ); ?></option>
+								</select>
+								<p class="description">
+									<?php esc_html_e( 'Select the theme for code highlighting.', 'wp-genius' ); ?>
+								</p>
+							</div>
+						</div>
+						
+						<!-- Font Family -->
+						<div class="w2p-form-row">
+							<div class="w2p-form-label">
+								<label for="code_highlight_font_family">
+									<?php esc_html_e( 'Font Family', 'wp-genius' ); ?>
+								</label>
+							</div>
+							<div class="w2p-form-control">
+								<select id="code_highlight_font_family" 
+										name="w2p_frontend_enhancement_settings[code_highlight_font_family]">
+									<option value="monospace" <?php selected( isset( $settings['code_highlight_font_family'] ) ? $settings['code_highlight_font_family'] : 'monospace', 'monospace' ); ?>><?php esc_html_e( 'Monospace', 'wp-genius' ); ?></option>
+									<option value="consolas" <?php selected( isset( $settings['code_highlight_font_family'] ) ? $settings['code_highlight_font_family'] : '', 'consolas' ); ?>><?php esc_html_e( 'Consolas', 'wp-genius' ); ?></option>
+									<option value="courier" <?php selected( isset( $settings['code_highlight_font_family'] ) ? $settings['code_highlight_font_family'] : '', 'courier' ); ?>><?php esc_html_e( 'Courier', 'wp-genius' ); ?></option>
+									<option value="fira-code" <?php selected( isset( $settings['code_highlight_font_family'] ) ? $settings['code_highlight_font_family'] : '', 'fira-code' ); ?>><?php esc_html_e( 'Fira Code', 'wp-genius' ); ?></option>
+									<option value="source-code-pro" <?php selected( isset( $settings['code_highlight_font_family'] ) ? $settings['code_highlight_font_family'] : '', 'source-code-pro' ); ?>><?php esc_html_e( 'Source Code Pro', 'wp-genius' ); ?></option>
+								</select>
+								<p class="description">
+									<?php esc_html_e( 'Select the font family for code blocks.', 'wp-genius' ); ?>
+								</p>
+							</div>
+						</div>
+						
+						<!-- Enable Line Numbers -->
+						<div class="w2p-form-row">
+							<div class="w2p-form-label">
+								<label for="code_highlight_line_numbers">
+									<?php esc_html_e( 'Show Line Numbers', 'wp-genius' ); ?>
+								</label>
+							</div>
+							<div class="w2p-form-control">
+								<label class="w2p-switch">
+									<input type="checkbox" id="code_highlight_line_numbers" 
+										   name="w2p_frontend_enhancement_settings[code_highlight_line_numbers]" 
+										   value="1" <?php checked( isset( $settings['code_highlight_line_numbers'] ) ? $settings['code_highlight_line_numbers'] : 0, 1 ); ?> />
+									<span class="w2p-slider"></span>
+								</label>
+								<p class="description">
+									<?php esc_html_e( 'Display line numbers for code blocks.', 'wp-genius' ); ?>
+								</p>
+							</div>
+						</div>
+						
+						<!-- Enable Show Language -->
+						<div class="w2p-form-row">
+							<div class="w2p-form-label">
+								<label for="code_highlight_show_language">
+									<?php esc_html_e( 'Show Language Label', 'wp-genius' ); ?>
+								</label>
+							</div>
+							<div class="w2p-form-control">
+								<label class="w2p-switch">
+									<input type="checkbox" id="code_highlight_show_language" 
+										   name="w2p_frontend_enhancement_settings[code_highlight_show_language]" 
+										   value="1" <?php checked( isset( $settings['code_highlight_show_language'] ) ? $settings['code_highlight_show_language'] : 0, 1 ); ?> />
+									<span class="w2p-slider"></span>
+								</label>
+								<p class="description">
+									<?php esc_html_e( 'Display the language name on code blocks.', 'wp-genius' ); ?>
+								</p>
+							</div>
+						</div>
+						
+						<!-- Enable Copy to Clipboard -->
+						<div class="w2p-form-row">
+							<div class="w2p-form-label">
+								<label for="code_highlight_copy_clipboard">
+									<?php esc_html_e( 'Enable Copy to Clipboard', 'wp-genius' ); ?>
+								</label>
+							</div>
+							<div class="w2p-form-control">
+								<label class="w2p-switch">
+									<input type="checkbox" id="code_highlight_copy_clipboard" 
+										   name="w2p_frontend_enhancement_settings[code_highlight_copy_clipboard]" 
+										   value="1" <?php checked( isset( $settings['code_highlight_copy_clipboard'] ) ? $settings['code_highlight_copy_clipboard'] : 0, 1 ); ?> />
+									<span class="w2p-slider"></span>
+								</label>
+								<p class="description">
+									<?php esc_html_e( 'Add a copy button to code blocks for easy copying.', 'wp-genius' ); ?>
+								</p>
+							</div>
+						</div>
+						
+						<!-- Enable Line Highlighting -->
+						<div class="w2p-form-row">
+							<div class="w2p-form-label">
+								<label for="code_highlight_line_highlight">
+									<?php esc_html_e( 'Enable Line Highlighting', 'wp-genius' ); ?>
+								</label>
+							</div>
+							<div class="w2p-form-control">
+								<label class="w2p-switch">
+									<input type="checkbox" id="code_highlight_line_highlight" 
+										   name="w2p_frontend_enhancement_settings[code_highlight_line_highlight]" 
+										   value="1" <?php checked( isset( $settings['code_highlight_line_highlight'] ) ? $settings['code_highlight_line_highlight'] : 0, 1 ); ?> />
+									<span class="w2p-slider"></span>
+								</label>
+								<p class="description">
+									<?php esc_html_e( 'Enable highlighting of specific lines in code blocks.', 'wp-genius' ); ?>
+								</p>
+							</div>
+						</div>
+						
+						<!-- Enable Command Line Interface -->
+						<div class="w2p-form-row">
+							<div class="w2p-form-label">
+								<label for="code_highlight_command_line">
+									<?php esc_html_e( 'Enable Command Line Style', 'wp-genius' ); ?>
+								</label>
+							</div>
+							<div class="w2p-form-control">
+								<label class="w2p-switch">
+									<input type="checkbox" id="code_highlight_command_line" 
+										   name="w2p_frontend_enhancement_settings[code_highlight_command_line]" 
+										   value="1" <?php checked( isset( $settings['code_highlight_command_line'] ) ? $settings['code_highlight_command_line'] : 0, 1 ); ?> />
+									<span class="w2p-slider"></span>
+								</label>
+								<p class="description">
+									<?php esc_html_e( 'Add command line interface styling to code blocks.', 'wp-genius' ); ?>
+								</p>
+							</div>
+						</div>
+						
+						<!-- Apply to Singular Only -->
+						<div class="w2p-form-row">
+							<div class="w2p-form-label">
+								<label for="code_highlight_singular_only">
+									<?php esc_html_e( 'Apply to Singular Pages Only', 'wp-genius' ); ?>
+								</label>
+							</div>
+							<div class="w2p-form-control">
+								<label class="w2p-switch">
+									<input type="checkbox" id="code_highlight_singular_only" 
+										   name="w2p_frontend_enhancement_settings[code_highlight_singular_only]" 
+										   value="1" <?php checked( isset( $settings['code_highlight_singular_only'] ) ? $settings['code_highlight_singular_only'] : 0, 1 ); ?> />
+									<span class="w2p-slider"></span>
+								</label>
+								<p class="description">
+									<?php esc_html_e( 'Only apply code highlighting to single posts/pages, not to archive pages.', 'wp-genius' ); ?>
+								</p>
+							</div>
+						</div>
+						
+						<!-- Custom CSS -->
+						<div class="w2p-form-row">
+							<div class="w2p-form-label">
+								<label for="code_highlight_custom_style">
+									<?php esc_html_e( 'Custom CSS', 'wp-genius' ); ?>
+								</label>
+							</div>
+							<div class="w2p-form-control">
+								<textarea id="code_highlight_custom_style" 
+										  name="w2p_frontend_enhancement_settings[code_highlight_custom_style]" 
+										  rows="5" 
+										  class="w2p-input-large"
+										  placeholder="<?php esc_attr_e( 'Enter custom CSS for code highlighting', 'wp-genius' ); ?>"><?php echo esc_textarea( isset( $settings['code_highlight_custom_style'] ) ? $settings['code_highlight_custom_style'] : '' ); ?></textarea>
+								<p class="description">
+									<?php esc_html_e( 'Add custom CSS to customize code highlighting appearance.', 'wp-genius' ); ?>
+								</p>
+							</div>
+						</div>
+
+					</div>
+				</div>
+			</div>
+			<!-- End Tab: Code Highlight -->
 			
 		</div>
 		<!-- End Tabs -->

@@ -118,29 +118,7 @@
 
                     // Force resize after initialization
                     player.on('ready', () => {
-                        // Remove any problematic inline styles
-                        const container = video.closest('.plyr');
-                        if (container) {
-                            container.style.width = '100%';
-                            container.style.display = 'block';
-                            container.style.removeProperty('height');
-                        }
-
-                        // Fix WPBakery wrapper widths
-                        const wVideoH = video.closest('.w-video-h');
-                        if (wVideoH) {
-                            wVideoH.style.width = '100%';
-                            wVideoH.style.display = 'block';
-                        }
-
-                        const wVideo = video.closest('.w-video');
-                        if (wVideo) {
-                            wVideo.style.width = '100%';
-                            wVideo.style.display = 'block';
-                        }
-
-                        video.style.width = '100%';
-                        video.style.removeProperty('height');
+                        // Let Plyr handle the layout
                     });
 
                     // Get video ID for progress tracking
