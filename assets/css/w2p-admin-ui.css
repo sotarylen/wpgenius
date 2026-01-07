@@ -213,7 +213,7 @@
     margin-left: -8px;
     border: 2px solid rgba(255, 255, 255, 0.5);
     border-radius: 50%;
-    border-top-color: #fff;
+    border-top-color: var(--w2p-color-primary);
     animation: w2p-spin 0.8s linear infinite;
 }
 

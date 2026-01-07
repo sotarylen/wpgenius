@@ -1,0 +1,5 @@
+div.code-toolbar > div.toolbar { top: 5px; right: 5px; }
+
+div.toolbar::before, div.toolbar::after { content: ''; display: table; clear: both; }
+
+div.code-toolbar > div.toolbar > div.toolbar-item { margin: 0 0 0 5px; }

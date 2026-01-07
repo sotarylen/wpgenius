@@ -474,6 +474,7 @@
 
 /* Button Loading State */
 .w2p-btn-loading {
+    background: var(--w2p-border-color-dark) !important;
     position: relative !important;
     color: transparent !important;
     pointer-events: none;
@@ -490,7 +491,7 @@
     margin-left: -8px !important;
     border: 2px solid rgba(255, 255, 255, 0.5) !important;
     border-radius: 50% !important;
-    border-top-color: #fff !important;
+    border-top-color: var(--w2p-color-primary) !important;
     animation: w2p-spin 0.8s linear infinite !important;
 }
 

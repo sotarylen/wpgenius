@@ -257,8 +257,25 @@
 
 /* Video Optimization */
 .wpg-video-wrapper {
+    width: 100%;
+    max-height: 600px;
     position: relative;
-    display: inline-block;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #000;
+    overflow: hidden;
+    margin: 0 auto;
+}
+
+/* WPBakery/Impreza Support: When inside a container with padding-bottom aspect ratio hack */
+.w-video-h .wpg-video-wrapper,
+.w-video .wpg-video-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
 }
 
 .wpg-video-lightbox-btn {
@@ -284,69 +301,59 @@
     transform: scale(1.05);
 }
 
-/* Plyr Wrapper */
+/* Plyr Video Player Styles */
 .plyr {
-    width: 100% !important;
-    min-width: 100% !important;
-    display: block !important;
-}
-
-.plyr__video-wrapper {
-    width: 100% !important;
+    width: auto !important;
+    /* 允许根据内容收缩 */
+    max-width: 100% !important;
+    height: 100% !important;
+    /* 填满高度受限的容器 */
+    max-height: 100%;
+    border-radius: var(--w2p-radius-md);
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    background: #000;
+    display: flex;
+    flex-direction: column;
     position: relative;
-    padding-bottom: 56.25%;
+    /* 确保定位辅助 */
 }
 
-.plyr__video-wrapper video {
-    position: absolute;
+/* Force Plyr to fill WPBakery container */
+.w-video-h .plyr,
+.w-video .plyr {
+    position: absolute !important;
     top: 0;
     left: 0;
     width: 100% !important;
     height: 100% !important;
-    object-fit: contain;
 }
 
-@media (max-width: 768px) {
-    .wpg-lightbox-toolbar {
-        flex-wrap: wrap;
-        padding: var(--w2p-spacing-xs);
-        gap: var(--w2p-spacing-xs);
-        bottom: 10px;
-    }
-
-    .wpg-lightbox-btn {
-        font-size: var(--w2p-font-size-xs);
-        padding: var(--w2p-spacing-2xs) var(--w2p-spacing-xs);
-    }
-
-    .wpg-lightbox-nav {
-        width: 40px;
-        height: 40px;
-        font-size: 18px;
-    }
-}
-
-/* Plyr Video Player Styles */
-.plyr {
-    width: 100% !important;
-    max-width: 100% !important;
-    border-radius: var(--w2p-radius-md);
-    overflow: hidden !important;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    background: #000 !important;
-    /* Ensure black background for video */
-}
-
+/* Ensure the video wrapper handles its own aspect ratio if needed, but don't force it to 0 height */
 .plyr__video-wrapper {
-    background: #000 !important;
-    height: 0 !important;
-    padding-bottom: 56.25% !important;
-    /* 16:9 Aspect Ratio */
+    background: #000;
+    flex: 1 1 auto;
+    /* 核心修复：允许收缩，防止挤压工具栏 */
+    min-height: 0;
+    /* 允许在 Flex 容器中收缩 */
+    /* Ensure it fills parent in absolute/flex context */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Reset padding-bottom when parent is already handling aspect ratio */
+.w-video-h .plyr__video-wrapper,
+.w-video .plyr__video-wrapper {
+    padding-bottom: 0 !important;
 }
 
 .plyr__video-wrapper video {
+    width: auto !important;
+    /* 核心修复：竖屏视频不拉伸宽度 */
+    max-width: 100% !important;
     height: 100% !important;
-    width: 100% !important;
+    max-height: 100% !important;
     object-fit: contain !important;
 }
 
@@ -360,6 +367,9 @@
 
 .plyr__controls {
     background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 100%) !important;
+    width: 100% !important;
+    flex: 0 0 auto;
+    /* 核心修复：工具栏不收缩且不溢出 */
 }
 
 /* Force show video elements inside plyr */

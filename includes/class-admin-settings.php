@@ -622,6 +622,18 @@ class W2P_Admin_Settings {
                 'reader_font_size'              => isset($settings['reader_font_size']) ? absint($settings['reader_font_size']) : 18,
                 'reader_font_family'            => isset($settings['reader_font_family']) ? sanitize_text_field($settings['reader_font_family']) : 'sans',
                 'reader_theme'                  => isset($settings['reader_theme']) ? sanitize_text_field($settings['reader_theme']) : 'light',
+                
+                // Code highlighting settings
+                'code_highlight_enabled'        => !empty($settings['code_highlight_enabled']),
+                'code_highlight_theme'          => in_array($settings['code_highlight_theme'] ?? '', ['default', 'coy', 'dark', 'funky', 'okaidia', 'solarizedlight', 'tomorrow', 'twilight']) ? $settings['code_highlight_theme'] : 'default',
+                'code_highlight_line_numbers'   => !empty($settings['code_highlight_line_numbers']),
+                'code_highlight_show_language'  => !empty($settings['code_highlight_show_language']),
+                'code_highlight_copy_clipboard' => !empty($settings['code_highlight_copy_clipboard']),
+                'code_highlight_line_highlight' => !empty($settings['code_highlight_line_highlight']),
+                'code_highlight_command_line'   => !empty($settings['code_highlight_command_line']),
+                'code_highlight_singular_only'  => !empty($settings['code_highlight_singular_only']),
+                'code_highlight_custom_style'   => isset($settings['code_highlight_custom_style']) ? wp_kses_post($settings['code_highlight_custom_style']) : '',
+                'code_highlight_font_family'    => in_array($settings['code_highlight_font_family'] ?? '', ['monospace', 'consolas', 'courier', 'fira-code', 'source-code-pro']) ? $settings['code_highlight_font_family'] : 'monospace',
             ];
             
             update_option('w2p_frontend_enhancement_settings', $clean_settings);
