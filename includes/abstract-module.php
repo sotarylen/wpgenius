@@ -17,6 +17,10 @@ abstract class W2P_Abstract_Module {
         return '';
     }
 
+    public static function icon() {
+        return 'fa-solid fa-puzzle-piece'; // Default icon
+    }
+
     // 在插件初始化时调用
     public function init() {}
 

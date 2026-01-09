@@ -26,6 +26,10 @@ class AccelerateModule extends W2P_Abstract_Module {
         return __( 'Optimize WordPress performance by cleaning up admin interface and controlling update behaviors.', 'wp-genius' );
     }
 
+    public static function icon() {
+        return 'fa-solid fa-gauge-high';
+    }
+
     public function __construct() {
         $this->migrate_settings();
     }

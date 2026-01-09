@@ -26,6 +26,10 @@ class SystemHealthModule extends W2P_Abstract_Module {
         return __( 'Optimize WordPress by cleaning up the database and scanning for unused media.', 'wp-genius' );
     }
 
+    public static function icon() {
+        return 'fa-solid fa-heart-pulse';
+    }
+
     public function init() {
         // Load cleanup service
         require_once __DIR__ . '/cleanup-service.php';

@@ -30,6 +30,10 @@ class ImageWatermarkModule extends W2P_Abstract_Module {
         return __('Automatically watermark images uploaded to WordPress Media Library and bulk watermark previously uploaded images.', 'wp-genius');
     }
 
+    public static function icon() {
+        return 'fa-solid fa-droplet';
+    }
+
     /**
      * 模块初始化
      */

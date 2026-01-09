@@ -136,14 +136,14 @@ $settings = wp_parse_args( $settings, $defaults );
 
                 <div class="w2p-settings-actions">
                     <button type="submit" class="w2p-btn w2p-btn-primary" id="w2p-save-smtp">
-                        <span class="dashicons dashicons-saved"></span>
+                        <i class="fa-solid fa-floppy-disk"></i>
                         <?php esc_html_e('Save SMTP Settings', 'wp-genius'); ?>
                     </button>
                     <!-- Status span kept for fallback or specific messages if needed, but primary feedback will be on button -->
                     <span class="w2p-save-status" id="w2p-save-status"></span>
                     
                     <button type="button" class="w2p-btn w2p-btn-secondary" id="w2p-test-smtp">
-                         <span class="dashicons dashicons-admin-plugins"></span>
+                        <i class="fa-solid fa-arrow-rotate-right"></i>
                         <?php esc_html_e('Test Connection', 'wp-genius'); ?>
                     </button>
                     <span class="w2p-test-result" id="smtp-test-result"></span>

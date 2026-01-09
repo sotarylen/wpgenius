@@ -50,14 +50,14 @@
 .w2p-module-title-row h3 {
     margin: 0;
     font-size: var(--w2p-font-size-lg);
-    font-weight: var(--w2p-font-weight-bold);
+    font-weight: var(--w2p-font-weight-medium);
     color: var(--w2p-text-primary);
 }
 
 .w2p-badge {
     padding: 2px 8px;
     font-size: var(--w2p-font-size-xs);
-    font-weight: var(--w2p-font-weight-bold);
+    font-weight: var(--w2p-font-weight-medium);
     border-radius: var(--w2p-radius-full);
     text-transform: uppercase;
 }
@@ -122,22 +122,33 @@
 
 .w2p-sub-tab-nav {
     display: flex;
-    gap: var(--w2p-spacing-xl);
+    gap: var(--w2p-spacing-xs);
+    font-weight: var(--w2p-font-weight-medium);
     border-bottom: 2px solid var(--w2p-border-color-light);
     margin-bottom: var(--w2p-spacing-xl);
 }
 
 .w2p-sub-tab-link {
     text-decoration: none;
-    color: var(--w2p-text-secondary);
-    font-weight: var(--w2p-font-weight-semibold);
-    padding: var(--w2p-spacing-md) 0;
+    color: var(--w2p-color-inverted);
+    font-weight: var(--w2p-font-weight-medium);
+    padding: var(--w2p-spacing-md) var(--w2p-spacing-lg);
     position: relative;
     cursor: pointer;
 }
 
+.w2p-sub-tab-link:hover {
+    background: var(--w2p-color-success-bg);
+    border-radius: var(--w2p-radius-lg) var(--w2p-radius-lg) 0 0;
+    transition: all 0.5s;
+}
+
 .w2p-sub-tab-link.active {
-    color: var(--w2p-color-primary);
+    font-size: var(--w2p-font-size-md);
+    background: var(--w2p-gradient-primary);
+    border-radius: var(--w2p-radius-lg) var(--w2p-radius-lg) 0 0;
+    color: var(--w2p-text-inverted) !important;
+    transition: all 0.5s;
 }
 
 .w2p-sub-tab-link.active::after {
@@ -157,38 +168,6 @@
 
 .w2p-sub-tab-content.active {
     display: block;
-}
-
-.w2p-sub-tab-nav {
-    font-size: var(--w2p-font-size-md);
-    display: flex;
-    gap: var(--w2p-spacing-xl);
-    border-bottom: 2px solid var(--w2p-border-color-light);
-    margin-bottom: var(--w2p-spacing-xl);
-}
-
-.w2p-sub-tab-link {
-    text-decoration: none;
-    color: var(--w2p-text-secondary);
-    font-weight: var(--w2p-font-weight-semibold);
-    padding: var(--w2p-spacing-md) 0;
-    position: relative;
-    cursor: pointer;
-}
-
-.w2p-sub-tab-link.active {
-    color: var(--w2p-color-primary);
-}
-
-.w2p-sub-tab-link.active::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    width: 100%;
-    height: 3px;
-    background: var(--w2p-gradient-primary);
-    border-radius: var(--w2p-radius-full);
 }
 
 .w2p-sub-tab-content {

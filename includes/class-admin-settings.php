@@ -57,6 +57,7 @@ class W2P_Admin_Settings {
                             <a href="#w2p-tab-module-management"
                                class="w2p-tab-nav-link active"
                                data-module="module-management">
+                               <i class="fa-solid fa-sliders"></i> 
                                 <?php _e('Module Management', 'wp-genius'); ?>
                             </a>
                         </li>
@@ -82,7 +83,14 @@ class W2P_Admin_Settings {
                                 <a href="#w2p-tab-<?php echo esc_attr($module_id); ?>"
                                    class="w2p-tab-nav-link"
                                    data-module="<?php echo esc_attr($module_id); ?>">
-                                    <?php echo esc_html($module_info['name']); ?>
+                                    <?php 
+                                    // Display icon if available
+                                    if (method_exists($module_info['module'], 'icon')) {
+                                        $icon_class = call_user_func(array($module_info['module'], 'icon'));
+                                        echo '<i class="' . esc_attr($icon_class) . '"></i> ';
+                                    }
+                                    echo esc_html($module_info['name']); 
+                                    ?>
                                 </a>
                             </li>
                         <?php endforeach; ?>
@@ -96,7 +104,7 @@ class W2P_Admin_Settings {
                          class="w2p-tab-content active"
                          data-module="module-management">
                         <div class="w2p-tab-content-header">
-                            <h1><?php _e('Module Management', 'wp-genius'); ?></h1>
+                            <h1><i class="fa-solid fa-sliders"></i> <?php _e('Module Management', 'wp-genius'); ?></h1>
                             <p class="w2p-tab-content-description"><?php _e('Enable or disable WP Genius modules and manage their basic preferences.', 'wp-genius'); ?></p>
                         </div>
                         <div class="w2p-tab-content-body">
@@ -132,7 +140,7 @@ class W2P_Admin_Settings {
                                                             <a href="#w2p-tab-<?php echo esc_attr($id); ?>"
                                                                class="w2p-settings-btn w2p-settings-link"
                                                                data-module="<?php echo esc_attr($id); ?>">
-                                                                <span class="dashicons dashicons-admin-generic"></span>
+                                                                <span class="fa-solid fa-gear"></span>
                                                                 <?php _e('Configure', 'wp-genius'); ?>
                                                             </a>
                                                         <?php elseif ($has_settings && !$is): ?>
@@ -155,7 +163,7 @@ class W2P_Admin_Settings {
                                 
                                 <div class="w2p-settings-actions">
                                     <button type="submit" class="w2p-btn w2p-btn-primary" id="w2p-save-modules">
-                                    <span class="dashicons dashicons-saved"></span>
+                                    <i class="fa-solid fa-floppy-disk"></i>
                                     <?php esc_html_e( 'Save Modules', 'wp-genius' ); ?>
                                     </button>
                                 </div>
@@ -168,7 +176,15 @@ class W2P_Admin_Settings {
                              class="w2p-tab-content"
                              data-module="<?php echo esc_attr($module_id); ?>">
                             <div class="w2p-tab-content-header">
-                                <h1><?php echo esc_html($module_info['name']); ?></h1>
+                                <h1>
+                                <?php
+                                // Display icon if available
+                                    if (method_exists($module_info['module'], 'icon')) {
+                                        $icon_class = call_user_func(array($module_info['module'], 'icon'));
+                                        echo '<i class="' . esc_attr($icon_class) . '"></i> ';
+                                    }
+                                ?>
+                                <?php echo esc_html($module_info['name']); ?></h1>
                                 <p class="w2p-tab-content-description"><?php echo esc_html($module_info['description']); ?></p>
                             </div>
                             <div class="w2p-tab-content-body">
@@ -448,8 +464,10 @@ class W2P_Admin_Settings {
             // 更新 WP Genius 增强功能设置
             $core_settings['auto_set_featured_image'] = !empty($settings['auto_set_featured_image']);
             $core_settings['show_progress_ui'] = !empty($settings['show_progress_ui']);
+            $core_settings['skip_duplicates'] = !empty($settings['skip_duplicates']);
             $core_settings['process_images_on_rest_api'] = !empty($settings['process_images_on_rest_api']);
-            
+            $core_settings['capture_videos'] = !empty($settings['capture_videos']);
+
             // 更新并发线程数和重试次数
             if (isset($settings['concurrent_threads'])) {
                 $core_settings['concurrent_threads'] = max(1, min(16, absint($settings['concurrent_threads'])));
@@ -598,6 +616,7 @@ class W2P_Admin_Settings {
                 'lightbox_keyboard_nav'         => !empty($settings['lightbox_keyboard_nav']),
                 'lightbox_show_counter'         => !empty($settings['lightbox_show_counter']),
                 'lightbox_allow_set_featured'   => !empty($settings['lightbox_allow_set_featured']),
+                'lightbox_allow_delete'         => !empty($settings['lightbox_allow_delete']),
                 'lightbox_autoplay_enabled'     => !empty($settings['lightbox_autoplay_enabled']),
                 'lightbox_autoplay_interval'    => max(2, min(5, absint($settings['lightbox_autoplay_interval'] ?? 3))),
                 'lightbox_zoom_enabled'         => !empty($settings['lightbox_zoom_enabled']),

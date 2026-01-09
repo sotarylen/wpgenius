@@ -98,7 +98,7 @@ settings_errors('word_to_posts');
                     </div>
 
                     <div class="w2p-form-actions">
-                        <button type="submit" class="button button-primary"><?php _e('Upload and Begin Import', 'wp-genius'); ?></button>
+                        <button type="submit" class="button button-primary"><i class="fa-solid fa-file-word"></i> <?php _e('Upload and Begin Import', 'wp-genius'); ?></button>
                     </div>
                 </form>
                 <div id="word-to-posts-log-upload" class="word2postNotice w2p-info-box" style="margin-top: 15px; display: none;"></div>

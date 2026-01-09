@@ -171,37 +171,17 @@
     border-radius: 0 0 4px 4px;
 }
 
-/* 
-.w2p-btn-secondary {
-    background: #f6f7f7;
-    border: 1px solid #dcdcde;
-    color: #2271b1;
-    cursor: pointer;
-    padding: 6px 12px;
-    border-radius: 3px;
-    font-size: 13px;
-    text-decoration: none;
-    transition: all 0.2s;
-}
-
-.w2p-btn-secondary:hover {
-    background: #f0f0f1;
-    border-color: #c3c4c7;
-    color: #135e96;
-} */
-
 /* ==========================================================================
    Loading State
    ========================================================================== */
-.w2p-btn-loading {
+/* .w2p-btn-loading {
     position: relative;
     background: var(--w2p-color-primary-focus) !important;
     color: var(--w2p-color-primary-light) !important;
-    /* color: transparent !important; */
     pointer-events: none;
     opacity: 0.8;
-}
-
+} */
+/* 
 .w2p-btn-loading::after {
     content: "";
     position: absolute;
@@ -215,16 +195,16 @@
     border-radius: 50%;
     border-top-color: var(--w2p-color-primary);
     animation: w2p-spin 0.8s linear infinite;
-}
+} */
 
 /* 
 .w2p-btn-secondary.w2p-btn-loading::after {
     border-color: rgba(34, 113, 177, 0.4);
     border-top-color: #2271b1;
 } */
-
+/* 
 @keyframes w2p-spin {
     to {
         transform: rotate(360deg);
     }
-}
+} */

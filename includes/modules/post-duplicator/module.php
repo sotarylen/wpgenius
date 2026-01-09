@@ -45,6 +45,10 @@ class PostDuplicatorModule extends W2P_Abstract_Module {
 		return __( 'Duplicate any post type including custom fields and taxonomies.', 'wp-genius' );
 	}
 
+	public static function icon() {
+		return 'fa-solid fa-copy';
+	}
+
 	/**
 	 * Initialize Module
 	 */

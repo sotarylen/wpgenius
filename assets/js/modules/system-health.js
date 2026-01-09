@@ -315,7 +315,7 @@
 
         finishExecution: function (msg) {
             this.isRunning = false;
-            $('#w2p-image-link-stop-btn').hide().prop('disabled', false).html('<span class="dashicons dashicons-no-alt" style="margin-top: 4px; margin-right: 4px;"></span> Stop');
+            $('#w2p-image-link-stop-btn').hide().prop('disabled', false).html('<i class="fa-solid fa-xmark"></i> Stop');
             $('#w2p-image-link-execute-btn').show();
             $('#w2p-image-link-scan-btn').prop('disabled', false);
 
@@ -579,11 +579,107 @@
         }
     };
 
+    // ==============================
+    // 图标浏览器模块 (Icon Browser)
+    // ==============================
+    WPGenius.IconBrowser = {
+        allIcons: [],
+        filteredIcons: [],
+
+        init: function () {
+            // Check if icon data is available
+            if (typeof w2p !== 'undefined' && w2p.faIcons) {
+                this.allIcons = w2p.faIcons;
+                this.filteredIcons = this.allIcons;
+            }
+
+            // Render icons when the tab is first clicked
+            $(document).on('click', '.w2p-sub-tab-link[data-tab="icon-browser"]', () => {
+                if ($('#w2p-icon-grid').children().length === 0) {
+                    this.renderIcons();
+                }
+            });
+
+            // Search functionality
+            $('#w2p-icon-search').on('input', this.handleSearch.bind(this));
+        },
+
+        handleSearch: function (e) {
+            var query = $(e.currentTarget).val().toLowerCase().trim();
+
+            if (!query) {
+                this.filteredIcons = this.allIcons;
+            } else {
+                this.filteredIcons = this.allIcons.filter(icon => icon.toLowerCase().includes(query));
+            }
+
+            this.renderIcons();
+        },
+
+        renderIcons: function () {
+            var $grid = $('#w2p-icon-grid');
+            var $noResults = $('#w2p-icon-no-results');
+
+            $grid.empty();
+
+            if (this.filteredIcons.length === 0) {
+                $grid.hide();
+                $noResults.removeClass('w2p-hidden');
+                return;
+            }
+
+            $grid.show();
+            $noResults.addClass('w2p-hidden');
+
+            this.filteredIcons.forEach(iconClass => {
+                var $card = $('<div class="w2p-icon-card"></div>');
+                var $icon = $('<i></i>').addClass(iconClass);
+                var $tooltip = $('<div class="w2p-icon-tooltip"></div>').text(iconClass);
+
+                $card.append($icon);
+                $card.append($tooltip);
+
+                // Click to copy
+                $card.on('click', () => {
+                    this.copyToClipboard(iconClass);
+                });
+
+                $grid.append($card);
+            });
+        },
+
+        copyToClipboard: function (text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    w2p.toast('Copied: ' + text, 'success');
+                }).catch(() => {
+                    this.fallbackCopy(text);
+                });
+            } else {
+                this.fallbackCopy(text);
+            }
+        },
+
+        fallbackCopy: function (text) {
+            var $temp = $('<textarea>');
+            $('body').append($temp);
+            $temp.val(text).select();
+            try {
+                document.execCommand('copy');
+                w2p.toast('Copied: ' + text, 'success');
+            } catch (err) {
+                w2p.toast('Failed to copy', 'error');
+            }
+            $temp.remove();
+        }
+    };
+
     $(document).ready(function () {
         if (window.w2pSystemHealth) {
             WPGenius.SystemHealth.init();
             WPGenius.ImageLinkRemover.init();
             WPGenius.DuplicateCleaner.init();
+            WPGenius.IconBrowser.init();
         }
     });
 

@@ -8,7 +8,8 @@
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.85);
-    z-index: var(--w2p-z-index-modal, 999999);
+    /* z-index: var(--w2p-z-index-modal); */
+    z-index: 999;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -258,7 +259,9 @@
 /* Video Optimization */
 .wpg-video-wrapper {
     width: 100%;
-    max-height: 600px;
+    height: auto;
+    min-height: 300px;
+    /* max-height: 600px; */
     position: relative;
     display: flex;
     justify-content: center;

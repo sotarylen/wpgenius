@@ -33,7 +33,7 @@ class SMTPMailerModule extends W2P_Abstract_Module {
 	 * @return string
 	 */
 	public static function name() {
-		return __( 'SMTP Mail Configuration', 'wp-genius' );
+		return __( 'SMTP Mail', 'wp-genius' );
 	}
 
 	/**
@@ -43,6 +43,10 @@ class SMTPMailerModule extends W2P_Abstract_Module {
 	 */
 	public static function description() {
 		return __( 'Configure SMTP email settings for reliable email delivery.', 'wp-genius' );
+	}
+
+	public static function icon() {
+		return 'fa-solid fa-envelope';
 	}
 
 	/**

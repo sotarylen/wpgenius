@@ -76,6 +76,21 @@
                     return;
                 }
 
+                // Detect vertical video aspect ratio
+                const detectVerticalVideo = (vid) => {
+                    return new Promise((resolve) => {
+                        if (vid.videoWidth && vid.videoHeight) {
+                            const ratio = vid.videoWidth / vid.videoHeight;
+                            resolve(ratio < 0.8); // Less than 4:5 is considered vertical
+                        } else {
+                            vid.addEventListener('loadedmetadata', () => {
+                                const ratio = vid.videoWidth / vid.videoHeight;
+                                resolve(ratio < 0.8);
+                            }, { once: true });
+                        }
+                    });
+                };
+
                 try {
                     // Initialize Plyr with custom options
                     const player = new Plyr(video, {
@@ -113,7 +128,30 @@
                         volume: 1, // Default volume 100%
                         muted: false, // Not muted by default
                         // Don't set ratio - let video use its natural size
-                        ratio: null
+                        ratio: null,
+                        // Ensure controls are always visible
+                        hideControls: false
+                    });
+
+                    // Force resize after initialization
+                    player.on('ready', () => {
+                        // Let Plyr handle the layout
+                        // Force video to use natural aspect ratio
+                        const videoElement = player.elements.wrapper.querySelector('video');
+                        if (videoElement) {
+                            videoElement.style.aspectRatio = 'auto';
+                            videoElement.style.objectFit = 'contain';
+
+                            // Detect and mark vertical videos
+                            detectVerticalVideo(videoElement).then(isVertical => {
+                                if (isVertical) {
+                                    const wrapper = videoElement.closest('.wpg-video-wrapper');
+                                    if (wrapper) {
+                                        wrapper.classList.add('vertical-video');
+                                    }
+                                }
+                            });
+                        }
                     });
 
                     // Force resize after initialization

@@ -64,11 +64,11 @@ $options = $module->options;
                         <div class="w2p-flex w2p-items-center w2p-gap-sm iw_watermark_image">
                             <input id="iw_upload_image" type="hidden" name="iw_options[watermark_image][url]" value="<?php echo (int) $options['watermark_image']['url']; ?>" />
                             <button type="button" id="iw_upload_image_button" class="w2p-btn w2p-btn-secondary">
-                                <span class="dashicons dashicons-format-image"></span>
+                                <i class="fa-solid fa-image"></i>
                                 <?php _e('Select Image', 'wp-genius'); ?>
                             </button>
                             <button type="button" id="iw_turn_off_image_button" class="w2p-btn w2p-btn-secondary" <?php echo empty($options['watermark_image']['url']) ? 'disabled="disabled"' : ''; ?>>
-                                <span class="dashicons dashicons-trash"></span>
+                                <i class="fa-solid fa-trash"></i>
                                 <?php _e('Remove Image', 'wp-genius'); ?>
                             </button>
                         </div>
@@ -315,7 +315,7 @@ $options = $module->options;
 
         <div class="w2p-settings-actions">
             <button type="submit" name="submit" id="w2p-image-watermark-submit" class="w2p-btn w2p-btn-primary">
-                <span class="dashicons dashicons-saved"></span>
+                <i class="fa-solid fa-floppy-disk"></i>
                 <?php esc_html_e( 'Save Watermark Settings', 'wp-genius' ); ?>
             </button>
         </div>
