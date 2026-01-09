@@ -33,6 +33,10 @@ class AutoPublishModule extends W2P_Abstract_Module {
 		return __( 'Automatically publish drafts at scheduled intervals or manually in bulk.', 'wp-genius' );
 	}
 
+	public static function icon() {
+		return 'fa-solid fa-clock';
+	}
+
 	/**
 	 * Initialize Module
 	 */

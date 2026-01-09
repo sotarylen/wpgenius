@@ -72,9 +72,11 @@
 
                 var content = self.getEditorContent();
                 var externalImages = self.findExternalImages(content);
+                var externalVideos = self.findExternalVideos(content);
                 console.log('[Smart AUI] Found external images:', externalImages.length);
+                console.log('[Smart AUI] Found external videos:', externalVideos.length);
 
-                if (externalImages.length > 0) {
+                if (externalImages.length > 0 || externalVideos.length > 0) {
                     // Stop everything
                     e.preventDefault();
                     e.stopImmediatePropagation();
@@ -90,9 +92,9 @@
                     }
 
                     if (showProgressUI) {
-                        self.startAsyncProcessing(content, externalImages);
+                        self.startAsyncProcessing(content, externalImages, externalVideos);
                     } else {
-                        self.processWithoutProgress(content, externalImages);
+                        self.processWithoutProgress(content, externalImages, externalVideos);
                     }
                     return false;
                 }
@@ -314,10 +316,24 @@
             $('#w2p-smart-aui-threads').text(count);
         },
 
-        updateThreadPreview: function (slotId, url, status) {
+        updateThreadPreview: function (slotId, url, status, mediaType, progress) {
             try {
                 var $slots = $('.w2p-smart-aui-grid-item[data-slot-id="' + slotId + '"]');
                 if ($slots.length === 0) return;
+
+                // 检测是否为视频 URL
+                var isVideo = false;
+                if (mediaType === 'video') {
+                    isVideo = true;
+                } else {
+                    var videoExtensions = ['.mp4', '.webm', '.ogg', '.ogv', '.mov', '.avi', '.wmv'];
+                    for (var i = 0; i < videoExtensions.length; i++) {
+                        if (url.toLowerCase().indexOf(videoExtensions[i]) !== -1) {
+                            isVideo = true;
+                            break;
+                        }
+                    }
+                }
 
                 $slots.each(function () {
                     var $slot = $(this);
@@ -325,30 +341,67 @@
                     var $overlay = $slot.find('.status-overlay');
                     var $icon = $overlay.find('.status-line');
                     var $placeholder = $slot.find('.w2p-smart-aui-grid-placeholder');
+                    var $progressRing = $slot.find('.w2p-progress-ring');
 
-                    $slot.removeClass('loading success error done');
-                    $icon.removeClass('dashicons-yes dashicons-warning');
+                    $slot.removeClass('loading success error done video');
+                    $icon.removeClass('dashicons-yes dashicons-warning dashicons-video-alt3');
 
                     if (status === 'loading') {
                         $slot.addClass('loading');
-                        $placeholder.show();
+                        $placeholder.hide();
                         $img.hide();
+
+                        // 显示进度环
+                        if (!$progressRing.length) {
+                            $progressRing = $('<div class="w2p-progress-ring"></div>');
+                            $slot.append($progressRing);
+                        }
+
+                        // 更新进度环
+                        if (typeof progress === 'number' && progress > 0) {
+                            $progressRing.html('<svg class="w2p-progress-ring-svg" width="60" height="60"><circle class="w2p-progress-ring-circle" stroke="#2ECC71" stroke-width="4" fill="transparent" r="26" cx="30" cy="30"/></svg><span class="w2p-progress-text">' + progress + '%</span>');
+
+                            // 设置进度环的 stroke-dasharray
+                            var circle = $progressRing.find('.w2p-progress-ring-circle');
+                            var radius = parseFloat(circle.attr('r'));
+                            var circumference = radius * 2 * Math.PI;
+                            circle.css('stroke-dasharray', circumference + ' ' + circumference);
+                            circle.css('stroke-dashoffset', circumference - (progress / 100) * circumference);
+                        } else {
+                            $progressRing.html('<div class="w2p-smart-aui-spinner"></div>');
+                        }
                     } else if (status === 'success') {
                         $slot.addClass('success done');
                         $placeholder.hide();
                         $icon.addClass('dashicons-yes');
 
-                        var img = new Image();
-                        img.onload = function () { $img.attr('src', url).show(); };
-                        img.src = url;
+                        // 移除进度环
+                        $progressRing.remove();
+
+                        if (isVideo) {
+                            $slot.addClass('video');
+                            // 对于视频，显示视频图标而不是预览图
+                            $img.hide();
+                            $icon.removeClass('dashicons-yes').addClass('dashicons-video-alt3').show();
+                        } else {
+                            // 对于图片，显示预览图
+                            var img = new Image();
+                            img.onload = function () { $img.attr('src', url).show(); };
+                            img.onerror = function () { $img.hide(); $icon.removeClass('dashicons-yes').addClass('dashicons-format-image').show(); };
+                            img.src = url;
+                        }
                     } else if (status === 'error') {
                         $slot.addClass('error done');
                         $placeholder.hide();
                         $icon.addClass('dashicons-warning');
                         $img.hide();
+
+                        // 移除进度环
+                        $progressRing.remove();
                     }
                 });
             } catch (e) {
+                console.error('[Smart AUI] Error updating thread preview:', e);
             }
         },
 
@@ -360,17 +413,35 @@
          * Generic Parallel Image Processor
          * Used by Bulk Edit (批量编辑需要这个)
          */
-        processPostImages: function (postId, content, images, onComplete) {
+        processPostImages: function (postId, content, images, videos, onComplete, onProgress) {
             var self = this;
-
 
             // 确保线程数有效
             var maxConcurrent = parseInt(self.maxConcurrent, 10);
             if (isNaN(maxConcurrent) || maxConcurrent < 1) maxConcurrent = 4;
 
+            // 计算总数（图片 + 视频）
+            var totalItems = images.length + (videos ? videos.length : 0);
+
             // 初始化 UI
             self.initPreviewGrid(maxConcurrent);
-            self.updateStats(images.length, 0, 0, 0, maxConcurrent, 0);
+            self.updateStats(totalItems, 0, 0, 0, maxConcurrent, 0);
+
+            // 保存统计信息供视频处理使用
+            self.currentProcessingStats = {
+                totalItems: totalItems,
+                imageSuccess: 0,
+                imageFailed: 0,
+                imageSkipped: 0,
+                maxConcurrent: maxConcurrent
+            };
+
+            // 如果有视频，更新状态显示
+            if (videos && videos.length > 0) {
+                self.updateStatus('Processing ' + images.length + ' images and ' + videos.length + ' videos...', true);
+            } else {
+                self.updateStatus('Processing ' + images.length + ' images...', true);
+            }
 
             var queue = images.slice();
             var total = images.length;
@@ -380,6 +451,9 @@
             var skipped = 0;
             var active = 0;
             var currentContent = content || '';
+            var videoSuccess = 0;
+            var videoFailed = 0;
+            var videoSkipped = 0;
 
             // 将当前内容保存到对象属性，以便 skipAndPublish 可以访问
             self.currentProcessingContent = currentContent;
@@ -406,7 +480,11 @@
                         slotId = 0;
                     }
 
-                    self.updateStats(total, success, failed, active, maxConcurrent, skipped);
+                    // 更新统计（包含视频总数）
+                    var currentSuccess = success + videoSuccess;
+                    var currentFailed = failed + videoFailed;
+                    var currentSkipped = skipped + videoSkipped;
+                    self.updateStats(totalItems, currentSuccess, currentFailed, active, maxConcurrent, currentSkipped);
                     self.updateThreadPreview(slotId, targetUrl, 'loading');
 
                     // Ajax Call in Closure
@@ -473,6 +551,11 @@
 
                                             // Sync back to property
                                             self.currentProcessingContent = currentContent;
+
+                                            // Trigger progress callback for incremental updates
+                                            if (onProgress && typeof onProgress === 'function') {
+                                                onProgress(currentContent);
+                                            }
                                         }
                                     }
                                 } else {
@@ -502,12 +585,32 @@
                     freeSlots.sort((a, b) => a - b);
                 }
 
-                self.updateStats(total, success, failed, active, maxConcurrent, skipped);
+                // 更新保存的统计信息
+                if (self.currentProcessingStats) {
+                    self.currentProcessingStats.imageSuccess = success;
+                    self.currentProcessingStats.imageFailed = failed;
+                    self.currentProcessingStats.imageSkipped = skipped;
+                }
+
+                // 更新统计（包含视频总数）
+                var currentSuccess = success + videoSuccess;
+                var currentFailed = failed + videoFailed;
+                var currentSkipped = skipped + videoSkipped;
+                self.updateStats(totalItems, currentSuccess, currentFailed, active, maxConcurrent, currentSkipped);
 
                 if (queue.length === 0 && active === 0) {
-                    // All done for THIS post
-                    if (onComplete) {
-                        onComplete(currentContent);
+                    // All images done, now process videos if any
+                    if (videos && videos.length > 0) {
+                        self.processPostVideos(postId, currentContent, videos, onComplete, onProgress, function(vSuccess, vFailed, vSkipped) {
+                            videoSuccess = vSuccess;
+                            videoFailed = vFailed;
+                            videoSkipped = vSkipped;
+                        });
+                    } else {
+                        // All done for THIS post
+                        if (onComplete) {
+                            onComplete(currentContent);
+                        }
                     }
                 } else {
                     // Start next batch
@@ -525,6 +628,212 @@
             }, 2000);
         },
 
+        /**
+         * Process videos for a post using thread pool
+         */
+        processPostVideos: function (postId, content, videos, onComplete, onProgress, onStatsUpdate) {
+            var self = this;
+
+            if (!videos || videos.length === 0) {
+                if (onComplete) {
+                    onComplete(content);
+                }
+                return;
+            }
+
+            // Update status to indicate video processing
+            self.updateStatus('Processing ' + videos.length + ' video(s)...', true);
+
+            // 获取父函数的统计变量引用
+            var parentStats = {
+                totalItems: 0,
+                imageSuccess: 0,
+                imageFailed: 0,
+                imageSkipped: 0,
+                maxConcurrent: 4
+            };
+
+            if (self.currentProcessingStats) {
+                parentStats = self.currentProcessingStats;
+            }
+
+            var maxConcurrent = parentStats.maxConcurrent;
+            var queue = videos.slice();
+            var processed = 0;
+            var success = 0;
+            var failed = 0;
+            var skipped = 0;
+            var active = 0;
+            var currentContent = content || '';
+
+            // Slot Management for videos
+            var freeSlots = [];
+            for (var i = 0; i < maxConcurrent; i++) {
+                freeSlots.push(i);
+            }
+
+            // Start video workers
+            var startVideoWorkers = function () {
+                if (!self.isProcessing) {
+                    return;
+                }
+
+                while (active < maxConcurrent && queue.length > 0) {
+                    var videoInfo = queue.shift();
+                    active++;
+
+                    // Get Slot
+                    var slotId = freeSlots.shift();
+                    if (slotId === undefined) {
+                        slotId = 0;
+                    }
+
+                    // 更新统计（包含视频总数）
+                    var currentSuccess = parentStats.imageSuccess + success;
+                    var currentFailed = parentStats.imageFailed + failed;
+                    var currentSkipped = parentStats.imageSkipped + skipped;
+                    self.updateStats(parentStats.totalItems, currentSuccess, currentFailed, active, maxConcurrent, currentSkipped);
+
+                    // 显示视频下载进度
+                    self.updateThreadPreview(slotId, videoInfo.url, 'loading', 'video', 0);
+
+                    // 使用 XMLHttpRequest 来跟踪下载进度
+                    var xhr = new XMLHttpRequest();
+                    var videoUrl = videoInfo.url;
+
+                    xhr.open('POST', w2pSmartAuiParams.ajax_url, true);
+                    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+                    // 模拟进度显示（因为服务器端是同步下载，无法提供实时进度）
+                    var progressInterval = null;
+                    var simulatedProgress = 0;
+
+                    // 开始模拟进度
+                    progressInterval = setInterval(function() {
+                        if (simulatedProgress < 90) {
+                            simulatedProgress += Math.random() * 10;
+                            if (simulatedProgress > 90) simulatedProgress = 90;
+                            self.updateThreadPreview(slotId, videoUrl, 'loading', 'video', Math.round(simulatedProgress));
+                        }
+                    }, 500);
+
+                    // 发送请求
+                    var formData = new URLSearchParams();
+                    formData.append('action', 'w2p_smart_aui_download_video');
+                    formData.append('nonce', w2pSmartAuiParams.nonce);
+                    formData.append('post_id', postId);
+                    formData.append('video_url', videoUrl);
+                    formData.append('process_id', self.processId);
+
+                    // 初始显示 0% 进度
+                    self.updateThreadPreview(slotId, videoUrl, 'loading', 'video', 0);
+
+                    xhr.send(formData.toString());
+
+                    xhr.onload = function() {
+                        // 清除进度模拟器
+                        if (progressInterval) {
+                            clearInterval(progressInterval);
+                            progressInterval = null;
+                        }
+
+                        if (xhr.status === 200) {
+                            try {
+                                var response = JSON.parse(xhr.responseText);
+                                if (response && response.success && response.data) {
+                                    var newUrl = response.data.downloaded_url || videoUrl;
+                                    var isFailed = response.data.failed || false;
+                                    var isSkipped = response.data.skipped || false;
+
+                                    if (isSkipped) {
+                                        skipped++;
+                                        self.updateThreadPreview(slotId, videoUrl, 'success', 'video');
+                                    } else if (isFailed) {
+                                        failed++;
+                                        self.updateThreadPreview(slotId, videoUrl, 'error', 'video');
+                                    } else {
+                                        success++;
+                                        if (currentContent) {
+                                            var escapedOld = self.escapeRegExp(videoUrl);
+                                            var re = new RegExp(escapedOld, 'g');
+                                            currentContent = currentContent.replace(re, newUrl);
+
+                                            self.currentProcessingContent = currentContent;
+
+                                            if (onProgress && typeof onProgress === 'function') {
+                                                onProgress(currentContent);
+                                            }
+                                        }
+                                        self.updateThreadPreview(slotId, newUrl, 'success', 'video');
+                                    }
+                                } else {
+                                    failed++;
+                                    self.updateThreadPreview(slotId, videoUrl, 'error', 'video');
+                                }
+                            } catch (e) {
+                                failed++;
+                                self.updateThreadPreview(slotId, videoUrl, 'error', 'video');
+                            }
+                        } else {
+                            failed++;
+                            self.updateThreadPreview(slotId, videoUrl, 'error', 'video');
+                        }
+
+                        onVideoWorkerDone(slotId);
+                    };
+
+                    xhr.onerror = function() {
+                        // 清除进度模拟器
+                        if (progressInterval) {
+                            clearInterval(progressInterval);
+                            progressInterval = null;
+                        }
+                        failed++;
+                        self.updateThreadPreview(slotId, videoUrl, 'error', 'video');
+                        onVideoWorkerDone(slotId);
+                    };
+                }
+            };
+
+            var onVideoWorkerDone = function (slot) {
+                processed++;
+                active--;
+
+                // Return slot
+                if (slot !== undefined) {
+                    freeSlots.push(slot);
+                    freeSlots.sort((a, b) => a - b);
+                }
+
+                // 更新统计（包含视频总数）
+                var currentSuccess = parentStats.imageSuccess + success;
+                var currentFailed = parentStats.imageFailed + failed;
+                var currentSkipped = parentStats.imageSkipped + skipped;
+                self.updateStats(parentStats.totalItems, currentSuccess, currentFailed, active, maxConcurrent, currentSkipped);
+
+                if (queue.length === 0 && active === 0) {
+                    // All videos done
+                    delete self.currentProcessingStats;
+                    if (onComplete) {
+                        onComplete(currentContent);
+                    }
+                } else {
+                    // Start next batch
+                    startVideoWorkers();
+                }
+            };
+
+            // Start processing videos
+            startVideoWorkers();
+
+            // Watchdog for videos
+            setTimeout(function () {
+                if (queue.length > 0 && active === 0 && self.isProcessing) {
+                    startVideoWorkers();
+                }
+            }, 2000);
+        },
+
         // ==========================================
         //  Specific Flows
         // ==========================================
@@ -533,7 +842,7 @@
          * Start Async Processing for Single Post
          * Uses the same client-side multi-threading as batch processing
          */
-        startAsyncProcessing: function (content, images) {
+        startAsyncProcessing: function (content, images, videos) {
             this.show();
             this.updateStatus(w2pSmartAuiParams.i18n.processingImages, true);
             this.processId = this.generateProcessId();
@@ -559,7 +868,7 @@
 
 
             // Use the same processPostImages as batch processing
-            this.processPostImages(postId, content, images, function (processedContent) {
+            this.processPostImages(postId, content, images, videos, function (processedContent) {
 
                 self.isProcessing = false;
                 self.updateStatus(w2pSmartAuiParams.i18n.allComplete, false);
@@ -572,6 +881,10 @@
                     // 执行发布
                     self.submitForm(processedContent);
                 }, 800);
+            }, function (intermediateContent) {
+                // On Progress: Update editor content incrementally
+                // This ensures that if the process is interrupted, we save what we have
+                self.setEditorContent(intermediateContent);
             });
         },
 
@@ -773,7 +1086,7 @@
 
         // Legacy / Helper Methods
         finishProcessing: function (processedContent) { /* ... handled inline now ... */ },
-        processWithoutProgress: function (content, images) {
+        processWithoutProgress: function (content, images, videos) {
             // ... existing logic simplified ...
             // For brevity, using simplified version
             var self = this;
@@ -787,7 +1100,8 @@
                     nonce: w2pSmartAuiParams.nonce,
                     post_id: postId,
                     content: content,
-                    images: images
+                    images: images,
+                    videos: videos
                 },
                 success: function (r) {
                     if (r.success && r.data.processed_content) self.setEditorContent(r.data.processed_content);
@@ -908,7 +1222,10 @@
         },
         findExternalImages: function (content) {
             var images = [];
-            var imageRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+            // Match img tags to capture both src and class attributes
+            // <img ... src="..." ... class="..." ...> or <img ... class="..." ... src="..." ...>
+            // Using a broader regex to capture the whole tag first
+            var imgTagRegex = /<img[^>]+>/gi;
             var match;
             var siteUrl = window.location.origin;
 
@@ -923,9 +1240,17 @@
                 }
             }
 
-            while ((match = imageRegex.exec(content)) !== null) {
-                var src = match[1];
-                if (src.indexOf(siteUrl) === 0 || src.indexOf('/wp-content/') === 0 || src.indexOf('data:') === 0) continue;
+            while ((match = imgTagRegex.exec(content)) !== null) {
+                var imgTag = match[0];
+                var srcMatch = /src=["']([^"']+)["']/i.exec(imgTag);
+
+                if (!srcMatch) continue;
+
+                var src = srcMatch[1];
+                var isLocal = (src.indexOf(siteUrl) === 0 || src.indexOf('/wp-content/') === 0);
+
+                // Skip data URLs
+                if (src.indexOf('data:') === 0) continue;
 
                 // Check exclusions
                 var isExcluded = false;
@@ -936,12 +1261,67 @@
                     }
                 }
 
-                if (!isExcluded) {
+                if (isExcluded) continue;
+
+                if (isLocal) {
+                    // For local images, check if they have wp-image-ID class
+                    // If NOT, we process them to Auto-Fill the ID
+                    var classMatch = /class=["']([^"']+)["']/i.exec(imgTag);
+                    var hasIdClass = false;
+
+                    if (classMatch) {
+                        if (/wp-image-\d+/.test(classMatch[1])) {
+                            hasIdClass = true;
+                        }
+                    }
+
+                    if (!hasIdClass) {
+                        // Include local images without ID
+                        images.push(src);
+                    }
+                } else {
+                    // Include external images as usual
                     images.push(src);
                 }
             }
             return images;
         },
+
+        findExternalVideos: function (content) {
+            var videos = [];
+            // Check if video capture is enabled
+            if (!this.settings || !this.settings.capture_videos) {
+                return videos;
+            }
+
+            // Match video tags to capture src attributes
+            var videoTagRegex = /<video[^>]*>/gi;
+            var match;
+            var siteUrl = window.location.origin;
+
+            while ((match = videoTagRegex.exec(content)) !== null) {
+                var videoTag = match[0];
+                var srcMatch = /src=["']([^"']+)["']/i.exec(videoTag);
+
+                if (!srcMatch) continue;
+
+                var src = srcMatch[1];
+                var isLocal = (src.indexOf(siteUrl) === 0 || src.indexOf('/wp-content/') === 0);
+
+                // Skip data URLs
+                if (src.indexOf('data:') === 0) continue;
+
+                if (!isLocal) {
+                    // Include external videos
+                    videos.push({
+                        url: src,
+                        tag: videoTag
+                    });
+                }
+            }
+            return videos;
+        },
+
         escapeRegExp: function (string) {
             return string ? string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
         }

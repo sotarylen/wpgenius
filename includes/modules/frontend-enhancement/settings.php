@@ -19,6 +19,7 @@ $defaults = [
 	'lightbox_keyboard_nav'         => true,
 	'lightbox_show_counter'         => true,
 	'lightbox_allow_set_featured'   => true,
+	'lightbox_allow_delete'         => true,
 	'lightbox_autoplay_enabled'     => false,
 	'lightbox_autoplay_interval'    => 3,
 	'lightbox_zoom_enabled'         => true,
@@ -230,6 +231,26 @@ $settings = wp_parse_args( $settings, $defaults );
 						</label>
 						<p class="description">
 							<?php esc_html_e( 'Show "Set as Featured Image" button in Lightbox toolbar (requires edit_posts permission).', 'wp-genius' ); ?>
+						</p>
+					</div>
+				</div>
+
+				<!-- Allow Delete Image -->
+				<div class="w2p-form-row">
+					<div class="w2p-form-label">
+						<label for="lightbox_allow_delete">
+							<?php esc_html_e( 'Allow Delete Image', 'wp-genius' ); ?>
+						</label>
+					</div>
+					<div class="w2p-form-control">
+						<label class="w2p-switch">
+							<input type="checkbox" id="lightbox_allow_delete" 
+								   name="w2p_frontend_enhancement_settings[lightbox_allow_delete]" 
+								   value="1" <?php checked( isset( $settings['lightbox_allow_delete'] ) ? $settings['lightbox_allow_delete'] : 0, 1 ); ?> />
+							<span class="w2p-slider"></span>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'Show "Delete Image" button in Lightbox toolbar (requires admin permissions).', 'wp-genius' ); ?>
 						</p>
 					</div>
 				</div>
@@ -794,7 +815,7 @@ $settings = wp_parse_args( $settings, $defaults );
 		<!-- Save Button -->
 		<div class="w2p-settings-actions">
 			<button type="submit" name="submit" id="w2p-frontend-enhancement-submit" class="w2p-btn w2p-btn-primary">
-				<span class="dashicons dashicons-saved"></span>
+				<i class="fa-solid fa-floppy-disk"></i>
 				<?php esc_html_e( 'Save Frontend Enhancement Settings', 'wp-genius' ); ?>
 			</button>
 		</div>

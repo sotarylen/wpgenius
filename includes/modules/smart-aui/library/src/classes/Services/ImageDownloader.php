@@ -89,18 +89,28 @@ class ImageDownloader {
 			return new WP_Error( 'previously_failed', 'This image has previously failed to download' );
 		}
 
-		// Check if we already have this image from a previous process
-		$existing_id = $this->find_existing_by_source( $image_data['url'] );
-		if ( $existing_id ) {
-			$this->logger->info( 'Found existing image by source URL', [ 'url' => $image_data['url'], 'id' => $existing_id ] );
-			$file_url = wp_get_attachment_url( $existing_id );
-			return [
-				'file'          => get_attached_file( $existing_id ),
-				'url'           => $file_url,
-				'type'          => get_post_mime_type( $existing_id ),
-				'attachment_id' => $existing_id,
-				'alt_text'      => get_post_meta( $existing_id, '_wp_attachment_image_alt', true ),
-			];
+
+		// Check config: Should we skip duplicates?
+		$skip_duplicates = $this->settings_manager->get_setting( 'skip_duplicates', true );
+
+		if ( $skip_duplicates ) {
+			// 1. Check Source URL Index (Strict Recalibration)
+			// As requested: The path of the remote picture serves as the index.
+			// If the index (Source URL) is consistent with an existing image, reuse it.
+			// If inconsistent, we proceed to download (and save as new).
+			$source_match_id = $this->find_existing_by_source( $image_data['url'] );
+			
+			if ( $source_match_id ) {
+				$this->logger->info( 'Found existing image by source URL index', [ 'url' => $image_data['url'], 'id' => $source_match_id ] );
+				$file_url = wp_get_attachment_url( $source_match_id );
+				return [
+					'file'          => get_attached_file( $source_match_id ),
+					'url'           => $file_url,
+					'type'          => get_post_mime_type( $source_match_id ),
+					'attachment_id' => $source_match_id,
+					'alt_text'      => get_post_meta( $source_match_id, '_wp_attachment_image_alt', true ),
+				];
+			}
 		}
 
 		$validation_result = $this->validator->validate_image_url( $image_data['url'], $post_data );
@@ -108,25 +118,39 @@ class ImageDownloader {
 			return $validation_result;
 		}
 
-		$response = $this->fetch_image( $image_data['url'] );
-		if ( is_wp_error( $response ) ) {
+		$fetch_result = $this->fetch_image( $image_data['url'] );
+		if ( is_wp_error( $fetch_result ) ) {
 			// Don't add to failed list here - let the retry mechanism in module.php handle it
 			// Only after max_retries are exhausted should it be marked as failed
-			return $response;
+			return $fetch_result;
 		}
 
-		if ( ! $this->validator->validate_image_content( $response['body'], $image_data ) ) {
+		$temp_file = $fetch_result['file'];
+
+		if ( ! $this->validator->validate_image_file( $temp_file, $image_data ) ) {
+			wp_delete_file( $temp_file );
 			return new WP_Error( 'invalid_image', 'Downloaded file is not a valid image' );
 		}
 
 		$image_data = $this->prepare_image_data( $image_data, $post_data );
 
-		$existing_image_result = $this->handle_existing_image( $image_data, $response['body'], $post_data );
-		if ( $existing_image_result ) {
-			return $existing_image_result;
+		// 2. Check File Content (SHA1) - Only if skipping duplicates is enabled
+		if ( $skip_duplicates ) {
+			$existing_image_result = $this->handle_existing_image( $image_data, $temp_file, $post_data );
+			if ( $existing_image_result ) {
+				wp_delete_file( $temp_file );
+				$this->logger->info( 'Found existing image by content hash (SHA1)', [ 'url' => $image_data['url'], 'file' => $existing_image_result['file'] ] );
+				return $existing_image_result;
+			}
 		}
 
-		$save_result = $this->save_image_file( $response['body'], $image_data );
+		$save_result = $this->save_image_file( $temp_file, $image_data );
+		
+		// Clean up temp file after saving (save_image_file might have moved it, but let's be sure)
+		if ( file_exists( $temp_file ) ) {
+			wp_delete_file( $temp_file );
+		}
+
 		if ( is_wp_error( $save_result ) ) {
 			return $save_result;
 		}
@@ -169,19 +193,30 @@ class ImageDownloader {
 	private function fetch_image( string $url ) {
 		$url = Sanitizer::sanitize_url( $url );
 
+		if ( ! function_exists( 'wp_tempnam' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
+		$temp_file = wp_tempnam( $url );
+
 		$args = [
-			'timeout' => 5,
-			'headers' => [],
+			'timeout'  => $this->settings_manager->get_setting( 'download_timeout', 30 ),
+			'stream'   => true,
+			'filename' => $temp_file,
+			'headers'  => [
+				'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+			],
 		];
 
 		$parsed_url = wp_parse_url( $url );
 		if ( isset( $parsed_url['host'] ) ) {
-			$args['headers']['host'] = $parsed_url['host'];
+			$args['headers']['Host'] = $parsed_url['host'];
 		}
 
 		$response = wp_remote_get( $url, $args );
 
 		if ( is_wp_error( $response ) ) {
+			wp_delete_file( $temp_file );
 			$this->logger->error(
 				'Failed to fetch image',
 				[
@@ -194,12 +229,16 @@ class ImageDownloader {
 
 		$response_code = wp_remote_retrieve_response_code( $response );
 		if ( 200 !== $response_code ) {
+			wp_delete_file( $temp_file );
 			$error_msg = sprintf( 'HTTP %d: Failed to download image', $response_code );
 			$this->logger->error( $error_msg, [ 'url' => $url ] );
 			return new WP_Error( 'http_error', $error_msg );
 		}
 
-		return $response;
+		return [
+			'file' => $temp_file,
+			'headers' => wp_remote_retrieve_headers( $response ),
+		];
 	}
 
 	/**
@@ -251,7 +290,7 @@ class ImageDownloader {
 	 * @param array  $image_data Image data.
 	 * @return array|WP_Error File info or error.
 	 */
-	private function save_image_file( string $file_content, array $image_data ) {
+	private function save_image_file( string $temp_file, array $image_data ) {
 		$upload_dir = wp_upload_dir();
 
 		$filename  = $image_data['filename'] . '.' . $image_data['extension'];
@@ -267,11 +306,17 @@ class ImageDownloader {
 			++$counter;
 		}
 
-		$saved = file_put_contents( $file_path, $file_content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-
-		if ( false === $saved ) {
-			return new WP_Error( 'save_failed', 'Failed to save image file' );
+		// Ensure the directory exists
+		if ( ! wp_mkdir_p( $upload_dir['path'] ) ) {
+			return new WP_Error( 'save_failed', 'Failed to create upload directory' );
 		}
+
+		// Move temp file to final destination
+		if ( ! copy( $temp_file, $file_path ) ) {
+			return new WP_Error( 'save_failed', 'Failed to save image file (copy failed)' );
+		}
+		
+		unlink( $temp_file );
 
 		$file_type = wp_check_filetype( $filename );
 
@@ -305,12 +350,31 @@ class ImageDownloader {
 			return $attachment_id;
 		}
 
-		if ( ! function_exists( 'wp_generate_attachment_metadata' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/image.php';
-		}
-
-		$metadata = wp_generate_attachment_metadata( $attachment_id, $file_info['file'] );
+		// [MEMORY OPTIMIZATION] Skip thumbnail generation to prevent OOM on large images
+		// Instead of calling wp_generate_attachment_metadata(), create minimal metadata manually
+		// This is safe for MinIO/S3 workflows where thumbnails are generated on-demand
+		
+		// Get basic image dimensions without loading into memory
+		$image_size = @getimagesize( $file_info['file'] );
+		
+		$metadata = [
+			'width'  => $image_size[0] ?? 0,
+			'height' => $image_size[1] ?? 0,
+			'file'   => _wp_relative_upload_path( $file_info['file'] ),
+		];
+		
+		// Update minimal metadata (no thumbnail sizes)
 		wp_update_attachment_metadata( $attachment_id, $metadata );
+		
+		$this->logger->info(
+			'Skipped thumbnail generation for memory efficiency',
+			[
+				'attachment_id' => $attachment_id,
+				'file'          => $file_info['file'],
+				'width'         => $metadata['width'],
+				'height'        => $metadata['height'],
+			]
+		);
 
 		if ( ! empty( $image_data['alt_text'] ) ) {
 			update_post_meta( $attachment_id, '_wp_attachment_image_alt', $image_data['alt_text'] );
@@ -318,6 +382,10 @@ class ImageDownloader {
 
 		// Store original source for breakpoint persistence
 		update_post_meta( $attachment_id, '_w2p_original_source', $image_data['url'] );
+		
+		// [MEMORY CLEANUP] Explicitly free memory after processing
+		unset( $metadata, $image_size, $attachment_data, $file_info );
+		gc_collect_cycles();
 
 		return $attachment_id;
 	}
@@ -326,7 +394,11 @@ class ImageDownloader {
 	 * Find existing attachment by original source URL
 	 */
 	private function find_existing_by_source( $url ) {
+		if ( empty( $url ) ) {
+			return false;
+		}
 		global $wpdb;
+		// Check global index (_w2p_original_source)
 		$attachment_id = $wpdb->get_var( $wpdb->prepare(
 			"SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_w2p_original_source' AND meta_value = %s LIMIT 1",
 			$url
@@ -334,16 +406,15 @@ class ImageDownloader {
 		return $attachment_id ? intval( $attachment_id ) : false;
 	}
 
-
 	/**
 	 * Handle existing image reuse - checks if image exists and processes it
 	 *
 	 * @param array  $image_data Image data.
-	 * @param string $file_content File content.
+	 * @param string $temp_file Temp file path.
 	 * @param array  $post_data Post data.
 	 * @return array|false Processed image data if exists, false otherwise.
 	 */
-	private function handle_existing_image( array $image_data, string $file_content, array $post_data ) {
+	private function handle_existing_image( array $image_data, string $temp_file, array $post_data ) {
 		$upload_dir = wp_upload_dir();
 		$upload_url = $upload_dir['url'];
 
@@ -351,7 +422,7 @@ class ImageDownloader {
 		$file_path = $upload_dir['path'] . '/' . $filename;
 
 		// Check if image exists with same content
-		$has_exist = file_exists( $file_path ) && sha1( $file_content ) === sha1_file( $file_path );
+		$has_exist = file_exists( $file_path ) && sha1_file( $temp_file ) === sha1_file( $file_path );
 
 		if ( ! $has_exist ) {
 			return false;
@@ -384,4 +455,5 @@ class ImageDownloader {
 			'alt_text'      => $image_data['alt_text'] ?? '',
 		];
 	}
+
 }

@@ -146,6 +146,13 @@
                 );
             }
 
+            // Delete Image (Admin only + must be enabled in settings)
+            if (this.settings.lightbox_allow_delete && wpgLightboxConfig.canDelete) {
+                buttons.push(
+                    this.createButton('delete', this.i18n.deleteImage || 'Delete Image', '<i class="fas fa-trash-alt"></i>')
+                );
+            }
+
             toolbar.append(buttons);
             return toolbar;
         }
@@ -364,6 +371,9 @@
                     break;
                 case 'autoplay':
                     this.toggleAutoplay($btn);
+                    break;
+                case 'delete':
+                    this.deleteImage($btn);
                     break;
             }
         }
@@ -687,14 +697,22 @@
          */
         setAsFeatured($btn) {
             if (!this.postId || this.images.length === 0) {
-                alert(this.i18n.error || 'No post or images available.');
+                if (window.w2p) {
+                    window.w2p.toast(this.i18n.error || 'No post or images available.', 'error');
+                } else {
+                    alert(this.i18n.error || 'No post or images available.');
+                }
                 return;
             }
 
             const image = this.images[this.currentIndex];
 
             if (!image.attachmentId) {
-                alert(this.i18n.noAttachmentId || 'Cannot set this image as featured. Image attachment ID not found.');
+                if (window.w2p) {
+                    window.w2p.toast(this.i18n.noAttachmentId || 'Cannot set this image as featured. Image attachment ID not found.', 'warning');
+                } else {
+                    alert(this.i18n.noAttachmentId || 'Cannot set this image as featured. Image attachment ID not found.');
+                }
                 return;
             }
 
@@ -712,13 +730,110 @@
                 },
                 success: (response) => {
                     if (response.success) {
-                        alert(response.data.message || this.i18n.success || 'Featured image updated!');
+                        if (window.w2p) {
+                            window.w2p.toast(response.data.message || this.i18n.success || 'Featured image updated!', 'success');
+                        } else {
+                            alert(response.data.message || this.i18n.success || 'Featured image updated!');
+                        }
                     } else {
-                        alert(response.data || this.i18n.error || 'Failed to update featured image.');
+                        if (window.w2p) {
+                            window.w2p.toast(response.data || this.i18n.error || 'Failed to update featured image.', 'error');
+                        } else {
+                            alert(response.data || this.i18n.error || 'Failed to update featured image.');
+                        }
                     }
                 },
                 error: (xhr, status, error) => {
-                    alert(this.i18n.error || 'Request failed.');
+                    if (window.w2p) {
+                        window.w2p.toast(this.i18n.error || 'Request failed.', 'error');
+                    } else {
+                        alert(this.i18n.error || 'Request failed.');
+                    }
+                },
+                complete: () => {
+                    $btn.prop('disabled', false).html(originalHtml);
+                }
+            });
+        }
+
+        /**
+         * Delete image from media library
+         */
+        deleteImage($btn) {
+            const image = this.images[this.currentIndex];
+
+            if (!image.attachmentId) {
+                if (window.w2p) {
+                    window.w2p.toast(this.i18n.noAttachmentId || 'Image attachment ID not found.', 'warning');
+                } else {
+                    alert(this.i18n.noAttachmentId || 'Image attachment ID not found.');
+                }
+                return;
+            }
+
+            const confirmMsg = this.i18n.confirmDelete || 'Are you sure you want to permanently delete this image?';
+
+            if (window.w2p) {
+                window.w2p.confirm(confirmMsg, () => {
+                    this.executeDelete(image, $btn);
+                });
+            } else if (confirm(confirmMsg)) {
+                this.executeDelete(image, $btn);
+            }
+        }
+
+        /**
+         * Execute deletion AJAX
+         */
+        executeDelete(image, $btn) {
+            const originalHtml = $btn.html();
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+            $.ajax({
+                url: this.ajaxUrl,
+                method: 'POST',
+                data: {
+                    action: 'wpg_delete_attachment',
+                    nonce: this.nonce,
+                    attachment_id: image.attachmentId
+                },
+                success: (response) => {
+                    if (response.success) {
+                        if (window.w2p) {
+                            window.w2p.toast(response.data.message || this.i18n.deleteSuccess || 'Image deleted!', 'success');
+                        }
+
+                        // Remove image from frontend collection
+                        this.images.splice(this.currentIndex, 1);
+
+                        // Also hide the original image in the post content
+                        if (image.element) {
+                            $(image.element).fadeOut();
+                        }
+
+                        if (this.images.length === 0) {
+                            this.close();
+                        } else {
+                            // Move to next image (or previous if it was the last one)
+                            if (this.currentIndex >= this.images.length) {
+                                this.currentIndex = this.images.length - 1;
+                            }
+                            this.showImage(true);
+                        }
+                    } else {
+                        if (window.w2p) {
+                            window.w2p.toast(response.data || this.i18n.deleteError || 'Failed to delete image.', 'error');
+                        } else {
+                            alert(response.data || this.i18n.deleteError || 'Failed to delete image.');
+                        }
+                    }
+                },
+                error: (xhr, status, error) => {
+                    if (window.w2p) {
+                        window.w2p.toast(this.i18n.error || 'Request failed.', 'error');
+                    } else {
+                        alert(this.i18n.error || 'Request failed.');
+                    }
                 },
                 complete: () => {
                     $btn.prop('disabled', false).html(originalHtml);

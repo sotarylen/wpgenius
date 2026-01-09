@@ -23,7 +23,10 @@ $defaults = [
 	'show_progress_ui' => true,
 	'process_images_on_rest_api' => true,
 	'concurrent_threads' => 4,
+	'concurrent_threads' => 4,
 	'max_retries' => 3,
+	'skip_duplicates' => true,
+	'capture_videos' => false,
 ];
 $settings = wp_parse_args( $settings, $defaults );
 
@@ -34,8 +37,8 @@ $post_types = get_post_types( [ 'public' => true ], 'objects' );
 <div class="w2p-settings-panel w2p-smart-aui-settings" id="w2p-smart-aui-module">
     <div class="w2p-sub-tabs">
         <div class="w2p-sub-tab-nav">
-            <a class="w2p-sub-tab-link active" data-tab="settings"><?php _e('Settings', 'wp-genius'); ?></a>
-            <a class="w2p-sub-tab-link" data-tab="logs"><?php _e('Capture Logs', 'wp-genius'); ?></a>
+            <a class="w2p-sub-tab-link active" data-tab="settings"><i class="fa-solid fa-gear"></i> <?php _e('Settings', 'wp-genius'); ?></a>
+            <a class="w2p-sub-tab-link" data-tab="logs"><i class="fa-solid fa-calendar-days"></i> <?php _e('Capture Logs', 'wp-genius'); ?></a>
         </div>
 
         <div class="w2p-sub-tab-content active" id="w2p-tab-settings">
@@ -143,7 +146,20 @@ $post_types = get_post_types( [ 'public' => true ], 'objects' );
                         </div>
                     </div>
 
-                    <div class="w2p-form-row border-none">
+                    <div class="w2p-form-row">
+                        <div class="w2p-form-label">
+                            <label><?php _e('Skip Duplicate Images', 'wp-genius'); ?></label>
+                        </div>
+                        <div class="w2p-form-control">
+                            <label class="w2p-switch">
+                                <input type="checkbox" id="skip_duplicates" name="smart_aui_settings[skip_duplicates]" value="1" <?php checked($settings['skip_duplicates'] ?? true, 1); ?> />
+                                <span class="w2p-slider"></span>
+                            </label>
+                            <p class="description"><?php _e('If enabled, existing images (matched by source URL or content) will be reused. If disabled, all images will be redownloaded as new files.', 'wp-genius'); ?></p>
+                        </div>
+                    </div>
+
+                    <div class="w2p-form-row">
                         <div class="w2p-form-label">
                             <label><?php _e('REST API Support', 'wp-genius'); ?></label>
                         </div>
@@ -153,6 +169,19 @@ $post_types = get_post_types( [ 'public' => true ], 'objects' );
                                 <span class="w2p-slider"></span>
                             </label>
                             <p class="description"><?php _e('Automatically upload remote images when content is created via REST API.', 'wp-genius'); ?></p>
+                        </div>
+                    </div>
+
+                    <div class="w2p-form-row border-none">
+                        <div class="w2p-form-label">
+                            <label><?php _e('Capture Videos', 'wp-genius'); ?></label>
+                        </div>
+                        <div class="w2p-form-control">
+                            <label class="w2p-switch">
+                                <input type="checkbox" id="capture_videos" name="smart_aui_settings[capture_videos]" value="1" <?php checked($settings['capture_videos'] ?? false, 1); ?> />
+                                <span class="w2p-slider"></span>
+                            </label>
+                            <p class="description"><?php _e('Automatically download and import remote videos from &lt;video&gt; tags to media library.', 'wp-genius'); ?></p>
                         </div>
                     </div>
                 </div>
@@ -185,7 +214,20 @@ $post_types = get_post_types( [ 'public' => true ], 'objects' );
                             <label for="concurrent_threads"><?php _e('Concurrent Threads', 'wp-genius'); ?></label>
                         </div>
                         <div class="w2p-form-control">
-                            <input type="number" id="concurrent_threads" name="smart_aui_settings[concurrent_threads]" value="<?php echo esc_attr((int) $settings['concurrent_threads']); ?>" min="1" max="16" class="w2p-input-small" />
+                            <div class="w2p-range-group">
+                                <div class="w2p-range-header">
+                                    <span class="w2p-range-label"><?php _e('Thread Count', 'wp-genius'); ?></span>
+                                    <span class="w2p-range-value"><?php echo esc_attr((int) $settings['concurrent_threads']); ?></span>
+                                </div>
+                                <input type="range" 
+                                       class="w2p-range-slider" 
+                                       id="concurrent_threads"
+                                       name="smart_aui_settings[concurrent_threads]" 
+                                       min="1" 
+                                       max="16" 
+                                       step="1"
+                                       value="<?php echo esc_attr((int) $settings['concurrent_threads']); ?>">
+                            </div>
                             <p class="description"><?php _e('Maximum number of concurrent image downloads per post.', 'wp-genius'); ?></p>
                         </div>
                     </div>
@@ -195,7 +237,20 @@ $post_types = get_post_types( [ 'public' => true ], 'objects' );
                             <label for="max_retries"><?php _e('Max Retries', 'wp-genius'); ?></label>
                         </div>
                         <div class="w2p-form-control">
-                            <input type="number" id="max_retries" name="smart_aui_settings[max_retries]" value="<?php echo esc_attr((int) $settings['max_retries']); ?>" min="0" max="10" class="w2p-input-small" />
+                            <div class="w2p-range-group">
+                                <div class="w2p-range-header">
+                                    <span class="w2p-range-label"><?php _e('Retry Attempts', 'wp-genius'); ?></span>
+                                    <span class="w2p-range-value"><?php echo esc_attr((int) $settings['max_retries']); ?></span>
+                                </div>
+                                <input type="range" 
+                                       class="w2p-range-slider" 
+                                       id="max_retries"
+                                       name="smart_aui_settings[max_retries]" 
+                                       min="0" 
+                                       max="10" 
+                                       step="1"
+                                       value="<?php echo esc_attr((int) $settings['max_retries']); ?>">
+                            </div>
                             <p class="description"><?php _e('Maximum retry attempts when an image download fails.', 'wp-genius'); ?></p>
                         </div>
                     </div>
@@ -204,7 +259,7 @@ $post_types = get_post_types( [ 'public' => true ], 'objects' );
 
             <div class="w2p-settings-actions">
                 <button type="submit" name="submit" id="w2p-smart-aui-submit" class="w2p-btn w2p-btn-primary">
-                    <span class="dashicons dashicons-saved"></span>
+                    <i class="fa-solid fa-floppy-disk"></i>
                     <?php esc_attr_e('Save All Settings', 'wp-genius'); ?>
                 </button>
             </div>
@@ -217,7 +272,7 @@ $post_types = get_post_types( [ 'public' => true ], 'objects' );
             <div class="w2p-section-header">
                 <h4><?php _e('Capture Failure Logs', 'wp-genius'); ?></h4>
                 <button type="button" id="w2p-smart-aui-clear-logs" class="w2p-btn w2p-btn-secondary">
-                    <span class="dashicons dashicons-trash"></span>
+                    <i class="fa-solid fa-trash"></i>
                     <?php _e('Clear All Logs', 'wp-genius'); ?>
                 </button>
             </div>
@@ -233,7 +288,7 @@ $post_types = get_post_types( [ 'public' => true ], 'objects' );
                     
                     if (empty($failed_urls)): ?>
                         <div class="w2p-empty-state">
-                            <span class="dashicons dashicons-calendar-alt"></span>
+                            <i class="fa-solid fa-calendar-days"></i>
                             <p><?php _e('No capture failures recorded.', 'wp-genius'); ?></p>
                         </div>
                     <?php else: 

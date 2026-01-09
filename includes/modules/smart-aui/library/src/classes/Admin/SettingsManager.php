@@ -140,6 +140,10 @@ class SettingsManager {
 			$sanitized['show_progress_ui'] = (bool) $settings['show_progress_ui'];
 		}
 
+		if ( isset( $settings['skip_duplicates'] ) ) {
+			$sanitized['skip_duplicates'] = (bool) $settings['skip_duplicates'];
+		}
+
 		if ( isset( $settings['process_images_on_rest_api'] ) ) {
 			$sanitized['process_images_on_rest_api'] = (bool) $settings['process_images_on_rest_api'];
 		}
@@ -218,6 +222,7 @@ class SettingsManager {
 			'exclude_domains'    => '',
 			'auto_set_featured_image' => true,
 			'show_progress_ui' => true,
+			'skip_duplicates' => true,
 			'process_images_on_rest_api' => true,
 			'concurrent_threads' => 4,
 			'max_retries'        => 3,

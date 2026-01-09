@@ -233,3 +233,99 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* Icon Browser Styles */
+.w2p-icon-browser-toolbar {
+    margin-bottom: var(--w2p-spacing-lg);
+}
+
+.w2p-search-wrapper {
+    position: relative;
+    max-width: 400px;
+}
+
+.w2p-search-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--w2p-text-secondary);
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.w2p-search-wrapper .w2p-input {
+    padding-left: 40px;
+    width: 100%;
+}
+
+.w2p-icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: var(--w2p-spacing-md);
+    margin-top: var(--w2p-spacing-lg);
+}
+
+.w2p-icon-card {
+    background: var(--w2p-bg-surface);
+    border: 1px solid var(--w2p-border-color);
+    border-radius: var(--w2p-radius-md);
+    padding: var(--w2p-spacing-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: visible;
+}
+
+.w2p-icon-card:hover {
+    background: var(--w2p-color-primary-light);
+    border-color: var(--w2p-color-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--w2p-shadow-md);
+}
+
+.w2p-icon-card i {
+    font-size: 28px;
+    color: var(--w2p-text-primary);
+    transition: color 0.2s;
+}
+
+.w2p-icon-card:hover i {
+    color: var(--w2p-color-primary);
+}
+
+.w2p-icon-tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--w2p-bg-tooltip, #1f2937);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: var(--w2p-radius-sm);
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 1000;
+    box-shadow: var(--w2p-shadow-lg);
+}
+
+.w2p-icon-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: var(--w2p-bg-tooltip, #1f2937);
+}
+
+.w2p-icon-card:hover .w2p-icon-tooltip {
+    opacity: 1;
+}

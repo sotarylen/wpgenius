@@ -69,8 +69,11 @@
 
                 var content = progressUI.getEditorContent();
                 var externalImages = progressUI.findExternalImages(content);
+                var externalVideos = progressUI.findExternalVideos(content);
+                var localImagesWithoutID = progressUI.findLocalImagesWithoutID(content);
 
-                if (externalImages.length > 0) {
+                // Trigger capture if there are external images/videos OR local images needing ID injection
+                if (externalImages.length > 0 || externalVideos.length > 0 || localImagesWithoutID.length > 0) {
                     e.preventDefault();
                     e.stopImmediatePropagation();
                     progressUI.originalButton = $(this);
@@ -80,7 +83,6 @@
                     if (self.settings && typeof self.settings.show_progress_ui !== 'undefined') {
                         showProgressUI = self.settings.show_progress_ui;
                     }
-
 
                     if (showProgressUI) {
                         progressUI.startAsyncProcessing(content, externalImages);
@@ -281,21 +283,36 @@
 
                     if (status === 'loading') {
                         $slot.addClass('loading');
-                        $placeholder.show();
-                        $img.hide();
+                        $placeholder.hide();
+
+                        // Show remote URL immediately
+                        var img = new Image();
+                        img.onload = function () {
+                            $img.attr('src', url).show();
+                        };
+                        img.onerror = function () {
+                            // If remote image fails to load, show placeholder
+                            $placeholder.show();
+                            $img.hide();
+                        };
+                        img.src = url;
                     } else if (status === 'success') {
                         $slot.addClass('success done');
-                        $placeholder.hide();
+                        // Keep the image visible, just add success icon overlay
                         $icon.addClass('dashicons-yes');
 
-                        var img = new Image();
-                        img.onload = function () { $img.attr('src', url).show(); };
-                        img.src = url;
+                        // If URL changed (downloaded to new location), update image
+                        if ($img.attr('src') !== url) {
+                            var img = new Image();
+                            img.onload = function () { $img.attr('src', url).show(); };
+                            img.src = url;
+                        }
                     } else if (status === 'error') {
                         $slot.addClass('error done');
                         $placeholder.hide();
                         $icon.addClass('dashicons-warning');
-                        $img.hide();
+                        // Keep the image visible to show what failed
+                        // $img.hide(); // Don't hide, let user see what failed
                     }
                 });
             } catch (e) {
@@ -307,10 +324,10 @@
         // ==========================================
 
         /**
-         * Generic Parallel Image Processor
-         * Used by Bulk Edit (批量编辑需要这个)
+         * Generic Parallel Media Processor (Images + Videos)
+         * Used by Bulk Edit and Single Post Processing
          */
-        processPostImages: function (postId, content, images, onComplete) {
+        processPostMedia: function (postId, content, mediaItems, onComplete) {
             var self = this;
 
 
@@ -320,10 +337,10 @@
 
             // 初始化 UI
             self.initPreviewGrid(maxConcurrent);
-            self.updateStats(images.length, 0, 0, 0, maxConcurrent, 0);
+            self.updateStats(mediaItems.length, 0, 0, 0, maxConcurrent, 0);
 
-            var queue = images.slice();
-            var total = images.length;
+            var queue = mediaItems.slice();
+            var total = mediaItems.length;
             var processed = 0;
             var success = 0;
             var failed = 0;
@@ -347,7 +364,9 @@
                 }
 
                 while (active < maxConcurrent && queue.length > 0) {
-                    var targetUrl = queue.shift();
+                    var mediaItem = queue.shift();
+                    var targetUrl = typeof mediaItem === 'string' ? mediaItem : mediaItem.url;
+                    var mediaType = typeof mediaItem === 'string' ? 'image' : (mediaItem.type || 'image');
                     active++;
 
                     // Get Slot
@@ -360,17 +379,34 @@
                     self.updateThreadPreview(slotId, targetUrl, 'loading');
 
                     // Ajax Call in Closure
-                    (function (url, slot) {
+                    (function (url, slot, type, mediaItem) {
+                        // Determine action and parameter name based on media type
+                        var ajaxAction, urlParam;
+
+                        if (type === 'local-image') {
+                            // For local images, just get the attachment ID
+                            ajaxAction = 'w2p_smart_aui_get_attachment_id';
+                            urlParam = 'image_url';
+                        } else if (type === 'video') {
+                            ajaxAction = 'w2p_smart_aui_download_video';
+                            urlParam = 'video_url';
+                        } else {
+                            ajaxAction = 'w2p_smart_aui_download_image';
+                            urlParam = 'image_url';
+                        }
+
+                        var ajaxData = {
+                            action: ajaxAction,
+                            nonce: w2pSmartAuiParams.nonce,
+                            post_id: postId,
+                            process_id: self.processId
+                        };
+                        ajaxData[urlParam] = url;
+
                         $.ajax({
                             url: w2pSmartAuiParams.ajax_url,
                             type: 'POST',
-                            data: {
-                                action: 'w2p_smart_aui_download_image',
-                                nonce: w2pSmartAuiParams.nonce,
-                                post_id: postId,
-                                image_url: url,
-                                process_id: self.processId
-                            },
+                            data: ajaxData,
                             success: function (response) {
                                 if (response && response.success && response.data) {
                                     var newUrl = response.data.downloaded_url || url;
@@ -381,8 +417,8 @@
                                         // 跳过（已存在于媒体库或被排除）
                                         skipped++;
                                         self.updateThreadPreview(slot, url, 'success');
-                                    } else if (isFailed || !response.data.downloaded_url) {
-                                        // 失败（下载失败）
+                                    } else if (isFailed || (!response.data.downloaded_url && type !== 'local-image')) {
+                                        // 失败（下载失败）- 但本地图片不需要 downloaded_url
                                         failed++;
                                         self.updateThreadPreview(slot, url, 'error');
                                     } else {
@@ -390,35 +426,67 @@
                                         success++;
                                         self.updateThreadPreview(slot, newUrl, 'success');
 
-                                        // Replace URL and Inject ID class in content
+                                        // Handle content updates based on media type
                                         if (currentContent) {
-                                            var escapedOld = self.escapeRegExp(url);
-                                            // 1. First replace the URL everywhere (including potential <a> wraps)
-                                            var re = new RegExp(escapedOld, 'g');
-                                            currentContent = currentContent.replace(re, newUrl);
-
-                                            // 2. Inject wp-image-{id} class for precise identification
-                                            if (response.data.attachment_id) {
-                                                var attachmentId = response.data.attachment_id;
-                                                var escapedNew = self.escapeRegExp(newUrl);
-                                                var imgTagRegex = new RegExp('<img([^>]+)src=["\']' + escapedNew + '["\']([^>]*)>', 'gi');
-
-                                                currentContent = currentContent.replace(imgTagRegex, function (match, p1, p2) {
-                                                    var fullTag = match;
+                                            if (type === 'local-image') {
+                                                // For local images, just inject the ID class
+                                                if (response.data.attachment_id && mediaItem.tag) {
+                                                    var attachmentId = response.data.attachment_id;
                                                     var idClass = 'wp-image-' + attachmentId;
+                                                    var oldTag = mediaItem.tag;
+                                                    var newTag = oldTag;
 
                                                     // Add or update class attribute
-                                                    if (fullTag.toLowerCase().indexOf('class=') !== -1) {
-                                                        if (fullTag.indexOf('wp-image-') !== -1) {
-                                                            fullTag = fullTag.replace(/wp-image-\d+/, idClass);
+                                                    if (oldTag.toLowerCase().indexOf('class=') !== -1) {
+                                                        // Has class, add to it
+                                                        if (oldTag.indexOf('wp-image-') !== -1) {
+                                                            newTag = oldTag.replace(/wp-image-\d+/, idClass);
                                                         } else {
-                                                            fullTag = fullTag.replace(/class=(["'])/i, 'class=$1' + idClass + ' size-full ');
+                                                            newTag = oldTag.replace(/class=(["'])/i, 'class=$1' + idClass + ' size-full ');
                                                         }
                                                     } else {
-                                                        fullTag = fullTag.replace(/<img/i, '<img class="' + idClass + ' size-full"');
+                                                        // No class, add it
+                                                        newTag = oldTag.replace(/<img/i, '<img class="' + idClass + ' size-full"');
                                                     }
-                                                    return fullTag;
-                                                });
+
+                                                    // Replace in content
+                                                    currentContent = currentContent.replace(oldTag, newTag);
+                                                }
+                                            } else if (type === 'video') {
+                                                // For videos, simple URL replacement
+                                                var escapedOld = self.escapeRegExp(url);
+                                                var re = new RegExp(escapedOld, 'g');
+                                                currentContent = currentContent.replace(re, newUrl);
+                                            } else {
+                                                // For external images, replace URL and inject ID
+                                                var escapedOld = self.escapeRegExp(url);
+                                                // 1. First replace the URL everywhere
+                                                var re = new RegExp(escapedOld, 'g');
+                                                currentContent = currentContent.replace(re, newUrl);
+
+                                                // 2. Inject wp-image-{id} class
+                                                if (response.data.attachment_id) {
+                                                    var attachmentId = response.data.attachment_id;
+                                                    var escapedNew = self.escapeRegExp(newUrl);
+                                                    var imgTagRegex = new RegExp('<img([^>]+)src=["\']' + escapedNew + '["\']([^>]*)>', 'gi');
+
+                                                    currentContent = currentContent.replace(imgTagRegex, function (match, p1, p2) {
+                                                        var fullTag = match;
+                                                        var idClass = 'wp-image-' + attachmentId;
+
+                                                        // Add or update class attribute
+                                                        if (fullTag.toLowerCase().indexOf('class=') !== -1) {
+                                                            if (fullTag.indexOf('wp-image-') !== -1) {
+                                                                fullTag = fullTag.replace(/wp-image-\d+/, idClass);
+                                                            } else {
+                                                                fullTag = fullTag.replace(/class=(["'])/i, 'class=$1' + idClass + ' size-full ');
+                                                            }
+                                                        } else {
+                                                            fullTag = fullTag.replace(/<img/i, '<img class="' + idClass + ' size-full"');
+                                                        }
+                                                        return fullTag;
+                                                    });
+                                                }
                                             }
 
                                             // Sync back to property
@@ -439,7 +507,7 @@
                                 onWorkerDone(slot);
                             }
                         });
-                    })(targetUrl, slotId);
+                    })(targetUrl, slotId, mediaType, mediaItem);
                 }
             };
 
@@ -482,10 +550,11 @@
         /**
          * Start Async Processing for Single Post
          * Uses the same client-side multi-threading as batch processing
+         * Processes both images and videos
          */
-        startAsyncProcessing: function (content, images) {
+        startAsyncProcessing: function (content, externalImages) {
             this.show();
-            this.updateStatus(w2pSmartAuiParams.i18n.processingImages, true);
+            this.updateStatus(w2pSmartAuiParams.i18n.processingMedia || w2pSmartAuiParams.i18n.processingImages, true);
             this.processId = this.generateProcessId();
 
             var self = this;
@@ -507,9 +576,36 @@
                 return;
             }
 
+            // Detect videos in addition to images
+            var externalVideos = this.findExternalVideos(content);
 
-            // Use the same processPostImages as batch processing
-            this.processPostImages(postId, content, images, function (processedContent) {
+            // Detect local images needing ID injection
+            var localImagesWithoutID = this.findLocalImagesWithoutID(content);
+
+            // Combine external images, videos, and local images into a single media queue
+            var mediaItems = [];
+
+            // Add external images with type marker
+            for (var i = 0; i < externalImages.length; i++) {
+                mediaItems.push({ url: externalImages[i], type: 'image' });
+            }
+
+            // Add videos with type marker
+            for (var j = 0; j < externalVideos.length; j++) {
+                mediaItems.push({ url: externalVideos[j], type: 'video' });
+            }
+
+            // Add local images needing ID injection
+            for (var k = 0; k < localImagesWithoutID.length; k++) {
+                mediaItems.push({
+                    url: localImagesWithoutID[k].src,
+                    type: 'local-image',
+                    tag: localImagesWithoutID[k].tag
+                });
+            }
+
+            // Use the new processPostMedia for all media types
+            this.processPostMedia(postId, content, mediaItems, function (processedContent) {
 
                 self.isProcessing = false;
                 self.updateStatus(w2pSmartAuiParams.i18n.allComplete, false);
@@ -630,12 +726,35 @@
 
                             self.updateStatus('[' + processedPosts + '/' + totalPosts + '] ' + statusPrefix + ': ' + title, true);
 
-                            // Find Images
+                            // Find Images and Videos
                             var content = postData.post_content;
                             var images = self.findExternalImages(content);
+                            var videos = self.findExternalVideos(content);
 
-                            if (images.length === 0) {
-                                // No external images to process
+                            // Combine into media items
+                            var mediaItems = [];
+                            for (var i = 0; i < images.length; i++) {
+                                mediaItems.push({ url: images[i], type: 'image' });
+                            }
+                            for (var j = 0; j < videos.length; j++) {
+                                mediaItems.push({ url: videos[j], type: 'video' });
+                            }
+
+                            if (mediaItems.length === 0) {
+                                // No external media to process
+
+                                // Clear preview grid to avoid showing phantom items from previous post
+                                var $container = $('#w2p-smart-aui-preview-area');
+                                if ($container.length === 0) {
+                                    $container = $('.w2p-smart-aui-preview-area');
+                                }
+                                if ($container.length > 0) {
+                                    $container.empty();
+                                    $container.hide();
+                                }
+
+                                // Reset stats display to show 0/0
+                                self.updateStats(0, 0, 0, 0, 0, 0);
 
                                 // 但如果用户选择了状态，仍然需要保存
                                 if (targetStatus) {
@@ -671,8 +790,8 @@
                             // Generate new process ID for this post
                             self.processId = self.generateProcessId();
 
-                            // Start Parallel Processing for THIS post
-                            self.processPostImages(postId, content, images, function (processedContent) {
+                            // Start Parallel Processing for THIS post (images + videos)
+                            self.processPostMedia(postId, content, mediaItems, function (processedContent) {
                                 if (!self.isProcessing) {
                                     // User cancelled during processing
                                     return;
@@ -892,6 +1011,174 @@
             }
             return images;
         },
+
+        /**
+         * Find local images that don't have wp-image-{id} class
+         */
+        findLocalImagesWithoutID: function (content) {
+            var localImages = [];
+            var imageRegex = /<img[^>]+>/gi;
+            var match;
+            var siteUrl = window.location.origin;
+
+            // Get base URL from settings if available
+            var baseUrl = siteUrl;
+            if (this.settings && this.settings.base_url) {
+                baseUrl = this.settings.base_url.replace(/\/$/, ''); // Remove trailing slash
+            }
+
+            while ((match = imageRegex.exec(content)) !== null) {
+                var imgTag = match[0];
+
+                // Extract src
+                var srcMatch = imgTag.match(/src=["']([^"']+)["']/i);
+                if (!srcMatch) continue;
+                var src = srcMatch[1];
+
+                // Check if it's a local image
+                var isLocal = src.indexOf(siteUrl) === 0 ||
+                    src.indexOf(baseUrl) === 0 ||
+                    src.indexOf('/wp-content/') === 0 ||
+                    src.indexOf('/wp-media/') === 0;
+
+                if (!isLocal) continue;
+
+                // Check if it already has wp-image-{id} class
+                var hasImageClass = /class=["'][^"']*wp-image-\d+[^"']*["']/i.test(imgTag);
+
+                if (!hasImageClass) {
+                    localImages.push({
+                        tag: imgTag,
+                        src: src
+                    });
+                }
+            }
+
+            return localImages;
+        },
+
+        /**
+         * Inject attachment IDs for local images
+         */
+        injectLocalImageIDs: function (content, postId, callback) {
+            var self = this;
+            var localImages = this.findLocalImagesWithoutID(content);
+
+            if (localImages.length === 0) {
+                if (callback) callback(content);
+                return;
+            }
+
+            var processedCount = 0;
+            var updatedContent = content;
+
+            // Process each local image
+            localImages.forEach(function (imageInfo) {
+                $.ajax({
+                    url: w2pSmartAuiParams.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'w2p_smart_aui_get_attachment_id',
+                        nonce: w2pSmartAuiParams.nonce,
+                        image_url: imageInfo.src
+                    },
+                    success: function (response) {
+                        if (response && response.success && response.data && response.data.attachment_id) {
+                            var attachmentId = response.data.attachment_id;
+                            var idClass = 'wp-image-' + attachmentId;
+                            var oldTag = imageInfo.tag;
+                            var newTag = oldTag;
+
+                            // Add or update class attribute
+                            if (oldTag.toLowerCase().indexOf('class=') !== -1) {
+                                // Has class, add to it
+                                newTag = oldTag.replace(/class=(["'])/i, 'class=$1' + idClass + ' size-full ');
+                            } else {
+                                // No class, add it
+                                newTag = oldTag.replace(/<img/i, '<img class="' + idClass + ' size-full"');
+                            }
+
+                            // Replace in content
+                            updatedContent = updatedContent.replace(oldTag, newTag);
+                        }
+
+                        processedCount++;
+                        if (processedCount === localImages.length) {
+                            if (callback) callback(updatedContent);
+                        }
+                    },
+                    error: function () {
+                        processedCount++;
+                        if (processedCount === localImages.length) {
+                            if (callback) callback(updatedContent);
+                        }
+                    }
+                });
+            });
+        },
+        findExternalVideos: function (content) {
+            var videos = [];
+            var siteUrl = window.location.origin;
+
+            // Check if video capture is enabled
+            if (!this.settings || !this.settings.capture_videos) {
+                return videos;
+            }
+
+            // Prepare exclusions
+            var exclusions = [];
+            if (this.settings && this.settings.domain_exclusions) {
+                var rawExclusions = this.settings.domain_exclusions;
+                if (typeof rawExclusions === 'string') {
+                    exclusions = rawExclusions.split('\n').map(function (d) { return d.trim(); }).filter(function (d) { return d.length > 0; });
+                } else if (Array.isArray(rawExclusions)) {
+                    exclusions = rawExclusions;
+                }
+            }
+
+            // Find videos from <video src="..."> tags
+            var videoSrcRegex = /<video[^>]+src=["']([^"']+)["'][^>]*>/gi;
+            var match;
+            while ((match = videoSrcRegex.exec(content)) !== null) {
+                var src = match[1];
+                if (src.indexOf(siteUrl) === 0 || src.indexOf('/wp-content/') === 0 || src.indexOf('data:') === 0) continue;
+
+                // Check exclusions
+                var isExcluded = false;
+                for (var i = 0; i < exclusions.length; i++) {
+                    if (src.indexOf(exclusions[i]) !== -1) {
+                        isExcluded = true;
+                        break;
+                    }
+                }
+
+                if (!isExcluded && videos.indexOf(src) === -1) {
+                    videos.push(src);
+                }
+            }
+
+            // Find videos from <source src="..."> tags within <video> elements
+            var sourceSrcRegex = /<source[^>]+src=["']([^"']+)["'][^>]*>/gi;
+            while ((match = sourceSrcRegex.exec(content)) !== null) {
+                var src = match[1];
+                if (src.indexOf(siteUrl) === 0 || src.indexOf('/wp-content/') === 0 || src.indexOf('data:') === 0) continue;
+
+                // Check exclusions
+                var isExcluded = false;
+                for (var i = 0; i < exclusions.length; i++) {
+                    if (src.indexOf(exclusions[i]) !== -1) {
+                        isExcluded = true;
+                        break;
+                    }
+                }
+
+                if (!isExcluded && videos.indexOf(src) === -1) {
+                    videos.push(src);
+                }
+            }
+
+            return videos;
+        },
         escapeRegExp: function (string) {
             return string ? string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
         }
@@ -900,6 +1187,17 @@
     $(document).ready(function () {
         progressUI.init();
     });
+
+    // Backward compatibility: Add alias for old function name
+    progressUI.processPostImages = function (postId, content, images, onComplete) {
+        // Convert images array to mediaItems format
+        var mediaItems = [];
+        for (var i = 0; i < images.length; i++) {
+            mediaItems.push({ url: images[i], type: 'image' });
+        }
+        // Call new function
+        return this.processPostMedia(postId, content, mediaItems, onComplete);
+    };
 
     window.W2P_SmartAUI_Progress = progressUI;
 

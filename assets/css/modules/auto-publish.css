@@ -37,10 +37,16 @@
     margin: 0;
 }
 
+.w2p-auto-publish-logs .wp-list-table th {
+    font-family: var(--w2p-font-family-base-bold);
+    background: var(--w2p-color-info-bg);
+}
+
 .w2p-auto-publish-logs .wp-list-table th,
 .w2p-auto-publish-logs .wp-list-table td {
     padding: 10px 15px;
 }
+
 
 /* Status Badges */
 .source-badge,
@@ -92,7 +98,7 @@
     height: 15px;
     background: var(--w2p-color-info-bg);
     border: 1px solid var(--w2p-border-color-dark);
-    border-radius: 50px;
+    border-radius: var(--w2p-radius-full);
     margin-bottom: var(--w2p-spacing-xs);
 }
 
@@ -100,7 +106,7 @@
     height: 100%;
     background: var(--w2p-gradient-primary);
     transition: width 0.3s ease;
-    border-radius: 50px;
+    border-radius: var(--w2p-radius-full) 0 0 var(--w2p-radius-full);
 }
 
 /* Status Box */
@@ -117,4 +123,9 @@
 
 .w2p-section-spacing {
     margin-top: var(--w2p-spacing-xl);
+}
+
+/* Prograss count text */
+.w2p-progress-count {
+    color: var(--w2p-color-primary);
 }

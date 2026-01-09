@@ -207,7 +207,7 @@ $settings = wp_parse_args( $settings, $defaults );
 
         <div class="w2p-settings-actions">
             <button type="submit" name="submit" id="w2p-post-duplicator-submit" class="w2p-btn w2p-btn-primary">
-                <span class="dashicons dashicons-saved"></span>
+                <i class="fa-solid fa-floppy-disk"></i>
                 <?php esc_html_e( 'Save Duplicator Settings', 'wp-genius' ); ?>
             </button>
         </div>

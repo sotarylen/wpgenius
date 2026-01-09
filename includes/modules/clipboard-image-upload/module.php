@@ -38,6 +38,10 @@ class ClipboardImageUploadModule extends W2P_Abstract_Module {
 		return __( 'Automatically convert and upload pasted clipboard images (Base64) to the media library.', 'wp-genius' );
 	}
 
+	public static function icon() {
+		return 'fa-solid fa-clipboard';
+	}
+
 	/**
 	 * Initialize Module
 	 */

@@ -69,20 +69,32 @@ $draft_count = count( get_posts( [
 						</div>
 
 						<div class="w2p-form-row border-none">
-							<div class="w2p-form-label">
-								<label><?php _e( 'Batch Size', 'wp-genius' ); ?></label>
+					<div class="w2p-form-label">
+						<label><?php _e( 'Batch Size', 'wp-genius' ); ?></label>
+					</div>
+					<div class="w2p-form-control">
+						<div class="w2p-range-group">
+							<div class="w2p-range-header">
+								<span class="w2p-range-label"><?php _e( 'Posts per Batch', 'wp-genius' ); ?></span>
+								<span class="w2p-range-value"><?php echo esc_attr( $settings['batch_size'] ); ?></span>
 							</div>
-							<div class="w2p-form-control">
-								<input type="number" name="w2p_auto_publish_settings[batch_size]" value="<?php echo esc_attr( $settings['batch_size'] ); ?>" min="1" max="50" class="w2p-input-small" />
-								<p class="description"><?php _e( 'Number of drafts to publish in each execution.', 'wp-genius' ); ?></p>
-							</div>
+							<input type="range" 
+							       class="w2p-range-slider" 
+							       name="w2p_auto_publish_settings[batch_size]" 
+							       min="10" 
+							       max="100" 
+							       step="5"
+							       value="<?php echo esc_attr( $settings['batch_size'] ); ?>">
 						</div>
+						<p class="description"><?php _e( 'Number of drafts to publish in each execution.', 'wp-genius' ); ?></p>
+					</div>
+				</div>
 					</div>
 				</div>
 
 				<div class="w2p-settings-actions">
 					<button type="submit" name="submit" id="w2p-auto-publish-submit" class="w2p-btn w2p-btn-primary">
-						<span class="dashicons dashicons-saved"></span>
+						<i class="fa-solid fa-floppy-disk"></i>
 						<?php esc_attr_e( 'Save Automation Settings', 'wp-genius' ); ?>
 					</button>
 				</div>
@@ -98,11 +110,11 @@ $draft_count = count( get_posts( [
 				<h4><?php _e( 'Manual Bulk Publish', 'wp-genius' ); ?></h4>
 				<div class="w2p-header-actions">
 					<button type="button" id="w2p-start-publish" class="w2p-btn w2p-btn-primary" <?php disabled( $draft_count == 0 ); ?>>
-						<span class="dashicons dashicons-controls-play"></span>
+						<i class="fa-solid fa-play"></i>
 						<?php _e( 'Start Now', 'wp-genius' ); ?>
 					</button>
 					<button type="button" id="w2p-stop-publish" class="w2p-btn w2p-btn-stop" style="display:none;">
-						<span class="dashicons dashicons-controls-pause"></span>
+						<i class="fa-solid fa-pause"></i>
 						<?php _e( 'Stop', 'wp-genius' ); ?>
 					</button>
 				</div>
@@ -125,7 +137,7 @@ $draft_count = count( get_posts( [
 			<div class="w2p-section-header w2p-section-spacing">
 				<h4><?php _e( 'Publish Logs', 'wp-genius' ); ?></h4>
 				<button type="button" id="w2p-clean-logs" class="w2p-btn w2p-btn-secondary w2p-btn-small">
-					<span class="dashicons dashicons-trash"></span>
+					<i class="fa-solid fa-trash"></i>
 					<?php _e( 'Clear Logs', 'wp-genius' ); ?>
 				</button>
 			</div>
@@ -307,7 +319,7 @@ jQuery(document).ready(function($) {
                     let images = W2P_SmartAUI_Progress.findExternalImages(content);
 
                     if (images.length > 0) {
-                        $('.progress-text').html('<strong>Processing Images for Post ' + postId + ':</strong> ' + title + ' (' + images.length + ' images)');
+                        $('.progress-text').html('<strong>Processing ' + postId + ':</strong> ' + title + ' (' + images.length + ' images)');
                         
                         // Force process ID regen
                         W2P_SmartAUI_Progress.processId = 'auto_pub_' + postId + '_' + Date.now();
@@ -416,7 +428,7 @@ jQuery(document).ready(function($) {
 		}
 
 		if (isRunning && data.next_post) {
-			$('.progress-text').html('<strong>Next up (Post ' + data.next_post.id + '):</strong> ' + data.next_post.title + ' (' + processedCount + '/' + totalToProcess + ')');
+			$('.progress-text').html('<strong>[ID: ' + data.next_post.id + ']</strong> ' + data.next_post.title + ' <strong class="w2p-progress-count">[' + processedCount + '/' + totalToProcess + ']</strong>');
 		}
 
 		// Update logs

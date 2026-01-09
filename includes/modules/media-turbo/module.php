@@ -26,6 +26,10 @@ class MediaTurboModule extends W2P_Abstract_Module {
         return __( 'Automatically convert uploaded images to WebP format for faster loading.', 'wp-genius' );
     }
 
+    public static function icon() {
+        return 'fa-solid fa-bolt';
+    }
+
     public function init() {
         // Load converter service
         require_once __DIR__ . '/converter-service.php';

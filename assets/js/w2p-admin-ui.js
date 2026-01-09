@@ -43,11 +43,11 @@
                         <div class="w2p-modal-footer">
                             
                             <button type="button" class="w2p-btn w2p-btn-secondary w2p-modal-cancel">
-                            <span class="dashicons dashicons-no-alt"></span>
+                            <i class="fa-solid fa-xmark"></i>
                             ${window.w2p_ui_i18n ? window.w2p_ui_i18n.cancel : 'Cancel'}</button>
 
                             <button type="button" class="w2p-btn w2p-btn-primary w2p-modal-confirm">
-                            <span class="dashicons dashicons-yes-alt"></span>
+                            <i class="fa-solid fa-check"></i>
                             ${window.w2p_ui_i18n ? window.w2p_ui_i18n.confirm : 'Confirm'}</button>
                         </div>
                     </div>
@@ -81,7 +81,7 @@
             toast.innerHTML = `
                 <div class="w2p-toast-icon"><span class="dashicons ${iconClass}"></span></div>
                 <div class="w2p-toast-message">${message}</div>
-                <div class="w2p-toast-close"><span class="dashicons dashicons-no-alt"></span></div>
+                <div class="w2p-toast-close"><i class="fa-solid fa-xmark"></i></div>
             `;
 
             container.appendChild(toast);

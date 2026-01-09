@@ -22,11 +22,11 @@ $stats = [
 
 <div class="w2p-sub-tabs" id="w2p-system-health-tabs">
     <div class="w2p-sub-tab-nav">
-        <a class="w2p-sub-tab-link active" data-tab="cleanup"><?php esc_html_e( 'Cleanup Tools', 'wp-genius' ); ?></a>
-        <a class="w2p-sub-tab-link" data-tab="image-remover"><?php esc_html_e( 'Image Link Remover', 'wp-genius' ); ?></a>
-        <a class="w2p-sub-tab-link" data-tab="duplicate-cleaner"><?php esc_html_e( 'Duplicate Post Clean', 'wp-genius' ); ?></a>
-
-        <a class="w2p-sub-tab-link" data-tab="info"><?php esc_html_e( 'System Info', 'wp-genius' ); ?></a>
+        <a class="w2p-sub-tab-link active" data-tab="cleanup"><i class="fa-solid fa-database"></i><?php esc_html_e( 'Cleanup Tools', 'wp-genius' ); ?></a>
+        <a class="w2p-sub-tab-link" data-tab="image-remover"><i class="fa-solid fa-unlink"></i><?php esc_html_e( 'Image Link Remover', 'wp-genius' ); ?></a>
+        <a class="w2p-sub-tab-link" data-tab="duplicate-cleaner"><i class="fa-solid fa-copy"></i><?php esc_html_e( 'Duplicate Post Clean', 'wp-genius' ); ?></a>
+        <a class="w2p-sub-tab-link" data-tab="icon-browser"><i class="fa-solid fa-icons"></i><?php esc_html_e( 'Icon Browser', 'wp-genius' ); ?></a>
+        <a class="w2p-sub-tab-link" data-tab="info"><i class="fa-solid fa-circle-info"></i><?php esc_html_e( 'System Info', 'wp-genius' ); ?></a>
     </div>
 
     <!-- Cleanup Tools Tab -->
@@ -36,7 +36,7 @@ $stats = [
                 <div class="w2p-info-box w2p-flex w2p-justify-between w2p-items-center">
                     <p style="margin:0;"><?php esc_html_e( 'Keep your site fast by removing unnecessary data from your database. Click the scan button to check current system health.', 'wp-genius' ); ?></p>
                     <button type="button" id="w2p-health-scan-btn" class="w2p-btn w2p-btn-primary">
-                        <span class="dashicons dashicons-search"></span>
+                        <span class="fa-solid fa-magnifying-glass"></span>
                         <?php esc_html_e( 'Scan System Status', 'wp-genius' ); ?>
                     </button>
                 </div>
@@ -49,7 +49,7 @@ $stats = [
                             <span class="w2p-health-count"><?php echo esc_html( $stats['revisions'] ); ?></span>
                         </div>
                         <button class="w2p-btn w2p-btn-secondary w2p-health-action" data-action="revisions">
-                            <span class="dashicons dashicons-trash"></span>
+                            <span class="fa-solid fa-trash"></span>
                             <?php esc_html_e( 'Clean Revisions', 'wp-genius' ); ?>
                         </button>
                     </div>
@@ -60,7 +60,7 @@ $stats = [
                             <span class="w2p-health-count"><?php echo esc_html( $stats['auto_drafts'] ); ?></span>
                         </div>
                         <button class="w2p-btn w2p-btn-secondary w2p-health-action" data-action="auto_drafts">
-                            <span class="dashicons dashicons-trash"></span>
+                            <span class="fa-solid fa-trash"></span>
                             <?php esc_html_e( 'Clean Auto Drafts', 'wp-genius' ); ?>
                         </button>
                     </div>
@@ -71,7 +71,7 @@ $stats = [
                             <span class="w2p-health-count"><?php echo esc_html( $stats['orphaned_meta'] ); ?></span>
                         </div>
                         <button class="w2p-btn w2p-btn-secondary w2p-health-action" data-action="orphaned_meta">
-                            <span class="dashicons dashicons-trash"></span>
+                            <span class="fa-solid fa-trash"></span>
                             <?php esc_html_e( 'Clean Orphaned Meta', 'wp-genius' ); ?>
                         </button>
                     </div>
@@ -82,7 +82,7 @@ $stats = [
                             <span class="w2p-health-count"><?php echo esc_html( $stats['transients'] ); ?></span>
                         </div>
                         <button class="w2p-btn w2p-btn-secondary w2p-health-action" data-action="transients">
-                            <span class="dashicons dashicons-trash"></span>
+                            <span class="fa-solid fa-trash"></span>
                             <?php esc_html_e( 'Clean Transients', 'wp-genius' ); ?>
                         </button>
                     </div>
@@ -115,7 +115,7 @@ $stats = [
                         </select>
                     </div>
                     <button type="button" id="w2p-image-link-scan-btn" class="w2p-btn w2p-btn-primary">
-                        <span class="dashicons dashicons-search"></span>
+                        <span class="fa-solid fa-magnifying-glass"></span>
                         <?php esc_html_e( 'Scan for Linked Images', 'wp-genius' ); ?>
                     </button>
                 </div>
@@ -130,11 +130,11 @@ $stats = [
                                 <input type="number" id="w2p-image-link-batch-size" value="10" min="1" max="100" class="w2p-input-small" style="width: 60px; height: 30px; padding: 0 8px;">
                             </div>
                             <button type="button" id="w2p-image-link-execute-btn" class="w2p-btn w2p-btn-primary">
-                                <span class="dashicons dashicons-performance"></span>
+                                <span class="fa-solid fa-bolt"></span>
                                 <?php esc_html_e( 'Execute Removal', 'wp-genius' ); ?>
                             </button>
                             <button type="button" id="w2p-image-link-stop-btn" class="w2p-btn w2p-btn-stop" style="display:none;">
-                                <span class="dashicons dashicons-no-alt"></span>
+                                <span class="fa-solid fa-hand"></span>
                                 <?php esc_html_e( 'Stop', 'wp-genius' ); ?>
                             </button>
                         </div>
@@ -186,7 +186,7 @@ $stats = [
                         </select>
                     </div>
                     <button type="button" id="w2p-duplicate-scan-btn" class="w2p-btn w2p-btn-primary" data-text-default="<?php esc_attr_e( 'Scan for Duplicates', 'wp-genius' ); ?>" data-text-scanning="<?php esc_attr_e( 'Scanning...', 'wp-genius' ); ?>">
-                        <span class="dashicons dashicons-search"></span>
+                        <span class="fa-solid fa-magnifying-glass"></span>
                         <span class="btn-text"><?php esc_html_e( 'Scan for Duplicates', 'wp-genius' ); ?></span>
                     </button>
                 </div>
@@ -197,11 +197,11 @@ $stats = [
                         <div id="w2p-duplicate-status"></div>
                         <div class="w2p-flex w2p-gap-sm">
                             <button type="button" id="w2p-duplicate-clear-btn" class="w2p-btn w2p-btn-secondary">
-                                <span class="dashicons dashicons-no"></span>
+                                <span class="fa-solid fa-xmark"></span>
                                 <?php esc_html_e( 'Clear Selection', 'wp-genius' ); ?>
                             </button>
                             <button type="button" id="w2p-duplicate-clean-btn" class="w2p-btn w2p-btn-primary" data-text-default="<?php esc_attr_e( 'Clean All Selected', 'wp-genius' ); ?>" data-text-cleaning="<?php esc_attr_e( 'Cleaning...', 'wp-genius' ); ?>">
-                                <span class="dashicons dashicons-trash"></span>
+                                <span class="fa-solid fa-trash"></span>
                                 <span class="btn-text"><?php esc_html_e( 'Clean All Selected', 'wp-genius' ); ?></span>
                             </button>
                         </div>
@@ -222,7 +222,7 @@ $stats = [
                             <div class="w2p-duplicate-group-header w2p-flex w2p-justify-between w2p-items-center">
                                 <h3 class="group-title"></h3>
                                 <button type="button" class="w2p-btn w2p-btn-secondary w2p-clean-group-btn" data-text-default="<?php esc_attr_e( 'Clean This Group', 'wp-genius' ); ?>" data-text-cleaning="<?php esc_attr_e( 'Cleaning...', 'wp-genius' ); ?>" data-text-done="<?php esc_attr_e( 'Done', 'wp-genius' ); ?>">
-                                    <span class="dashicons dashicons-trash"></span>
+                                    <span class="fa-solid fa-trash"></span>
                                     <span class="btn-text"><?php esc_html_e( 'Clean This Group', 'wp-genius' ); ?></span>
                                 </button>
                             </div>
@@ -256,7 +256,7 @@ $stats = [
                             <td class="post-date"></td>
                             <td class="post-status">
                                 <span class="status-keep status-badge success">
-                                    <span class="dashicons dashicons-star-filled"></span>
+                                    <span class="fa-solid fa-star"></span>
                                     <?php esc_html_e( 'Keep', 'wp-genius' ); ?>
                                 </span>
                                 <span class="status-delete status-badge error"><?php esc_html_e( 'To Delete', 'wp-genius' ); ?></span>
@@ -268,7 +268,31 @@ $stats = [
         </div>
     </div>
 
+    <!-- Icon Browser Tab -->
+    <div class="w2p-sub-tab-content" id="w2p-tab-icon-browser">
+        <div class="w2p-section">
+            <div class="w2p-section-body">
+                <div class="w2p-info-box w2p-mb-md">
+                    <p><?php esc_html_e('Browse and search for FontAwesome icons. Hover over an icon to see its class name.', 'wp-genius'); ?></p>
+                </div>
+                
+                <div class="w2p-icon-browser-toolbar w2p-flex w2p-items-center w2p-mb-md">
+                    <div class="w2p-search-wrapper w2p-flex-1">
+                        <span class="w2p-search-icon fa-solid fa-magnifying-glass"></span>
+                        <input type="text" id="w2p-icon-search" class="w2p-input" placeholder="<?php esc_attr_e('Search icons...', 'wp-genius'); ?>">
+                    </div>
+                </div>
 
+                <div id="w2p-icon-grid" class="w2p-icon-grid">
+                    <!-- Icons will be rendered here via JS -->
+                </div>
+                
+                <div id="w2p-icon-no-results" class="w2p-text-center w2p-p-lg w2p-hidden">
+                    <p><?php esc_html_e('No icons found matching your search.', 'wp-genius'); ?></p>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- System Info Tab -->
     <div class="w2p-sub-tab-content" id="w2p-tab-info">

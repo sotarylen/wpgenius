@@ -26,6 +26,10 @@ class SeoLinkerModule extends W2P_Abstract_Module {
         return __( 'Automate internal linking with keywords and generate a Table of Contents for posts.', 'wp-genius' );
     }
 
+    public static function icon() {
+        return 'fa-solid fa-link';
+    }
+
     public function init() {
         require_once __DIR__ . '/linker-service.php';
         

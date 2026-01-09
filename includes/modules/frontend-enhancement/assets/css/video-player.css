@@ -1,0 +1,257 @@
+/**
+ * WP Genius Video Player Custom Styles
+ * 
+ * Custom styles for Plyr video player to fix vertical video display issues
+ * and ensure proper toolbar visibility.
+ *
+ * @package WP_Genius
+ * @subpackage Frontend_Enhancement
+ */
+
+/* ============================================
+   Video Container Fixes
+   ============================================ */
+
+/* Ensure video containers maintain proper aspect ratio */
+.wpg-video-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    margin: 20px 0;
+}
+
+/* Fix for vertical videos - allow natural aspect ratio */
+.wpg-video-wrapper video,
+.wpg-video-wrapper .plyr {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: auto !important;
+}
+
+/* ============================================
+   Plyr Player Customizations
+   ============================================ */
+
+/* Main Plyr container */
+.plyr {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #000;
+}
+
+/* Fix Plyr video element to maintain natural aspect ratio */
+.plyr__video-wrapper {
+    position: relative;
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: auto !important;
+}
+
+.plyr__video-wrapper video,
+.plyr__video-wrapper iframe {
+    width: 100% !important;
+    height: auto !important;
+    object-fit: contain !important;
+    aspect-ratio: auto !important;
+}
+
+/* Override Plyr's default aspect ratio enforcement */
+.plyr--full-ui .plyr__video-wrapper {
+    aspect-ratio: auto !important;
+}
+
+/* Ensure video element doesn't have fixed dimensions */
+.plyr video {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: auto !important;
+}
+
+/* ============================================
+   Controls/Toolbar Visibility Fixes
+   ============================================ */
+
+/* Ensure controls are always visible and properly positioned */
+.plyr__controls {
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.75)) !important;
+    padding: 10px 15px !important;
+    z-index: 10 !important;
+    opacity: 1 !important;
+    transition: opacity 0.3s ease;
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* Override Plyr's control hiding behavior */
+.plyr--playing .plyr__controls {
+    opacity: 1 !important;
+}
+
+.plyr--paused .plyr__controls,
+.plyr__controls:hover {
+    opacity: 1 !important;
+}
+
+/* Fix control buttons visibility */
+.plyr__controls button,
+.plyr__controls input[type="range"] {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: inline-block !important;
+}
+
+/* Ensure all control elements are visible */
+.plyr__controls__item {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Ensure progress bar is visible */
+.plyr__progress {
+    position: relative;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    margin: 0 10px 10px 10px;
+}
+
+.plyr__progress__buffer {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.plyr__progress__played {
+    background: #00bf72;
+}
+
+/* ============================================
+   Vertical Video Specific Fixes
+   ============================================ */
+
+/* Detect and handle vertical videos (9:16, 1:2, etc.) */
+.plyr--playing .plyr__video-wrapper video[style*="aspect-ratio: 9/16"],
+.plyr--playing .plyr__video-wrapper video[style*="aspect-ratio: 1/2"] {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 80vh;
+    margin: 0 auto;
+}
+
+/* Container for vertical videos to center them */
+.wpg-video-wrapper.vertical-video {
+    max-width: 400px;
+    margin: 20px auto;
+}
+
+/* ============================================
+   Responsive Fixes
+   ============================================ */
+
+/* Mobile devices */
+@media (max-width: 768px) {
+    .wpg-video-wrapper {
+        margin: 15px 0;
+    }
+
+    .plyr__controls {
+        padding: 8px 12px !important;
+    }
+
+    .plyr__controls button {
+        padding: 8px !important;
+    }
+
+    /* Increase touch targets for mobile */
+    .plyr__controls button {
+        min-width: 44px;
+        min-height: 44px;
+    }
+}
+
+/* ============================================
+   Fullscreen Mode Fixes
+   ============================================ */
+
+.plyr--fullscreen-active {
+    z-index: 999999;
+}
+
+.plyr--fullscreen-active .plyr__video-wrapper {
+    height: 100vh !important;
+    width: 100vw !important;
+}
+
+.plyr--fullscreen-active .plyr__video-wrapper video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+}
+
+.plyr--fullscreen-active .plyr__controls {
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.9)) !important;
+}
+
+/* ============================================
+   Loading State
+   ============================================ */
+
+.plyr__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 5;
+}
+
+/* ============================================
+   Poster Image Fixes
+   ============================================ */
+
+.plyr__poster {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* ============================================
+   Accessibility Improvements
+   ============================================ */
+
+/* Focus states for keyboard navigation */
+.plyr__controls button:focus {
+    outline: 2px solid #00bf72;
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .plyr__controls {
+        background: rgba(0, 0, 0, 0.9) !important;
+    }
+
+    .plyr__controls button {
+        border: 1px solid #fff;
+    }
+}
+
+/* ============================================
+   Print Styles
+   ============================================ */
+
+@media print {
+    .plyr,
+    .wpg-video-wrapper {
+        display: none;
+    }
+}

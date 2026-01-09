@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WP Genius\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-12-31 17:55+0000\n"
+"POT-Creation-Date: 2026-01-03 23:28+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: \n"
@@ -36,6 +36,18 @@ msgstr ""
 msgid "0 (transparent) to 100 (opaque)."
 msgstr ""
 
+#: includes/modules/frontend-enhancement/settings.php:291
+msgid "2 seconds"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:294
+msgid "3 seconds"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:297
+msgid "5 seconds"
+msgstr ""
+
 #: includes/modules/auto-publish/settings.php:186
 msgid ""
 "A scheduled publishing task is currently running. Please wait for it to "
@@ -56,6 +68,10 @@ msgstr ""
 
 #: includes/modules/accelerate/settings.php:112
 msgid "Activity"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:394
+msgid "Add \"Play in Lightbox\" button overlay on videos."
 msgstr ""
 
 #: includes/modules/seo-linker/settings.php:77
@@ -87,8 +103,8 @@ msgstr ""
 msgid "AI Content Assistant Settings"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:106
-#: includes/modules/system-health/settings.php:177
+#: includes/modules/system-health/settings.php:107
+#: includes/modules/system-health/settings.php:182
 msgid "All Categories"
 msgstr ""
 
@@ -103,6 +119,14 @@ msgstr ""
 
 #: includes/modules/clipboard-image-upload/settings.php:42
 msgid "Allow pasting images directly into the editor and media library."
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:205
+msgid "Allow Set as Featured Image"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:236
+msgid "Allow users to zoom in/out images."
 msgstr ""
 
 #: includes/modules/smart-auto-upload-images/settings.php:77
@@ -159,7 +183,7 @@ msgstr ""
 msgid "Are you sure you want to extract metadata from %d selected PNG images?"
 msgstr ""
 
-#: includes/modules/system-health/module.php:59
+#: includes/modules/system-health/module.php:65
 msgid "Are you sure you want to perform this cleanup?"
 msgstr ""
 
@@ -174,6 +198,10 @@ msgstr ""
 msgid "At a Glance"
 msgstr ""
 
+#: includes/modules/frontend-enhancement/settings.php:72
+msgid "Audio Player"
+msgstr ""
+
 #: includes/modules/smtp-mailer/settings.php:80
 msgid "Authentication Needed"
 msgstr ""
@@ -186,12 +214,16 @@ msgstr ""
 msgid "Auto Conversion"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:61
+#: includes/modules/system-health/settings.php:62
 msgid "Auto Drafts"
 msgstr ""
 
 #: includes/modules/ai-assistant/settings.php:64
 msgid "Auto Excerpt"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:343
+msgid "Auto Extract Poster"
 msgstr ""
 
 #: includes/modules/seo-linker/settings.php:102
@@ -239,6 +271,10 @@ msgid ""
 "Automatically convert uploaded images to WebP format for faster loading."
 msgstr ""
 
+#: includes/modules/frontend-enhancement/settings.php:354
+msgid "Automatically extract the first frame as video poster image."
+msgstr ""
+
 #: includes/modules/ai-assistant/settings.php:65
 msgid ""
 "Automatically generate AI excerpt when saving a post if the excerpt is empty."
@@ -254,6 +290,10 @@ msgstr ""
 msgid ""
 "Automatically normalize and rename uploaded files using customizable "
 "patterns."
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:374
+msgid "Automatically pause other videos when one starts playing."
 msgstr ""
 
 #: includes/modules/auto-publish/module.php:33
@@ -289,6 +329,14 @@ msgstr ""
 msgid "Automation Settings"
 msgstr ""
 
+#: includes/modules/frontend-enhancement/module.php:184
+msgid "Autoplay"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:283
+msgid "Autoplay Interval"
+msgstr ""
+
 #: includes/modules/accelerate/settings.php:182
 msgid "Available Variables (Click to Insert):"
 msgstr ""
@@ -314,7 +362,7 @@ msgstr ""
 msgid "Batch Size"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:127
+#: includes/modules/system-health/settings.php:132
 msgid "Batch Size:"
 msgstr ""
 
@@ -336,6 +384,10 @@ msgstr ""
 
 #: includes/modules/word-publish/settings.php:67
 msgid "Book Category"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:472
+msgid "Book Chapter Reader"
 msgstr ""
 
 #: includes/modules/image-watermark/settings.php:176
@@ -380,12 +432,12 @@ msgstr ""
 msgid "Choose the image to use as your watermark."
 msgstr ""
 
-#: includes/modules/system-health/settings.php:200
-#: includes/modules/system-health/settings.php:202
+#: includes/modules/system-health/settings.php:209
+#: includes/modules/system-health/settings.php:211
 msgid "Clean All Selected"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:65
+#: includes/modules/system-health/settings.php:66
 msgid "Clean Auto Drafts"
 msgstr ""
 
@@ -393,11 +445,11 @@ msgstr ""
 msgid "Clean Directory"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:75
+#: includes/modules/system-health/settings.php:76
 msgid "Clean Orphaned Meta"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:55
+#: includes/modules/system-health/settings.php:56
 msgid "Clean Revisions"
 msgstr ""
 
@@ -405,16 +457,16 @@ msgstr ""
 msgid "Clean Temporary Files"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:221
-#: includes/modules/system-health/settings.php:223
+#: includes/modules/system-health/settings.php:230
+#: includes/modules/system-health/settings.php:232
 msgid "Clean This Group"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:85
+#: includes/modules/system-health/settings.php:86
 msgid "Clean Transients"
 msgstr ""
 
-#: includes/modules/system-health/module.php:103
+#: includes/modules/system-health/module.php:109
 msgid "Cleaned up %d items."
 msgstr ""
 
@@ -422,9 +474,9 @@ msgstr ""
 msgid "Cleaning uploads folder..."
 msgstr ""
 
-#: includes/modules/system-health/settings.php:200
-#: includes/modules/system-health/settings.php:221
-#: includes/modules/system-health/module.php:60
+#: includes/modules/system-health/settings.php:209
+#: includes/modules/system-health/settings.php:230
+#: includes/modules/system-health/module.php:66
 msgid "Cleaning..."
 msgstr ""
 
@@ -442,7 +494,7 @@ msgstr ""
 msgid "Clear Logs"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:198
+#: includes/modules/system-health/settings.php:207
 msgid "Clear Selection"
 msgstr ""
 
@@ -454,12 +506,38 @@ msgstr ""
 msgid "Click any variable below to insert it into the pattern field."
 msgstr ""
 
+#: includes/modules/frontend-enhancement/settings.php:438
+msgid "Clicking on video opens it in Lightbox instead of playing inline."
+msgstr ""
+
 #: includes/modules/clipboard-image-upload/module.php:31
 msgid "Clipboard Image Upload"
 msgstr ""
 
 #: includes/modules/clipboard-image-upload/settings.php:28
 msgid "Clipboard Upload Settings"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/module.php:178
+msgid "Close"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:145
+msgid "Close on Backdrop Click"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:156
+msgid "Close the Lightbox when clicking on the dark backdrop."
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:73
+msgid "Coming Soon"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:417
+msgid ""
+"Comma-separated list of video file extensions. Recommended: mp4, webm, ogg "
+"(best browser compatibility)."
 msgstr ""
 
 #: includes/modules/accelerate/settings.php:73
@@ -552,11 +630,11 @@ msgstr ""
 msgid "Dashboard Widgets to Remove"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:35
+#: includes/modules/system-health/settings.php:36
 msgid "Database Cleaning & Optimization"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:233
+#: includes/modules/system-health/settings.php:242
 msgid "Date"
 msgstr ""
 
@@ -578,6 +656,22 @@ msgstr ""
 
 #: includes/modules/post-duplicator/settings.php:177
 msgid "Days"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:518
+msgid "Default Font Family"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:509
+msgid "Default font size (12-40px, step 2)."
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:500
+msgid "Default Font Size (px)"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:538
+msgid "Default Theme"
 msgstr ""
 
 #: includes/modules/post-duplicator/settings.php:94
@@ -639,6 +733,10 @@ msgstr ""
 msgid "Display a progress bar when saving posts with external images."
 msgstr ""
 
+#: includes/modules/frontend-enhancement/settings.php:196
+msgid "Display current image index (e.g., \"3/10\") in the Lightbox."
+msgstr ""
+
 #: includes/modules/post-duplicator/settings.php:82
 msgid "Display Notice"
 msgstr ""
@@ -651,8 +749,12 @@ msgstr ""
 msgid "Documentation"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:221
+#: includes/modules/system-health/settings.php:230
 msgid "Done"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/module.php:185
+msgid "Downloading..."
 msgstr ""
 
 #: includes/modules/post-duplicator/settings.php:122
@@ -673,7 +775,7 @@ msgid "Duplicate any post type including custom fields and taxonomies."
 msgstr ""
 
 #: includes/modules/system-health/settings.php:27
-#: includes/modules/system-health/settings.php:170
+#: includes/modules/system-health/settings.php:175
 msgid "Duplicate Post Clean"
 msgstr ""
 
@@ -693,6 +795,10 @@ msgstr ""
 msgid "Email address that appears as sender"
 msgstr ""
 
+#: includes/modules/frontend-enhancement/settings.php:176
+msgid "Enable arrow keys (←/→) for navigation and ESC to close."
+msgstr ""
+
 #: includes/modules/seo-linker/settings.php:33
 msgid "Enable Auto Linker"
 msgstr ""
@@ -701,8 +807,20 @@ msgstr ""
 msgid "Enable Auto Publish"
 msgstr ""
 
+#: includes/modules/frontend-enhancement/settings.php:263
+msgid "Enable Autoplay"
+msgstr ""
+
 #: includes/modules/auto-publish/settings.php:51
 msgid "Enable background scheduled publishing using WP-Cron."
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:88
+msgid "Enable Lightbox"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:99
+msgid "Enable Lightbox viewer for images in post content."
 msgstr ""
 
 #: includes/modules/clipboard-image-upload/settings.php:34
@@ -717,20 +835,46 @@ msgstr ""
 msgid "Enable or disable WP Genius modules and manage their basic preferences."
 msgstr ""
 
+#: includes/modules/frontend-enhancement/settings.php:480
+msgid "Enable Reader Mode"
+msgstr ""
+
 #: includes/modules/seo-linker/settings.php:89
 msgid "Enable Table of Contents"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:491
+msgid "Enable the reading enhancement toolbar on book chapters."
 msgstr ""
 
 #: includes/class-admin-settings.php:126
 msgid "Enable to configure"
 msgstr ""
 
+#: includes/modules/frontend-enhancement/settings.php:323
+msgid "Enable Video Optimization"
+msgstr ""
+
 #: includes/modules/image-watermark/settings.php:46
 msgid "Enable watermark action in the Media Library."
 msgstr ""
 
+#: includes/modules/frontend-enhancement/settings.php:225
+msgid "Enable Zoom Controls"
+msgstr ""
+
 #: includes/modules/smtp-mailer/settings.php:74
 msgid "Encryption method for SMTP connection"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/module.php:38
+msgid ""
+"Enhance frontend user experience with Lightbox image viewer, video player "
+"optimization, and audio player."
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:334
+msgid "Enhance video player experience with additional features."
 msgstr ""
 
 #: includes/modules/smart-auto-upload-images/settings.php:108
@@ -776,11 +920,15 @@ msgstr ""
 msgid "Exclude Post Types"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:132
+#: includes/modules/frontend-enhancement/settings.php:363
+msgid "Exclusive Playback"
+msgstr ""
+
+#: includes/modules/system-health/settings.php:137
 msgid "Execute Removal"
 msgstr ""
 
-#: includes/modules/system-health/module.php:63
+#: includes/modules/system-health/module.php:69
 msgid "Executing..."
 msgstr ""
 
@@ -788,7 +936,7 @@ msgstr ""
 msgid "Execution Interval"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:81
+#: includes/modules/system-health/settings.php:82
 msgid "Expired Transients"
 msgstr ""
 
@@ -811,6 +959,10 @@ msgstr ""
 msgid "Extracting Metadata:"
 msgstr ""
 
+#: includes/modules/frontend-enhancement/settings.php:118
+msgid "Fade In/Out"
+msgstr ""
+
 #: includes/modules/smart-auto-upload-images/progress-template.php:37
 msgid "Failed"
 msgstr ""
@@ -826,8 +978,21 @@ msgstr ""
 msgid "Failed to publish chapter \"%s\""
 msgstr ""
 
+#: includes/modules/frontend-enhancement/module.php:187
+#: includes/modules/frontend-enhancement/module.php:323
+msgid "Failed to update featured image."
+msgstr ""
+
 #: includes/modules/clipboard-image-upload/module.php:139
 msgid "Failed to upload clipboard image."
+msgstr ""
+
+#: includes/modules/frontend-enhancement/module.php:320
+msgid "Featured image updated successfully!"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/module.php:186
+msgid "Featured image updated!"
 msgstr ""
 
 #: includes/modules/accelerate/settings.php:81
@@ -866,6 +1031,10 @@ msgstr ""
 
 #: includes/modules/smtp-mailer/settings.php:126
 msgid "From Name"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/module.php:31
+msgid "Frontend Enhancement"
 msgstr ""
 
 #: includes/modules/image-watermark/settings.php:297
@@ -935,7 +1104,7 @@ msgid "If enabled, TOC will appear at the start of the post content."
 msgstr ""
 
 #: includes/modules/system-health/settings.php:26
-#: includes/modules/system-health/settings.php:99
+#: includes/modules/system-health/settings.php:100
 msgid "Image Link Remover"
 msgstr ""
 
@@ -998,12 +1167,16 @@ msgstr ""
 msgid "Initializing..."
 msgstr ""
 
-#: includes/modules/system-health/module.php:78
-#: includes/modules/system-health/module.php:160
+#: includes/modules/system-health/module.php:84
+#: includes/modules/system-health/module.php:166
 msgid "Insufficient permissions."
 msgstr ""
 
-#: includes/modules/system-health/module.php:99
+#: includes/modules/frontend-enhancement/settings.php:301
+msgid "Interval between image transitions during autoplay."
+msgstr ""
+
+#: includes/modules/system-health/module.php:105
 msgid "Invalid cleanup type."
 msgstr ""
 
@@ -1016,12 +1189,16 @@ msgstr ""
 msgid "Invalid image ID"
 msgstr ""
 
-#: includes/class-admin-settings.php:263
+#: includes/class-admin-settings.php:264
 msgid "Invalid module"
 msgstr ""
 
-#: includes/modules/system-health/module.php:141
-#: includes/modules/system-health/module.php:188
+#: includes/modules/frontend-enhancement/module.php:312
+msgid "Invalid parameters."
+msgstr ""
+
+#: includes/modules/system-health/module.php:147
+#: includes/modules/system-health/module.php:194
 msgid "Invalid post IDs."
 msgstr ""
 
@@ -1029,7 +1206,7 @@ msgstr ""
 msgid "Items to process per AJAX request."
 msgstr ""
 
-#: includes/modules/system-health/settings.php:257
+#: includes/modules/system-health/settings.php:266
 msgid "Keep"
 msgstr ""
 
@@ -1041,7 +1218,7 @@ msgstr ""
 msgid "Keep original image without watermark."
 msgstr ""
 
-#: includes/modules/system-health/settings.php:40
+#: includes/modules/system-health/settings.php:41
 msgid ""
 "Keep your site fast by removing unnecessary data from your database. Click "
 "the scan button to check current system health."
@@ -1049,6 +1226,10 @@ msgstr ""
 
 #: includes/modules/png-metadata-extractor/settings.php:20
 msgid "Key Features"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:165
+msgid "Keyboard Navigation"
 msgstr ""
 
 #: includes/modules/seo-linker/settings.php:51
@@ -1061,6 +1242,14 @@ msgstr ""
 
 #: includes/modules/image-watermark/settings.php:180
 msgid "Left:"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:60
+msgid "Lightbox"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:80
+msgid "Lightbox Image Viewer"
 msgstr ""
 
 #: includes/modules/seo-linker/settings.php:53
@@ -1080,7 +1269,7 @@ msgid "Manage temporary files and directories used during the import process."
 msgstr ""
 
 #: includes/modules/auto-publish/settings.php:143
-#: includes/modules/auto-publish/settings.php:427
+#: includes/modules/auto-publish/settings.php:409
 msgid "Manual"
 msgstr ""
 
@@ -1112,6 +1301,14 @@ msgstr ""
 msgid "Maximum retry attempts when an image download fails."
 msgstr ""
 
+#: includes/modules/frontend-enhancement/settings.php:245
+msgid "Maximum Zoom Level"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:254
+msgid "Maximum zoom multiplier (1.0 = original size, 3.0 = 3x zoom)."
+msgstr ""
+
 #: includes/modules/media-turbo/module.php:22
 msgid "Media Turbo"
 msgstr ""
@@ -1130,6 +1327,10 @@ msgstr ""
 
 #: includes/modules/post-duplicator/settings.php:185
 msgid "Minutes"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:418
+msgid "mkv, avi, mov formats have limited browser support."
 msgstr ""
 
 #: includes/modules/post-duplicator/settings.php:58
@@ -1160,7 +1361,7 @@ msgstr ""
 msgid "Most SMTP servers require authentication to send mail."
 msgstr ""
 
-#: includes/modules/system-health/module.php:195
+#: includes/modules/system-health/module.php:201
 msgid "Moved %d posts to trash."
 msgstr ""
 
@@ -1184,8 +1385,12 @@ msgstr ""
 msgid "Newer"
 msgstr ""
 
+#: includes/modules/frontend-enhancement/module.php:180
+msgid "Next"
+msgstr ""
+
 #: includes/modules/auto-publish/settings.php:139
-#: includes/modules/auto-publish/settings.php:423
+#: includes/modules/auto-publish/settings.php:405
 msgid "No activity logged yet."
 msgstr ""
 
@@ -1198,7 +1403,7 @@ msgstr ""
 msgid "No chapters found in the document."
 msgstr ""
 
-#: includes/modules/system-health/settings.php:213
+#: includes/modules/system-health/settings.php:222
 msgid "No duplicate posts found."
 msgstr ""
 
@@ -1219,14 +1424,14 @@ msgid "No metadata found"
 msgstr ""
 
 #: includes/class-admin-settings.php:29 includes/class-admin-settings.php:230
-#: includes/class-admin-settings.php:594
+#: includes/class-admin-settings.php:636
 #: includes/modules/smtp-mailer/test-connection.php:32
 msgid "No permission"
 msgstr ""
 
 #: includes/class-word-to-posts.php:42 includes/class-word-to-posts.php:70
-#: includes/class-word-to-posts.php:107 includes/class-admin-settings.php:258
-#: includes/class-admin-settings.php:598
+#: includes/class-word-to-posts.php:107 includes/class-admin-settings.php:259
+#: includes/class-admin-settings.php:640
 #: includes/class-word-to-posts-backup.php:35
 #: includes/class-word-to-posts-backup.php:139
 msgid "Nonce verification failed"
@@ -1234,6 +1439,10 @@ msgstr ""
 
 #: includes/modules/smtp-mailer/settings.php:72
 msgid "None (port 25)"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:418
+msgid "Note:"
 msgstr ""
 
 #: includes/templates/reader.php:19
@@ -1274,12 +1483,20 @@ msgstr ""
 msgid "Opacity"
 msgstr ""
 
+#: includes/modules/frontend-enhancement/settings.php:108
+msgid "Open Animation"
+msgstr ""
+
 #: includes/modules/post-duplicator/settings.php:84
 msgid "Open in New Tab"
 msgstr ""
 
 #: includes/modules/post-duplicator/settings.php:85
 msgid "Open in Same Tab"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:427
+msgid "Open Lightbox on Click"
 msgstr ""
 
 #: includes/modules/ai-assistant/settings.php:30
@@ -1321,7 +1538,7 @@ msgstr ""
 msgid "Orphaned"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:71
+#: includes/modules/system-health/settings.php:72
 msgid "Orphaned Metadata"
 msgstr ""
 
@@ -1353,8 +1570,16 @@ msgstr ""
 msgid "Performance & Rules"
 msgstr ""
 
+#: includes/modules/frontend-enhancement/module.php:305
+msgid "Permission denied."
+msgstr ""
+
 #: includes/modules/accelerate/settings.php:200
 msgid "PHP uniqid"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/module.php:222
+msgid "Play in Lightbox"
 msgstr ""
 
 #: includes/modules/smtp-mailer/test-connection.php:39
@@ -1394,8 +1619,8 @@ msgstr ""
 msgid "Post Duplicator"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:152
-#: includes/modules/system-health/settings.php:230
+#: includes/modules/system-health/settings.php:157
+#: includes/modules/system-health/settings.php:239
 msgid "Post ID"
 msgstr ""
 
@@ -1403,7 +1628,7 @@ msgstr ""
 msgid "Post List Screen"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:51
+#: includes/modules/system-health/settings.php:52
 msgid "Post Revisions"
 msgstr ""
 
@@ -1437,12 +1662,20 @@ msgstr ""
 msgid "Preparing..."
 msgstr ""
 
+#: includes/modules/frontend-enhancement/settings.php:447
+msgid "Prevent Autoplay"
+msgstr ""
+
 #: includes/modules/accelerate/settings.php:219
 msgid "Prevents plugins from updating automatically."
 msgstr ""
 
 #: includes/modules/accelerate/settings.php:220
 msgid "Prevents themes from updating automatically."
+msgstr ""
+
+#: includes/modules/frontend-enhancement/module.php:179
+msgid "Previous"
 msgstr ""
 
 #: includes/modules/accelerate/settings.php:113
@@ -1487,6 +1720,10 @@ msgstr ""
 msgid "Random number"
 msgstr ""
 
+#: includes/modules/frontend-enhancement/settings.php:68
+msgid "Reader Mode"
+msgstr ""
+
 #: includes/modules/media-turbo/settings.php:118
 msgid "Recent Posts"
 msgstr ""
@@ -1499,6 +1736,11 @@ msgstr ""
 #: includes/modules/seo-linker/settings.php:71
 #: includes/modules/seo-linker/settings.php:148
 msgid "Remove"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:458
+msgid ""
+"Remove autoplay attribute from embedded videos for better user experience."
 msgstr ""
 
 #: includes/modules/accelerate/module.php:471
@@ -1675,6 +1917,10 @@ msgstr ""
 msgid "Save failed"
 msgstr ""
 
+#: includes/modules/frontend-enhancement/settings.php:563
+msgid "Save Frontend Enhancement Settings"
+msgstr ""
+
 #: includes/class-admin-settings.php:143
 msgid "Save Module Preferences"
 msgstr ""
@@ -1703,7 +1949,7 @@ msgstr ""
 msgid "Scaled"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:175
+#: includes/modules/system-health/settings.php:180
 msgid "Scan and remove duplicate posts based on title and slug matching."
 msgstr ""
 
@@ -1715,12 +1961,12 @@ msgstr ""
 msgid "Scan Directory"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:185
-#: includes/modules/system-health/settings.php:187
+#: includes/modules/system-health/settings.php:194
+#: includes/modules/system-health/settings.php:196
 msgid "Scan for Duplicates"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:117
+#: includes/modules/system-health/settings.php:122
 msgid "Scan for Linked Images"
 msgstr ""
 
@@ -1737,13 +1983,13 @@ msgstr ""
 msgid "Scan Mode"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:104
+#: includes/modules/system-health/settings.php:105
 msgid ""
 "Scan posts for images wrapped in links and remove the links while keeping "
 "the images."
 msgstr ""
 
-#: includes/modules/system-health/settings.php:43
+#: includes/modules/system-health/settings.php:44
 msgid "Scan System Status"
 msgstr ""
 
@@ -1755,13 +2001,13 @@ msgstr ""
 msgid "Scanning uploads folder..."
 msgstr ""
 
-#: includes/modules/system-health/settings.php:185
-#: includes/modules/system-health/module.php:62
+#: includes/modules/system-health/settings.php:194
+#: includes/modules/system-health/module.php:68
 msgid "Scanning..."
 msgstr ""
 
 #: includes/modules/auto-publish/settings.php:143
-#: includes/modules/auto-publish/settings.php:427
+#: includes/modules/auto-publish/settings.php:409
 msgid "Scheduled"
 msgstr ""
 
@@ -1769,7 +2015,7 @@ msgstr ""
 msgid "Scheduled Publishing in Progress..."
 msgstr ""
 
-#: includes/modules/auto-publish/settings.php:404
+#: includes/modules/auto-publish/settings.php:386
 msgid "Scheduled task running"
 msgstr ""
 
@@ -1853,8 +2099,12 @@ msgstr ""
 msgid "Separate tags with commas"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:275
+#: includes/modules/system-health/settings.php:286
 msgid "Server Environment"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/module.php:183
+msgid "Set as Featured"
 msgstr ""
 
 #: includes/modules/smart-auto-upload-images/settings.php:98
@@ -1863,6 +2113,24 @@ msgstr ""
 
 #: includes/modules/smart-auto-upload-images/settings.php:37
 msgid "Settings"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:216
+msgid ""
+"Show \"Set as Featured Image\" button in Lightbox toolbar (requires "
+"edit_posts permission)."
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:274
+msgid "Show autoplay controls in Lightbox toolbar."
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:185
+msgid "Show Image Counter"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:383
+msgid "Show Lightbox Button"
 msgstr ""
 
 #: includes/modules/png-metadata-extractor/settings.php:26
@@ -1885,7 +2153,11 @@ msgstr ""
 msgid "Skipped"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:232
+#: includes/modules/frontend-enhancement/settings.php:126
+msgid "Slide"
+msgstr ""
+
+#: includes/modules/system-health/settings.php:241
 msgid "Slug"
 msgstr ""
 
@@ -1986,14 +2258,14 @@ msgstr ""
 
 #: includes/modules/auto-publish/settings.php:132
 #: includes/modules/media-turbo/settings.php:189
-#: includes/modules/system-health/settings.php:154
-#: includes/modules/system-health/settings.php:234
+#: includes/modules/system-health/settings.php:159
+#: includes/modules/system-health/settings.php:243
 msgid "Status"
 msgstr ""
 
 #: includes/modules/auto-publish/settings.php:101
 #: includes/modules/media-turbo/settings.php:160
-#: includes/modules/system-health/settings.php:136
+#: includes/modules/system-health/settings.php:141
 msgid "Stop"
 msgstr ""
 
@@ -2025,11 +2297,15 @@ msgstr ""
 msgid "Supported Parameters"
 msgstr ""
 
+#: includes/modules/frontend-enhancement/settings.php:403
+msgid "Supported Video Formats"
+msgstr ""
+
 #: includes/modules/system-health/module.php:22
 msgid "System Health"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:28
+#: includes/modules/system-health/settings.php:29
 msgid "System Info"
 msgstr ""
 
@@ -2108,8 +2384,8 @@ msgstr ""
 msgid "Tips"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:153
-#: includes/modules/system-health/settings.php:231
+#: includes/modules/system-health/settings.php:158
+#: includes/modules/system-health/settings.php:240
 msgid "Title"
 msgstr ""
 
@@ -2117,7 +2393,7 @@ msgstr ""
 msgid "TLS (port 587)"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:259
+#: includes/modules/system-health/settings.php:268
 msgid "To Delete"
 msgstr ""
 
@@ -2201,6 +2477,14 @@ msgstr ""
 msgid "User login name"
 msgstr ""
 
+#: includes/modules/frontend-enhancement/settings.php:64
+msgid "Video Player"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:315
+msgid "Video Player Optimization"
+msgstr ""
+
 #: includes/modules/accelerate/settings.php:82
 msgid "View Site"
 msgstr ""
@@ -2270,7 +2554,7 @@ msgstr ""
 msgid "Word to Posts"
 msgstr ""
 
-#: includes/modules/system-health/settings.php:294
+#: includes/modules/system-health/settings.php:305
 msgid "WordPress Configuration"
 msgstr ""
 
@@ -2323,8 +2607,64 @@ msgstr ""
 msgid "You do not have sufficient permissions to access this page."
 msgstr ""
 
+#: includes/modules/frontend-enhancement/settings.php:134
+msgid "Zoom"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/module.php:181
+msgid "Zoom In"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/module.php:182
+msgid "Zoom Out"
+msgstr ""
+
 #: includes/modules/smart-auto-upload-images/module.php:241
 msgid "✅ Image processing complete! Saving..."
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:525
+msgid "宋体"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:528
+msgid "微软雅黑"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:529
+msgid "思源黑体"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:544
+msgid "护眼模式"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:543
+msgid "明亮模式"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:546
+msgid "暗黑模式"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:526
+msgid "楷体"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:523
+msgid "系统默认"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:545
+msgid "自然模式"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:527
+msgid "隶书"
+msgstr ""
+
+#: includes/modules/frontend-enhancement/settings.php:524
+msgid "黑体"
 msgstr ""
 
 #: includes/modules/smart-auto-upload-images/module.php:235

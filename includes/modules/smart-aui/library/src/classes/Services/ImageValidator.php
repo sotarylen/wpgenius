@@ -83,15 +83,8 @@ class ImageValidator {
 		return true;
 	}
 
-	/**
-	 * Validate image file content
-	 *
-	 * @param string $file_content File content.
-	 * @param array  $image_data Image data.
-	 * @return bool True if valid image, false otherwise.
-	 */
-	public function validate_image_content( string $file_content, array $image_data ): bool {
-		if ( empty( $file_content ) ) {
+	public function validate_image_file( string $file_path, array $image_data ): bool {
+		if ( ! file_exists( $file_path ) || filesize( $file_path ) === 0 ) {
 			return false;
 		}
 
@@ -107,18 +100,9 @@ class ImageValidator {
 		// Build test filename for validation.
 		$filename = 'test.' . $extension;
 
-		// Write content to temp file for validation.
-		if ( ! function_exists( 'wp_tempnam' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-		}
+		$file_validation = wp_check_filetype_and_ext( $file_path, $filename );
 
-		$temp_file = wp_tempnam();
-		file_put_contents( $temp_file, $file_content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-
-		$file_validation = wp_check_filetype_and_ext( $temp_file, $filename );
-
-		$image_info = getimagesize( $temp_file );
-		wp_delete_file( $temp_file );
+		$image_info = getimagesize( $file_path );
 
 		if ( false === $file_validation['type'] || empty( $file_validation['type'] ) ) {
 			return false;
@@ -142,6 +126,32 @@ class ImageValidator {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Validate image file content (Deprecated, use validate_image_file instead)
+	 *
+	 * @param string $file_content File content.
+	 * @param array  $image_data Image data.
+	 * @return bool True if valid image, false otherwise.
+	 */
+	public function validate_image_content( string $file_content, array $image_data ): bool {
+		if ( empty( $file_content ) ) {
+			return false;
+		}
+
+		if ( ! function_exists( 'wp_tempnam' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
+		$temp_file = wp_tempnam();
+		file_put_contents( $temp_file, $file_content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		
+		$result = $this->validate_image_file( $temp_file, $image_data );
+		
+		wp_delete_file( $temp_file );
+
+		return $result;
 	}
 
 	/**

@@ -60,7 +60,7 @@ $keywords = ! empty( $settings['keywords'] ) ? $settings['keywords'] : [];
                                 <div><input type="text" name="w2p_seo_linker_settings[keywords][0][keyword]" value="" placeholder="e.g. WordPress" class="w2p-input-large" /></div>
                                 <div><input type="url" name="w2p_seo_linker_settings[keywords][0][url]" value="" placeholder="https://..." class="w2p-input-large" /></div>
                                 <div><input type="text" name="w2p_seo_linker_settings[keywords][0][title]" value="" class="w2p-input-large" /></div>
-                                <div><button type="button" class="w2p-btn w2p-btn-sm w2p-btn-danger w2p-remove-keyword" title="<?php esc_attr_e('Remove', 'wp-genius'); ?>"><span class="dashicons dashicons-trash"></span></button></div>
+                                <div><button type="button" class="w2p-btn w2p-btn-sm w2p-btn-danger w2p-remove-keyword" title="<?php esc_attr_e('Remove', 'wp-genius'); ?>"><i class="fa-solid fa-trash"></i></button></div>
                             </div>
                         <?php else : ?>
                             <?php foreach ( $keywords as $index => $item ) : ?>
@@ -68,13 +68,13 @@ $keywords = ! empty( $settings['keywords'] ) ? $settings['keywords'] : [];
                                     <div><input type="text" name="w2p_seo_linker_settings[keywords][<?php echo $index; ?>][keyword]" value="<?php echo esc_attr( $item['keyword'] ); ?>" class="w2p-input-large" /></div>
                                     <div><input type="url" name="w2p_seo_linker_settings[keywords][<?php echo $index; ?>][url]" value="<?php echo esc_url( $item['url'] ); ?>" class="w2p-input-large" /></div>
                                     <div><input type="text" name="w2p_seo_linker_settings[keywords][<?php echo $index; ?>][title]" value="<?php echo esc_attr( $item['title'] ); ?>" class="w2p-input-large" /></div>
-                                    <div><button type="button" class="w2p-btn w2p-btn-sm w2p-btn-danger w2p-remove-keyword" title="<?php esc_attr_e('Remove', 'wp-genius'); ?>"><span class="dashicons dashicons-trash"></span></button></div>
+                                    <div><button type="button" class="w2p-btn w2p-btn-sm w2p-btn-danger w2p-remove-keyword" title="<?php esc_attr_e('Remove', 'wp-genius'); ?>"><i class="fa-solid fa-trash"></i></button></div>
                                 </div>
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </div>
                 </div>
-                <p style="margin-top: 15px;"><button type="button" class="w2p-btn w2p-btn-secondary" id="w2p-add-keyword"><span class="dashicons dashicons-plus-alt2"></span> <?php esc_html_e( 'Add Keyword Mapping', 'wp-genius' ); ?></button></p>
+                <p style="margin-top: 15px;"><button type="button" class="w2p-btn w2p-btn-secondary" id="w2p-add-keyword"><i class="fa-solid fa-plus"></i> <?php esc_html_e( 'Add Keyword Mapping', 'wp-genius' ); ?></button></p>
             </div>
         </div>
 
@@ -123,7 +123,7 @@ $keywords = ! empty( $settings['keywords'] ) ? $settings['keywords'] : [];
 
         <div class="w2p-settings-actions">
             <button type="submit" name="submit" id="w2p-seo-linker-submit" class="w2p-btn w2p-btn-primary">
-                <span class="dashicons dashicons-saved"></span>
+                <i class="fa-solid fa-floppy-disk"></i>
                 <?php esc_html_e( 'Save SEO Settings', 'wp-genius' ); ?>
             </button>
         </div>
@@ -148,7 +148,7 @@ jQuery(document).ready(function($) {
             '<div><input type="text" name="w2p_seo_linker_settings[keywords][' + index + '][keyword]" value="" class="w2p-input-large" /></div>' +
             '<div><input type="url" name="w2p_seo_linker_settings[keywords][' + index + '][url]" value="" class="w2p-input-large" /></div>' +
             '<div><input type="text" name="w2p_seo_linker_settings[keywords][' + index + '][title]" value="" class="w2p-input-large" /></div>' +
-            '<div><button type="button" class="w2p-btn w2p-btn-sm w2p-btn-danger w2p-remove-keyword" title="<?php esc_attr_e('Remove', 'wp-genius'); ?>"><span class="dashicons dashicons-trash"></span></button></div>' +
+            '<div><button type="button" class="w2p-btn w2p-btn-sm w2p-btn-danger w2p-remove-keyword" title="<?php esc_attr_e('Remove', 'wp-genius'); ?>"><i class="fa-solid fa-trash"></i></button></div>' +
             '</div>';
         $body.append(newRow);
     });

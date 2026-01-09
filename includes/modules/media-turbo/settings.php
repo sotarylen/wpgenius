@@ -53,9 +53,20 @@ $webp_supported = MediaTurboConverterService::is_webp_supported();
                                 <label for="webp_quality"><?php esc_html_e( 'WebP Quality', 'wp-genius' ); ?></label>
                             </div>
                             <div class="w2p-form-control">
-                                <div class="w2p-flex w2p-items-center w2p-gap-xs">
-                                    <input type="number" id="webp_quality" name="w2p_media_turbo_settings[webp_quality]" value="<?php echo esc_attr( $settings['webp_quality'] ); ?>" min="1" max="100" class="w2p-input-small" />
-                                    <span class="w2p-text-muted">(1-100)</span>
+                                <div class="w2p-range-group">
+                                    <div class="w2p-range-header">
+                                        <span class="w2p-range-label"><?php esc_html_e( 'Quality Level', 'wp-genius' ); ?></span>
+                                        <span class="w2p-range-value"><?php echo esc_attr( $settings['webp_quality'] ); ?>%</span>
+                                    </div>
+                                    <input type="range" 
+                                           class="w2p-range-slider" 
+                                           id="webp_quality"
+                                           name="w2p_media_turbo_settings[webp_quality]" 
+                                           min="1" 
+                                           max="100" 
+                                           step="1"
+                                           value="<?php echo esc_attr( $settings['webp_quality'] ); ?>"
+                                           data-suffix="%">
                                 </div>
                                 <p class="description"><?php esc_html_e( 'Target quality level for WebP images.', 'wp-genius' ); ?></p>
                             </div>
@@ -79,9 +90,20 @@ $webp_supported = MediaTurboConverterService::is_webp_supported();
                                 <label for="w2p-min-file-size"><?php esc_html_e( 'Min File Size', 'wp-genius' ); ?></label>
                             </div>
                             <div class="w2p-form-control">
-                                <div class="w2p-flex w2p-items-center w2p-gap-xs">
-                                    <input type="number" id="w2p-min-file-size" name="w2p_media_turbo_settings[min_file_size]" value="<?php echo esc_attr( $settings['min_file_size'] ?? 1024 ); ?>" min="0" max="10240" class="w2p-input-small" />
-                                    <span class="w2p-text-muted">KB</span>
+                                <div class="w2p-range-group">
+                                    <div class="w2p-range-header">
+                                        <span class="w2p-range-label"><?php esc_html_e( 'Minimum Size', 'wp-genius' ); ?></span>
+                                        <span class="w2p-range-value"><?php echo esc_attr( $settings['min_file_size'] ?? 1024 ); ?> KB</span>
+                                    </div>
+                                    <input type="range" 
+                                           class="w2p-range-slider" 
+                                           id="w2p-min-file-size"
+                                           name="w2p_media_turbo_settings[min_file_size]" 
+                                           min="0" 
+                                           max="10240" 
+                                           step="256"
+                                           value="<?php echo esc_attr( $settings['min_file_size'] ?? 1024 ); ?>"
+                                           data-suffix=" KB">
                                 </div>
                                 <p class="description"><?php esc_html_e( 'Only process images larger than this size.', 'wp-genius' ); ?></p>
                             </div>
@@ -92,7 +114,20 @@ $webp_supported = MediaTurboConverterService::is_webp_supported();
                                 <label for="w2p-scan-limit"><?php esc_html_e( 'Scan Limit', 'wp-genius' ); ?></label>
                             </div>
                             <div class="w2p-form-control">
-                                <input type="number" id="w2p-scan-limit" name="w2p_media_turbo_settings[scan_limit]" value="<?php echo esc_attr( $settings['scan_limit'] ?? 100 ); ?>" min="1" max="1000" class="w2p-input-small" />
+                                <div class="w2p-range-group">
+                                    <div class="w2p-range-header">
+                                        <span class="w2p-range-label"><?php esc_html_e( 'Items to Scan', 'wp-genius' ); ?></span>
+                                        <span class="w2p-range-value"><?php echo esc_attr( $settings['scan_limit'] ?? 100 ); ?></span>
+                                    </div>
+                                    <input type="range" 
+                                           class="w2p-range-slider" 
+                                           id="w2p-scan-limit"
+                                           name="w2p_media_turbo_settings[scan_limit]" 
+                                           min="1" 
+                                           max="1000" 
+                                           step="10"
+                                           value="<?php echo esc_attr( $settings['scan_limit'] ?? 100 ); ?>">
+                                </div>
                                 <p class="description"><?php esc_html_e( 'Number of items to fetch from media library.', 'wp-genius' ); ?></p>
                             </div>
                         </div>
@@ -118,7 +153,20 @@ $webp_supported = MediaTurboConverterService::is_webp_supported();
                                 <label for="w2p-posts-limit"><?php esc_html_e( 'Recent Posts', 'wp-genius' ); ?></label>
                             </div>
                             <div class="w2p-form-control">
-                                <input type="number" id="w2p-posts-limit" name="w2p_media_turbo_settings[posts_limit]" value="<?php echo esc_attr( $settings['posts_limit'] ?? 10 ); ?>" min="1" max="100" class="w2p-input-small" />
+                                <div class="w2p-range-group">
+                                    <div class="w2p-range-header">
+                                        <span class="w2p-range-label"><?php esc_html_e( 'Posts Count', 'wp-genius' ); ?></span>
+                                        <span class="w2p-range-value"><?php echo esc_attr( $settings['posts_limit'] ?? 10 ); ?></span>
+                                    </div>
+                                    <input type="range" 
+                                           class="w2p-range-slider" 
+                                           id="w2p-posts-limit"
+                                           name="w2p_media_turbo_settings[posts_limit]" 
+                                           min="1" 
+                                           max="100" 
+                                           step="1"
+                                           value="<?php echo esc_attr( $settings['posts_limit'] ?? 10 ); ?>">
+                                </div>
                                 <p class="description"><?php esc_html_e( 'How many recent posts to scan for images.', 'wp-genius' ); ?></p>
                             </div>
                         </div>
@@ -128,7 +176,20 @@ $webp_supported = MediaTurboConverterService::is_webp_supported();
                                 <label for="w2p-batch-size"><?php esc_html_e( 'Batch Size', 'wp-genius' ); ?></label>
                             </div>
                             <div class="w2p-form-control">
-                                <input type="number" id="w2p-batch-size" name="w2p_media_turbo_settings[batch_size]" value="<?php echo esc_attr( $settings['batch_size'] ?? 10 ); ?>" min="1" max="50" class="w2p-input-small" />
+                                <div class="w2p-range-group">
+                                    <div class="w2p-range-header">
+                                        <span class="w2p-range-label"><?php esc_html_e( 'Items per Request', 'wp-genius' ); ?></span>
+                                        <span class="w2p-range-value"><?php echo esc_attr( $settings['batch_size'] ?? 10 ); ?></span>
+                                    </div>
+                                    <input type="range" 
+                                           class="w2p-range-slider" 
+                                           id="w2p-batch-size"
+                                           name="w2p_media_turbo_settings[batch_size]" 
+                                           min="1" 
+                                           max="50" 
+                                           step="1"
+                                           value="<?php echo esc_attr( $settings['batch_size'] ?? 10 ); ?>">
+                                </div>
                                 <p class="description"><?php esc_html_e( 'Items to process per AJAX request.', 'wp-genius' ); ?></p>
                             </div>
                         </div>
@@ -137,7 +198,7 @@ $webp_supported = MediaTurboConverterService::is_webp_supported();
                 
                 <div class="w2p-settings-actions">
                     <button type="submit" name="w2p_media_turbo_save" id="w2p-media-turbo-submit" class="w2p-btn w2p-btn-primary">
-                        <span class="dashicons dashicons-saved"></span>
+                        <i class="fa-solid fa-floppy-disk"></i>
                         <?php esc_attr_e( 'Save All Settings', 'wp-genius' ); ?>
                     </button>
                 </div>
@@ -154,19 +215,19 @@ $webp_supported = MediaTurboConverterService::is_webp_supported();
                 <div class="w2p-section-body">
                     <div class="w2p-bulk-actions w2p-flex w2p-flex-wrap w2p-gap-sm">
                         <button type="button" id="w2p-scan-media" class="w2p-btn w2p-btn-primary">
-                            <span class="dashicons dashicons-images-alt2"></span>
+                            <i class="fa-solid fa-images"></i>
                             <?php esc_html_e( 'Scan Media Library', 'wp-genius' ); ?>
                         </button>
                         <button type="button" id="w2p-start-bulk" class="w2p-btn w2p-btn-success" style="display:none;">
-                            <span class="dashicons dashicons-controls-play"></span>
+                            <i class="fa-solid fa-play"></i>
                             <?php esc_html_e( 'Start Bulk Conversion', 'wp-genius' ); ?>
                         </button>
                         <button type="button" id="w2p-stop-bulk" class="w2p-btn w2p-btn-stop" style="display:none;">
-                            <span class="dashicons dashicons-controls-pause"></span>
+                            <i class="fa-solid fa-pause"></i>
                             <?php esc_html_e( 'Stop', 'wp-genius' ); ?>
                         </button>
                         <button type="button" id="w2p-reset-processed" class="w2p-btn w2p-btn-secondary">
-                            <span class="dashicons dashicons-update"></span>
+                            <i class="fa-solid fa-rotate"></i>
                             <?php esc_html_e( 'Reset Processed Posts', 'wp-genius' ); ?>
                         </button>
                     </div>

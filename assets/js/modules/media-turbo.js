@@ -125,7 +125,7 @@
             this.stopRequested = false;
 
             $(e.currentTarget).prop('disabled', true).hide();
-            $('#w2p-stop-bulk').fadeIn().prop('disabled', false).html('<span class="dashicons dashicons-no-alt" style="margin-top: 4px; margin-right: 4px;"></span> Stop');
+            $('#w2p-stop-bulk').fadeIn().prop('disabled', false).html('<i class="fa-solid fa-xmark"></i> Stop');
             $('#w2p-scan-media').prop('disabled', true);
             $('#w2p-bulk-progress-wrapper').fadeIn();
 
@@ -294,7 +294,7 @@
             this.isRunning = false;
             this.currentXHR = null;
             $('#w2p-stop-bulk').hide();
-            $('#w2p-start-bulk').show().html('<span class="dashicons dashicons-update" style="margin-top: 4px; margin-right: 4px;"></span> Optimize Again').prop('disabled', false); // Assuming icon for optimize again
+            $('#w2p-start-bulk').show().html('<i class="fa-solid fa-arrow-right"></i> Optimize Again').prop('disabled', false); // Assuming icon for optimize again
             $('#w2p-scan-media').prop('disabled', false);
             // 去除弹窗提示，仅在状态栏显示
             $('#w2p-bulk-status-detailed').html('<strong style="color:#10a754;">' + message + '</strong>');

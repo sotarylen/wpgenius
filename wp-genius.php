@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Genius
  * Description: Import Word documents and publish their chapters as WordPress posts (WP Genius).
- * Version: 1.0
+ * Version: 1.0.1
  * Author: Sotary
  * Text Domain: wp-genius
  */
@@ -61,7 +61,7 @@ function word_to_posts_ensure_core_modules_enabled($module_loader) {
     $enabled = get_option('word2posts_modules', array());
     
     // 核心模块列表 - 这些应该默认启用
-    $core_modules = array('word-publish', 'image-watermark', 'smart-auto-upload-images', 'clipboard-image-upload', 'system-health', 'media-turbo', 'seo-linker', 'ai-assistant');
+    $core_modules = array('word-publish', 'image-watermark', 'smart-aui', 'clipboard-image-upload', 'system-health', 'media-turbo', 'seo-linker', 'ai-assistant');
     
     $changed = false;
     foreach ($core_modules as $module_id) {
@@ -98,6 +98,10 @@ function word_to_posts_enqueue_scripts() {
         if ($should_load) {
             wp_enqueue_style('jquery-ui-css', 'https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css');
             wp_enqueue_script('jquery-ui-tabs');
+            
+            // Enqueue FontAwesome 6 Free from CDN
+            wp_enqueue_style('font-awesome', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css', array(), '6.4.0');
+
             $suffix = ''; // Force uncompressed resources for auditing
 
             // 注册核心样式表
@@ -115,6 +119,9 @@ function word_to_posts_enqueue_scripts() {
             // 统一加载核心样式和仪表盘样式
             wp_enqueue_style('w2p-core-css');
             wp_enqueue_style('w2p-admin-dashboard');
+            
+            // Enqueue range slider script for settings pages
+            wp_enqueue_script('w2p-range-slider');
 
             // 如果是设置页面，加载所有模块样式
             if (strpos($screen->id, 'wp-genius-settings') !== false) {
@@ -142,16 +149,19 @@ function word_to_posts_enqueue_scripts() {
             wp_enqueue_style('w2p-admin-ui');
             wp_enqueue_script('w2p-admin-ui');
 
+            // Register FontAwesome Icons Data Script
+            wp_register_script('w2p-fa-icons', plugin_dir_url(__FILE__) . "assets/js/w2p-fa-icons.js", array('jquery'), '1.0.0', true);
+            wp_register_script('w2p-range-slider', plugin_dir_url(__FILE__) . "assets/js/range-slider.js", array('jquery'), '1.0.0', true);
+
             // 注册核心 JS 和模块化 JS (Depend on w2p-admin-ui)
             wp_register_script('w2p-core-js', plugin_dir_url(__FILE__) . "assets/js/modules/core.js", array('jquery', 'w2p-admin-ui'), '1.0.0', true);
             wp_register_script('w2p-ai-assistant', plugin_dir_url(__FILE__) . "assets/js/modules/ai-assistant.js", array('w2p-core-js'), '1.0.0', true);
             wp_register_script('w2p-auto-publish', plugin_dir_url(__FILE__) . "assets/js/modules/auto-publish.js", array('w2p-core-js'), '1.0.0', true);
             wp_register_script('w2p-clipboard-upload', plugin_dir_url(__FILE__) . "assets/js/modules/clipboard-upload.js", array('w2p-core-js'), '1.0.0', true);
             wp_register_script('w2p-media-turbo', plugin_dir_url(__FILE__) . "assets/js/modules/media-turbo.js", array('w2p-core-js'), '1.0.0', true);
-            wp_register_script('w2p-system-health', plugin_dir_url(__FILE__) . "assets/js/modules/system-health.js", array('w2p-core-js'), '1.0.0', true);
-            wp_register_script('w2p-smart-auto-upload', plugin_dir_url(__FILE__) . "assets/js/modules/smart-auto-upload.js", array('w2p-core-js'), '1.0.0', true);
+            wp_register_script('w2p-system-health', plugin_dir_url(__FILE__) . "assets/js/modules/system-health.js", array('w2p-core-js', 'w2p-fa-icons'), '1.0.0', true); // Added w2p-fa-icons dependency
+            wp_register_script('w2p-smart-auto-upload', plugin_dir_url(__FILE__) . "assets/js/smart-auto-upload-progress-ui.js", array('w2p-core-js'), '1.0.0', true);
             wp_register_script('w2p-image-watermark', plugin_dir_url(__FILE__) . "assets/js/modules/image-watermark.js", array('w2p-core-js'), '1.0.0', true);
-
             // 向后兼容：保留 w2p-modules-unified 句柄
             wp_register_script('w2p-modules-unified', plugin_dir_url(__FILE__) . "assets/js/modules/core.js", array('jquery', 'w2p-admin-ui'), '1.0.0', true);
 
@@ -172,21 +182,3 @@ function word_to_posts_enqueue_scripts() {
     }
 }
 add_action('admin_enqueue_scripts', 'word_to_posts_enqueue_scripts');
-
-// 初始化阅读器
-add_action('init', 'register_reader_shortcode');
-function register_reader_shortcode() {
-	add_shortcode('reader', 'reader_shortcode_handler');
-    reader_enqueue_scripts();
-}
-function reader_shortcode_handler($atts) {
-    ob_start();
-	include(plugin_dir_path(__FILE__) . 'includes/templates/reader.php');
-    return ob_get_clean();
- }
-
- function reader_enqueue_scripts() {
-    // Enqueue any scripts or styles here
-    wp_enqueue_style('w2p-core-css');
-    wp_enqueue_script('reader-script', plugins_url('assets/js/reader.js', __FILE__), array('jquery'), null, true);
-}

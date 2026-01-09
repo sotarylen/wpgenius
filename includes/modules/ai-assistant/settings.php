@@ -87,7 +87,7 @@ $settings = get_option( 'w2p_ai_assistant_settings', [] );
 
             <div class="w2p-settings-actions">
                 <button type="submit" name="submit" id="w2p-ai-assistant-submit" class="w2p-btn w2p-btn-primary">
-                    <span class="dashicons dashicons-saved"></span>
+                    <i class="fa-solid fa-floppy-disk"></i>
                     <?php esc_html_e( 'Save AI Settings', 'wp-genius' ); ?>
                 </button>
             </div>

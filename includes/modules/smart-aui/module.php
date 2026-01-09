@@ -13,9 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Smart Auto Upload Images Module Class
+ * Smart AUI Module Class (Memory-Optimized)
  */
-class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
+class SmartAUIModule extends W2P_Abstract_Module {
 
 	/**
 	 * Module ID
@@ -23,7 +23,7 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 	 * @return string
 	 */
 	public static function id() {
-		return 'smart-auto-upload-images';
+		return 'smart-aui';
 	}
 
 	/**
@@ -32,7 +32,7 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 	 * @return string
 	 */
 	public static function name() {
-		return __( 'Smart Auto Upload Images', 'wp-genius' );
+		return __( 'Smart AUI Lite', 'wp-genius' );
 	}
 
 	/**
@@ -41,7 +41,11 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 	 * @return string
 	 */
 	public static function description() {
-		return __( 'Automatically import external images to media library with progress visualization and auto-set featured image.', 'wp-genius' );
+		return __( 'Memory-optimized version for large images (>10MB). Skips thumbnail generation to prevent OOM errors. Ideal for MinIO/S3 storage.', 'wp-genius' );
+	}
+
+	public static function icon() {
+		return 'fa-solid fa-cloud-arrow-down';
 	}
 
 	/**
@@ -75,11 +79,14 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 		add_action( 'wp_ajax_w2p_smart_aui_bulk_process', [ $this, 'ajax_bulk_process' ] );
 		// 单图多线程抓取接口（仅负责下载与附件创建，不直接修改文章内容）
 		add_action( 'wp_ajax_w2p_smart_aui_download_image', [ $this, 'ajax_download_image' ] );
+		// 视频下载接口
+		add_action( 'wp_ajax_w2p_smart_aui_download_video', [ $this, 'ajax_download_video' ] );
 		
 		// 批量处理辅助接口
 		add_action( 'wp_ajax_w2p_smart_aui_get_post_details', [ $this, 'ajax_get_post_details' ] );
 		add_action( 'wp_ajax_w2p_smart_aui_save_post_content', [ $this, 'ajax_save_post_content' ] );
 		add_action( 'wp_ajax_w2p_smart_aui_clear_failed_logs', [ $this, 'ajax_clear_failed_logs' ] );
+		add_action( 'wp_ajax_w2p_smart_aui_get_attachment_id', [ $this, 'ajax_get_attachment_id' ] );
 	}
 
 	/**
@@ -127,9 +134,10 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 		
 		// 加载扩展的 ImageProcessor
 		require_once __DIR__ . '/ImageProcessorExtended.php';
-		
 
-		
+		// 加载视频下载器
+		require_once __DIR__ . '/VideoDownloader.php';
+
 		// 初始化插件组件
 		$container = \SmartAutoUploadImages\get_container();
 		$container->set( 'plugin', new \SmartAutoUploadImages\Plugin() );
@@ -169,7 +177,10 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 		if ( ! isset( $core_settings['max_retries'] ) ) {
 			$core_settings['max_retries'] = 3;
 		}
-		
+		if ( ! isset( $core_settings['capture_videos'] ) ) {
+			$core_settings['capture_videos'] = false;
+		}
+
 		update_option( 'smart_aui_settings', $core_settings );
 	}
 
@@ -222,17 +233,18 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 					'statusStopped' => __( 'Capture stopped, preparing to publish...', 'wp-genius' ),
 					'statusPreparing' => __( 'Preparing to process batch posts...', 'wp-genius' ),
 					'statusPreparingPublish' => __( 'Preparing to process and publish batch posts...', 'wp-genius' ),
-					'statusProcessing' => __( '📝 Processing', 'wp-genius' ),
-					'statusProcessAndPublish' => __( '📝 Process and Publish', 'wp-genius' ),
-					'statusProcessAndDraft' => __( '📝 Process and Set as Draft', 'wp-genius' ),
-					'statusProcessAndPending' => __( '📝 Process and Set as Pending', 'wp-genius' ),
-					'statusProcessAndPrivate' => __( '📝 Process and Set as Private', 'wp-genius' ),
-					'completeAll' => __( '🎉 All batch processing completed!', 'wp-genius' ),
-					'completePublished' => __( '🎉 All posts have been processed and published!', 'wp-genius' ),
-					'completeDraft' => __( '🎉 All posts have been processed and set as drafts!', 'wp-genius' ),
-					'completePending' => __( '🎉 All posts have been processed and set as pending!', 'wp-genius' ),
-					'completePrivate' => __( '🎉 All posts have been processed and set as private!', 'wp-genius' ),
+					'statusProcessing' => __( 'Processing', 'wp-genius' ),
+					'statusProcessAndPublish' => __( 'Process and Publish', 'wp-genius' ),
+					'statusProcessAndDraft' => __( 'Process and Set as Draft', 'wp-genius' ),
+					'statusProcessAndPending' => __( 'Process and Set as Pending', 'wp-genius' ),
+					'statusProcessAndPrivate' => __( 'Process and Set as Private', 'wp-genius' ),
+					'completeAll' => __( 'All batch processing completed!', 'wp-genius' ),
+					'completePublished' => __( 'All posts have been processed and published!', 'wp-genius' ),
+					'completeDraft' => __( 'All posts have been processed and set as drafts!', 'wp-genius' ),
+					'completePending' => __( 'All posts have been processed and set as pending!', 'wp-genius' ),
+					'completePrivate' => __( 'All posts have been processed and set as private!', 'wp-genius' ),
 					'processingImages' => __( 'Processing external images in parallel...', 'wp-genius' ),
+					'processingMedia' => __( 'Processing external media (images + videos) in parallel...', 'wp-genius' ),
 					'allComplete' => __( '✅ Image processing complete! Saving...', 'wp-genius' ),
 				],
 			]
@@ -638,12 +650,31 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 		$site_url  = site_url();
 
 		if ( strpos( $image_url, $base_url ) === 0 || strpos( $image_url, $site_url ) === 0 ) {
+			// 如果是本地图片，尝试查找 ID
+			$attachment_id = $this->get_attachment_id_from_url( $image_url );
+			
+			if ( $attachment_id ) {
+				// 找到了 ID，返回成功状态，以便前端补全 class
+				wp_send_json_success(
+					[
+						'source_url'     => $image_url,
+						'downloaded_url' => $image_url,
+						'attachment_id'  => $attachment_id,
+						'skipped'        => false, // 改为 false，以便前端进入 success 分支处理
+						'process_id'     => $process_id,
+						'message'        => 'Local image ID resolved',
+					]
+				);
+			}
+
+			// 找不到 ID，且是本地图片，跳过
 			wp_send_json_success(
 				[
 					'source_url'     => $image_url,
 					'downloaded_url' => $image_url,
 					'skipped'        => true,
 					'process_id'     => $process_id,
+					'message'        => 'Skipped: Local image without ID',
 				]
 			);
 		}
@@ -767,6 +798,10 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 		if ( ! empty( $response['attachment_id'] ) ) {
 			$this->auto_set_featured_image( $post_id );
 		}
+		
+		// [MEMORY CLEANUP] Free memory after each image download (critical for concurrent processing)
+		unset( $result, $downloader, $validator, $container, $post_data );
+		gc_collect_cycles();
 
 		wp_send_json_success( $response );
 	}
@@ -1039,6 +1074,92 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 	}
 
 	/**
+	 * AJAX Download Video
+	 *
+	 * Downloads remote video and adds it to media library.
+	 */
+	public function ajax_download_video() {
+		if ( session_status() === PHP_SESSION_ACTIVE ) {
+			session_write_close();
+		}
+
+		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
+
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
+
+		$post_id = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
+		$video_url = isset( $_POST['video_url'] ) ? esc_url_raw( wp_unslash( $_POST['video_url'] ) ) : '';
+
+		if ( ! $post_id || empty( $video_url ) ) {
+			wp_send_json_error( [ 'message' => 'Invalid request' ] );
+		}
+
+		// Check if video capture is enabled
+		$settings = get_option( 'smart_aui_settings', [] );
+		if ( empty( $settings['capture_videos'] ) ) {
+			wp_send_json_success(
+				[
+					'source_url' => $video_url,
+					'downloaded_url' => $video_url,
+					'skipped' => true,
+					'message' => 'Video capture is disabled',
+				]
+			);
+		}
+
+		$post = get_post( $post_id );
+		if ( ! $post ) {
+			wp_send_json_error( [ 'message' => 'Post not found' ] );
+		}
+
+		$post_data = [
+			'ID' => $post->ID,
+			'post_content' => $post->post_content,
+			'post_title' => $post->post_title,
+			'post_date' => $post->post_date,
+		];
+
+		// Use VideoDownloader to download video
+		$downloader = new W2P_Video_Downloader();
+		$result = $downloader->download_video( $video_url, $post_data );
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_success(
+				[
+					'source_url' => $video_url,
+					'downloaded_url' => $video_url,
+					'failed' => true,
+					'message' => $result->get_error_message(),
+				]
+			);
+		}
+
+		// Get base URL for mapping
+		$base_url = ! empty( $settings['base_url'] ) ? trim( $settings['base_url'], '/' ) : site_url();
+		$new_url = $result['url'];
+
+		// Map to base URL if configured
+		if ( ! empty( $new_url ) && ! empty( $base_url ) ) {
+			$new_url_parts = wp_parse_url( $new_url );
+			if ( ! empty( $new_url_parts['path'] ) ) {
+				$new_url = $base_url . $new_url_parts['path'];
+			}
+		}
+
+		wp_send_json_success(
+			[
+				'source_url' => $video_url,
+				'downloaded_url' => $new_url,
+				'attachment_id' => $result['attachment_id'],
+				'mime_type' => $result['mime_type'],
+				'message' => 'Video downloaded successfully',
+			]
+		);
+	}
+
+	/**
 	 * Module Activation Hook
 	 *
 	 * @return void
@@ -1069,5 +1190,34 @@ class SmartAutoUploadImagesModule extends W2P_Abstract_Module {
 
 	public function settings_key() {
 		return 'smart_aui_settings';
+	}
+
+	/**
+	 * AJAX Get Attachment ID from Image URL
+	 */
+	public function ajax_get_attachment_id() {
+		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
+		
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
+
+		$image_url = isset( $_POST['image_url'] ) ? esc_url_raw( wp_unslash( $_POST['image_url'] ) ) : '';
+
+		if ( empty( $image_url ) ) {
+			wp_send_json_error( [ 'message' => 'Invalid image URL' ] );
+		}
+
+		// Use existing method to get attachment ID
+		$attachment_id = $this->get_attachment_id_from_url( $image_url );
+
+		if ( $attachment_id ) {
+			wp_send_json_success( [
+				'attachment_id' => $attachment_id,
+				'image_url' => $image_url
+			] );
+		} else {
+			wp_send_json_error( [ 'message' => 'Attachment not found' ] );
+		}
 	}
 }
