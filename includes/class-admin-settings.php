@@ -27,10 +27,6 @@ class W2P_Admin_Settings {
             if ($hook !== $page_hook) {
                 return;
             }
-
-            // Admin UI is now enqueued globally in wp-genius.php via word_to_posts_enqueue_scripts
-            // However, we ensure it's loaded here if needed, but it should be handled by the main plugin file.
-            // We can keep a simple enqueue just in case, but no need to register/localize again.
             wp_enqueue_style('w2p-admin-ui');
             wp_enqueue_script('w2p-admin-ui');
         });
@@ -42,6 +38,14 @@ class W2P_Admin_Settings {
         }
 
         $modules = $this->loader->get_available_modules();
+        
+        // Ensure System Health is always at the bottom
+        if (isset($modules['system-health'])) {
+            $health_module = $modules['system-health'];
+            unset($modules['system-health']);
+            $modules['system-health'] = $health_module;
+        }
+
         $enabled = get_option('word2posts_modules', array());
 
         settings_errors('word_to_posts');
@@ -246,7 +250,32 @@ class W2P_Admin_Settings {
                     }, 300);
                     
                     // console.log('Tab switched to:', targetId);
+
+                    // Update URL and form referer for persistence
+                    var newUrl = new URL(window.location.href);
+                    newUrl.searchParams.set('w2p_module', targetModule);
+                    window.history.pushState({path: newUrl.toString()}, '', newUrl.toString());
+
+                    // Update _wp_http_referer in the form to ensure redirects return here
+                    var $form = $targetContent.find('form');
+                    if ($form.length) {
+                        var $referer = $form.find('input[name="_wp_http_referer"]');
+                        if ($referer.length) {
+                             // Use the new URL as the referer
+                            $referer.val(newUrl.toString());
+                        }
+                    }
                 });
+
+                // Auto-activate tab from URL parameter
+                var urlParams = new URLSearchParams(window.location.search);
+                var activeModule = urlParams.get('w2p_module');
+                if (activeModule) {
+                   var $targetLink = $('.w2p-tab-nav-link[data-module="' + activeModule + '"]');
+                   if ($targetLink.length) {
+                       $targetLink.click();
+                   }
+                }
                 
                 // 保存时显示成功消息
                 $('#w2p-save-modules').on('click', function(){
@@ -280,9 +309,12 @@ class W2P_Admin_Settings {
             'w2p_upload_rename_nonce',
             'w2p_smtp_mailer_nonce',
             'w2p_smart_aui_nonce',
+            'w2p_watermark_nonce',
             'w2p_image_watermark_nonce',
             'w2p_post_duplicator_nonce',
             'w2p_frontend_enhancement_nonce',
+            'w2p_media_engine_nonce',
+            'w2p_wechat_assistant_nonce',
         ];
         
         foreach ($possible_nonce_fields as $nonce_field) {
@@ -341,6 +373,7 @@ class W2P_Admin_Settings {
                 'remove_admin_bar_search'          => !empty($settings['remove_admin_bar_search']),
                 'remove_admin_bar_updates'         => !empty($settings['remove_admin_bar_updates']),
                 'remove_admin_bar_appearance'      => !empty($settings['remove_admin_bar_appearance']),
+                'remove_admin_bar_customize'       => !empty($settings['remove_admin_bar_customize']),
                 'remove_admin_bar_wporg'           => !empty($settings['remove_admin_bar_wporg']),
                 'remove_admin_bar_documentation'   => !empty($settings['remove_admin_bar_documentation']),
                 'remove_admin_bar_support_forums'  => !empty($settings['remove_admin_bar_support_forums']),
@@ -375,22 +408,35 @@ class W2P_Admin_Settings {
             update_option('w2p_accelerate_settings', $clean_settings);
         }
 
-        // Media Turbo Module
-        if ($module_id === 'media-turbo') {
-            $settings = isset($_POST['w2p_media_turbo_settings']) ? (array) $_POST['w2p_media_turbo_settings'] : [];
-            
-            $clean_settings = [
-                'webp_enabled'  => !empty($settings['webp_enabled']),
-                'webp_quality'  => isset($settings['webp_quality']) ? absint($settings['webp_quality']) : 80,
-                'keep_original' => !empty($settings['keep_original']),
-                'min_file_size' => isset($settings['min_file_size']) ? absint($settings['min_file_size']) : 1024,
-                'scan_mode'     => isset($settings['scan_mode']) && in_array($settings['scan_mode'], ['media', 'posts']) ? $settings['scan_mode'] : 'media',
-                'posts_limit'   => isset($settings['posts_limit']) ? absint($settings['posts_limit']) : 10,
-                'scan_limit'    => isset($settings['scan_limit']) ? absint($settings['scan_limit']) : 100,
-                'batch_size'    => isset($settings['batch_size']) ? absint($settings['batch_size']) : 10,
-            ];
-            
-            update_option('w2p_media_turbo_settings', $clean_settings);
+        // Media Engine Module (Unified)
+        if ($module_id === 'media-engine') {
+            // Handle Media Turbo settings
+            if (isset($_POST['w2p_media_turbo_settings'])) {
+                $turbo_settings = (array) $_POST['w2p_media_turbo_settings'];
+                $clean_turbo = [
+                    'webp_enabled'  => !empty($turbo_settings['webp_enabled']),
+                    'webp_quality'  => isset($turbo_settings['webp_quality']) ? absint($turbo_settings['webp_quality']) : 80,
+                    'keep_original' => !empty($turbo_settings['keep_original']),
+                    'min_file_size' => isset($turbo_settings['min_file_size']) ? absint($turbo_settings['min_file_size']) : 1024,
+                    'scan_mode'     => isset($turbo_settings['scan_mode']) && in_array($turbo_settings['scan_mode'], ['media', 'posts']) ? $turbo_settings['scan_mode'] : 'media',
+                    'posts_limit'   => isset($turbo_settings['posts_limit']) ? absint($turbo_settings['posts_limit']) : 10,
+                    'scan_limit'    => isset($turbo_settings['scan_limit']) ? absint($turbo_settings['scan_limit']) : 100,
+                    'batch_size'       => isset($turbo_settings['batch_size']) ? absint($turbo_settings['batch_size']) : 10,
+                    'convert_static'   => !empty($turbo_settings['convert_static']) ? '1' : '0',
+                    'convert_animated' => !empty($turbo_settings['convert_animated']) ? '1' : '0',
+                ];
+                update_option('w2p_media_turbo_settings', $clean_turbo);
+            }
+
+            // Handle Clipboard Upload settings
+            if (isset($_POST['w2p_clipboard_upload_settings'])) {
+                $clipboard_settings = (array) $_POST['w2p_clipboard_upload_settings'];
+                $clean_clipboard = [
+                    'enabled'      => !empty($clipboard_settings['enabled']),
+                    'image_prefix' => sanitize_text_field($clipboard_settings['image_prefix'] ?? 'clipboard_'),
+                ];
+                update_option('w2p_clipboard_upload_settings', $clean_clipboard);
+            }
         }
 
         // Auto Upload Images 模块
@@ -658,7 +704,24 @@ class W2P_Admin_Settings {
             update_option('w2p_frontend_enhancement_settings', $clean_settings);
         }
 
-        wp_redirect(admin_url('tools.php?page=wp-genius-settings&updated=1'));
+        // WeChat Assistant Module
+        if ($module_id === 'wechat-assistant') {
+            
+            $appid = isset($_POST['w2p_wechat_appid']) ? sanitize_text_field($_POST['w2p_wechat_appid']) : '';
+            $secret = isset($_POST['w2p_wechat_secret']) ? sanitize_text_field($_POST['w2p_wechat_secret']) : '';
+            $enable_share = isset($_POST['w2p_wechat_enable_share']) ? 'yes' : 'no';
+
+            update_option('w2p_wechat_appid', $appid);
+            update_option('w2p_wechat_secret', $secret);
+            update_option('w2p_wechat_enable_share', $enable_share);
+        }
+
+        $redirect_url = admin_url('tools.php?page=wp-genius-settings&updated=1');
+        if ( ! empty( $module_id ) ) {
+            $redirect_url = add_query_arg( 'w2p_module', $module_id, $redirect_url );
+        }
+
+        wp_redirect($redirect_url);
         exit;
     }
 

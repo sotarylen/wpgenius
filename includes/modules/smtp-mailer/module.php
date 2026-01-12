@@ -68,7 +68,21 @@ class SMTPMailerModule extends W2P_Abstract_Module {
 
 		// Admin notices for SMTP status
 		add_action( 'admin_notices', [ $this, 'display_smtp_status' ] );
+
+        // Asset loading
+        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
 	}
+
+    /**
+     * Enqueue admin scripts
+     */
+    public function enqueue_scripts( $hook ) {
+        if ( strpos( $hook, 'wp-genius-settings' ) === false ) {
+            return;
+        }
+
+        $plugin_url = plugin_dir_url( WP_GENIUS_FILE );
+    }
 
 	/**
 	 * Register Module Settings

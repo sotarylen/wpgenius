@@ -20,6 +20,7 @@ $defaults = [
 	'remove_admin_bar_search'          => true,
 	'remove_admin_bar_updates'         => true,
 	'remove_admin_bar_appearance'      => true,
+	'remove_admin_bar_customize'       => false,
 	'remove_admin_bar_wporg'           => true,
 	'remove_admin_bar_documentation'   => true,
 	'remove_admin_bar_support_forums'  => true,
@@ -74,7 +75,8 @@ $settings = wp_parse_args( $settings, $defaults );
 						'remove_admin_bar_new_content'   => [ 'title' => __( 'New Content', 'wp-genius' ), 'desc' => __( 'Removes the "+ New" menu.', 'wp-genius' ) ],
 						'remove_admin_bar_search'        => [ 'title' => __( 'Search', 'wp-genius' ), 'desc' => __( 'Removes the search bar from admin bar.', 'wp-genius' ) ],
 						'remove_admin_bar_updates'       => [ 'title' => __( 'Updates', 'wp-genius' ), 'desc' => __( 'Removes the updates notification icon.', 'wp-genius' ) ],
-						'remove_admin_bar_appearance'    => [ 'title' => __( 'Appearance', 'wp-genius' ), 'desc' => __( 'Removes the Appearance/Customize menu.', 'wp-genius' ) ],
+						'remove_admin_bar_appearance'    => [ 'title' => __( 'Appearance', 'wp-genius' ), 'desc' => __( 'Removes the Appearance menu.', 'wp-genius' ) ],
+						'remove_admin_bar_customize'     => [ 'title' => __( 'Customize', 'wp-genius' ), 'desc' => __( 'Removes the Customize menu.', 'wp-genius' ) ],
 						'remove_admin_bar_wporg'         => [ 'title' => __( 'WordPress.org', 'wp-genius' ), 'desc' => __( 'Removes WordPress.org external links.', 'wp-genius' ) ],
 						'remove_admin_bar_documentation' => [ 'title' => __( 'Documentation', 'wp-genius' ), 'desc' => __( 'Removes documentation links.', 'wp-genius' ) ],
 						'remove_admin_bar_support_forums'=> [ 'title' => __( 'Support Forums', 'wp-genius' ), 'desc' => __( 'Removes support forum links.', 'wp-genius' ) ],
@@ -130,47 +132,57 @@ $settings = wp_parse_args( $settings, $defaults );
 						</div>
 					<?php endforeach; ?>
 				</div>
+			</div>
+		</div>
 
-				<div class="w2p-section-header" style="margin-top: var(--w2p-spacing-xl); border-top: 1px solid var(--w2p-border-color-light); padding-top: var(--w2p-spacing-lg);">
-					<h4><?php esc_html_e( 'General Interface', 'wp-genius' ); ?></h4>
-				</div>
-				<div class="w2p-grid-cards">
-					<div class="w2p-toggle-card">
-						<div class="w2p-toggle-header">
-							<span class="w2p-toggle-title"><?php esc_html_e( 'Months Dropdown', 'wp-genius' ); ?></span>
-							<label class="w2p-switch">
-								<input type="checkbox" name="w2p_accelerate_settings[disable_months_dropdown]" value="1" <?php checked( $settings['disable_months_dropdown'], 1 ); ?> />
-								<span class="w2p-slider"></span>
-							</label>
-						</div>
-						<p class="w2p-toggle-desc"><?php esc_html_e( 'Block slow "All dates" queries in post list and media library.', 'wp-genius' ); ?></p>
+		<!-- General Interface -->
+		<div class="w2p-section">
+			<div class="w2p-section-header">
+				<h4><?php esc_html_e( 'General Interface', 'wp-genius' ); ?></h4>
+			</div>
+			<div class="w2p-grid-cards">
+				<div class="w2p-toggle-card">
+					<div class="w2p-toggle-header">
+						<span class="w2p-toggle-title"><?php esc_html_e( 'Months Dropdown', 'wp-genius' ); ?></span>
+						<label class="w2p-switch">
+							<input type="checkbox" name="w2p_accelerate_settings[disable_months_dropdown]" value="1" <?php checked( $settings['disable_months_dropdown'], 1 ); ?> />
+							<span class="w2p-slider"></span>
+						</label>
 					</div>
-					
-					<div class="w2p-toggle-card">
-						<div class="w2p-toggle-header">
-							<span class="w2p-toggle-title"><?php esc_html_e( 'Local Avatar Manager', 'wp-genius' ); ?></span>
-							<label class="w2p-switch">
-								<input type="checkbox" name="w2p_accelerate_settings[enable_local_avatar]" value="1" <?php checked( $settings['enable_local_avatar'], 1 ); ?> />
-								<span class="w2p-slider"></span>
-							</label>
-						</div>
-						<p class="w2p-toggle-desc"><?php esc_html_e( 'Replace Gravatar with local user avatar management. Upload and store avatars directly in your media library.', 'wp-genius' ); ?></p>
-					</div>
-					
-					<div class="w2p-toggle-card">
-						<div class="w2p-toggle-header">
-							<span class="w2p-toggle-title"><?php esc_html_e( 'Upload Rename', 'wp-genius' ); ?></span>
-							<label class="w2p-switch">
-								<input type="checkbox" name="w2p_accelerate_settings[enable_upload_rename]" value="1" <?php checked( $settings['enable_upload_rename'], 1 ); ?> id="w2p-upload-rename-toggle" />
-								<span class="w2p-slider"></span>
-							</label>
-						</div>
-						<p class="w2p-toggle-desc"><?php esc_html_e( 'Automatically normalize and rename uploaded files using customizable patterns.', 'wp-genius' ); ?></p>
-					</div>
+					<p class="w2p-toggle-desc"><?php esc_html_e( 'Block slow "All dates" queries in post list and media library.', 'wp-genius' ); ?></p>
 				</div>
 				
-				<!-- Upload Rename Pattern Configuration -->
-				<div class="w2p-form-row" id="w2p-upload-rename-config" style="margin-top: var(--w2p-spacing-lg); <?php echo empty($settings['enable_upload_rename']) ? 'display:none;' : ''; ?>">
+				<div class="w2p-toggle-card">
+					<div class="w2p-toggle-header">
+						<span class="w2p-toggle-title"><?php esc_html_e( 'Local Avatar Manager', 'wp-genius' ); ?></span>
+						<label class="w2p-switch">
+							<input type="checkbox" name="w2p_accelerate_settings[enable_local_avatar]" value="1" <?php checked( $settings['enable_local_avatar'], 1 ); ?> />
+							<span class="w2p-slider"></span>
+						</label>
+					</div>
+					<p class="w2p-toggle-desc"><?php esc_html_e( 'Replace Gravatar with local user avatar management. Upload and store avatars directly in your media library.', 'wp-genius' ); ?></p>
+				</div>
+				
+				<div class="w2p-toggle-card">
+					<div class="w2p-toggle-header">
+						<span class="w2p-toggle-title"><?php esc_html_e( 'Upload Rename', 'wp-genius' ); ?></span>
+						<label class="w2p-switch">
+							<input type="checkbox" name="w2p_accelerate_settings[enable_upload_rename]" value="1" <?php checked( $settings['enable_upload_rename'], 1 ); ?> id="w2p-upload-rename-toggle" />
+							<span class="w2p-slider"></span>
+						</label>
+					</div>
+					<p class="w2p-toggle-desc"><?php esc_html_e( 'Automatically normalize and rename uploaded files using customizable patterns.', 'wp-genius' ); ?></p>
+				</div>
+			</div>
+		</div>
+
+		<!-- Upload Rename Pattern Configuration -->
+		<div class="w2p-section">
+			<div class="w2p-section-header">
+				<h4><?php esc_html_e( 'Upload Rename Pattern Configuration', 'wp-genius' ); ?></h4>
+			</div>
+			<div class="w2p-section-body">
+				<div class="w2p-form-row" id="w2p-upload-rename-config" <?php echo empty($settings['enable_upload_rename']) ? 'style="display:none;"' : ''; ?>>
 					<div class="w2p-form-label">
 						<label for="w2p_upload_rename_pattern"><?php _e('Rename Pattern', 'wp-genius'); ?></label>
 					</div>
@@ -178,26 +190,26 @@ $settings = wp_parse_args( $settings, $defaults );
 						<input name="w2p_accelerate_settings[upload_rename_pattern]" type="text" id="w2p_upload_rename_pattern" value="<?php echo esc_attr($settings['upload_rename_pattern']); ?>" class="w2p-input-large" />
 						<p class="description"><?php _e('Click any variable below to insert it into the pattern field.', 'wp-genius'); ?></p>
 
-						<div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 4px;">
-							<p style="margin: 0 0 10px 0; font-weight: 600; color: #2c3e50;"><?php _e('Available Variables (Click to Insert):', 'wp-genius'); ?></p>
-							<div style="display: flex; flex-wrap: wrap; gap: 8px; line-height: 2;">
-								<a href="#" class="w2p-pattern-var" data-var="{timestamp}" style="display: inline-block; padding: 4px 10px; background: #fff; border: 1px solid #ddd; border-radius: 3px; text-decoration: none; color: #0073aa; font-family: monospace; font-size: 12px; transition: all 0.2s;" title="<?php esc_attr_e('Unix timestamp', 'wp-genius'); ?>">{timestamp}</a>
-								<a href="#" class="w2p-pattern-var" data-var="{sanitized}" style="display: inline-block; padding: 4px 10px; background: #fff; border: 1px solid #ddd; border-radius: 3px; text-decoration: none; color: #0073aa; font-family: monospace; font-size: 12px; transition: all 0.2s;" title="<?php esc_attr_e('Sanitized original filename', 'wp-genius'); ?>">{sanitized}</a>
-								<a href="#" class="w2p-pattern-var" data-var="{rand}" style="display: inline-block; padding: 4px 10px; background: #fff; border: 1px solid #ddd; border-radius: 3px; text-decoration: none; color: #0073aa; font-family: monospace; font-size: 12px; transition: all 0.2s;" title="<?php esc_attr_e('Random number', 'wp-genius'); ?>">{rand}</a>
-								<a href="#" class="w2p-pattern-var" data-var="{date}" style="display: inline-block; padding: 4px 10px; background: #fff; border: 1px solid #ddd; border-radius: 3px; text-decoration: none; color: #0073aa; font-family: monospace; font-size: 12px; transition: all 0.2s;" title="<?php esc_attr_e('Date (Y-m-d)', 'wp-genius'); ?>">{date}</a>
-								<a href="#" class="w2p-pattern-var" data-var="{date:Ymd}" style="display: inline-block; padding: 4px 10px; background: #fff; border: 1px solid #ddd; border-radius: 3px; text-decoration: none; color: #0073aa; font-family: monospace; font-size: 12px; transition: all 0.2s;" title="<?php esc_attr_e('Date (Ymd)', 'wp-genius'); ?>">{date:Ymd}</a>
-								<a href="#" class="w2p-pattern-var" data-var="{datetime}" style="display: inline-block; padding: 4px 10px; background: #fff; border: 1px solid #ddd; border-radius: 3px; text-decoration: none; color: #0073aa; font-family: monospace; font-size: 12px; transition: all 0.2s;" title="<?php esc_attr_e('YmdHis format', 'wp-genius'); ?>">{datetime}</a>
-								<a href="#" class="w2p-pattern-var" data-var="{year}" style="display: inline-block; padding: 4px 10px; background: #fff; border: 1px solid #ddd; border-radius: 3px; text-decoration: none; color: #0073aa; font-family: monospace; font-size: 12px; transition: all 0.2s;" title="<?php esc_attr_e('Year', 'wp-genius'); ?>">{year}</a>
-								<a href="#" class="w2p-pattern-var" data-var="{month}" style="display: inline-block; padding: 4px 10px; background: #fff; border: 1px solid #ddd; border-radius: 3px; text-decoration: none; color: #0073aa; font-family: monospace; font-size: 12px; transition: all 0.2s;" title="<?php esc_attr_e('Month', 'wp-genius'); ?>">{month}</a>
-								<a href="#" class="w2p-pattern-var" data-var="{day}" style="display: inline-block; padding: 4px 10px; background: #fff; border: 1px solid #ddd; border-radius: 3px; text-decoration: none; color: #0073aa; font-family: monospace; font-size: 12px; transition: all 0.2s;" title="<?php esc_attr_e('Day', 'wp-genius'); ?>">{day}</a>
-								<a href="#" class="w2p-pattern-var" data-var="{hour}" style="display: inline-block; padding: 4px 10px; background: #fff; border: 1px solid #ddd; border-radius: 3px; text-decoration: none; color: #0073aa; font-family: monospace; font-size: 12px; transition: all 0.2s;" title="<?php esc_attr_e('Hour', 'wp-genius'); ?>">{hour}</a>
-								<a href="#" class="w2p-pattern-var" data-var="{minute}" style="display: inline-block; padding: 4px 10px; background: #fff; border: 1px solid #ddd; border-radius: 3px; text-decoration: none; color: #0073aa; font-family: monospace; font-size: 12px; transition: all 0.2s;" title="<?php esc_attr_e('Minute', 'wp-genius'); ?>">{minute}</a>
-								<a href="#" class="w2p-pattern-var" data-var="{second}" style="display: inline-block; padding: 4px 10px; background: #fff; border: 1px solid #ddd; border-radius: 3px; text-decoration: none; color: #0073aa; font-family: monospace; font-size: 12px; transition: all 0.2s;" title="<?php esc_attr_e('Second', 'wp-genius'); ?>">{second}</a>
-								<a href="#" class="w2p-pattern-var" data-var="{user_id}" style="display: inline-block; padding: 4px 10px; background: #fff; border: 1px solid #ddd; border-radius: 3px; text-decoration: none; color: #0073aa; font-family: monospace; font-size: 12px; transition: all 0.2s;" title="<?php esc_attr_e('User ID', 'wp-genius'); ?>">{user_id}</a>
-								<a href="#" class="w2p-pattern-var" data-var="{user_login}" style="display: inline-block; padding: 4px 10px; background: #fff; border: 1px solid #ddd; border-radius: 3px; text-decoration: none; color: #0073aa; font-family: monospace; font-size: 12px; transition: all 0.2s;" title="<?php esc_attr_e('User login name', 'wp-genius'); ?>">{user_login}</a>
-								<a href="#" class="w2p-pattern-var" data-var="{orig}" style="display: inline-block; padding: 4px 10px; background: #fff; border: 1px solid #ddd; border-radius: 3px; text-decoration: none; color: #0073aa; font-family: monospace; font-size: 12px; transition: all 0.2s;" title="<?php esc_attr_e('Original filename', 'wp-genius'); ?>">{orig}</a>
-								<a href="#" class="w2p-pattern-var" data-var="{ext}" style="display: inline-block; padding: 4px 10px; background: #fff; border: 1px solid #ddd; border-radius: 3px; text-decoration: none; color: #0073aa; font-family: monospace; font-size: 12px; transition: all 0.2s;" title="<?php esc_attr_e('File extension', 'wp-genius'); ?>">{ext}</a>
-								<a href="#" class="w2p-pattern-var" data-var="{uniqid}" style="display: inline-block; padding: 4px 10px; background: #fff; border: 1px solid #ddd; border-radius: 3px; text-decoration: none; color: #0073aa; font-family: monospace; font-size: 12px; transition: all 0.2s;" title="<?php esc_attr_e('PHP uniqid', 'wp-genius'); ?>">{uniqid}</a>
+						<div>
+							<p><?php _e('Available Variables (Click to Insert):', 'wp-genius'); ?></p>
+							<div class="w2p-pattern-var">
+								<a href="#" data-var="{timestamp}" title="<?php esc_attr_e('Unix timestamp', 'wp-genius'); ?>">{timestamp}</a>
+								<a href="#" data-var="{sanitized}" title="<?php esc_attr_e('Sanitized original filename', 'wp-genius'); ?>">{sanitized}</a>
+								<a href="#" data-var="{rand}" title="<?php esc_attr_e('Random number', 'wp-genius'); ?>">{rand}</a>
+								<a href="#" data-var="{date}" title="<?php esc_attr_e('Date (Y-m-d)', 'wp-genius'); ?>">{date}</a>
+								<a href="#" data-var="{date:Ymd}" title="<?php esc_attr_e('Date (Ymd)', 'wp-genius'); ?>">{date:Ymd}</a>
+								<a href="#" data-var="{datetime}" title="<?php esc_attr_e('YmdHis format', 'wp-genius'); ?>">{datetime}</a>
+								<a href="#" data-var="{year}" title="<?php esc_attr_e('Year', 'wp-genius'); ?>">{year}</a>
+								<a href="#" data-var="{month}" title="<?php esc_attr_e('Month', 'wp-genius'); ?>">{month}</a>
+								<a href="#" data-var="{day}" title="<?php esc_attr_e('Day', 'wp-genius'); ?>">{day}</a>
+								<a href="#" data-var="{hour}" title="<?php esc_attr_e('Hour', 'wp-genius'); ?>">{hour}</a>
+								<a href="#" data-var="{minute}" title="<?php esc_attr_e('Minute', 'wp-genius'); ?>">{minute}</a>
+								<a href="#" data-var="{second}" title="<?php esc_attr_e('Second', 'wp-genius'); ?>">{second}</a>
+								<a href="#" data-var="{user_id}" title="<?php esc_attr_e('User ID', 'wp-genius'); ?>">{user_id}</a>
+								<a href="#" data-var="{user_login}" title="<?php esc_attr_e('User login name', 'wp-genius'); ?>">{user_login}</a>
+								<a href="#" data-var="{orig}" title="<?php esc_attr_e('Original filename', 'wp-genius'); ?>">{orig}</a>
+								<a href="#" data-var="{ext}" title="<?php esc_attr_e('File extension', 'wp-genius'); ?>">{ext}</a>
+								<a href="#" data-var="{uniqid}" title="<?php esc_attr_e('PHP uniqid', 'wp-genius'); ?>">{uniqid}</a>
 							</div>
 						</div>
 					</div>
@@ -244,12 +256,16 @@ $settings = wp_parse_args( $settings, $defaults );
         </div>
 
         <!-- Danger Zone -->
-        <div class="w2p-section" style="border-color: var(--w2p-color-danger); background-color: rgba(214, 54, 56, 0.05);">
+        <div class="w2p-section">
+			<div class="w2p-section-header">
+                <h4><?php esc_html_e( 'Danger Zone', 'wp-genius' ); ?></h4>
+            </div>
             <div class="w2p-section-body">
+				<p class="description"><?php esc_html_e( 'Be careful with these options. These options can break your site if not used correctly.', 'wp-genius' ); ?></p>
                 <div class="w2p-grid-cards">
-                    <div class="w2p-toggle-card" style="border-color: var(--w2p-color-danger); background-color: rgba(214, 54, 56, 0.02);">
+                    <div class="w2p-toggle-card-danger">
                         <div class="w2p-toggle-header">
-                            <span class="w2p-toggle-title" style="color: var(--w2p-color-danger);"><?php esc_html_e( 'Block External HTTP', 'wp-genius' ); ?> (DANGER!)</span>
+                            <span class="w2p-toggle-title-danger"><?php esc_html_e( 'Block External HTTP', 'wp-genius' ); ?> (DANGER!)</span>
                             <label class="w2p-switch">
                                 <input type="checkbox" name="w2p_accelerate_settings[block_external_http]" value="1" <?php checked( $settings['block_external_http'], 1 ); ?> />
                                 <span class="w2p-slider"></span>
@@ -271,6 +287,7 @@ $settings = wp_parse_args( $settings, $defaults );
 		</div>
 	</form>
 </div>
+
 
 <script>
 (function($) {
@@ -302,26 +319,7 @@ $settings = wp_parse_args( $settings, $defaults );
 			} else {
 				$input.val(currentValue + variable);
 			}
-			
-			// Focus input and trigger change
-			$input.focus().trigger('change');
-			
-			// Visual feedback
-			$(this).css('background', '#d4edda').css('border-color', '#28a745');
-			setTimeout(function() {
-				$('.w2p-pattern-var').css('background', '#fff').css('border-color', '#ddd');
-			}, 300);
 		});
-		
-		// Hover effect for pattern variables
-		$('.w2p-pattern-var').hover(
-			function() {
-				$(this).css('background', '#e3f2fd').css('border-color', '#0073aa');
-			},
-			function() {
-				$(this).css('background', '#fff').css('border-color', '#ddd');
-			}
-		);
 	});
 })(jQuery);
 </script>

@@ -26,7 +26,7 @@
             $(document).ready(function () {
                 // Only if we are on the system health page
                 if ($('#w2p-health-scan-btn').length) {
-                    self.handleScanAction({ preventDefault: function () { } });
+                    // self.handleScanAction({ preventDefault: function () { } }); // Removed auto-scan as requested
                     self.fetchSystemInfo();
                 }
             });

@@ -40,6 +40,16 @@ class SeoLinkerModule extends W2P_Abstract_Module {
         add_shortcode( 'w2p_toc', [ $this, 'render_toc_shortcode' ] );
 
         $this->register_settings();
+        
+        // Asset loading
+        add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+    }
+
+    /**
+     * Enqueue admin scripts
+     */
+    public function enqueue_scripts( $hook ) {
+        // Assets are now handled globally
     }
 
     public function register_settings() {
