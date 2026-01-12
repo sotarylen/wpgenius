@@ -216,8 +216,9 @@ class SmartAUIModule extends W2P_Abstract_Module {
 		// 使用WP_GENIUS_FILE常量计算插件根目录URL
 		$plugin_url = plugin_dir_url( WP_GENIUS_FILE );
 		
+		wp_register_script( 'w2p-smart-auto-upload', $plugin_url . "assets/js/smart-auto-upload-progress-ui.js", array( 'w2p-core-js' ), '1.0.0', true );
+
 		wp_enqueue_script( 'w2p-smart-auto-upload' );
-		wp_enqueue_style( 'w2p-smart-auto-upload' );
 
 		wp_localize_script(
 			'w2p-smart-auto-upload',
@@ -350,6 +351,14 @@ class SmartAUIModule extends W2P_Abstract_Module {
 	 * Auto Set Featured Image
 	 */
 	public function auto_set_featured_image( $post_id, $post = null ) {
+		// [OPTIMIZATION] Immediate Bypassing for Deletion Actions
+		if ( isset( $_REQUEST['action'] ) ) {
+			$action = $_REQUEST['action'];
+			if ( in_array( $action, [ 'trash', 'delete', 'untrash' ], true ) ) {
+				return;
+			}
+		}
+
 		// 检查是否启用
 		$settings = get_option( 'smart_aui_settings', [] );
 		if ( empty( $settings['auto_set_featured_image'] ) ) {

@@ -59,8 +59,11 @@ class SystemHealthModule extends W2P_Abstract_Module {
             return;
         }
 
+        $plugin_url = plugin_dir_url( WP_GENIUS_FILE );
+        
+        wp_register_script( 'w2p-system-health', $plugin_url . "assets/js/modules/system-health.js", array( 'w2p-core-js', 'w2p-fa-icons' ), '1.0.0', true );
+
         wp_enqueue_script( 'w2p-system-health' );
-        wp_enqueue_style( 'w2p-system-health' );
         
         $service = new SystemHealthCleanupService();
         $sh_categories = $service->get_categories();

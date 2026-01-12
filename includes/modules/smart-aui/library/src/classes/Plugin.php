@@ -76,6 +76,15 @@ class Plugin {
 	 * @return array Modified post data.
 	 */
 	public function process_post_images( array $data, array $postarr ): array {
+		// [OPTIMIZATION] Immediate Bypassing for Deletion Actions
+		// Check global request action to skip ALL processing including HTML parsing
+		if ( isset( $_REQUEST['action'] ) ) {
+			$action = $_REQUEST['action'];
+			if ( in_array( $action, [ 'trash', 'delete', 'untrash' ], true ) ) {
+				return $data;
+			}
+		}
+
 		// Check if images were already processed by frontend JS or backend batch saving
 		if ( isset( $_POST['w2p_smart_aui_processed'] ) || isset( $_GET['w2p_smart_aui_processed'] ) ) {
 			return $data;

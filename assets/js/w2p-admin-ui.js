@@ -102,10 +102,15 @@
         },
 
         dismissToast: function (toast) {
-            toast.classList.remove('show');
+            toast.classList.add('fade-out');
             toast.addEventListener('transitionend', () => {
                 if (toast.parentNode) toast.parentNode.removeChild(toast);
-            });
+            }, { once: true });
+
+            // Fallback timeout in case transitionend fails
+            setTimeout(() => {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 400);
         },
 
         /**

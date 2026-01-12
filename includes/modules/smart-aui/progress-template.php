@@ -58,8 +58,8 @@
 
         <!-- Footer -->
         <div class="w2p-smart-aui-footer">
-            <button id="w2p-smart-aui-skip-publish-btn" type="button" class="w2p-btn w2p-btn-primary" style="display:none;"><?php _e( 'Skip and Publish', 'wp-genius' ); ?></button>
-            <button id="w2p-smart-aui-cancel-btn" type="button" class="w2p-btn w2p-btn-secondary"><i class="fa-solid fa-no-alt"></i><?php _e( 'Cancel Task', 'wp-genius' ); ?></button>
+            <button id="w2p-smart-aui-skip-publish-btn" type="button" class="w2p-btn w2p-btn-primary" style="display:none;"><i class="fa-solid fa-check"></i><?php _e( 'Skip and Publish', 'wp-genius' ); ?></button>
+            <button id="w2p-smart-aui-cancel-btn" type="button" class="w2p-btn w2p-btn-stop"><i class="fa-solid fa-xmark"></i><?php _e( 'Cancel Task', 'wp-genius' ); ?></button>
         </div>
     </div>
 </div>

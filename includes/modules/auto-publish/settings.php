@@ -23,6 +23,7 @@ $draft_count = count( get_posts( [
 	'posts_per_page' => -1,
 	'fields'         => 'ids',
 ] ) );
+$processed_count = 0;
 ?>
 
 <div class="w2p-settings-panel w2p-auto-publish-settings">
@@ -121,13 +122,17 @@ $draft_count = count( get_posts( [
 			</div>
 			
 			<div class="w2p-manual-publish-controls">
-				<p><?php printf( __( 'Current drafts: <strong>%d</strong>', 'wp-genius' ), $draft_count ); ?></p>
+				<div class="w2p-manual-publish-info">
+					<div style="flex: 1">
+						<?php printf( __( '<strong class="w2p-progress-text">%d/%d</strong>', 'wp-genius' ), $processed_count, $draft_count ); ?>
+					</div> 
+					<div style="flex: 3" class="progress-text"><?php _e( 'Initializing...', 'wp-genius' ); ?></div>
+				</div>
 				
 				<div id="w2p-publish-progress" style="display:none; margin-top:15px;">
 					<div class="progress-bar-container">
 						<div class="progress-bar-inner" style="width: 0%;"></div>
 					</div>
-					<p class="progress-text"><?php _e( 'Initializing...', 'wp-genius' ); ?></p>
                     
                     <!-- Smart AUI Preview Container -->
                     <div id="w2p-smart-aui-preview-area" class="w2p-smart-aui-preview-area" style="margin-top: 15px;"></div>
@@ -409,12 +414,13 @@ jQuery(document).ready(function($) {
 
 	function updateProgress(percent) {
 		$('.progress-bar-inner').css('width', percent + '%');
+		$('.w2p-manual-publish-controls .w2p-progress-text').text(processedCount + '/' + totalToProcess);
 	}
 
 	// Handle stats update from external shared script
 	$(document).on('w2p_auto_publish_stats_refreshed', function(e, data) {
 		totalToProcess = data.draft_count + processedCount;
-		$('.w2p-manual-publish-controls strong').text(data.draft_count);
+		$('.w2p-manual-publish-controls .w2p-progress-text').text(processedCount + '/' + totalToProcess);
 		
 		// Button state based on lock
 		if (data.active_lock === 'scheduled') {
@@ -428,7 +434,7 @@ jQuery(document).ready(function($) {
 		}
 
 		if (isRunning && data.next_post) {
-			$('.progress-text').html('<strong>[ID: ' + data.next_post.id + ']</strong> ' + data.next_post.title + ' <strong class="w2p-progress-count">[' + processedCount + '/' + totalToProcess + ']</strong>');
+			$('.progress-text').html('<strong>[ID: ' + data.next_post.id + ']</strong> ' + data.next_post.title);
 		}
 
 		// Update logs

@@ -85,7 +85,24 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 		// AJAX handlers
 		add_action( 'wp_ajax_wpg_set_featured_image', [ $this, 'ajax_set_featured_image' ] );
 		add_action( 'wp_ajax_wpg_delete_attachment', [ $this, 'ajax_delete_attachment' ] );
+
+        // Admin asset loading
+        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_scripts' ] );
 	}
+
+    /**
+     * Enqueue admin assets
+     */
+    public function enqueue_admin_scripts( $hook ) {
+        if ( strpos( $hook, 'wp-genius-settings' ) === false ) {
+            return;
+        }
+
+        $plugin_url = plugin_dir_url( WP_GENIUS_FILE );
+        
+        // Register helper scripts that might be needed by other modules or this one in admin
+        wp_register_script( 'w2p-fa-icons', $plugin_url . "assets/js/w2p-fa-icons.js", array( 'jquery' ), '1.0.0', true );
+    }
 
 	/**
 	 * Register default settings
@@ -148,31 +165,7 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 		
 		$settings = get_option( 'w2p_frontend_enhancement_settings', [] );
 
-		// Core frontend module styles (Lightbox, Video, etc.)
-		wp_enqueue_style(
-			'w2p-core-css',
-			plugin_dir_url( WP_GENIUS_FILE ) . 'assets/css/modules/core.css',
-			[],
-			'1.0.5'
-		);
-
-		wp_enqueue_style(
-			'wpg-frontend-enhancements',
-			plugin_dir_url( WP_GENIUS_FILE ) . 'assets/css/modules/frontend-enhancements.css',
-			[ 'w2p-core-css' ],
-			'1.0.5'
-		);
-
-		// Enqueue Dashicons for Toast Icons
-		wp_enqueue_style( 'dashicons' );
-
-		// Enqueue Admin UI (Global Notifications) for Lightbox
-		wp_enqueue_style(
-			'w2p-admin-ui',
-			plugin_dir_url( WP_GENIUS_FILE ) . 'assets/css/w2p-admin-ui.css',
-			[],
-			'1.0.0'
-		);
+		// Styles are now loaded globally via w2p_core_enqueue_scripts
 		wp_enqueue_script(
 			'w2p-admin-ui',
 			plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/w2p-admin-ui.js',
@@ -254,7 +247,7 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 					'autoplay'     => __( 'Autoplay', 'wp-genius' ),
 					'downloading'  => __( 'Downloading...', 'wp-genius' ),
 					'success'      => __( 'Featured image updated!', 'wp-genius' ),
-					'error'        => __( 'Failed to update featured image.', 'wp-genius' ),
+					'error'        => __( 'An error occurred.', 'wp-genius' ), // [FIX] Generic error message (was misleadingly "Failed to update featured image")
 					'deleteSuccess'=> __( 'Image deleted successfully!', 'wp-genius' ),
 					'deleteError'  => __( 'Failed to delete image.', 'wp-genius' ),
 				],
@@ -406,28 +399,39 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 		check_ajax_referer( 'wpg_lightbox_action', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( __( 'Permission denied. Only administrators can delete images.', 'wp-genius' ) );
+			wp_send_json_error( [ 'message' => __( 'Permission denied. Only administrators can delete images.', 'wp-genius' ) ] );
 		}
 
 		$attachment_id = isset( $_POST['attachment_id'] ) ? absint( $_POST['attachment_id'] ) : 0;
 
 		if ( ! $attachment_id ) {
-			wp_send_json_error( __( 'Invalid parameters.', 'wp-genius' ) );
+			wp_send_json_error( [ 'message' => __( 'Invalid parameters.', 'wp-genius' ) ] );
 		}
 
-		// Delete attachment (this also deletes thumbnails/files from disk)
-		$result = wp_delete_attachment( $attachment_id, true );
-
-		if ( $result ) {
-			wp_send_json_success( [
-				'message' => __( 'Image deleted successfully from media library!', 'wp-genius' ),
-			] );
-		} else {
-			wp_send_json_error( __( 'Failed to delete image from media library.', 'wp-genius' ) );
+		// [FIX] Ensure necessary WordPress admin files are loaded for delete operations
+		if ( ! function_exists( 'wp_delete_attachment' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/image.php';
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			require_once ABSPATH . 'wp-admin/includes/media.php';
 		}
-	}
-	public function render_settings() {
-		$this->render_view( 'settings' );
+
+		try {
+			// Delete attachment (this also deletes thumbnails/files from disk)
+			// Force delete = true to bypass trash
+			$result = wp_delete_attachment( $attachment_id, true );
+
+			if ( $result ) {
+				wp_send_json_success( [
+					'message' => __( 'Image deleted successfully from media library!', 'wp-genius' ),
+				] );
+			} else {
+				wp_send_json_error( [ 'message' => __( 'Failed to delete image from media library.', 'wp-genius' ) ] );
+			}
+		} catch ( \Throwable $e ) {
+			// Catch any fatal errors or exceptions to prevent 500 header
+			error_log( 'WP Genius Lightbox Delete Error: ' . $e->getMessage() );
+			wp_send_json_error( [ 'message' => __( 'Internal Server Error: ', 'wp-genius' ) . $e->getMessage() ] );
+		}
 	}
 
 	public function settings_key() {

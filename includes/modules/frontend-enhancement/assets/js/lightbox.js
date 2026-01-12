@@ -760,22 +760,30 @@
          * Delete image from media library
          */
         deleteImage($btn) {
+            const self = this; // Ensure 'this' context is preserved
             const image = this.images[this.currentIndex];
 
+            if (!image) {
+                console.error('WPGenius Lightbox: No image found at index ' + this.currentIndex);
+                return;
+            }
+
             if (!image.attachmentId) {
+                console.warn('WPGenius Lightbox: Image has no attachment ID', image);
+                const msg = this.i18n.noAttachmentId || 'Image attachment ID not found.';
                 if (window.w2p) {
-                    window.w2p.toast(this.i18n.noAttachmentId || 'Image attachment ID not found.', 'warning');
+                    window.w2p.toast(msg, 'warning');
                 } else {
-                    alert(this.i18n.noAttachmentId || 'Image attachment ID not found.');
+                    alert(msg);
                 }
                 return;
             }
 
             const confirmMsg = this.i18n.confirmDelete || 'Are you sure you want to permanently delete this image?';
 
-            if (window.w2p) {
-                window.w2p.confirm(confirmMsg, () => {
-                    this.executeDelete(image, $btn);
+            if (window.w2p && window.w2p.confirm) {
+                window.w2p.confirm(confirmMsg, function () { // Use regular function to allow explicit binding if needed, though arrow func usually inherits 'this' from lex scope
+                    self.executeDelete(image, $btn);
                 });
             } else if (confirm(confirmMsg)) {
                 this.executeDelete(image, $btn);
@@ -786,6 +794,7 @@
          * Execute deletion AJAX
          */
         executeDelete(image, $btn) {
+            const self = this;
             const originalHtml = $btn.html();
             $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
 
@@ -797,42 +806,54 @@
                     nonce: this.nonce,
                     attachment_id: image.attachmentId
                 },
-                success: (response) => {
+                success: (response) => { // Arrow function here preserves 'this' as the class instance (or 'self')
                     if (response.success) {
                         if (window.w2p) {
-                            window.w2p.toast(response.data.message || this.i18n.deleteSuccess || 'Image deleted!', 'success');
+                            window.w2p.toast(response.data.message || self.i18n.deleteSuccess || 'Image deleted!', 'success');
+                        } else {
+                            // Fallback for success msg
+                            console.log(response.data.message);
                         }
 
                         // Remove image from frontend collection
-                        this.images.splice(this.currentIndex, 1);
+                        self.images.splice(self.currentIndex, 1);
 
                         // Also hide the original image in the post content
                         if (image.element) {
-                            $(image.element).fadeOut();
+                            // Also try to remove the container if it's a figure
+                            const $img = $(image.element);
+                            const $figure = $img.closest('figure');
+                            if ($figure.length > 0) {
+                                $figure.fadeOut(function () { $(this).remove(); });
+                            } else {
+                                $img.fadeOut(function () { $(this).remove(); });
+                            }
                         }
 
-                        if (this.images.length === 0) {
-                            this.close();
+                        if (self.images.length === 0) {
+                            self.close();
                         } else {
                             // Move to next image (or previous if it was the last one)
-                            if (this.currentIndex >= this.images.length) {
-                                this.currentIndex = this.images.length - 1;
+                            if (self.currentIndex >= self.images.length) {
+                                self.currentIndex = self.images.length - 1;
                             }
-                            this.showImage(true);
+                            self.showImage(true);
                         }
                     } else {
+                        const errMsg = (response.data && response.data.message) ? response.data.message : (response.data || self.i18n.deleteError || 'Failed to delete image.');
                         if (window.w2p) {
-                            window.w2p.toast(response.data || this.i18n.deleteError || 'Failed to delete image.', 'error');
+                            window.w2p.toast(errMsg, 'error');
                         } else {
-                            alert(response.data || this.i18n.deleteError || 'Failed to delete image.');
+                            alert(errMsg);
                         }
                     }
                 },
                 error: (xhr, status, error) => {
+                    console.error('WPGenius Lightbox Delete Error:', error);
                     if (window.w2p) {
-                        window.w2p.toast(this.i18n.error || 'Request failed.', 'error');
+                        window.w2p.toast(self.i18n.error || 'Request failed.', 'error');
                     } else {
-                        alert(this.i18n.error || 'Request failed.');
+                        alert(self.i18n.error || 'Request failed.');
                     }
                 },
                 complete: () => {

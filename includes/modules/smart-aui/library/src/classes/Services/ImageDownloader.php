@@ -83,6 +83,26 @@ class ImageDownloader {
 	 * @return array|WP_Error Download result or error.
 	 */
 	public function download_image( array $image_data, array $post_data ) {
+		// [FIX] Prevent download when trashing/deleting
+		if ( isset( $_REQUEST['action'] ) ) {
+			$action = $_REQUEST['action'];
+			if ( in_array( $action, [ 'trash', 'delete', 'untrash' ], true ) ) {
+				return $image_data;
+			}
+		}
+
+		if ( isset( $post_data['post_status'] ) && 'trash' === $post_data['post_status'] ) {
+			return $image_data;
+		}
+		
+		// Double check DB status if ID exists
+		if ( ! empty( $post_data['ID'] ) ) {
+			$current_status = get_post_status( $post_data['ID'] );
+			if ( 'trash' === $current_status ) {
+				return $image_data;
+			}
+		}
+
 		// Check if the URL has failed before
 		if ( $this->failed_manager && $this->failed_manager->is_failed( $image_data['url'] ) ) {
 			$this->logger->warning( 'Skipping previously failed image', [ 'url' => $image_data['url'] ] );

@@ -107,6 +107,9 @@ class AiAssistantModule extends W2P_Abstract_Module {
             return;
         }
 
+        $plugin_url = plugin_dir_url( WP_GENIUS_FILE );
+        wp_register_script( 'w2p-ai-assistant', $plugin_url . "assets/js/modules/ai-assistant.js", array( 'w2p-core-js' ), '1.0.0', true );
+
         wp_enqueue_script( 'w2p-ai-assistant' );
         wp_localize_script( 'w2p-ai-assistant', 'w2pAiParams', [
             'ajax_url' => admin_url( 'admin-ajax.php' ),

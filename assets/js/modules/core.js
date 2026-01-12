@@ -89,6 +89,35 @@
                 // 这里可以添加自定义工具提示逻辑
             }
         });
+
+        // 危险级开关确认对话框 (Migrated from admin-modules.js)
+        $(document).on('change', '.w2p-danger-toggle', function (e) {
+            if ($(this).is(':checked')) {
+                var $checkbox = $(this);
+                // Revert first to handle async flow
+                $checkbox.prop('checked', false);
+
+                var confirmMessage = '警告：启用此功能将阻止所有外部HTTP请求，包括插件和主题的更新检查。这会显著加快后台加载速度，但可能导致某些功能失效。\n\n您确定要继续吗？';
+
+                if (window.w2p && window.w2p.confirm) {
+                    w2p.confirm(
+                        confirmMessage,
+                        function () {
+                            // User confirmed, apply the check
+                            $checkbox.prop('checked', true);
+                        },
+                        function () {
+                            // User cancelled, do nothing (already reverted)
+                        }
+                    );
+                } else {
+                    // Fallback to native confirm if w2p not ready
+                    if (confirm(confirmMessage)) {
+                        $checkbox.prop('checked', true);
+                    }
+                }
+            }
+        });
     };
 
     $(document).ready(function () {

@@ -69,7 +69,9 @@ class AutoPublishModule extends W2P_Abstract_Module {
 			return;
 		}
 
-		wp_enqueue_style( 'w2p-auto-publish' );
+		$plugin_url = plugin_dir_url( WP_GENIUS_FILE );
+		
+		wp_register_script( 'w2p-auto-publish', $plugin_url . "assets/js/modules/auto-publish.js", array( 'w2p-core-js' ), '1.0.0', true );
 
 		wp_enqueue_script( 'w2p-auto-publish' );
 
@@ -98,7 +100,7 @@ class AutoPublishModule extends W2P_Abstract_Module {
 		}
 
 		?>
-		<div id="w2p-scheduled-task-status" class="w2p-status-box" style="display:none; margin-top: 20px;">
+		<div id="w2p-scheduled-task-status" class="w2p-status-box" style="display:none;">
 			<div class="status-header">
 				<span class="pulse-icon"></span>
 				<strong><?php _e( 'Scheduled Publishing in Progress...', 'wp-genius' ); ?></strong>

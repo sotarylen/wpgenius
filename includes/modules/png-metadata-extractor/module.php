@@ -193,7 +193,8 @@ class PngMetadataExtractorModule extends W2P_Abstract_Module {
      */
     public function enqueue_frontend_assets() {
         wp_enqueue_style('w2p-core-css');
-        wp_enqueue_script('png-metadata-extractor', plugin_dir_url(dirname(dirname(__FILE__))) . 'assets/js/png-metadata-extractor.js', array('jquery'), null, true);
+        $plugin_url = plugin_dir_url( WP_GENIUS_FILE );
+        wp_enqueue_script('png-metadata-extractor', $plugin_url . 'assets/js/png-metadata-extractor.js', array('jquery'), '1.0.0', true);
         
         wp_localize_script('png-metadata-extractor', 'pngMetadataExtractor', array(
             'ajaxurl' => admin_url('admin-ajax.php'),

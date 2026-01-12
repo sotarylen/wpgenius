@@ -30,7 +30,12 @@ function get_users_with_edit_caps() {
 function enqueue_scripts() {
 
   $current_screen = get_current_screen();
-  if ( 'site-editor' == $current_screen->id ) {
+  if ( ! $current_screen || ( 'site-editor' === $current_screen->id ) ) {
+    return;
+  }
+
+  // Only load on post list or post edit screens
+  if ( ! in_array( $current_screen->base, [ 'edit', 'post', 'post-new' ] ) ) {
     return;
   }
 

@@ -12,12 +12,15 @@
         previewItems: [],
         currentIndex: 0,
         isRunning: false,
+        isAutoMode: false,
         stopRequested: false,
+        totalAutoProcessed: 0,
         currentXHR: null,
         stats: { success: 0, skipped: 0, error: 0, affected: 0, deleted: 0 },
 
         init: function () {
             $('#w2p-scan-media').on('click', this.handleScan.bind(this));
+            $('#w2p-start-auto-batch').on('click', this.handleAutoBatch.bind(this));
             $('#w2p-start-bulk').on('click', this.startBulkConversion.bind(this));
             $('#w2p-stop-bulk').on('click', this.stopProcessing.bind(this));
             $('#w2p-reset-processed').on('click', this.resetProcessed.bind(this));
@@ -36,14 +39,32 @@
             var $btn = $(e.currentTarget);
             var scanLimit = parseInt($('#w2p-scan-limit').val()) || 100;
 
-            w2p.loading($btn, true);
+            if (!this.isAutoMode) {
+                w2p.loading($btn, true);
+            }
 
             $.post(w2pMediaTurbo.ajax_url, {
                 action: 'w2p_media_turbo_get_stats',
                 nonce: w2pMediaTurbo.nonce,
-                limit: scanLimit
+                limit: this.isAutoMode ? 100 : scanLimit // Auto mode always pulls 100 at a time
             }, this.handleScanResponse.bind(this))
                 .fail(this.handleScanError.bind(this, $btn));
+        },
+
+        handleAutoBatch: function (e) {
+            if (this.isRunning) return;
+
+            w2p.confirm('Full Auto Optimization will process your entire library in batches of 100 until finished. Continue?', () => {
+                this.isAutoMode = true;
+                this.totalAutoProcessed = 0;
+                this.stats = { success: 0, skipped: 0, error: 0, affected: 0, deleted: 0 };
+
+                $('#w2p-start-auto-batch').prop('disabled', true).addClass('w2p-btn-loading');
+                $('#w2p-scan-media').prop('disabled', true);
+                $('#w2p-reset-processed').prop('disabled', true);
+
+                this.handleScan(e);
+            });
         },
 
         handleScanResponse: function (response) {
@@ -51,35 +72,49 @@
 
             if (response.success) {
                 this.allIds = response.data.allIds || [];
-                this.previewItems = response.data.allIds || []; // 显示所有找到的图片，不限制50条
-
-                this.renderScanResults();
-
-                // 在顶部显示当前捕获到的文件数量
-                var statusText = 'Found ' + this.allIds.length + ' images ready for conversion.';
-                $('#w2p-bulk-status-detailed').html('<strong style="color:#10a754;">' + statusText + '</strong>');
+                this.previewItems = response.data.preview || [];
 
                 if (this.allIds.length > 0) {
-                    $('#w2p-start-bulk').fadeIn();
-                    $('#w2p-scan-results-wrapper').fadeIn();
-                    if (window.WPGenius.UI) {
-                        WPGenius.UI.showFeedback($btn, 'Scan Complete', 'success');
+                    if (this.isAutoMode) {
+                        $('#w2p-bulk-status-detailed').html('<strong style="color:var(--w2p-color-info);">Starting next auto-batch of ' + this.allIds.length + '...</strong>');
+                        this.renderScanResults();
+                        $('#w2p-scan-results-wrapper').fadeIn();
+                        // Start processing immediately
+                        setTimeout(() => {
+                            this.startBulkConversion({ currentTarget: $('#w2p-start-bulk') });
+                        }, 500);
+                    } else {
+                        this.renderScanResults();
+                        var statusText = 'Found ' + this.allIds.length + ' images ready for conversion.';
+                        $('#w2p-bulk-status-detailed').html('<strong style="color:#10a754;">' + statusText + '</strong>');
+                        $('#w2p-start-bulk').fadeIn();
+                        $('#w2p-scan-results-wrapper').fadeIn();
+                        if (window.WPGenius.UI) {
+                            WPGenius.UI.showFeedback($btn, 'Scan Complete', 'success');
+                        }
                     }
                 } else {
-                    if (window.WPGenius.UI) {
-                        WPGenius.UI.showFeedback($btn, 'No Images', 'warning');
+                    if (this.isAutoMode) {
+                        this.finishConversion('Full Auto Optimization Finished! No more images found.');
                     } else {
-                        WPGenius.UI.toast('No images found that need conversion.', 'warning');
+                        if (window.WPGenius.UI) {
+                            WPGenius.UI.showFeedback($btn, 'No Images', 'warning');
+                        } else {
+                            w2p.toast('No images found that need conversion.', 'warning');
+                        }
                     }
                 }
             } else {
+                this.isAutoMode = false; // Stop auto mode on error
                 if (window.WPGenius.UI) {
                     WPGenius.UI.showFeedback($btn, 'Scan Failed', 'error');
                 } else {
-                    WPGenius.UI.toast('Scan failed: ' + (response.data || 'Unknown error'), 'error');
+                    w2p.toast('Scan failed: ' + (response.data || 'Unknown error'), 'error');
                 }
             }
-            w2p.loading($btn, false);
+            if (!this.isAutoMode) {
+                w2p.loading($btn, false);
+            }
         },
 
         handleScanError: function ($btn) {
@@ -93,44 +128,50 @@
 
         renderScanResults: function () {
             var $container = $('#w2p-scan-items');
-            $container.empty();
+
+            if (!this.isAutoMode) {
+                $container.empty();
+            }
 
             this.previewItems.forEach((item) => {
-                $container.append(this.createRowHtml(item));
+                if (item.html) {
+                    if (this.isAutoMode) {
+                        // Prepend for auto-mode log feel
+                        if ($('#w2p-item-' + item.id).length === 0) {
+                            $container.prepend(item.html);
+                        }
+                    } else {
+                        $container.append(item.html);
+                    }
+                }
             });
-        },
 
-        createRowHtml: function (item, statusText = 'Pending', statusClass = 'pending', timeText = '') {
-            var thumb = item.thumbUrl ?
-                '<img src="' + item.thumbUrl + '" class="w2p-item-thumb" />' :
-                '<div class="w2p-item-thumb" style="display:flex;align-items:center;justify-content:center;background:#eee;color:#999;font-size:10px;">No Img</div>';
-            var fileName = item.fileName || 'ID: ' + item.id;
-            var fileSize = item.fileSize ? ' <small>(' + item.fileSize + ' KB)</small>' : '';
-            var association = item.parentUrl ?
-                '<small>Post: <a href="' + item.parentUrl + '" target="_blank">' + item.parentTitle + '</a></small>' :
-                '<small>Orphaned image</small>';
-
-            return '<tr id="w2p-item-' + item.id + '">' +
-                '<td>' + thumb + '</td>' +
-                '<td><div class="w2p-item-info"><strong>' + fileName + fileSize + '</strong>' + association + '</div></td>' +
-                '<td class="w2p-item-status"><span class="w2p-status-badge w2p-status-' + statusClass + '">' + statusText + '</span></td>' +
-                '<td class="w2p-item-time"><small>' + timeText + '</small></td>' +
-                '</tr>';
+            // Limit to 100 rows immediately
+            var $rows = $container.find('tr');
+            if ($rows.length > 100) {
+                $rows.slice(100).remove();
+            }
         },
 
         startBulkConversion: function (e) {
-            if (this.isRunning) return;
+            if (this.isRunning && !this.isAutoMode) return;
 
             this.isRunning = true;
             this.stopRequested = false;
 
-            $(e.currentTarget).prop('disabled', true).hide();
+            if (!this.isAutoMode) {
+                $(e.currentTarget).prop('disabled', true).hide();
+                $('#w2p-scan-media').prop('disabled', true);
+                $('#w2p-start-auto-batch').prop('disabled', true);
+            }
+
             $('#w2p-stop-bulk').fadeIn().prop('disabled', false).html('<i class="fa-solid fa-xmark"></i> Stop');
-            $('#w2p-scan-media').prop('disabled', true);
             $('#w2p-bulk-progress-wrapper').fadeIn();
 
             this.currentIndex = 0;
-            this.stats = { success: 0, skipped: 0, error: 0, affected: 0, deleted: 0 };
+            if (!this.isAutoMode) {
+                this.stats = { success: 0, skipped: 0, error: 0, affected: 0, deleted: 0 };
+            }
             this.processNextBatch();
         },
 
@@ -165,22 +206,18 @@
 
             $('#w2p-bulk-status-detailed').html(
                 'Processing: ' + (this.currentIndex + 1) + ' to ' + Math.min(this.currentIndex + batchSize, this.allIds.length) + ' of ' + this.allIds.length + ' | ' +
-                '<span style="color:#10a754;">Success: ' + this.stats.success + '</span> | ' +
-                '<span style="color:#d94f1a;">Posts Updated: ' + this.stats.affected + '</span> | ' +
-                '<span style="color:#0073aa;">Files Deleted: ' + this.stats.deleted + '</span>'
+                'Success: ' + this.stats.success + ' | ' +
+                'Posts Updated: ' + this.stats.affected + ' | ' +
+                'Files Deleted: ' + this.stats.deleted
             );
 
             chunk.forEach((id, index) => {
                 var $row = $('#w2p-item-' + id);
-                if ($row.length === 0) {
-                    var newItem = { id: id, fileName: 'Image ' + id };
-                    $('#w2p-scan-items').prepend(this.createRowHtml(newItem, 'Processing...', 'processing'));
-                    $row = $('#w2p-item-' + id);
-                } else {
+                if ($row.length > 0) {
                     $row.find('.w2p-item-status').html('<span class="w2p-status-badge w2p-status-processing">Processing...</span>');
-                }
-                if (index === 0) {
-                    $row[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    if (index === 0) {
+                        $row[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
                 }
             });
 
@@ -199,11 +236,6 @@
                 response.data.forEach(res => {
                     var $itemRow = $('#w2p-item-' + res.id);
                     var $itemStatus = $itemRow.find('.w2p-item-status');
-                    var $itemTime = $itemRow.find('.w2p-item-time');
-                    var now = new Date();
-                    var timeStr = now.getHours().toString().padStart(2, '0') + ':' +
-                        now.getMinutes().toString().padStart(2, '0') + ':' +
-                        now.getSeconds().toString().padStart(2, '0');
 
                     if (res.status === 'success') {
                         this.stats.success++;
@@ -217,39 +249,38 @@
                             statusMsg += ' [' + res.deleted + ' files deleted]';
                         }
                         $itemStatus.html('<span class="w2p-status-badge w2p-status-success">' + statusMsg + '</span>');
-                        $itemTime.html('<small>' + timeStr + '</small>');
-
-                        // 实时更新统计信息
-                        this.updateOverallProgress();
                     } else if (res.status === 'skipped') {
                         this.stats.skipped++;
                         $itemStatus.html('<span class="w2p-status-badge w2p-status-skipped">Skipped</span>');
-                        $itemTime.html('<small>' + timeStr + '</small>');
-                        this.updateOverallProgress();
                     } else {
                         this.stats.error++;
                         $itemStatus.html('<span class="w2p-status-badge w2p-status-error">Fail</span>');
-                        $itemTime.html('<small>' + timeStr + '</small>');
-                        this.updateOverallProgress();
                     }
                 });
             } else {
                 this.stats.error += chunk.length;
-                var now = new Date();
-                var timeStr = now.getHours().toString().padStart(2, '0') + ':' +
-                    now.getMinutes().toString().padStart(2, '0') + ':' +
-                    now.getSeconds().toString().padStart(2, '0');
                 chunk.forEach(id => {
                     $('#w2p-item-' + id).find('.w2p-item-status').html('<span class="w2p-status-badge w2p-status-error">Batch Error</span>');
-                    $('#w2p-item-' + id).find('.w2p-item-time').html('<small>' + timeStr + '</small>');
                 });
-                this.updateOverallProgress();
             }
 
             this.currentIndex += chunk.length;
+            this.updateOverallProgress();
 
             if (!this.stopRequested) {
-                setTimeout(this.processNextBatch.bind(this), 200);
+                if (this.currentIndex >= this.allIds.length) {
+                    setTimeout(() => {
+                        if (this.isAutoMode) {
+                            // Continue to next scan
+                            $('#w2p-bulk-status-detailed').html('<strong style="color:var(--w2p-color-info);">Batch done. Scanning for more...</strong>');
+                            this.handleScan({ currentTarget: $('#w2p-scan-media') });
+                        } else {
+                            this.finishConversion('Bulk Optimization Complete!');
+                        }
+                    }, 800);
+                } else {
+                    setTimeout(this.processNextBatch.bind(this), 200);
+                }
             } else {
                 this.finishConversion('Stopped by user.');
             }
@@ -272,7 +303,19 @@
             this.updateOverallProgress();
 
             if (!this.stopRequested) {
-                setTimeout(this.processNextBatch.bind(this), 200);
+                if (this.currentIndex >= this.allIds.length) {
+                    setTimeout(() => {
+                        if (this.isAutoMode) {
+                            // Continue to next scan
+                            $('#w2p-bulk-status-detailed').html('<strong style="color:var(--w2p-color-info);">Batch done (with errors). Scanning for more...</strong>');
+                            this.handleScan({ currentTarget: $('#w2p-scan-media') });
+                        } else {
+                            this.finishConversion('Bulk Optimization Complete!');
+                        }
+                    }, 800);
+                } else {
+                    setTimeout(this.processNextBatch.bind(this), 200);
+                }
             } else {
                 this.finishConversion('Stopped by user.');
             }
@@ -281,21 +324,42 @@
         updateOverallProgress: function () {
             var processed = Math.min(this.currentIndex, this.allIds.length);
             var progress = (processed / this.allIds.length) * 100;
+
+            // In auto mode, the progress bar reflects the current batch
             $('#w2p-bulk-progress-bar').css('width', progress + '%');
+
+            var statusHtml = 'Processed: ' + processed + ' / ' + this.allIds.length;
+            if (this.isAutoMode) {
+                statusHtml = 'Auto-Mode | ' + statusHtml;
+            }
+
             $('#w2p-bulk-status-detailed').html(
-                'Processed: ' + processed + ' / ' + this.allIds.length + ' | ' +
-                '<span style="color:#10a754;">Success: ' + this.stats.success + '</span> | ' +
-                '<span style="color:#d94f1a;">Posts Updated: ' + this.stats.affected + '</span> | ' +
-                '<span style="color:#0073aa;">Files Deleted: ' + this.stats.deleted + '</span>'
+                statusHtml + ' | ' +
+                'Success: ' + this.stats.success + ' | ' +
+                'Posts Updated: ' + this.stats.affected + ' | ' +
+                'Files Deleted: ' + this.stats.deleted
             );
+
+            // Manage log rows limit (100)
+            var $rows = $('#w2p-scan-items tr');
+            if ($rows.length > 100) {
+                $rows.slice(100).remove(); // Keep only the top 100
+            }
         },
 
         finishConversion: function (message) {
             this.isRunning = false;
+            this.isAutoMode = false;
             this.currentXHR = null;
+            // Ensure progress bar is full if we reached the end
+            if (this.currentIndex >= this.allIds.length) {
+                $('#w2p-bulk-progress-bar').css('width', '100%');
+            }
             $('#w2p-stop-bulk').hide();
-            $('#w2p-start-bulk').show().html('<i class="fa-solid fa-arrow-right"></i> Optimize Again').prop('disabled', false); // Assuming icon for optimize again
+            $('#w2p-start-auto-batch').prop('disabled', false).removeClass('w2p-btn-loading');
+            $('#w2p-start-bulk').show().html('<i class="fa-solid fa-arrow-right"></i> Optimize Again').prop('disabled', false);
             $('#w2p-scan-media').prop('disabled', false);
+            $('#w2p-reset-processed').prop('disabled', false);
             // 去除弹窗提示，仅在状态栏显示
             $('#w2p-bulk-status-detailed').html('<strong style="color:#10a754;">' + message + '</strong>');
             if (window.WPGenius.UI) {
