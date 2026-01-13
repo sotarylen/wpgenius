@@ -804,7 +804,8 @@
                 data: {
                     action: 'wpg_delete_attachment',
                     nonce: this.nonce,
-                    attachment_id: image.attachmentId
+                    attachment_id: image.attachmentId,
+                    post_id: this.postId
                 },
                 success: (response) => { // Arrow function here preserves 'this' as the class instance (or 'self')
                     if (response.success) {

@@ -40,7 +40,7 @@
     --w2p-color-primary-hover: #0c825b;
     --w2p-color-primary-light: #eef2ff;
     --w2p-color-primary-focus: rgba(44, 110, 4, 0.2);
-    --w2p-gradient-primary: linear-gradient(135deg, #024240 0%, #10b981 100%);
+    --w2p-gradient-primary: linear-gradient(45deg, #024240 0%, #10b981 100%);
 
     --w2p-color-success: #10b981;
     --w2p-color-success-bg: #ecfdf5;
@@ -1007,7 +1007,7 @@
     background: var(--w2p-bg-surface-secondary);
     border-radius: var(--w2p-radius-lg);
     border: 1px solid var(--w2p-border-color);
-    max-height: 550px;
+    max-height: 800px;
     overflow-y: auto;
     position: relative;
     box-shadow: var(--w2p-shadow-sm);
@@ -1510,7 +1510,6 @@
     justify-content: space-between;
     align-items: center;
     padding: var(--w2p-spacing-md) 0;
-    vertical-align: middle;
     gap: var(--w2p-spacing-md);
 }
 
@@ -1520,6 +1519,40 @@
     font-size: var(--w2p-font-size-2xl);
     color: var(--w2p-color-primary);
 }
+
+/* Fix Chapter Index Module Styles */
+
+/* Layout: Split View (Config + Logs) */
+.w2p-fix-index-split {
+    display: grid;
+    grid-template-columns: minmax(450px, 1fr) 1.5fr;
+    gap: var(--w2p-spacing-xl);
+    align-items: start;
+}
+
+@media (max-width: 1024px) {
+    .w2p-fix-index-split {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Log Table Overrides for Fix Index */
+.w2p-fix-index-logs .wp-list-table {
+    border: none;
+    box-shadow: none;
+    margin: 0;
+}
+
+.w2p-fix-index-logs .wp-list-table th {
+    font-family: var(--w2p-font-family-base-bold);
+    background: var(--w2p-color-info-bg);
+}
+
+.w2p-fix-index-logs .wp-list-table th,
+.w2p-fix-index-logs .wp-list-table td {
+    padding: 10px 15px;
+}
+
 
 /* --- Highlighting Styles --- */
 /* Font Family Variable - Set inline in class-highlight-handler.php */
@@ -2160,8 +2193,9 @@ pre[class*="language-"] {
 }
 
 .w2p-smart-aui-status-text {
-    font-size: var(--w2p-font-size-md);
-    line-height: 1.5;
+    color: var(--w2p-color-info);
+    font-size: var(--w2p-font-size-sm);
+    line-height: 1.6;
 }
 
 /* Stats Row - Card based */

@@ -170,9 +170,12 @@ class MediaTurboConverterService {
     /**
      * Get Total Candidate Count
      */
-    public function get_total_candidate_count() {
+    public function get_total_candidate_count( $settings_overrides = [] ) {
         global $wpdb;
         $settings = get_option( 'w2p_media_turbo_settings', [] );
+        if ( ! empty( $settings_overrides ) && is_array( $settings_overrides ) ) {
+            $settings = array_merge( $settings, $settings_overrides );
+        }
         $scan_mode = $settings['scan_mode'] ?? 'media';
         
         $mimes = [];
@@ -220,9 +223,12 @@ class MediaTurboConverterService {
     /**
      * Get Conversion Candidates
      */
-    public function get_conversion_candidates( $limit = 100, $offset = 0, $ids_only = false ) {
+    public function get_conversion_candidates( $limit = 100, $offset = 0, $ids_only = false, $settings_overrides = [] ) {
         global $wpdb;
         $settings = get_option( 'w2p_media_turbo_settings', [] );
+        if ( ! empty( $settings_overrides ) && is_array( $settings_overrides ) ) {
+            $settings = array_merge( $settings, $settings_overrides );
+        }
         $scan_mode = $settings['scan_mode'] ?? 'media';
         $min_file_size = isset( $settings['min_file_size'] ) ? absint( $settings['min_file_size'] ) * 1024 : 1024 * 1024; // Convert KB to bytes
             
@@ -294,7 +300,19 @@ class MediaTurboConverterService {
                     foreach ( $batch_ids as $id ) {
                         if ( count( $ids ) >= $limit ) break;
                         $file = get_attached_file( $id );
+                        
+                        $is_candidate = false;
                         if ( $file && file_exists( $file ) && filesize( $file ) >= $min_file_size ) {
+                            $is_candidate = true;
+                        } elseif ( $file ) {
+                             // Check for existing WebP if original is missing (for association workflow)
+                             $webp_path = preg_replace( '/\.(jpg|jpeg|png|gif)$/i', '.webp', $file );
+                             if ( file_exists( $webp_path ) ) {
+                                 $is_candidate = true;
+                             }
+                        }
+
+                        if ( $is_candidate ) {
                             $ids[] = $id;
                         }
                     }
@@ -310,9 +328,14 @@ class MediaTurboConverterService {
         $candidates = [];
         foreach ( $ids as $id ) {
             $file = get_attached_file( $id );
-            if ( ! $file || ! file_exists( $file ) ) continue;
+            
+            $file_exists = ( $file && file_exists( $file ) );
+            $webp_path = $file ? preg_replace( '/\.(jpg|jpeg|png|gif)$/i', '.webp', $file ) : '';
+            $webp_exists = ( $webp_path && file_exists( $webp_path ) );
+
+            if ( ! $file_exists && ! $webp_exists ) continue;
                 
-            $file_size = filesize( $file );
+            $file_size = $file_exists ? filesize( $file ) : ( $webp_exists ? filesize( $webp_path ) : 0 );
     
             $post_parent = get_post_field( 'post_parent', $id );
             $parent_title = $post_parent ? get_the_title( $post_parent ) : __( 'Orphaned', 'wp-genius' );

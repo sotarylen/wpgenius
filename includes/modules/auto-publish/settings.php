@@ -123,10 +123,10 @@ $processed_count = 0;
 			
 			<div class="w2p-manual-publish-controls">
 				<div class="w2p-manual-publish-info">
-					<div style="flex: 1">
+					<div class="w2p-progress-text">
 						<?php printf( __( '<strong class="w2p-progress-text">%d/%d</strong>', 'wp-genius' ), $processed_count, $draft_count ); ?>
-					</div> 
-					<div style="flex: 3" class="progress-text"><?php _e( 'Initializing...', 'wp-genius' ); ?></div>
+					</div>
+					<div class="progress-text"><?php _e( 'Initializing...', 'wp-genius' ); ?></div>
 				</div>
 				
 				<div id="w2p-publish-progress" style="display:none; margin-top:15px;">

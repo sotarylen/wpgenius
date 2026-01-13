@@ -13,15 +13,19 @@
         currentIndex: 0,
         isRunning: false,
         isAutoMode: false,
+        isAssociateMode: false,
         stopRequested: false,
         totalAutoProcessed: 0,
         currentXHR: null,
         stats: { success: 0, skipped: 0, error: 0, affected: 0, deleted: 0 },
+        itemStatus: {}, // Store status for each ID: { id: { status: 'pending', text: 'Pending', class: 'pending' } }
 
         init: function () {
             $('#w2p-scan-media').on('click', this.handleScan.bind(this));
             $('#w2p-start-auto-batch').on('click', this.handleAutoBatch.bind(this));
             $('#w2p-start-bulk').on('click', this.startBulkConversion.bind(this));
+            $('#w2p-start-associate').on('click', this.startAssociate.bind(this));
+            $('#w2p-auto-associate').on('click', this.handleAutoAssociate.bind(this));
             $('#w2p-stop-bulk').on('click', this.stopProcessing.bind(this));
             $('#w2p-reset-processed').on('click', this.resetProcessed.bind(this));
 
@@ -43,11 +47,21 @@
                 w2p.loading($btn, true);
             }
 
-            $.post(w2pMediaTurbo.ajax_url, {
+            var limit = scanLimit;
+            var scanParams = {
                 action: 'w2p_media_turbo_get_stats',
-                nonce: w2pMediaTurbo.nonce,
-                limit: this.isAutoMode ? 100 : scanLimit // Auto mode always pulls 100 at a time
-            }, this.handleScanResponse.bind(this))
+                nonce: w2pMediaTurbo.nonce
+            };
+
+            if (this.isAutoMode) {
+                limit = this.isAssociateMode ? 500 : 100; // Auto Associate grabs 500
+                if (this.isAssociateMode) {
+                    scanParams.is_auto_associate = 1; // Flag to force hardcoded settings on backend
+                }
+            }
+            scanParams.limit = limit;
+
+            $.post(w2pMediaTurbo.ajax_url, scanParams, this.handleScanResponse.bind(this))
                 .fail(this.handleScanError.bind(this, $btn));
         },
 
@@ -67,6 +81,25 @@
             });
         },
 
+        handleAutoAssociate: function (e) {
+            if (this.isRunning) return;
+
+            w2p.confirm('Auto Associate will scan 500 items at a time and process them in batches of 100. Continue?', () => {
+                this.isAutoMode = true;
+                this.isAssociateMode = true;
+                this.totalAutoProcessed = 0;
+                this.stats = { success: 0, skipped: 0, error: 0, affected: 0, deleted: 0 };
+                this.itemStatus = {};
+
+                $('#w2p-auto-associate').prop('disabled', true).addClass('w2p-btn-loading');
+                $('#w2p-scan-media').prop('disabled', true);
+                $('#w2p-reset-processed').prop('disabled', true);
+                $('#w2p-start-associate').prop('disabled', true);
+
+                this.handleScan(e);
+            });
+        },
+
         handleScanResponse: function (response) {
             var $btn = $('#w2p-scan-media');
 
@@ -75,19 +108,32 @@
                 this.previewItems = response.data.preview || [];
 
                 if (this.allIds.length > 0) {
+                    // Initialize status for all new items
+                    this.allIds.forEach(id => {
+                        this.itemStatus[id] = { status: 'pending', text: 'Pending', class: 'pending', msg: '' };
+                    });
+
                     if (this.isAutoMode) {
                         $('#w2p-bulk-status-detailed').html('<strong style="color:var(--w2p-color-info);">Starting next auto-batch of ' + this.allIds.length + '...</strong>');
                         this.renderScanResults();
                         $('#w2p-scan-results-wrapper').fadeIn();
                         // Start processing immediately
+                        this.renderScanResults();
+                        $('#w2p-scan-results-wrapper').fadeIn();
+                        // Start processing immediately
                         setTimeout(() => {
-                            this.startBulkConversion({ currentTarget: $('#w2p-start-bulk') });
+                            if (this.isAssociateMode) {
+                                this.startAssociate({ currentTarget: $('#w2p-start-associate') });
+                            } else {
+                                this.startBulkConversion({ currentTarget: $('#w2p-start-bulk') });
+                            }
                         }, 500);
                     } else {
                         this.renderScanResults();
                         var statusText = 'Found ' + this.allIds.length + ' images ready for conversion.';
                         $('#w2p-bulk-status-detailed').html('<strong style="color:#10a754;">' + statusText + '</strong>');
                         $('#w2p-start-bulk').fadeIn();
+                        $('#w2p-start-associate').fadeIn();
                         $('#w2p-scan-results-wrapper').fadeIn();
                         if (window.WPGenius.UI) {
                             WPGenius.UI.showFeedback($btn, 'Scan Complete', 'success');
@@ -127,33 +173,68 @@
         },
 
         renderScanResults: function () {
-            var $container = $('#w2p-scan-items');
-
-            if (!this.isAutoMode) {
-                $container.empty();
-            }
-
-            this.previewItems.forEach((item) => {
-                if (item.html) {
-                    if (this.isAutoMode) {
-                        // Prepend for auto-mode log feel
-                        if ($('#w2p-item-' + item.id).length === 0) {
-                            $container.prepend(item.html);
-                        }
-                    } else {
-                        $container.append(item.html);
-                    }
-                }
-            });
-
-            // Limit to 100 rows immediately
-            var $rows = $container.find('tr');
-            if ($rows.length > 100) {
-                $rows.slice(100).remove();
+            // Initial render - just the first batch + buffer if in auto mode
+            if (this.isAutoMode) {
+                this.renderSlidingWindow(0, 100);
+            } else {
+                // Manual mode - render everything (limited to 100 by slice)
+                this.renderWindow(0, 100);
             }
         },
 
+        renderWindow: function (start, end) {
+            var $container = $('#w2p-scan-items');
+            $container.empty();
+
+            // Safety check
+            start = Math.max(0, start);
+            end = Math.min(this.previewItems.length, end);
+
+            // Find items in range by matching ID (previewItems might be subset or full set?)
+            // Actually previewItems corresponds to IDs order usually.
+            // But let's map by ID to be safe if order differs
+
+            // Map preview items for fast lookup
+            var previewMap = {};
+            this.previewItems.forEach(item => previewMap[item.id] = item);
+
+            var idsToRender = this.allIds.slice(start, end);
+
+            idsToRender.forEach(id => {
+                var item = previewMap[id];
+                if (item && item.html) {
+                    // We need to inject the current status!
+                    var $html = $(item.html);
+                    var status = this.itemStatus[id];
+                    if (status) {
+                        var badgeHtml = '<span class="w2p-status-badge w2p-status-' + status.class + '">' + (status.text || 'Pending') + '</span>';
+                        if (status.msg) {
+                            badgeHtml += ' <small>(' + status.msg + ')</small>';
+                        }
+                        $html.find('.w2p-item-status').html(badgeHtml);
+                    }
+                    $container.append($html);
+                }
+            });
+        },
+
+        renderSlidingWindow: function (currentIndex, batchSize) {
+            // Show current batch + 10 before and 10 after
+            var start = Math.max(0, currentIndex - 10);
+            var end = Math.min(this.allIds.length, currentIndex + batchSize + 10);
+            this.renderWindow(start, end);
+        },
+
+        startAssociate: function (e) {
+            this.isAssociateMode = true;
+            this.startBulkConversion(e);
+        },
+
         startBulkConversion: function (e) {
+            // Fix: Check if e.target exists (it might be a manual call)
+            if (e && e.target && e.target.id !== 'w2p-start-associate') {
+                this.isAssociateMode = false;
+            }
             if (this.isRunning && !this.isAutoMode) return;
 
             this.isRunning = true;
@@ -161,6 +242,12 @@
 
             if (!this.isAutoMode) {
                 $(e.currentTarget).prop('disabled', true).hide();
+                // Hide the other button too
+                if (this.isAssociateMode) {
+                    $('#w2p-start-bulk').hide();
+                } else {
+                    $('#w2p-start-associate').hide();
+                }
                 $('#w2p-scan-media').prop('disabled', true);
                 $('#w2p-start-auto-batch').prop('disabled', true);
             }
@@ -169,6 +256,11 @@
             $('#w2p-bulk-progress-wrapper').fadeIn();
 
             this.currentIndex = 0;
+            this.itemStatus = {};
+            this.allIds.forEach(id => {
+                this.itemStatus[id] = { status: 'pending', text: 'Pending', class: 'pending', msg: '' };
+            });
+
             if (!this.isAutoMode) {
                 this.stats = { success: 0, skipped: 0, error: 0, affected: 0, deleted: 0 };
             }
@@ -202,6 +294,13 @@
             }
 
             var batchSize = parseInt($('#w2p-batch-size').val()) || 10;
+            if (this.isAutoMode && this.isAssociateMode) {
+                batchSize = 100; // Restore to 100
+            }
+
+            // Render sliding window BEFORE processing
+            this.renderSlidingWindow(this.currentIndex, batchSize);
+
             var chunk = this.allIds.slice(this.currentIndex, this.currentIndex + batchSize);
 
             $('#w2p-bulk-status-detailed').html(
@@ -212,17 +311,22 @@
             );
 
             chunk.forEach((id, index) => {
+                // Update internal status
+                this.itemStatus[id] = { status: 'processing', text: 'Processing...', class: 'processing' };
+
                 var $row = $('#w2p-item-' + id);
                 if ($row.length > 0) {
                     $row.find('.w2p-item-status').html('<span class="w2p-status-badge w2p-status-processing">Processing...</span>');
                     if (index === 0) {
-                        $row[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        try {
+                            $row[0].scrollIntoView({ behavior: 'smooth', block: 'center' }); // Use center to keep context
+                        } catch (e) { }
                     }
                 }
             });
 
             this.currentXHR = $.post(w2pMediaTurbo.ajax_url, {
-                action: 'w2p_media_turbo_batch_convert',
+                action: this.isAssociateMode ? 'w2p_media_turbo_associate' : 'w2p_media_turbo_batch_convert',
                 nonce: w2pMediaTurbo.nonce,
                 ids: chunk
             }, this.handleBatchResponse.bind(this, chunk))
@@ -248,18 +352,24 @@
                         if (res.deleted > 0) {
                             statusMsg += ' [' + res.deleted + ' files deleted]';
                         }
+
+                        this.itemStatus[res.id] = { status: 'success', text: statusMsg, class: 'success' };
                         $itemStatus.html('<span class="w2p-status-badge w2p-status-success">' + statusMsg + '</span>');
                     } else if (res.status === 'skipped') {
                         this.stats.skipped++;
+                        this.itemStatus[res.id] = { status: 'skipped', text: 'Skipped', class: 'skipped' };
                         $itemStatus.html('<span class="w2p-status-badge w2p-status-skipped">Skipped</span>');
                     } else {
                         this.stats.error++;
-                        $itemStatus.html('<span class="w2p-status-badge w2p-status-error">Fail</span>');
+                        var resultMsg = res.message || 'Fail';
+                        this.itemStatus[res.id] = { status: 'error', text: 'Fail', class: 'error', msg: resultMsg };
+                        $itemStatus.html('<span class="w2p-status-badge w2p-status-error" title="' + resultMsg + '">Fail</span>');
                     }
                 });
             } else {
                 this.stats.error += chunk.length;
                 chunk.forEach(id => {
+                    this.itemStatus[id] = { status: 'batch-error', text: 'Batch Error', class: 'error' };
                     $('#w2p-item-' + id).find('.w2p-item-status').html('<span class="w2p-status-badge w2p-status-error">Batch Error</span>');
                 });
             }
@@ -296,6 +406,7 @@
 
             this.stats.error += chunk.length;
             chunk.forEach(id => {
+                this.itemStatus[id] = { status: 'network-error', text: 'Net Error', class: 'error' };
                 $('#w2p-item-' + id).find('.w2p-item-status').html('<span class="w2p-status-badge w2p-status-error">Batch Fail</span>');
             });
 
@@ -341,10 +452,8 @@
             );
 
             // Manage log rows limit (100)
-            var $rows = $('#w2p-scan-items tr');
-            if ($rows.length > 100) {
-                $rows.slice(100).remove(); // Keep only the top 100
-            }
+            // No longer needed here as renderSlidingWindow handles it
+
         },
 
         finishConversion: function (message) {
@@ -356,8 +465,11 @@
                 $('#w2p-bulk-progress-bar').css('width', '100%');
             }
             $('#w2p-stop-bulk').hide();
+            $('#w2p-stop-bulk').hide();
             $('#w2p-start-auto-batch').prop('disabled', false).removeClass('w2p-btn-loading');
+            $('#w2p-auto-associate').prop('disabled', false).removeClass('w2p-btn-loading');
             $('#w2p-start-bulk').show().html('<i class="fa-solid fa-arrow-right"></i> Optimize Again').prop('disabled', false);
+            $('#w2p-start-associate').show().prop('disabled', false);
             $('#w2p-scan-media').prop('disabled', false);
             $('#w2p-reset-processed').prop('disabled', false);
             // 去除弹窗提示，仅在状态栏显示

@@ -421,8 +421,40 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 			$result = wp_delete_attachment( $attachment_id, true );
 
 			if ( $result ) {
+				// [NEW] If post_id is provided, also remove the image tag from the post content
+				$post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+				if ( $post_id ) {
+					$post = get_post( $post_id );
+					if ( $post ) {
+						$content = $post->post_content;
+						
+						// Case 1: Remove <figure> blocks containing the image with wp-image-{ID} class
+						// Case 2: Remove <a> tags wrapping the image
+						// Case 3: Remove floating <img> tags with the specific class
+						
+						$patterns = [
+							// Figure wrappers (Gutenberg standard) - non-greedy to catch the closest figure
+							'/<figure[^>]*>(?:(?!<\/figure>).)*?wp-image-' . $attachment_id . '.*?<\/figure>/is',
+							// Links wrapping images
+							'/<a[^>]*>(?:(?!<\/a>).)*?wp-image-' . $attachment_id . '.*?<\/a>/is',
+							// Clean img tag
+							'/<img[^>]*wp-image-' . $attachment_id . '[^>]*>/is'
+						];
+						
+						$new_content = preg_replace( $patterns, '', $content );
+						
+						// Update post if content changed
+						if ( $new_content !== $content ) {
+							wp_update_post( [
+								'ID'           => $post_id,
+								'post_content' => $new_content
+							] );
+						}
+					}
+				}
+
 				wp_send_json_success( [
-					'message' => __( 'Image deleted successfully from media library!', 'wp-genius' ),
+					'message' => __( 'Image deleted successfully from media library and post content!', 'wp-genius' ),
 				] );
 			} else {
 				wp_send_json_error( [ 'message' => __( 'Failed to delete image from media library.', 'wp-genius' ) ] );

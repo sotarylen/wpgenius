@@ -140,9 +140,9 @@ $webp_supported = MediaTurboConverterService::is_webp_supported();
                                            class="w2p-range-slider" 
                                            id="w2p-scan-limit"
                                            name="w2p_media_turbo_settings[scan_limit]" 
-                                           min="10" 
-                                           max="1000" 
-                                           step="10"
+                                           min="100" 
+                                           max="10000" 
+                                           step="100"
                                            value="<?php echo esc_attr( $settings['scan_limit'] ?? 100 ); ?>">
                                 </div>
                                 <p class="description"><?php esc_html_e( 'Number of items to fetch from media library.', 'wp-genius' ); ?></p>
@@ -202,9 +202,9 @@ $webp_supported = MediaTurboConverterService::is_webp_supported();
                                            class="w2p-range-slider" 
                                            id="w2p-batch-size"
                                            name="w2p_media_turbo_settings[batch_size]" 
-                                           min="1" 
-                                           max="50" 
-                                           step="1"
+                                           min="10" 
+                                           max="100" 
+                                           step="10"
                                            value="<?php echo esc_attr( $settings['batch_size'] ?? 10 ); ?>">
                                 </div>
                                 <p class="description"><?php esc_html_e( 'Items to process per AJAX request.', 'wp-genius' ); ?></p>
@@ -228,22 +228,27 @@ $webp_supported = MediaTurboConverterService::is_webp_supported();
                 <div class="w2p-section-header">
                     <h4><?php esc_html_e( 'Bulk Optimization Center', 'wp-genius' ); ?></h4>
                 </div>
-                <span>
-                    <button type="button" id="w2p-start-auto-batch" class="w2p-btn w2p-btn-info">
-                        <i class="fa-solid fa-wand-magic-sparkles"></i>
-                        <?php esc_html_e( 'Full Auto', 'wp-genius' ); ?>
-                    </button>
-    </span>
                 <div class="w2p-section-body">
                     <div class="w2p-bulk-actions w2p-flex w2p-flex-wrap w2p-gap-sm">
                         <button type="button" id="w2p-scan-media" class="w2p-btn w2p-btn-primary">
                             <i class="fa-solid fa-images"></i>
                             <?php esc_html_e( 'Scan', 'wp-genius' ); ?>
                         </button>
-                        
+                        <button type="button" id="w2p-start-auto-batch" class="w2p-btn w2p-btn-info">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            <?php esc_html_e( 'Full Auto', 'wp-genius' ); ?>
+                        </button>
                         <button type="button" id="w2p-start-bulk" class="w2p-btn w2p-btn-success" style="display:none;">
                             <i class="fa-solid fa-play"></i>
                             <?php esc_html_e( 'Start Conversion', 'wp-genius' ); ?>
+                        </button>
+                        <button type="button" id="w2p-start-associate" class="w2p-btn w2p-btn-warning" style="display:none;">
+                            <i class="fa-solid fa-link"></i>
+                            <?php esc_html_e( 'Associate Existing WebP', 'wp-genius' ); ?>
+                        </button>
+                        <button type="button" id="w2p-auto-associate" class="w2p-btn w2p-btn-info">
+                            <i class="fa-solid fa-robot"></i>
+                            <?php esc_html_e( 'Auto Associate', 'wp-genius' ); ?>
                         </button>
                         <button type="button" id="w2p-stop-bulk" class="w2p-btn w2p-btn-stop" style="display:none;">
                             <i class="fa-solid fa-pause"></i>

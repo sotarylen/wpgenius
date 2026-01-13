@@ -10,6 +10,7 @@ class WordToPosts {
             add_action('admin_post_handle_upload', array($this, 'handleFileUpload'));
             add_action('admin_post_clean_uploads', array($this, 'cleanUploads'));
             add_action('admin_post_scan_uploads', array($this, 'scanUploads'));
+            add_action('admin_post_fix_chapter_index', array($this, 'fixChapterIndex'));
             add_action('admin_menu', array($this, 'registerMenu'));
         }
     }
@@ -259,6 +260,288 @@ class WordToPosts {
     
         return $chapters;
     }
-}
 
-?>
+    /**
+     * Convert Chinese numerals to Arabic equivalents
+     */
+    private function chi2arab($cnStr) {
+        if (!$cnStr) return 0;
+        $cnStr = trim($cnStr);
+        if ($cnStr === '廿') return 20;
+        if ($cnStr === '卅') return 30;
+        if (strpos($cnStr, '十') === 0) $cnStr = '一' . $cnStr;
+
+        $cnNumMap = [
+            '〇' => 0, '一' => 1, '二' => 2, '三' => 3, '四' => 4, '五' => 5,
+            '六' => 6, '七' => 7, '八' => 8, '九' => 9, '零' => 10, '两' => 2
+        ];
+        $cnUnitMap = ['十' => 10, '百' => 100, '千' => 1000];
+
+        $total = 0;
+        $tempVal = 0;
+        
+        // Split string into characters for multi-byte handling
+        $chars = preg_split('//u', $cnStr, -1, PREG_SPLIT_NO_EMPTY);
+        
+        foreach ($chars as $ch) {
+            if (isset($cnNumMap[$ch])) {
+                $tempVal = $cnNumMap[$ch];
+            } elseif (isset($cnUnitMap[$ch])) {
+                $unit = $cnUnitMap[$ch];
+                if ($tempVal === 0) $tempVal = 1;
+                $total += $tempVal * $unit;
+                $tempVal = 0;
+            }
+        }
+        $total += $tempVal;
+        return $total;
+    }
+
+    /**
+     * Handle fixing chapter index and volume
+     */
+    public function fixChapterIndex() {
+        if (isset($_POST['post_ids']) && !empty($_POST['post_ids'])) {
+             // Handled by Bulk Action (selected IDs) - NON-BATCHED (or single batch)
+             $this->processFixIndexBatch($_POST);
+             return;
+        }
+
+        // Direct call without IDs but potentially want full scan?
+        // Old logic was full scan. Let's keep it for compatibility if no IDs passed? 
+        // But for UI "Start", we use Init/Process flow.
+        // If this is triggered by old "Auto Identify" button without selection in list? (Not possible via UI)
+        wp_send_json_error(__('Invalid request mode.', 'wp-genius'));
+    }
+
+    /**
+     * Save Fix Chapter Index Configuration
+     */
+    public function fixChapterIndexSaveConfig() {
+        if (!isset($_POST['word_to_posts_fix_index_nonce']) || !wp_verify_nonce($_POST['word_to_posts_fix_index_nonce'], 'word_to_posts_fix_index')) {
+            wp_send_json_error(__('Nonce verification failed', 'wp-genius'));
+            return;
+        }
+
+        $settings = [
+            'target_post_type' => sanitize_text_field($_POST['target_post_type']),
+            'index_format' => sanitize_text_field($_POST['index_format']),
+            'index_connector' => sanitize_text_field($_POST['index_connector']),
+            'auto_volume' => isset($_POST['auto_volume']) && $_POST['auto_volume'] === '1',
+            'batch_size' => intval($_POST['batch_size'])
+        ];
+
+        update_option('w2p_fix_chapter_index_settings', $settings);
+        wp_send_json_success(['message' => __('Configuration saved successfully', 'wp-genius')]);
+    }
+
+    /**
+     * Init Batch Process: Return Total Count
+     */ 
+    public function fixChapterIndexInit() {
+        if (!isset($_POST['word_to_posts_fix_index_nonce']) || !wp_verify_nonce($_POST['word_to_posts_fix_index_nonce'], 'word_to_posts_fix_index')) {
+            wp_send_json_error(__('Nonce verification failed', 'wp-genius'));
+            return;
+        }
+
+        $target_post_type = sanitize_text_field($_POST['target_post_type']);
+        if (empty($target_post_type)) $target_post_type = 'chapter';
+
+        // Save settings for next time
+        $settings = [
+            'target_post_type' => $target_post_type,
+            'index_format' => sanitize_text_field($_POST['index_format']),
+            'index_connector' => sanitize_text_field($_POST['index_connector']),
+            'auto_volume' => isset($_POST['auto_volume']) && $_POST['auto_volume'] === '1',
+            'batch_size' => intval($_POST['batch_size'])
+        ];
+        update_option('w2p_fix_chapter_index_settings', $settings);
+
+        $count_posts = wp_count_posts($target_post_type);
+        $total = $count_posts->publish + $count_posts->draft + $count_posts->pending + $count_posts->private + $count_posts->future; // Count all status? 'any'
+
+        // Actually simpler to use WP_Query for accuracy with same args
+        $args = [
+            'post_type' => $target_post_type,
+            'posts_per_page' => -1,
+            'post_status' => 'any',
+            'fields' => 'ids'
+        ];
+        $query = new WP_Query($args);
+        $total = $query->found_posts;
+
+        wp_send_json_success(['total' => $total]);
+    }
+
+    /**
+     * Process Single Batch
+     */
+    public function fixChapterIndexProcess() {
+        if (!isset($_POST['word_to_posts_fix_index_nonce']) || !wp_verify_nonce($_POST['word_to_posts_fix_index_nonce'], 'word_to_posts_fix_index')) {
+            wp_send_json_error(__('Nonce verification failed', 'wp-genius'));
+            return;
+        }
+        $this->processFixIndexBatch($_POST);
+    }
+
+
+    /**
+     * Core Logic for Batch Processing
+     */
+    private function processFixIndexBatch($data) {
+        if (!isset($data['word_to_posts_fix_index_nonce']) || !wp_verify_nonce($data['word_to_posts_fix_index_nonce'], 'word_to_posts_fix_index')) {
+            wp_send_json_error(__('Nonce verification failed', 'wp-genius'));
+            return;
+        }
+
+        $target_post_type = isset($data['target_post_type']) ? sanitize_text_field($data['target_post_type']) : 'chapter';
+        $format_str = sanitize_text_field($data['index_format']);
+        $connector = sanitize_text_field($data['index_connector']);
+        $auto_volume = isset($data['auto_volume']) && $data['auto_volume'] === '1';
+        
+        $batch_size = isset($data['batch_size']) ? intval($data['batch_size']) : 20;
+        $offset = isset($data['offset']) ? intval($data['offset']) : 0;
+        
+        $post_ids = isset($data['post_ids']) ? array_map('intval', $data['post_ids']) : [];
+
+        // Parse format string "01-00001" -> vol_pad=2, chap_pad=5
+        $parts = explode('-', $format_str);
+        $vol_pad = isset($parts[0]) ? strlen($parts[0]) : 2;
+        $chap_pad = isset($parts[1]) ? strlen($parts[1]) : 5;
+
+        // Query args
+        $args = [
+            'post_type' => $target_post_type,
+            'post_status' => 'any',
+            // ORDER IS CRITICAL: Must be deterministic for batching by offset
+            'orderby' => ['menu_order' => 'ASC', 'ID' => 'ASC']
+        ];
+
+        if (!empty($post_ids)) {
+             $args['post__in'] = $post_ids;
+             $args['posts_per_page'] = -1; // Process all selected
+        } else {
+             $args['posts_per_page'] = $batch_size;
+             $args['offset'] = $offset;
+        }
+
+        $query = new WP_Query($args);
+        $log = [];
+        
+        // Context persistence is tricky in batching (e.g. Volume of previous batch).
+        // Since user wants to Fix Index, usually implying they are ordered.
+        // Ideally we should know the 'Running Volume' and 'Running Chapter Count'.
+        // Frontend should pass `current_vol_counter` and `current_chap_counter`.
+        
+        $current_volume = isset($data['current_context_vol_name']) ? sanitize_text_field($data['current_context_vol_name']) : ''; // Name
+        $vol_counter = isset($data['current_context_vol_idx']) ? intval($data['current_context_vol_idx']) : 1; 
+        $chap_counter = isset($data['current_context_chap_idx']) ? intval($data['current_context_chap_idx']) : 1;
+
+        if ($query->have_posts()) {
+            foreach ($query->posts as $post) {
+                $title = $post->post_title;
+
+                // 1. Try to detect Volume
+                if ($auto_volume) {
+                    // Match Chinese Volume "第X卷"
+                    if (preg_match('/(?:第|Vol\.?)(\s*\S+\s*)(?:卷|Vol)/u', $title, $m)) {
+                        $vol_num_str = trim($m[1]);
+                        if (preg_match('/^[0-9]+$/', $vol_num_str)) {
+                             $vol_val = intval($vol_num_str);
+                        } else {
+                             $vol_val = $this->chi2arab($vol_num_str);
+                        }
+                        
+                        if ($vol_val > 0) {
+                            $current_volume = trim($title); 
+                            $vol_counter = $vol_val;
+                            // Reset chapter counter on new volume? User requirement didn't specify.
+                            // Assuming global unique chapters based on "00001".
+                        }
+                    }
+                }
+
+                // 2. Detect Chapter Number
+                $chap_val = 0;
+                // Match "第X章" or similar
+                if (preg_match('/(?:第|\s|^)(\d+)(?:\s*章|\s*话|\s*节|\s*回)/u', $title, $m)) {
+                    $chap_val = intval($m[1]);
+                } elseif (preg_match('/^(\d+)/', trim($title), $m)) {
+                     $chap_val = intval($m[1]);
+                } elseif (preg_match('/第([零一二三四五六七八九十百千两廿卅]+)[章节话回]/u', $title, $m)) {
+                     $chap_val = $this->chi2arab($m[1]);
+                }
+                
+                if ($chap_val === 0) {
+                     // Fallback to sequential
+                     $chap_val = $chap_counter; 
+                     $chap_counter++;
+                } else {
+                    $chap_counter = $chap_val + 1;
+                }
+
+                // 3. Format Index
+                $vol_part = str_pad($vol_counter, $vol_pad, '0', STR_PAD_LEFT);
+                $chap_part = str_pad($chap_val, $chap_pad, '0', STR_PAD_LEFT);
+                $final_index = $vol_part . $connector . $chap_part;
+
+                // 4. Update ACF Fields
+                update_field('chapter_index', $final_index, $post->ID);
+                if ($current_volume) {
+                    update_field('volume_name', $current_volume, $post->ID);
+                }
+
+                // 5. Log
+                $log_item = [
+                    'index' => $final_index,
+                    'volume' => $current_volume ? $current_volume : '-',
+                    'title' => sprintf('<a href="%s" target="_blank">%s</a>', get_edit_post_link($post->ID), mb_strimwidth($post->post_title, 0, 40, '...'))
+                ];
+                $log[] = $log_item;
+            }
+        } else {
+            if (empty($post_ids)) { // Only error if batching and finding nothing unexpectedly? Or just return empty success?
+                // If it's the end of loop, just empty log.
+            } else {
+                wp_send_json_error(__('No chapter posts found.', 'wp-genius'));
+                return;
+            }
+        }
+
+        // Return new context for next batch
+        wp_send_json_success([
+            'log' => $log,
+            'next_context' => [
+                'vol_name' => $current_volume,
+                'vol_idx' => $vol_counter,
+                'chap_idx' => $chap_counter
+            ]
+        ]);
+    }
+
+    /**
+     * Helper to convert number back to Chinese (simple version for Volume)
+     */
+    private function numToChinese($num) {
+         $chiNum = array('零', '一', '二', '三', '四', '五', '六', '七', '八', '九');
+         $chiUni = array('','十', '百', '千', '万', '亿', '十', '百', '千');
+         
+         $chiStr = '';
+         
+         $num_str = (string)$num;
+         $count = strlen($num_str);
+         
+         for ($i = 0; $i < $count; $i++) {
+             $temp = (int)($num_str[$i]);
+             $vt = $chiUni[$count - $i - 1]; // unit
+             if ($temp == 0) {
+                 if ($count - $i - 1 < 4) { // End of section
+                    // Handle complex zero logic if needed, simplified here
+                 }
+             } else {
+                 $chiStr .= $chiNum[$temp] . $vt;
+             }
+         }
+         return $chiStr ? $chiStr : $num; // Fallback
+    }
+}

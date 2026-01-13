@@ -20,6 +20,7 @@ class W2P_Media_Turbo_Handler {
 	public function __construct() {
 		// Load converter service
 		require_once plugin_dir_path( __FILE__ ) . 'converter-service.php';
+		require_once plugin_dir_path( __FILE__ ) . 'relation-service.php';
 		
 		// Register settings
 		$this->register_settings();
@@ -30,6 +31,7 @@ class W2P_Media_Turbo_Handler {
 		// AJAX handlers for bulk conversion
 		add_action( 'wp_ajax_w2p_media_turbo_get_stats', [ $this, 'ajax_get_bulk_stats' ] );
 		add_action( 'wp_ajax_w2p_media_turbo_batch_convert', [ $this, 'ajax_batch_convert' ] );
+		add_action( 'wp_ajax_w2p_media_turbo_associate', [ $this, 'ajax_associate_webp' ] );
 		add_action( 'wp_ajax_w2p_media_turbo_reset_processed', [ $this, 'ajax_reset_processed' ] );
 		
 		// Admin scripts
@@ -76,8 +78,20 @@ class W2P_Media_Turbo_Handler {
 		$settings = get_option( 'w2p_media_turbo_settings', [] );
 		$limit = isset( $_POST['limit'] ) ? absint( $_POST['limit'] ) : ( isset( $settings['scan_limit'] ) ? absint( $settings['scan_limit'] ) : 100 );
 		
+		$is_auto_associate = isset( $_POST['is_auto_associate'] ) && $_POST['is_auto_associate'] === '1';
+		$settings_overrides = [];
+		
+		if ( $is_auto_associate ) {
+			$settings_overrides = [
+				'scan_mode'        => 'media',
+				'min_file_size'    => 0,   // No size limit (0 KB)
+				'convert_static'   => '1', // Include static images
+				'convert_animated' => '1', // Include animated images
+			];
+		}
+		
 		$service = new MediaTurboConverterService();
-		$total = $service->get_total_candidate_count();
+		$total = $service->get_total_candidate_count( $settings_overrides );
 		
 		// Optimization: If total is 0, don't bother fetching candidates
 		if ( $total === 0 ) {
@@ -90,7 +104,7 @@ class W2P_Media_Turbo_Handler {
 		}
 
 		// Fetch candidates with details in one go for the preview
-		$allDetails = $service->get_conversion_candidates( $limit, 0, false );
+		$allDetails = $service->get_conversion_candidates( $limit, 0, false, $settings_overrides );
 		$allIds = array_column( $allDetails, 'id' );
 
         // Add HTML for each preview item
@@ -187,6 +201,53 @@ class W2P_Media_Turbo_Handler {
 				];
 			} else {
 				$results[] = [ 'id' => $item_id, 'status' => 'error', 'message' => 'Conversion failed' ];
+			}
+		}
+
+		wp_send_json_success( $results );
+	}
+	
+	/**
+	 * AJAX: Batch Associate WebP
+	 */
+	public function ajax_associate_webp() {
+		if ( session_status() === PHP_SESSION_ACTIVE ) {
+			session_write_close();
+		}
+		check_ajax_referer( 'w2p_media_turbo_nonce', 'nonce' );
+		
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
+		
+		$item_ids = isset( $_POST['ids'] ) ? array_map( 'absint', (array) $_POST['ids'] ) : [];
+		if ( empty( $item_ids ) ) {
+			wp_send_json_error( 'No IDs provided' );
+		}
+		
+		$service = new MediaTurboRelationService();
+		$converter_service = new MediaTurboConverterService(); // For marking processed
+		$results = [];
+
+		foreach ( $item_ids as $item_id ) {
+			$res = $service->associate_webp( $item_id );
+
+			if ( $res && ! empty( $res['success'] ) ) {
+				$post_parent = get_post_field( 'post_parent', $item_id );
+				if ( $post_parent ) {
+					$converter_service->mark_post_as_processed( $post_parent );
+				}
+				
+				$results[] = [ 
+					'id'       => $item_id,
+					'status'   => 'success', 
+					'affected' => $res['affected'],
+					'deleted'  => $res['deleted'] ?? 0,
+					'newUrl'   => $res['new_url']
+				];
+			} else {
+				$msg = isset( $res['message'] ) ? $res['message'] : 'Association failed';
+				$results[] = [ 'id' => $item_id, 'status' => 'error', 'message' => $msg ];
 			}
 		}
 
