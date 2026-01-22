@@ -116,6 +116,29 @@ class MediaEngineModule extends W2P_Abstract_Module {
 			require_once $clipboard_handler_path;
 			$this->clipboard_handler = new W2P_Clipboard_Handler();
 		}
+
+		// Load new Media Engine Processor
+		$processor_path = plugin_dir_path( __FILE__ ) . 'includes/class-media-engine-processor.php';
+		if ( file_exists( $processor_path ) ) {
+			require_once $processor_path;
+		}
+
+		// Register WP-CLI commands
+		$this->register_cli_commands();
+	}
+
+	/**
+	 * Register WP-CLI commands
+	 */
+	private function register_cli_commands() {
+		if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
+			return;
+		}
+
+		$cli_path = plugin_dir_path( __FILE__ ) . 'includes/class-media-engine-cli.php';
+		if ( file_exists( $cli_path ) ) {
+			require_once $cli_path;
+		}
 	}
 
 	/**

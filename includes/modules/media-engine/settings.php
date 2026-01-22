@@ -20,13 +20,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<i class="fa-solid fa-rocket"></i>
 				<?php esc_html_e( 'Format Conversion', 'wp-genius' ); ?>
 			</a>
+			<a class="w2p-sub-tab-link" data-tab="environment">
+				<i class="fa-solid fa-stethoscope"></i>
+				<?php esc_html_e( 'Environment Check', 'wp-genius' ); ?>
+			</a>
 			<a class="w2p-sub-tab-link" data-tab="clipboard">
 				<i class="fa-solid fa-paste"></i>
 				<?php esc_html_e( 'Clipboard Upload', 'wp-genius' ); ?>
 			</a>
 		</div>
 		
-		<!-- Tab 2: Media Turbo -->
+		<!-- Tab 1: Media Turbo -->
 		<div class="w2p-sub-tab-content active" id="w2p-tab-turbo">
 			<?php
 			$turbo_settings_path = plugin_dir_path( __FILE__ ) . 'views/turbo-settings.php';
@@ -34,6 +38,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 				include $turbo_settings_path;
 			} else {
 				echo '<div class="notice notice-error"><p>' . esc_html__( 'Format conversion settings file not found.', 'wp-genius' ) . '</p></div>';
+			}
+			?>
+		</div>
+		
+		<!-- Tab 2: Environment Check -->
+		<div class="w2p-sub-tab-content" id="w2p-tab-environment">
+			<?php
+			$env_settings_path = plugin_dir_path( __FILE__ ) . 'views/environment-settings.php';
+			if ( file_exists( $env_settings_path ) ) {
+				include $env_settings_path;
+			} else {
+				echo '<div class="notice notice-error"><p>' . esc_html__( 'Environment check settings file not found.', 'wp-genius' ) . '</p></div>';
 			}
 			?>
 		</div>
