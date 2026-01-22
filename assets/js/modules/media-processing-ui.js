@@ -1,5 +1,6 @@
 /**
- * Media Processing UI - Real-time Progress Tracking
+ * Media Processing UI - Batch Processing Mode
+ * 按步骤批量处理,避免并发压力
  */
 (function ($) {
     'use strict';
@@ -7,7 +8,10 @@
     const MediaProcessingUI = {
         queue: [],
         processing: false,
-        currentIndex: 0,
+        stopped: false,
+        batchSize: (window.w2pMediaConfig && window.w2pMediaConfig.batchSize) || 5,
+        currentBatchIndex: 0,
+        batches: [],
         stats: {
             total: 0,
             pending: 0,
@@ -17,19 +21,18 @@
         },
 
         /**
-         * Initialize the UI
+         * Initialize
          */
         init: function () {
             this.bindEvents();
         },
 
         /**
-         * Bind event handlers
+         * Bind events
          */
         bindEvents: function () {
             const self = this;
 
-            // Recheck Environment button (in Environment Check tab)
             $('#w2p-recheck-environment').on('click', function () {
                 self.recheckEnvironment($(this));
             });
@@ -42,16 +45,30 @@
                 if (self.queue.length === 0) {
                     if (typeof w2p !== 'undefined' && w2p.toast) {
                         w2p.toast('Please scan for attachments first.', 'warning');
-                    } else {
-                        alert('Please scan for attachments first.');
                     }
                     return;
                 }
 
-                // Use native confirm for simplicity
-                if (confirm('Start processing ' + self.queue.length + ' attachments? This may take a while.')) {
-                    self.startProcessing();
+                if (confirm('Start batch processing ' + self.queue.length + ' attachments?')) {
+                    self.startBatchProcessing();
                 }
+            });
+
+            $('#w2p-start-parallel').on('click', function () {
+                if (self.queue.length === 0) {
+                    if (typeof w2p !== 'undefined' && w2p.toast) {
+                        w2p.toast('Please scan for attachments first.', 'warning');
+                    }
+                    return;
+                }
+
+                if (confirm('Start batch processing ' + self.queue.length + ' attachments with batch size ' + self.batchSize + '?')) {
+                    self.startBatchProcessing();
+                }
+            });
+
+            $('#w2p-stop-conversion').on('click', function () {
+                self.stopProcessing();
             });
         },
 
@@ -75,41 +92,27 @@
                         if (typeof w2p !== 'undefined' && w2p.toast) {
                             w2p.toast('Environment check completed. Reloading...', 'success');
                         }
-                        // Reload page to show updated environment status
                         setTimeout(function () {
                             location.reload();
                         }, 1000);
                     } else {
-                        if (typeof w2p !== 'undefined' && w2p.toast) {
-                            w2p.toast('Environment check failed', 'error');
-                        }
                         $button.prop('disabled', false);
                         $button.find('i').removeClass().addClass('fa-solid fa-rotate');
                     }
-                },
-                error: function () {
-                    if (typeof w2p !== 'undefined' && w2p.toast) {
-                        w2p.toast('Request failed', 'error');
-                    }
-                    $button.prop('disabled', false);
-                    $button.find('i').removeClass().addClass('fa-solid fa-rotate');
                 }
             });
         },
 
         /**
-         * Scan for pending attachments
+         * Scan attachments
          */
         scanAttachments: function () {
             const self = this;
             const $button = $('#w2p-get-stats');
 
-            // Disable button
             $button.prop('disabled', true).find('i').removeClass().addClass('fa-solid fa-spinner fa-spin');
-
-            // Show output
             $('#w2p-processing-output').show();
-            $('#w2p-output-content').html('<div style="color: #fbbf24;">Scanning for pending attachments...</div>');
+            $('#w2p-output-content').html('<div style="color: #fbbf24;">Scanning...</div>');
 
             $.ajax({
                 url: ajaxurl,
@@ -121,8 +124,6 @@
                 success: function (response) {
                     if (response.success) {
                         self.queue = response.data.attachments || [];
-
-                        // Initialize stats
                         self.stats = {
                             total: self.queue.length,
                             pending: self.queue.length,
@@ -131,23 +132,16 @@
                             failed: 0
                         };
 
-                        // Display the queue immediately
                         self.displayQueue();
 
                         $('#w2p-output-content').html(
-                            '<div style="color: #10b981;">✓ Scan complete</div>' +
-                            '<div style="margin-top: 8px;">Found ' + self.queue.length + ' attachments to process</div>'
+                            '<div style="color: #10b981;">✓ Found ' + self.queue.length + ' attachments</div>'
                         );
 
                         if (typeof w2p !== 'undefined' && w2p.toast) {
                             w2p.toast('Found ' + self.queue.length + ' attachments', 'success');
                         }
-                    } else {
-                        $('#w2p-output-content').html('<div style="color: #ef4444;">Error: ' + (response.data || 'Unknown error') + '</div>');
                     }
-                },
-                error: function (xhr, status, error) {
-                    $('#w2p-output-content').html('<div style="color: #ef4444;">AJAX Error: ' + error + '</div>');
                 },
                 complete: function () {
                     $button.prop('disabled', false).find('i').removeClass().addClass('fa-solid fa-chart-bar');
@@ -156,7 +150,7 @@
         },
 
         /**
-         * Display the attachment queue
+         * Display queue
          */
         displayQueue: function () {
             const self = this;
@@ -180,12 +174,12 @@
         },
 
         /**
-         * Create a row for an attachment
+         * Create row
          */
         createAttachmentRow: function (attachment, index) {
             const thumb = attachment.thumb_url ?
                 '<img src="' + attachment.thumb_url + '" style="width: 48px; height: 48px; object-fit: cover; border-radius: 4px;">' :
-                '<div style="width: 48px; height: 48px; background: #e5e7eb; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #6b7280;">No Img</div>';
+                '<div style="width: 48px; height: 48px; background: #e5e7eb; border-radius: 4px;"></div>';
 
             const fileName = attachment.file_name || 'ID: ' + attachment.id;
             const fileSize = attachment.file_size ? '(' + attachment.file_size + ' KB)' : '';
@@ -200,29 +194,25 @@
                     '<div style="font-size: 12px; color: #6b7280;">' + fileSize + '</div>' +
                     '</td>' +
                     '<td style="padding: 12px;" class="status-cell">' + this.getStatusBadge('PENDING') + '</td>' +
-                    '<td style="padding: 12px;" class="progress-cell">' +
-                    '<div style="font-size: 12px; color: #6b7280;">Waiting...</div>' +
-                    '</td>'
+                    '<td style="padding: 12px;" class="progress-cell">Waiting...</td>'
                 );
         },
 
         /**
-         * Get status badge HTML
+         * Get status badge
          */
         getStatusBadge: function (status) {
             const badges = {
-                'PENDING': '<span style="display: inline-block; padding: 4px 12px; background: #e5e7eb; color: #374151; border-radius: 12px; font-size: 12px; font-weight: 500;">PENDING</span>',
-                'PROCESSING': '<span style="display: inline-block; padding: 4px 12px; background: #dbeafe; color: #1e40af; border-radius: 12px; font-size: 12px; font-weight: 500;"><i class="fa-solid fa-spinner fa-spin"></i> PROCESSING</span>',
-                'OFFLOADING': '<span style="display: inline-block; padding: 4px 12px; background: #fef3c7; color: #92400e; border-radius: 12px; font-size: 12px; font-weight: 500;"><i class="fa-solid fa-cloud-arrow-up"></i> OFFLOADING</span>',
-                'DONE': '<span style="display: inline-block; padding: 4px 12px; background: #d1fae5; color: #065f46; border-radius: 12px; font-size: 12px; font-weight: 500;"><i class="fa-solid fa-check"></i> DONE</span>',
-                'FAILED': '<span style="display: inline-block; padding: 4px 12px; background: #fee2e2; color: #991b1b; border-radius: 12px; font-size: 12px; font-weight: 500;"><i class="fa-solid fa-xmark"></i> FAILED</span>'
+                'PENDING': '<span style="padding: 4px 12px; background: #e5e7eb; color: #374151; border-radius: 12px; font-size: 12px;">PENDING</span>',
+                'PROCESSING': '<span style="padding: 4px 12px; background: #dbeafe; color: #1e40af; border-radius: 12px; font-size: 12px;"><i class="fa-solid fa-spinner fa-spin"></i> PROCESSING</span>',
+                'DONE': '<span style="padding: 4px 12px; background: #d1fae5; color: #065f46; border-radius: 12px; font-size: 12px;"><i class="fa-solid fa-check"></i> DONE</span>',
+                'FAILED': '<span style="padding: 4px 12px; background: #fee2e2; color: #991b1b; border-radius: 12px; font-size: 12px;"><i class="fa-solid fa-xmark"></i> FAILED</span>'
             };
-
             return badges[status] || badges['PENDING'];
         },
 
         /**
-         * Update queue statistics
+         * Update stats
          */
         updateQueueStats: function () {
             const self = this;
@@ -236,104 +226,154 @@
         },
 
         /**
-         * Start processing the queue
+         * Start batch processing
          */
-        startProcessing: function () {
+        startBatchProcessing: function () {
             const self = this;
 
-            if (self.processing) {
-                return;
-            }
+            if (self.processing) return;
 
             self.processing = true;
-            self.currentIndex = 0;
-            self.stats = {
-                total: self.queue.length,
-                pending: self.queue.length,
-                processing: 0,
-                completed: 0,
-                failed: 0
-            };
+            self.stopped = false;
+            self.currentBatchIndex = 0;
 
-            self.updateQueueStats();
-            self.processNext();
+            // Split into batches
+            self.batches = [];
+            for (let i = 0; i < self.queue.length; i += self.batchSize) {
+                self.batches.push(self.queue.slice(i, i + self.batchSize));
+            }
+
+            // Show stop button
+            $('#w2p-start-conversion').hide();
+            $('#w2p-start-parallel').hide();
+            $('#w2p-stop-conversion').show();
+
+            self.processNextBatch();
         },
 
         /**
-         * Process the next attachment in the queue
+         * Process next batch
          */
-        processNext: function () {
+        processNextBatch: function () {
             const self = this;
 
-            if (self.currentIndex >= self.queue.length) {
+            if (self.stopped || self.currentBatchIndex >= self.batches.length) {
                 self.processing = false;
                 self.showCompletionMessage();
                 return;
             }
 
-            const attachment = self.queue[self.currentIndex];
-            const $row = $('#attachment-row-' + self.currentIndex);
+            const batch = self.batches[self.currentBatchIndex];
+            const batchIds = batch.map(item => item.id);
+            const startIndex = self.currentBatchIndex * self.batchSize;
 
-            // Update status to PROCESSING
-            self.stats.pending--;
-            self.stats.processing++;
-            self.updateRowStatus($row, 'PROCESSING', 'Converting to WebP...');
+            // Update output
+            $('#w2p-output-content').html(
+                '<div style="color: #3b82f6;">Processing batch ' + (self.currentBatchIndex + 1) + '/' + self.batches.length + '</div>' +
+                '<div style="margin-top: 4px; font-size: 12px;">' + batchIds.length + ' images in this batch</div>'
+            );
+
+            // Update all rows in batch to PROCESSING
+            batch.forEach((item, idx) => {
+                const $row = $('#attachment-row-' + (startIndex + idx));
+                self.stats.pending--;
+                self.stats.processing++;
+                self.updateRowStatus($row, 'PROCESSING', 'Batch processing...');
+            });
             self.updateQueueStats();
 
-            // Process the attachment
+            // Call batch API
             $.ajax({
                 url: ajaxurl,
                 type: 'POST',
                 data: {
-                    action: 'w2p_process_attachment',
+                    action: 'w2p_process_batch',
                     nonce: w2pMediaTurbo.nonce,
-                    attachment_id: attachment.id
+                    attachment_ids: batchIds
                 },
                 success: function (response) {
                     if (response.success) {
-                        const result = response.data;
+                        const stats = response.data.stats;
 
-                        // Update based on result
-                        if (result.step === 'offloading') {
-                            self.updateRowStatus($row, 'OFFLOADING', 'Uploading to Minio...');
-                        } else if (result.step === 'done') {
+                        // Update each row based on results
+                        batch.forEach((item, idx) => {
+                            const $row = $('#attachment-row-' + (startIndex + idx));
+                            const convertResult = stats.convert[item.id];
+
                             self.stats.processing--;
-                            self.stats.completed++;
-                            self.updateRowStatus($row, 'DONE', result.message || 'Completed successfully');
-                            self.updateQueueStats();
 
-                            // Move to next
-                            self.currentIndex++;
-                            setTimeout(function () {
-                                self.processNext();
-                            }, 500);
-                        }
-                    } else {
-                        self.stats.processing--;
-                        self.stats.failed++;
-                        self.updateRowStatus($row, 'FAILED', response.data || 'Unknown error');
+                            if (convertResult && convertResult.success) {
+                                self.stats.completed++;
+                                self.updateRowStatus($row, 'DONE', 'Completed');
+                            } else {
+                                self.stats.failed++;
+                                self.updateRowStatus($row, 'FAILED', convertResult?.error || 'Unknown error');
+                            }
+                        });
+
                         self.updateQueueStats();
 
-                        // Move to next
-                        self.currentIndex++;
-                        setTimeout(function () {
-                            self.processNext();
-                        }, 500);
+                        // Move to next batch
+                        self.currentBatchIndex++;
+                        if (!self.stopped) {
+                            setTimeout(() => self.processNextBatch(), 500);
+                        }
+                    } else {
+                        // Batch failed, mark all as failed
+                        batch.forEach((item, idx) => {
+                            const $row = $('#attachment-row-' + (startIndex + idx));
+                            self.stats.processing--;
+                            self.stats.failed++;
+                            self.updateRowStatus($row, 'FAILED', 'Batch failed');
+                        });
+                        self.updateQueueStats();
+
+                        // Continue anyway
+                        self.currentBatchIndex++;
+                        if (!self.stopped) {
+                            setTimeout(() => self.processNextBatch(), 500);
+                        }
                     }
                 },
-                error: function (xhr, status, error) {
-                    self.stats.processing--;
-                    self.stats.failed++;
-                    self.updateRowStatus($row, 'FAILED', 'AJAX error: ' + error);
+                error: function () {
+                    // Mark all as failed
+                    batch.forEach((item, idx) => {
+                        const $row = $('#attachment-row-' + (startIndex + idx));
+                        self.stats.processing--;
+                        self.stats.failed++;
+                        self.updateRowStatus($row, 'FAILED', 'Request failed');
+                    });
                     self.updateQueueStats();
 
-                    // Move to next
-                    self.currentIndex++;
-                    setTimeout(function () {
-                        self.processNext();
-                    }, 500);
+                    // Continue anyway
+                    self.currentBatchIndex++;
+                    if (!self.stopped) {
+                        setTimeout(() => self.processNextBatch(), 1000);
+                    }
                 }
             });
+        },
+
+        /**
+         * Stop processing
+         */
+        stopProcessing: function () {
+            const self = this;
+            self.stopped = true;
+            self.processing = false;
+
+            $('#w2p-stop-conversion').hide();
+            $('#w2p-start-conversion').show();
+            $('#w2p-start-parallel').show();
+
+            $('#w2p-output-content').html(
+                '<div style="color: #f59e0b;">⏸ Stopped by user</div>' +
+                '<div style="margin-top: 8px;">Completed: ' + self.stats.completed + ' | Failed: ' + self.stats.failed + '</div>'
+            );
+
+            if (typeof w2p !== 'undefined' && w2p.toast) {
+                w2p.toast('Processing stopped', 'warning');
+            }
         },
 
         /**
@@ -345,23 +385,29 @@
         },
 
         /**
-         * Show completion message
+         * Show completion
          */
         showCompletionMessage: function () {
             const self = this;
 
+            $('#w2p-stop-conversion').hide();
+            $('#w2p-start-conversion').show();
+            $('#w2p-start-parallel').show();
+
+            const message = self.stopped ? 'Stopped by user' : 'Processing complete!';
+
             $('#w2p-output-content').html(
-                '<div style="color: #10b981;">Processing complete!</div>' +
+                '<div style="color: ' + (self.stopped ? '#f59e0b' : '#10b981') + ';">' + (self.stopped ? '⏸' : '✓') + ' ' + message + '</div>' +
                 '<div style="margin-top: 8px;">Completed: ' + self.stats.completed + ' | Failed: ' + self.stats.failed + '</div>'
             );
 
             if (typeof w2p !== 'undefined' && w2p.toast) {
-                w2p.toast('Processing complete! Completed: ' + self.stats.completed + ', Failed: ' + self.stats.failed, 'success');
+                w2p.toast(message, self.stopped ? 'warning' : 'success');
             }
         }
     };
 
-    // Initialize on document ready
+    // Initialize
     $(document).ready(function () {
         if (typeof w2pMediaTurbo !== 'undefined') {
             MediaProcessingUI.init();

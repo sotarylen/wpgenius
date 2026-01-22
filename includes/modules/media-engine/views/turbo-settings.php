@@ -278,9 +278,13 @@ $settings = get_option( 'w2p_media_turbo_settings', [] );
                                 <i class="fa-solid fa-play"></i>
                                 <?php echo sprintf( esc_html__( 'Start Conversion (%d items, batch %d)', 'wp-genius' ), $scan_limit, $batch_size ); ?>
                             </button>
+                            <button type="button" id="w2p-stop-conversion" class="w2p-btn w2p-btn-danger" style="justify-content: flex-start; display: none;">
+                                <i class="fa-solid fa-stop"></i>
+                                <?php esc_html_e( 'Stop Processing', 'wp-genius' ); ?>
+                            </button>
                             <button type="button" id="w2p-start-parallel" class="w2p-btn w2p-btn-info" style="justify-content: flex-start;">
                                 <i class="fa-solid fa-rocket"></i>
-                                <?php esc_html_e( 'Start Parallel Conversion', 'wp-genius' ); ?>
+                                <?php echo sprintf( esc_html__( 'Parallel Conversion (Workers: %d)', 'wp-genius' ), $batch_size ); ?>
                             </button>
                         </div>
                     </div>
@@ -336,8 +340,10 @@ $settings = get_option( 'w2p_media_turbo_settings', [] );
 
                 </div>
             </div>
+
         </div>
     </div>
+
 </div>
 
 <script>
@@ -347,6 +353,17 @@ $settings = get_option( 'w2p_media_turbo_settings', [] );
     // 从 PHP 传入的配置
     const scanLimit = <?php echo absint( $settings['scan_limit'] ?? 1000 ); ?>;
     const batchSize = <?php echo absint( $settings['batch_size'] ?? 10 ); ?>;
+    
+    // Pass configuration to MediaProcessingUI
+    if (typeof MediaProcessingUI !== 'undefined') {
+        MediaProcessingUI.concurrentWorkers = batchSize;
+    }
+    
+    // 设置全局配置供 media-processing-ui.js 使用
+    window.w2pMediaConfig = {
+        scanLimit: scanLimit,
+        batchSize: batchSize
+    };
     
     // Execute WP-CLI command via AJAX
     function executeWPCLI(command, buttonId) {

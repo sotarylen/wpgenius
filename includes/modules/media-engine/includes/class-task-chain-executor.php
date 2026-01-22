@@ -72,8 +72,17 @@ class MediaEngineTaskChainExecutor {
 			'error'   => '',
 		];
 
+		// 保存原始文件路径,用于 URL 替换
+		$original_file = get_attached_file( $attachment_id );
+		$original_url = wp_get_attachment_url( $attachment_id );
+
 		foreach ( $steps as $step_name => $callback ) {
-			$step_result = call_user_func( $callback, $attachment_id );
+			// 传递原始 URL 给 rewrite 步骤
+			if ( $step_name === 'rewrite' ) {
+				$step_result = call_user_func( $callback, $attachment_id, $original_url );
+			} else {
+				$step_result = call_user_func( $callback, $attachment_id );
+			}
 
 			$results['steps'][ $step_name ] = $step_result;
 
@@ -121,6 +130,18 @@ class MediaEngineTaskChainExecutor {
 			return [
 				'success' => false,
 				'error'   => __( 'File not found', 'wp-genius' ),
+			];
+		}
+
+		// 检查文件是否已经是 WebP 格式
+		$ext = strtolower( pathinfo( $file_path, PATHINFO_EXTENSION ) );
+		if ( $ext === 'webp' ) {
+			return [
+				'success' => true,
+				'message' => __( 'File is already in WebP format, skipping conversion', 'wp-genius' ),
+				'output_path' => $file_path,
+				'engine' => 'skip',
+				'quality' => 0,
 			];
 		}
 
@@ -207,24 +228,32 @@ class MediaEngineTaskChainExecutor {
 	/**
 	 * 步骤 3: 内容重写
 	 *
-	 * @param int $attachment_id 附件 ID
+	 * @param int    $attachment_id 附件 ID
+	 * @param string $original_url 原始 URL(转换前的 URL)
 	 * @return array 步骤结果
 	 */
-	private function step_content_rewrite( $attachment_id ) {
-		$old_url = wp_get_attachment_url( $attachment_id );
-		$new_url = preg_replace( '/\.(jpg|jpeg|png|gif)$/i', '.webp', $old_url );
+	private function step_content_rewrite( $attachment_id, $original_url = null ) {
+		// 如果没有传入原始 URL,尝试从当前 URL 推断
+		if ( $original_url === null ) {
+			$original_url = wp_get_attachment_url( $attachment_id );
+		}
 
-		if ( $old_url === $new_url ) {
+		// 构造新 URL (将原始格式替换为 webp)
+		$new_url = preg_replace( '/\.(jpg|jpeg|png|gif)$/i', '.webp', $original_url );
+
+		// 如果 URL 中没有图片扩展名,再检查是否已经是 webp
+		if ( $original_url === $new_url ) {
+			// 已经是 webp 或无需替换
 			return [
 				'success' => true,
-				'message' => __( 'No URL rewrite needed', 'wp-genius' ),
+				'message' => __( 'No URL rewrite needed (already WebP or not an image)', 'wp-genius' ),
 			];
 		}
 
 		// 使用 WP-CLI 进行搜索替换
 		$command = sprintf(
 			'wp search-replace %s %s --precise --recurse-objects --skip-columns=guid --yes 2>&1',
-			escapeshellarg( $old_url ),
+			escapeshellarg( $original_url ),
 			escapeshellarg( $new_url )
 		);
 
@@ -247,7 +276,9 @@ class MediaEngineTaskChainExecutor {
 			'success' => true,
 			'message' => sprintf(
 				/* translators: %s: number of replacements */
-				__( 'Content rewritten (%s)', 'wp-genius' ),
+				__( 'Content rewritten: %s → %s (%s)', 'wp-genius' ),
+				basename( $original_url ),
+				basename( $new_url ),
 				$output_str
 			),
 		];

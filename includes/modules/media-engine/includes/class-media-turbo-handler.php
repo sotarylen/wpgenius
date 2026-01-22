@@ -18,10 +18,6 @@ class W2P_Media_Turbo_Handler {
 	 * Constructor
 	 */
 	public function __construct() {
-		// Load converter service
-		require_once plugin_dir_path( __FILE__ ) . 'converter-service.php';
-		require_once plugin_dir_path( __FILE__ ) . 'relation-service.php';
-		
 		// Register settings
 		$this->register_settings();
 		
@@ -36,6 +32,7 @@ class W2P_Media_Turbo_Handler {
 		add_action( 'wp_ajax_w2p_execute_wpcli', [ $this, 'ajax_execute_wpcli' ] );
 		add_action( 'wp_ajax_w2p_scan_attachments', [ $this, 'ajax_scan_attachments' ] );
 		add_action( 'wp_ajax_w2p_process_attachment', [ $this, 'ajax_process_attachment' ] );
+		add_action( 'wp_ajax_w2p_process_batch', [ $this, 'ajax_process_batch' ] );
 		
 		// Admin scripts
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_scripts' ] );
@@ -543,6 +540,36 @@ class W2P_Media_Turbo_Handler {
 			] );
 		} else {
 			wp_send_json_error( $result['error'] ?? 'Unknown error' );
+		}
+	}
+
+	/**
+	 * AJAX: 批量处理附件
+	 */
+	public function ajax_process_batch() {
+		check_ajax_referer( 'w2p_media_turbo_nonce', 'nonce' );
+		
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
+
+		$attachment_ids = isset( $_POST['attachment_ids'] ) ? array_map( 'absint', (array) $_POST['attachment_ids'] ) : [];
+		
+		if ( empty( $attachment_ids ) ) {
+			wp_send_json_error( 'No attachment IDs provided' );
+		}
+
+		if ( ! class_exists( 'MediaEngineBatchProcessor' ) ) {
+			require_once plugin_dir_path( __FILE__ ) . 'class-batch-processor.php';
+		}
+
+		$processor = new MediaEngineBatchProcessor();
+		$result = $processor->process_batch( $attachment_ids );
+
+		if ( $result['success'] ) {
+			wp_send_json_success( $result );
+		} else {
+			wp_send_json_error( $result );
 		}
 	}
 }
