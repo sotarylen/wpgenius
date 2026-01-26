@@ -86,6 +86,21 @@ $stats = [
                             <?php esc_html_e( 'Clean Transients', 'wp-genius' ); ?>
                         </button>
                     </div>
+
+                    <div class="w2p-health-card w2p-health-card-full" data-type="custom_field">
+                        <div class="w2p-health-info">
+                            <span class="w2p-health-label"><?php esc_html_e( 'Clean Custom Field Data', 'wp-genius' ); ?></span>
+                            <div class="w2p-health-desc"><?php esc_html_e( 'Delete all postmeta entries for a specific custom field key (e.g. ACF).', 'wp-genius' ); ?></div>
+                        </div>
+                        <div class="w2p-health-input-group">
+                            <input type="text" id="w2p-custom-meta-key" class="w2p-input" placeholder="<?php esc_attr_e( 'Enter custom field name...', 'wp-genius' ); ?>">
+                            <button class="w2p-btn w2p-btn-danger w2p-health-action" data-action="custom_field">
+                                <span class="fa-solid fa-eraser"></span>
+                                <?php esc_html_e( 'Clean Data', 'wp-genius' ); ?>
+                            </button>
+                        </div>
+                    </div>
+
                 </div>
 
                 <div id="w2p-health-message" class="w2p-notice" style="display:none;"></div>

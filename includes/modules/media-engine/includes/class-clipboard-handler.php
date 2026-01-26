@@ -18,8 +18,6 @@ class W2P_Clipboard_Handler {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->register_settings();
-		
 		// Enqueue scripts for Admin
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
 		
@@ -46,7 +44,7 @@ class W2P_Clipboard_Handler {
 	 * Register TinyMCE Plugin
 	 */
 	public function register_tinymce_plugin( $plugin_array ) {
-		$plugin_array['w2p_clipboard_upload'] = plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/modules/clipboard-upload.js';
+		$plugin_array['w2p_clipboard_upload'] = plugins_url( '../assets/js/clipboard-upload.js', __FILE__ );
 		return $plugin_array;
 	}
 	
@@ -68,21 +66,6 @@ class W2P_Clipboard_Handler {
 	}
 	
 	/**
-	 * Register Module Settings
-	 */
-	public function register_settings() {
-		$defaults = [
-			'enabled' => true,
-			'image_prefix' => 'clipboard_',
-		];
-
-		$settings = get_option( 'w2p_clipboard_upload_settings', [] );
-		if ( empty( $settings ) ) {
-			update_option( 'w2p_clipboard_upload_settings', $defaults );
-		}
-	}
-	
-	/**
 	 * Enqueue Assets
 	 */
 	public function enqueue_assets( $hook ) {
@@ -94,22 +77,18 @@ class W2P_Clipboard_Handler {
 
 		wp_register_script( 
 			'w2p-clipboard-upload', 
-			plugins_url( '/assets/js/modules/clipboard-upload.js', WP_GENIUS_FILE ), 
+			plugins_url( '../assets/js/clipboard-upload.js', __FILE__ ), 
 			[ 'jquery', 'w2p-core-js' ], 
 			'1.0.0', 
 			true 
 		);
 
-		$settings = get_option( 'w2p_clipboard_upload_settings', [] );
+		$module_settings = get_option( 'media_engine', [] );
+		$settings = [
+			'enabled'      => isset( $module_settings['clipboard_enabled'] ) ? $module_settings['clipboard_enabled'] : false,
+			'image_prefix' => isset( $module_settings['clipboard_prefix'] ) ? $module_settings['clipboard_prefix'] : 'clipboard_',
+		];
 		
-		wp_register_script( 
-			'w2p-clipboard-upload', 
-			plugins_url( '/assets/js/modules/clipboard-upload.js', WP_GENIUS_FILE ), 
-			[ 'jquery', 'w2p-core-js' ], 
-			'1.0.0', 
-			true 
-		);
-
 		wp_enqueue_script( 'w2p-clipboard-upload' );
 
 		wp_localize_script(
@@ -175,8 +154,8 @@ class W2P_Clipboard_Handler {
 		}
 
 		// Prepare filename
-		$settings = get_option( 'w2p_clipboard_upload_settings', [] );
-		$prefix = isset( $settings['image_prefix'] ) ? $settings['image_prefix'] : 'clipboard_';
+		$module_settings = get_option( 'media_engine', [] );
+		$prefix = isset( $module_settings['clipboard_prefix'] ) ? $module_settings['clipboard_prefix'] : 'clipboard_';
 		$filename = $prefix . uniqid() . '.' . $extension;
 
 		$upload_dir = wp_upload_dir();

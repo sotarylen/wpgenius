@@ -50,24 +50,24 @@ class SMTPMailerModule extends W2P_Abstract_Module {
 	}
 
 	/**
+	 * Check if module is enabled
+	 */
+	public function is_enabled() {
+		$settings = get_option('w2p_settings', []);
+		return !empty($settings['module_' . $this->id()]);
+	}
+
+	/**
 	 * Initialize Module
 	 *
 	 * @return void
 	 */
 	public function init() {
-		// Load test connection handler early (before any HTML output)
-		if ( isset( $_GET['smtp_test'] ) && '1' === $_GET['smtp_test'] ) {
-			require_once __DIR__ . '/test-connection.php';
-		}
-
-		// Register settings
-		$this->register_settings();
+        // AJAX Handler for testing
+        add_action( 'wp_ajax_w2p_smtp_test', [ $this, 'handle_ajax_test' ] );
 
 		// Hook into phpmailer_init to apply SMTP configuration
 		add_action( 'phpmailer_init', [ $this, 'configure_smtp' ] );
-
-		// Admin notices for SMTP status
-		add_action( 'admin_notices', [ $this, 'display_smtp_status' ] );
 
         // Asset loading
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
@@ -81,30 +81,32 @@ class SMTPMailerModule extends W2P_Abstract_Module {
             return;
         }
 
-        $plugin_url = plugin_dir_url( WP_GENIUS_FILE );
+        // Only enqueue if this module section is active (optional optimization)
+        // For now, load on settings page if the module is enabled.
+
+        $module_url = plugin_dir_url( __FILE__ );
+        
+        wp_enqueue_script(
+            'w2p-smtp-settings',
+            $module_url . 'assets/js/smtp-settings.js',
+            [ 'jquery', 'w2p-admin-ui' ], // Depend on core admin UI if available
+            '1.0.0',
+            true
+        );
+
+        wp_localize_script( 'w2p-smtp-settings', 'w2p_smtp_data', [
+            'ajax_url' => admin_url( 'admin-ajax.php' ),
+            'nonce'    => wp_create_nonce( 'w2p_smtp_test_nonce' ),
+            'strings'  => [
+                'success'       => __( 'SMTP Connected Successfully!', 'wp-genius' ),
+                'unknown_error' => __( 'Unknown Error', 'wp-genius' ),
+                'fail_prefix'   => __( 'Connection Failed: ', 'wp-genius' ),
+                'network_error' => __( 'Network Error', 'wp-genius' ),
+            ]
+        ] );
     }
 
-	/**
-	 * Register Module Settings
-	 *
-	 * @return void
-	 */
-	public function register_settings() {
-		$defaults = [
-			'smtp_host'       => 'smtp.gmail.com',
-			'smtp_port'       => '465',
-			'smtp_secure'     => 'ssl',
-			'smtp_auth'       => true,
-			'smtp_username'   => '',
-			'smtp_password'   => '',
-			'smtp_from_email' => get_option( 'admin_email' ),
-			'smtp_from_name'  => get_option( 'blogname' ),
-		];
 
-		$settings = get_option( 'w2p_smtp_settings', [] );
-		$settings = wp_parse_args( $settings, $defaults );
-		update_option( 'w2p_smtp_settings', $settings );
-	}
 
 	/**
 	 * Configure SMTP Settings
@@ -113,11 +115,11 @@ class SMTPMailerModule extends W2P_Abstract_Module {
 	 * @return void
 	 */
 	public function configure_smtp( $phpmailer ) {
-		if ( ! $this->is_module_enabled() ) {
+		if ( ! $this->is_enabled() ) {
 			return;
 		}
 
-		$settings = get_option( 'w2p_smtp_settings', [] );
+		$settings = $this->get_settings();
 
 		// Skip if no SMTP host configured
 		if ( empty( $settings['smtp_host'] ) || empty( $settings['smtp_username'] ) ) {
@@ -133,65 +135,44 @@ class SMTPMailerModule extends W2P_Abstract_Module {
 		$phpmailer->Password   = $settings['smtp_password']; // Password is not sanitized as per WordPress conventions
 		$phpmailer->From       = sanitize_email( $settings['smtp_from_email'] );
 		$phpmailer->FromName   = sanitize_text_field( $settings['smtp_from_name'] );
-
-		// Optional: Uncomment to disable SSL verification for development
-		// $phpmailer->SMTPOptions = [
-		//     'ssl' => [
-		//         'verify_peer'       => false,
-		//         'verify_peer_name'  => false,
-		//     ],
-		// ];
 	}
 
-	/**
-	 * Check if module is enabled
-	 *
-	 * @return bool
-	 */
-	private function is_module_enabled() {
-		$modules = get_option( 'w2p_active_modules', [] );
-		return isset( $modules[ $this::id() ] ) && $modules[ $this::id() ];
-	}
 
-	/**
-	 * Display SMTP Connection Status Notice
-	 *
-	 * @return void
-	 */
-	public function display_smtp_status() {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
 
-		if ( ! isset( $_GET['page'] ) || 'wp-genius-settings' !== $_GET['page'] ) {
-			return;
-		}
+    /**
+     * Handle AJAX SMTP Test
+     */
+    public function handle_ajax_test() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( __( 'No permission', 'wp-genius' ) );
+        }
 
-		if ( ! $this->is_module_enabled() ) {
-			return;
-		}
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'w2p_smtp_test_nonce' ) ) {
+            wp_send_json_error( __( 'Invalid security token', 'wp-genius' ) );
+        }
 
-		$settings = get_option( 'w2p_smtp_settings', [] );
+        $posted_settings = isset( $_POST['w2p_smtp_settings'] ) ? $_POST['w2p_smtp_settings'] : [];
+        $saved_settings = $this->get_settings();
+        $settings = array_merge( $saved_settings, $posted_settings );
 
-		if ( empty( $settings['smtp_host'] ) || empty( $settings['smtp_username'] ) ) {
-			echo '<div class="notice notice-warning is-dismissible"><p>';
-			echo esc_html__( 'SMTP Mail Configuration is enabled but not fully configured. Please enter host and username.', 'wp-genius' );
-			echo '</p></div>';
-			return;
-		}
+        if ( empty( $settings['smtp_host'] ) ) {
+             wp_send_json_error( __( 'Missing SMTP configuration', 'wp-genius' ) );
+        }
 
-		// Test SMTP connection (optional, on-demand)
-		if ( isset( $_GET['smtp_test'] ) && '1' === $_GET['smtp_test'] ) {
-			// Verify nonce if needed (optional security check)
-			$this->test_smtp_connection( $settings );
-		}
-	}
+        $result = $this->test_smtp_connection( $settings );
+
+        if ( $result['success'] ) {
+            wp_send_json_success( $result['message'] );
+        } else {
+            wp_send_json_error( $result['message'] );
+        }
+    }
 
 	/**
 	 * Test SMTP Connection
 	 *
 	 * @param array $settings SMTP settings
-	 * @return void
+	 * @return array ['success' => bool, 'message' => string]
 	 */
 	private function test_smtp_connection( $settings ) {
 		require_once ABSPATH . WPINC . '/class-phpmailer.php';
@@ -207,6 +188,8 @@ class SMTPMailerModule extends W2P_Abstract_Module {
 			$phpmailer->SMTPSecure = $settings['smtp_secure'];
 			$phpmailer->Username   = $settings['smtp_username'];
 			$phpmailer->Password   = $settings['smtp_password'];
+            // Increase timeout for testing
+            $phpmailer->Timeout    = 10;
 
 			// Attempt connection
 			if ( $phpmailer->smtpConnect( [
@@ -216,16 +199,16 @@ class SMTPMailerModule extends W2P_Abstract_Module {
 				],
 			] ) ) {
 				$phpmailer->smtpClose();
-				echo '<div class="notice notice-success is-dismissible"><p>';
-				echo esc_html__( 'SMTP connection successful!', 'wp-genius' );
-				echo '</p></div>';
+                return [ 'success' => true, 'message' => __( 'SMTP connection successful!', 'wp-genius' ) ];
 			}
+            
+            return [ 'success' => false, 'message' => __( 'Connection refused by server.', 'wp-genius' ) ];
+            
 		} catch ( \Exception $e ) {
-			echo '<div class="notice notice-error is-dismissible"><p>';
-			echo esc_html__( 'SMTP connection failed: ', 'wp-genius' ) . esc_html( $e->getMessage() );
-			echo '</p></div>';
+            return [ 'success' => false, 'message' => $e->getMessage() ];
 		}
 	}
+
 
 	/**
 	 * Module Activation Hook
@@ -243,13 +226,5 @@ class SMTPMailerModule extends W2P_Abstract_Module {
 	 */
 	public function deactivate() {
 		do_action( 'w2p_smtp_deactivated' );
-	}
-
-	public function render_settings() {
-		$this->render_view( 'settings' );
-	}
-
-	public function settings_key() {
-		return 'w2p_smtp_settings';
 	}
 }

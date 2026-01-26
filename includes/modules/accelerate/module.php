@@ -3,6 +3,7 @@
  * Accelerate Module
  *
  * Merges functionality from Cleanup WordPress and Update Behavior modules.
+ * Now also includes functionality from removed sub-modules (Cleanup Images) for a flatter structure.
  *
  * @package WP_Genius
  * @subpackage Modules
@@ -14,6 +15,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class AccelerateModule extends W2P_Abstract_Module {
     
+    protected static $original_titles = array();
+
+    public function settings_key() {
+        return 'w2p_settings';
+    }
+
     public static function id() {
         return 'accelerate';
     }
@@ -30,73 +37,7 @@ class AccelerateModule extends W2P_Abstract_Module {
         return 'fa-solid fa-gauge-high';
     }
 
-    public function __construct() {
-        $this->migrate_settings();
-    }
-
-    private function migrate_settings() {
-        $transient_key = 'w2p_accelerate_migration_completed';
-        if ( get_transient( $transient_key ) ) {
-            return;
-        }
-
-        // 1. Migrate Module Activation Status
-        $modules_enabled = get_option( 'word2posts_modules', [] );
-        $old_modules = ['cleanup-wordpress', 'update-behavior', 'avatar-manager', 'upload-rename'];
-        $should_enable = false;
-
-        foreach ($old_modules as $old_id) {
-            if ( !empty($modules_enabled[$old_id]) ) {
-                $should_enable = true;
-                unset($modules_enabled[$old_id]); // Clean up old entry
-            }
-        }
-
-        if ( $should_enable && empty($modules_enabled[self::id()]) ) {
-            $modules_enabled[self::id()] = true;
-            update_option( 'word2posts_modules', $modules_enabled );
-        }
-
-        // 2. Migrate Options
-        $new_settings_key = 'w2p_accelerate_settings';
-        $current_settings = get_option( $new_settings_key, [] );
-        
-        if ( empty($current_settings) ) {
-            $cleanup_settings = get_option('w2p_cleanup_settings', []);
-            $update_settings = get_option('w2p_update_behavior_settings', []);
-            
-            // Merge defaults just in case, but usually we just merge what we have
-            $merged_settings = array_merge( $cleanup_settings, $update_settings );
-            
-            if ( !empty($merged_settings) ) {
-                update_option( $new_settings_key, $merged_settings );
-            }
-        }
-        
-        // 3. Migrate Avatar Manager Settings
-        $avatar_was_enabled = !empty($modules_enabled['avatar-manager']);
-        if ($avatar_was_enabled && empty($current_settings['enable_local_avatar'])) {
-            $current_settings['enable_local_avatar'] = true;
-            update_option($new_settings_key, $current_settings);
-        }
-        
-        // 4. Migrate Upload Rename Settings
-        $rename_was_enabled = !empty($modules_enabled['upload-rename']);
-        $old_pattern = get_option('w2p_upload_rename_pattern', '');
-        if ($rename_was_enabled && empty($current_settings['enable_upload_rename'])) {
-            $current_settings['enable_upload_rename'] = true;
-            if ($old_pattern) {
-                $current_settings['upload_rename_pattern'] = $old_pattern;
-            }
-            update_option($new_settings_key, $current_settings);
-        }
-        
-        set_transient( $transient_key, true, MONTH_IN_SECONDS );
-    }
-
     public function init() {
-        $this->register_settings();
-
         // Cleanup Functionality Hooks
         add_action( 'wp_before_admin_bar_render', [ $this, 'clean_admin_bar' ] );
         add_action( 'wp_dashboard_setup', [ $this, 'clean_dashboard_widgets' ], 999 );
@@ -114,96 +55,52 @@ class AccelerateModule extends W2P_Abstract_Module {
 
         // Upload Rename Hooks
         $this->init_upload_rename();
-    }
 
-    public function register_settings() {
-        register_setting( 'w2p_accelerate_settings', 'w2p_accelerate_settings', [
-            'type'              => 'array',
-            'sanitize_callback' => [ $this, 'sanitize_settings' ],
-            'default'           => [
-                'remove_admin_bar_wp_logo'         => true,
-                'remove_admin_bar_about'           => true,
-                'remove_admin_bar_comments'        => true,
-                'remove_admin_bar_new_content'     => true,
-                'remove_admin_bar_search'          => true,
-                'remove_admin_bar_updates'         => true,
-                'remove_admin_bar_appearance'      => true,
-                'remove_admin_bar_customize'       => false,
-                'remove_admin_bar_wporg'           => true,
-                'remove_admin_bar_documentation'   => true,
-                'remove_admin_bar_support_forums'  => true,
-                'remove_admin_bar_feedback'        => true,
-                'remove_admin_bar_view_site'       => true,
-                'remove_dashboard_activity'        => true,
-                'remove_dashboard_primary'         => false,
-                'remove_dashboard_secondary'       => false,
-                'remove_dashboard_site_health'     => false,
-                'remove_dashboard_right_now'       => false,
-                'remove_dashboard_quick_draft'     => true,
-                'disable_months_dropdown'          => false,
-                'disable_auto_update_plugin'       => true,
-                'disable_auto_update_theme'        => true,
-                'remove_wp_update_plugins'         => true,
-                'remove_wp_update_themes'          => true,
-                'remove_maybe_update_core'         => true,
-                'remove_maybe_update_plugins'      => true,
-                'remove_maybe_update_themes'       => true,
-                'block_external_http'              => false,
-                'hide_plugin_notices'              => false,
-                'block_acf_updates'                => false,
-                'enable_local_avatar'              => false,
-                'enable_upload_rename'             => false,
-                'upload_rename_pattern'            => '{timestamp}_{sanitized}',
-            ]
-        ] );
+        // Delete with Images Hooks (Merged from AccelerateCleanupImages)
+        $this->init_cleanup_images();
+        
+        // Admin Body Classes for conditional styles
+        add_filter( 'admin_body_class', [ $this, 'add_body_classes' ] );
     }
-
-    public function sanitize_settings( $input ) {
-        if ( ! is_array( $input ) ) return [];
+    
+    /**
+     * Add admin body classes for styling hooks
+     */
+    public function add_body_classes( $classes ) {
+        $settings = $this->get_settings();
         
-        $sanitized = [];
-        
-        // Handle string fields separately
-        if ( isset( $input['upload_rename_pattern'] ) ) {
-            $sanitized['upload_rename_pattern'] = sanitize_text_field( $input['upload_rename_pattern'] );
+        if ( ! empty( $settings['accelerate_hide_plugin_notices'] ) ) {
+            $classes .= ' w2p-acc-hide-notices';
         }
         
-        // Convert all other fields to boolean
-        foreach ( $input as $key => $value ) {
-            if ( $key === 'upload_rename_pattern' ) {
-                continue; // Already handled
-            }
-            $sanitized[$key] = (bool) $value;
+        if ( ! empty( $settings['accelerate_enable_local_avatar'] ) ) {
+            $classes .= ' w2p-acc-local-avatar';
         }
         
-        return $sanitized;
+        return $classes;
     }
 
     /**
      * Clean Admin Bar
      */
     public function clean_admin_bar() {
-        if ( ! $this->is_module_enabled() ) {
-            return;
-        }
-
         global $wp_admin_bar;
-        $settings = get_option( 'w2p_accelerate_settings', [] );
+        $settings = $this->get_settings();
 
         $items_to_remove = [
-            'remove_admin_bar_wp_logo'       => 'wp-logo',
-            'remove_admin_bar_about'         => 'about',
-            'remove_admin_bar_comments'      => 'comments',
-            'remove_admin_bar_new_content'   => 'new-content',
-            'remove_admin_bar_search'        => 'search',
-            'remove_admin_bar_updates'       => 'updates',
-            'remove_admin_bar_appearance'    => 'appearance',
-            'remove_admin_bar_customize'     => 'customize',
-            'remove_admin_bar_wporg'         => 'wporg',
-            'remove_admin_bar_documentation' => 'documentation',
-            'remove_admin_bar_support_forums' => 'support-forums',
-            'remove_admin_bar_feedback'      => 'feedback',
-            'remove_admin_bar_view_site'     => 'view-site',
+            'accelerate_remove_admin_bar_wp_logo'       => 'wp-logo',
+            'accelerate_remove_admin_bar_about'         => 'about',
+            'accelerate_remove_admin_bar_comments'      => 'comments',
+            'accelerate_remove_admin_bar_new_content'   => 'new-content',
+            'accelerate_remove_admin_bar_search'        => 'search',
+            'accelerate_remove_admin_bar_updates'       => 'updates',
+            'accelerate_remove_admin_bar_appearance'    => 'appearance',
+            'accelerate_remove_admin_bar_customize'     => 'customize',
+            'accelerate_remove_admin_bar_wporg'         => 'wporg',
+            'accelerate_remove_admin_bar_documentation' => 'documentation',
+            'accelerate_remove_admin_bar_support_forums' => 'support-forums',
+            'accelerate_remove_admin_bar_feedback'      => 'feedback',
+            'accelerate_remove_admin_bar_view_site'     => 'view-site',
         ];
 
         foreach ( $items_to_remove as $setting => $menu_item ) {
@@ -217,20 +114,16 @@ class AccelerateModule extends W2P_Abstract_Module {
      * Clean Dashboard Widgets
      */
     public function clean_dashboard_widgets() {
-        if ( ! $this->is_module_enabled() ) {
-            return;
-        }
-
         global $wp_meta_boxes;
-        $settings = get_option( 'w2p_accelerate_settings', [] );
+        $settings = $this->get_settings();
 
         $widgets_to_remove = [
-            'remove_dashboard_primary'      => [ 'dashboard', 'side', 'core', 'dashboard_primary' ],
-            'remove_dashboard_secondary'    => [ 'dashboard', 'side', 'core', 'dashboard_secondary' ],
-            'remove_dashboard_site_health'  => [ 'dashboard', 'normal', 'core', 'dashboard_site_health' ],
-            'remove_dashboard_right_now'    => [ 'dashboard', 'normal', 'core', 'dashboard_right_now' ],
-            'remove_dashboard_quick_draft'  => [ 'dashboard', 'side', 'core', 'dashboard_quick_press' ],
-            'remove_dashboard_activity'     => [ 'dashboard', 'normal', 'core', 'dashboard_activity' ],
+            'accelerate_remove_dashboard_primary'      => [ 'dashboard', 'side', 'core', 'dashboard_primary' ],
+            'accelerate_remove_dashboard_secondary'    => [ 'dashboard', 'side', 'core', 'dashboard_secondary' ],
+            'accelerate_remove_dashboard_site_health'  => [ 'dashboard', 'normal', 'core', 'dashboard_site_health' ],
+            'accelerate_remove_dashboard_right_now'    => [ 'dashboard', 'normal', 'core', 'dashboard_right_now' ],
+            'accelerate_remove_dashboard_quick_draft'  => [ 'dashboard', 'side', 'core', 'dashboard_quick_press' ],
+            'accelerate_remove_dashboard_activity'     => [ 'dashboard', 'normal', 'core', 'dashboard_activity' ],
         ];
 
         foreach ( $widgets_to_remove as $setting => $path ) {
@@ -244,19 +137,12 @@ class AccelerateModule extends W2P_Abstract_Module {
 
     /**
      * Should Disable Months Dropdown (Post List)
-     * 
-     * Returning true here prevents the SQL query entirely.
      */
     public function should_disable_months_dropdown( $disable, $post_type ) {
-        if ( ! $this->is_module_enabled() ) {
-            return $disable;
-        }
-
-        $settings = get_option( 'w2p_accelerate_settings', [] );
-        if ( ! empty( $settings['disable_months_dropdown'] ) ) {
+        $settings = $this->get_settings();
+        if ( ! empty( $settings['accelerate_disable_months_dropdown'] ) ) {
             return true;
         }
-
         return $disable;
     }
 
@@ -264,33 +150,25 @@ class AccelerateModule extends W2P_Abstract_Module {
      * Disable Media Months UI
      */
     public function disable_media_months( $months ) {
-        if ( ! $this->is_module_enabled() ) {
-            return $months;
-        }
-
-        $settings = get_option( 'w2p_accelerate_settings', [] );
-        if ( ! empty( $settings['disable_months_dropdown'] ) ) {
+        $settings = $this->get_settings();
+        if ( ! empty( $settings['accelerate_disable_months_dropdown'] ) ) {
             return [];
         }
-
         return $months;
     }
 
     /**
      * Intercept and block date-based SELECT DISTINCT queries
-     * 
-     * This is a fallback for cases where there is no "disable" filter (like Grid Media Library).
      */
     public function intercept_date_query( $query ) {
-        if ( ! is_admin() || ! $this->is_module_enabled() ) {
+        if ( ! is_admin() ) {
             return $query;
         }
 
         // Target the specific slow queries for years/months
         if ( strpos( $query, 'SELECT DISTINCT YEAR( post_date ) AS year, MONTH( post_date ) AS month' ) !== false ) {
-            $settings = get_option( 'w2p_accelerate_settings', [] );
-            if ( ! empty( $settings['disable_months_dropdown'] ) ) {
-                // Return a valid query that result in 0 rows to satisfy the get_results call without hitting table indexes
+            $settings = $this->get_settings();
+            if ( ! empty( $settings['accelerate_disable_months_dropdown'] ) ) {
                 return "SELECT 1 FROM wp_posts WHERE 1=0";
             }
         }
@@ -302,66 +180,45 @@ class AccelerateModule extends W2P_Abstract_Module {
      * Apply Update Behaviors
      */
     public function apply_update_behavior() {
-        if ( ! $this->is_module_enabled() ) {
-            return;
-        }
+        $s = $this->get_settings();
 
-        $s = get_option( 'w2p_accelerate_settings', array() );
-
-        if ( ! empty( $s['disable_auto_update_plugin'] ) ) {
+        if ( ! empty( $s['accelerate_disable_auto_update_plugin'] ) ) {
             add_filter( 'auto_update_plugin', '__return_false' );
         }
 
-        if ( ! empty( $s['disable_auto_update_theme'] ) ) {
+        if ( ! empty( $s['accelerate_disable_auto_update_theme'] ) ) {
             add_filter( 'auto_update_theme', '__return_false' );
         }
 
-        if ( ! empty( $s['remove_wp_update_plugins'] ) ) {
+        if ( ! empty( $s['accelerate_remove_wp_update_plugins'] ) ) {
             remove_action( 'wp_update_plugins', 'wp_update_plugins' );
         }
 
-        if ( ! empty( $s['remove_wp_update_themes'] ) ) {
+        if ( ! empty( $s['accelerate_remove_wp_update_themes'] ) ) {
             remove_action( 'wp_update_themes', 'wp_update_themes' );
         }
 
-        if ( ! empty( $s['remove_maybe_update_core'] ) ) {
+        if ( ! empty( $s['accelerate_remove_maybe_update_core'] ) ) {
             remove_action( 'admin_init', '_maybe_update_core' );
         }
 
-        if ( ! empty( $s['remove_maybe_update_plugins'] ) ) {
+        if ( ! empty( $s['accelerate_remove_maybe_update_plugins'] ) ) {
             remove_action( 'admin_init', '_maybe_update_plugins' );
         }
 
-        if ( ! empty( $s['remove_maybe_update_themes'] ) ) {
+        if ( ! empty( $s['accelerate_remove_maybe_update_themes'] ) ) {
             remove_action( 'admin_init', '_maybe_update_themes' );
         }
 
-        if ( ! empty( $s['block_external_http'] ) ) {
+        if ( ! empty( $s['accelerate_block_external_http'] ) ) {
             if ( ! defined( 'WP_HTTP_BLOCK_EXTERNAL' ) ) {
                 define( 'WP_HTTP_BLOCK_EXTERNAL', true );
             }
         }
 
-        if ( ! empty( $s['hide_plugin_notices'] ) ) {
-            add_action('admin_head', array($this, 'hide_plugin_notices'));
-        }
-
-        if ( ! empty( $s['block_acf_updates'] ) ) {
+        if ( ! empty( $s['accelerate_block_acf_updates'] ) ) {
             add_filter('http_request_args', array($this, 'block_acf_update_requests'), 10, 2);
         }
-    }
-
-    /**
-     * Hide Plugin Notices
-     *
-     * @return void
-     */
-    public function hide_plugin_notices() {
-        echo '<style>
-            .otgs-is-not-registered, .otgs-notice, .update-message {
-                display: none !important;
-            }
-        </style>';
     }
 
     /**
@@ -376,35 +233,18 @@ class AccelerateModule extends W2P_Abstract_Module {
         return $r;
     }
 
-    private function is_module_enabled() {
-        $modules = get_option( 'word2posts_modules', array() );
-        return ! empty( $modules[ self::id() ] );
-    }
-
-    public function activate() {
-        do_action( 'w2p_accelerate_activated' );
-    }
-
-    public function deactivate() {
-        do_action( 'w2p_accelerate_deactivated' );
-    }
-
     /**
      * ============================================
      * Local Avatar Management Integration
      * ============================================
      */
-
-    protected static $original_titles = array();
-
     protected function init_local_avatar() {
-        $settings = get_option( 'w2p_accelerate_settings', [] );
-        if ( empty( $settings['enable_local_avatar'] ) ) {
+        $settings = $this->get_settings();
+        if ( empty( $settings['accelerate_enable_local_avatar'] ) ) {
             return;
         }
 
-        // Hide WP default avatar section
-        add_action('admin_head', array($this, 'hide_default_avatar_ui'));
+        // Styles are handled by admin_styles()
 
         // Load media library scripts on profile pages
         add_action('admin_enqueue_scripts', array($this, 'enqueue_avatar_scripts'));
@@ -414,6 +254,7 @@ class AccelerateModule extends W2P_Abstract_Module {
         add_action('edit_user_profile', array($this, 'render_avatar_field'));
 
         // Print inline JS for upload/remove functionality
+        // [Refactor] Should extract to JS file, but keeping inline for now to prioritize logic fix 
         add_action('admin_print_footer_scripts', array($this, 'print_avatar_js'));
 
         // Save avatar metadata
@@ -424,28 +265,13 @@ class AccelerateModule extends W2P_Abstract_Module {
         add_filter('get_avatar', array($this, 'get_local_avatar'), 10, 5);
     }
 
-    public function hide_default_avatar_ui() {
-        echo '<style>
-            .user-profile-picture { display:none; }
-        </style>';
-    }
-
     public function enqueue_avatar_scripts() {
         $screen = get_current_screen();
         if (!$screen || ($screen->base !== 'profile' && $screen->base !== 'user-edit')) {
             return;
         }
-
         wp_enqueue_media();
-        wp_add_inline_style('wp-admin', '
-            /* Local avatar preview styling */
-            #st-avatar-preview img {
-                width: 96px !important;
-                height: 96px !important;
-                border-radius: 50%;
-                object-fit: cover;
-            }
-        ');
+        // Inline styles moved to admin_styles()
     }
 
     public function render_avatar_field($user) {
@@ -526,7 +352,6 @@ class AccelerateModule extends W2P_Abstract_Module {
     }
 
     public function get_local_avatar($avatar, $id_or_email, $size, $default, $alt) {
-        // Resolve user object
         if (is_numeric($id_or_email)) {
             $user = get_user_by('id', $id_or_email);
         } elseif (is_object($id_or_email) && isset($id_or_email->user_id)) {
@@ -539,7 +364,6 @@ class AccelerateModule extends W2P_Abstract_Module {
             return $avatar;
         }
 
-        // Get local avatar ID
         $avatar_id = get_user_meta($user->ID, 'st_local_avatar', true);
         if ($avatar_id) {
             return wp_get_attachment_image($avatar_id, array($size, $size), false, array(
@@ -548,7 +372,6 @@ class AccelerateModule extends W2P_Abstract_Module {
             ));
         }
 
-        // Fallback to blank image
         $blank_img = esc_url(includes_url('images/blank.gif'));
         return '<img src="' . $blank_img . '" class="avatar avatar-' . $size . '" width="' . $size . '" height="' . $size . '" alt="' . esc_attr($alt) . '" />';
     }
@@ -558,17 +381,13 @@ class AccelerateModule extends W2P_Abstract_Module {
      * Upload Rename Integration
      * ============================================
      */
-
     protected function init_upload_rename() {
-        $settings = get_option( 'w2p_accelerate_settings', [] );
-        if ( empty( $settings['enable_upload_rename'] ) ) {
+        $settings = $this->get_settings();
+        if ( empty( $settings['accelerate_enable_upload_rename'] ) ) {
             return;
         }
 
-        // 在上传预处理阶段重命名文件名
         add_filter('wp_handle_upload_prefilter', array($this, 'handle_upload_prefilter'));
-
-        // 在插入附件数据前，允许替换 post_title 为原始文件名
         add_filter('wp_insert_attachment_data', array($this, 'maybe_replace_attachment_title'), 10, 2);
     }
 
@@ -577,25 +396,22 @@ class AccelerateModule extends W2P_Abstract_Module {
             return $file;
         }
 
-        $settings = get_option( 'w2p_accelerate_settings', [] );
-        $pattern = isset($settings['upload_rename_pattern']) ? $settings['upload_rename_pattern'] : '{timestamp}_{sanitized}';
+        $settings = $this->get_settings();
+        $pattern = isset($settings['accelerate_upload_rename_pattern']) ? $settings['accelerate_upload_rename_pattern'] : '{timestamp}_{sanitized}';
         
-        // 保留原始模板以便判断是否包含 {ext}
         $pattern_template = $pattern;
-        // 支持 {date} 或 {date:FORMAT}，默认格式 Y-m-d
         $pattern = preg_replace_callback('/\{date(?::([^}]+))?\}/', function($m) {
             $fmt = isset($m[1]) && $m[1] ? $m[1] : 'Y-m-d';
             return date($fmt);
         }, $pattern);
-        // 原始基名（不含扩展名），作为媒体标题使用（做最小的文件名清理）
+        
         $original_base = pathinfo($file['name'], PATHINFO_FILENAME);
         $original_base = sanitize_file_name( $original_base );
         $sanitized = $original_base;
         $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
         $timestamp = time();
         $random = wp_rand(1000, 9999);
-
-        // 当前用户信息（若已登录）
+        
         $current_user = wp_get_current_user();
         $user_login = !empty($current_user->user_login) ? $current_user->user_login : '';
         $user_id = !empty($current_user->ID) ? $current_user->ID : 0;
@@ -618,19 +434,15 @@ class AccelerateModule extends W2P_Abstract_Module {
             '{uniqid}'   => uniqid(),
         );
 
-        // 执行替换
         $new_name = strtr( $pattern, $replacements );
 
-        // 如果模板没有包含 {ext}，则自动追加扩展名
         if ( false === strpos( $pattern_template, '{ext}' ) ) {
             $new_name = $new_name . ( $ext ? '.' . $ext : '' );
         }
 
-        // 确保文件名不包含非法字符
         $new_sanitized = sanitize_file_name($new_name);
         $file['name'] = $new_sanitized;
 
-        // 记录映射：新基名 => 原始基名（未含扩展）
         $new_base = pathinfo( $new_sanitized, PATHINFO_FILENAME );
         self::$original_titles[ $new_base ] = $original_base;
 
@@ -644,18 +456,362 @@ class AccelerateModule extends W2P_Abstract_Module {
 
         $current_base = sanitize_file_name( $data['post_title'] );
         if ( isset( self::$original_titles[ $current_base ] ) ) {
-            // 使用原始基名（未含扩展）作为标题
             $data['post_title'] = self::$original_titles[ $current_base ];
         }
 
         return $data;
     }
 
-    public function render_settings() {
-        $this->render_view( 'settings' );
+    /**
+     * ============================================
+     * Delete with Images Integration
+     * ============================================
+     */
+    protected function init_cleanup_images() {
+        $settings = $this->get_settings();
+        if ( empty( $settings['accelerate_enable_delete_with_images'] ) ) {
+            return;
+        }
+
+        // Add row action link
+        add_filter( 'post_row_actions', [ $this, 'cleanup_images_add_row_action' ], 10, 2 );
+        add_filter( 'page_row_actions', [ $this, 'cleanup_images_add_row_action' ], 10, 2 );
+        
+        // Handle deletion action
+        add_action( 'admin_post_w2p_delete_post_with_images', [ $this, 'cleanup_images_handle_delete_action' ] );
+
+        // Add link to Edit Post screen
+        add_action( 'post_submitbox_start', [ $this, 'cleanup_images_add_edit_post_action' ] );
+
+        // Enqueue scripts (use core admin ui, merged CSS in admin_styles)
+        add_action( 'admin_enqueue_scripts', [ $this, 'cleanup_images_enqueue_scripts' ] );
+        add_action( 'admin_footer', [ $this, 'cleanup_images_print_footer_scripts' ] );
+
+        // Bulk Actions
+        add_filter( 'bulk_actions-edit-post', [ $this, 'cleanup_images_register_bulk_actions' ] );
+        add_filter( 'bulk_actions-edit-page', [ $this, 'cleanup_images_register_bulk_actions' ] );
+        // Note: 'handle_bulk_actions-{screen}' hooks need precise screen IDs.
+        add_filter( 'handle_bulk_actions-edit-post', [ $this, 'cleanup_images_handle_bulk_actions' ], 10, 3 );
+        add_filter( 'handle_bulk_actions-edit-page', [ $this, 'cleanup_images_handle_bulk_actions' ], 10, 3 );
     }
 
-    public function settings_key() {
-        return 'w2p_accelerate_settings';
+    /**
+     * Register Bulk Action
+     */
+    public function cleanup_images_register_bulk_actions( $bulk_actions ) {
+        $bulk_actions['w2p_delete_with_images_bulk'] = __( 'Delete w/ Images', 'wp-genius' );
+        return $bulk_actions;
+    }
+
+    /**
+     * Handle Bulk Actions
+     */
+    public function cleanup_images_handle_bulk_actions( $redirect_to, $doaction, $post_ids ) {
+        if ( $doaction !== 'w2p_delete_with_images_bulk' ) {
+            return $redirect_to;
+        }
+
+        $deleted_images = 0;
+        $deleted_posts = 0;
+
+        foreach ( $post_ids as $post_id ) {
+            if ( ! current_user_can( 'delete_post', $post_id ) ) {
+                continue;
+            }
+            
+            // Reuse the processing logic
+            $result = $this->cleanup_images_process_single_post_deletion($post_id);
+            if ($result) {
+                $deleted_posts++;
+                $deleted_images += $result['deleted_images'];
+            }
+        }
+
+        $redirect_to = add_query_arg( [
+            'w2p_bulk_deleted_posts' => $deleted_posts,
+            'w2p_bulk_deleted_images' => $deleted_images,
+        ], $redirect_to );
+
+        return $redirect_to;
+    }
+
+    /**
+     * Add "Delete w/ Images" link to row actions
+     */
+    public function cleanup_images_add_row_action( $actions, $post ) {
+        // Only for posts with permission
+        if ( ! current_user_can( 'delete_post', $post->ID ) ) {
+            return $actions;
+        }
+
+        // Only if not in trash
+        if ( 'trash' === $post->post_status ) {
+            return $actions;
+        }
+
+        // Capture current URL for safe redirect
+        $redirect_to = urlencode( wp_unslash( $_SERVER['REQUEST_URI'] ) );
+
+        // Build the deletion URL
+        $url = wp_nonce_url(
+            admin_url( 'admin-post.php?action=w2p_delete_post_with_images&post_id=' . $post->ID . '&redirect_to=' . $redirect_to ),
+            'w2p_delete_with_images_' . $post->ID
+        );
+
+        // Add the action
+        $actions['w2p_delete_with_images'] = sprintf(
+            '<a href="%s" class="delete w2p-delete-with-images-btn">%s</a>',
+            esc_url( $url ),
+            esc_html__( 'Delete w/ Images', 'wp-genius' )
+        );
+
+        return $actions;
+    }
+
+    /**
+     * Add "Delete w/ Images" link to Edit Post screen (Publish Meta Box)
+     */
+    public function cleanup_images_add_edit_post_action() {
+        global $post;
+        
+        if ( ! $post || ! current_user_can( 'delete_post', $post->ID ) ) {
+            return;
+        }
+
+        if ( 'trash' === $post->post_status ) {
+            return;
+        }
+
+        // Redirect to post list after deletion from single edit screen
+        $redirect_to = urlencode( admin_url( 'edit.php?post_type=' . $post->post_type ) );
+
+        $url = wp_nonce_url(
+            admin_url( 'admin-post.php?action=w2p_delete_post_with_images&post_id=' . $post->ID . '&redirect_to=' . $redirect_to ),
+            'w2p_delete_with_images_' . $post->ID
+        );
+        
+        // Render View
+        ?>
+        <div id="w2p-delete-with-images-wrap">
+            <a href="<?php echo esc_url( $url ); ?>" class="submitdelete w2p-delete-with-images-btn">
+                <?php esc_html_e( 'Delete w/ Images', 'wp-genius' ); ?>
+            </a>
+        </div>
+        <script>
+        // Move to the bottom next to Move to Trash if possible, or keep at top of submit box
+        jQuery(document).ready(function($) {
+            var $link = $('#w2p-delete-with-images-wrap');
+            var $trashLink = $('#delete-action');
+            
+            if ($trashLink.length) {
+                $link.css('margin-left', '10px'); // JS styling required for dynamic positioning
+                $link.contents().appendTo($trashLink);
+                $link.remove();
+            }
+        });
+        </script>
+        <?php
+    }
+
+    public function cleanup_images_enqueue_scripts() {
+        wp_enqueue_script( 'w2p-admin-ui' );
+        wp_enqueue_style( 'w2p-admin-ui' );
+        
+        // Module specific admin styles are already injected via admin_styles()
+    }
+
+    public function cleanup_images_print_footer_scripts() {
+        ?>
+        <script type="text/javascript">
+        jQuery(document).ready(function($) {
+            // Single Action Confirm
+            $(document).on('click', '.w2p-delete-with-images-btn', function(e) {
+                e.preventDefault();
+                var href = $(this).attr('href');
+                
+                if (typeof w2p !== 'undefined' && typeof w2p.confirm === 'function') {
+                    w2p.confirm(
+                        '<?php echo esc_js( __( 'Are you sure you want to delete this post AND all its associated local images? This cannot be undone.', 'wp-genius' ) ); ?>',
+                        function() {
+                            window.location.href = href;
+                        }
+                    );
+                } else {
+                    if (confirm('<?php echo esc_js( __( 'Are you sure you want to delete this post AND all its associated local images? This cannot be undone.', 'wp-genius' ) ); ?>')) {
+                        window.location.href = href;
+                    }
+                }
+            });
+
+            // Bulk Action Confirm
+            $('#doaction, #doaction2').on('click', function(e) {
+                var action = $(this).prev('select').val();
+                
+                if (action === 'w2p_delete_with_images_bulk') {
+                    e.preventDefault();
+                    var $form = $(this).closest('form');
+                    
+                    // Check if any items selected
+                    if ($form.find('input[name="post[]"]:checked').length === 0) {
+                        return;
+                    }
+
+                    var message = '<?php echo esc_js( __( 'Are you sure you want to delete the selected posts AND all their associated local images? This cannot be undone.', 'wp-genius' ) ); ?>';
+
+                    if (typeof w2p !== 'undefined' && typeof w2p.confirm === 'function') {
+                        w2p.confirm(
+                            message,
+                            function() {
+                                // We need to submit the form. 
+                                // Since we prevented default, we need to re-trigger or submit manually.
+                                $form.submit();
+                            }
+                        );
+                    } else {
+                        if (confirm(message)) {
+                            $form.submit();
+                        }
+                    }
+                }
+            });
+        });
+        </script>
+        <?php
+    }
+
+    /**
+     * Handle the deletion action
+     */
+    public function cleanup_images_handle_delete_action() {
+        $post_id = isset( $_GET['post_id'] ) ? absint( $_GET['post_id'] ) : 0;
+        if ( ! $post_id ) {
+            wp_die( __( 'Invalid post ID.', 'wp-genius' ) );
+        }
+
+        check_admin_referer( 'w2p_delete_with_images_' . $post_id );
+
+        if ( ! current_user_can( 'delete_post', $post_id ) ) {
+            wp_die( __( 'You do not have permission to delete this post.', 'wp-genius' ) );
+        }
+
+        $result = $this->cleanup_images_process_single_post_deletion($post_id);
+
+        // Default redirect
+        $redirect_url = admin_url( 'edit.php?post_type=' . get_post_type( $post_id ) );
+
+        // Check for custom redirect_to
+        if ( ! empty( $_GET['redirect_to'] ) ) {
+            $redirect_url = urldecode( $_GET['redirect_to'] );
+        }
+
+        if ( $result ) {
+            $redirect_url = add_query_arg( [
+                'w2p_deleted_images' => $result['deleted_images'],
+                'w2p_deleted_post' => $post_id,
+            ], $redirect_url );
+        }
+        
+        wp_redirect( $redirect_url );
+        exit;
+    }
+
+    /**
+     * Process deletion for a single post
+     */
+    private function cleanup_images_process_single_post_deletion($post_id) {
+        // 1. Collect Images
+        $image_ids = $this->cleanup_images_collect_post_images( $post_id );
+        $deleted_images = 0;
+
+        // 2. Delete Images
+        foreach ( $image_ids as $attachment_id ) {
+            if ( wp_delete_attachment( $attachment_id, true ) ) {
+                $deleted_images++;
+            }
+        }
+
+        // 3. Delete Post
+        $result = wp_delete_post( $post_id, true ); // Force delete
+
+        if ($result) {
+            return ['deleted_images' => $deleted_images];
+        }
+        
+        return false;
+    }
+
+    /**
+     * Collect all local attachment IDs from post content and thumbnails
+     */
+    private function cleanup_images_collect_post_images( $post_id ) {
+        $post = get_post( $post_id );
+        if ( ! $post ) {
+            return [];
+        }
+        
+        $image_ids = [];
+
+        // A. Featured Image
+        $thumbnail_id = get_post_thumbnail_id( $post_id );
+        if ( $thumbnail_id ) {
+            $image_ids[] = $thumbnail_id;
+        }
+
+        // B. Content Images
+        $content = $post->post_content;
+        
+        // 1. Try to match by class wp-image-{id} (Most reliable)
+        if ( preg_match_all( '/class="[^"]*wp-image-(\d+)[^"]*"/', $content, $matches ) ) {
+            if ( ! empty( $matches[1] ) ) {
+                foreach ( $matches[1] as $id ) {
+                    $image_ids[] = absint( $id );
+                }
+            }
+        }
+
+        // 2. Scan for img src URLs for images not caught by class match (e.g. pasted directly)
+        if ( preg_match_all( '/<img[^>]+src=[\'"]([^\'"]+)[\'"]/', $content, $matches ) ) {
+            if ( ! empty( $matches[1] ) ) {
+                $site_url = home_url();
+                $site_domain = parse_url( $site_url, PHP_URL_HOST );
+
+                foreach ( $matches[1] as $url ) {
+                    // Check if it's a local URL
+                    $img_domain = parse_url( $url, PHP_URL_HOST );
+                    if ( $img_domain !== $site_domain ) {
+                        continue; // Skip external images
+                    }
+
+                    // Try to resolve to ID using built-in WP function
+                    $id = attachment_url_to_postid( $url );
+                    
+                    // If failed, try to handle scaled images (remove -150x150 suffix etc)
+                    if ( ! $id ) {
+                        // Simple regex to strip dimensions: file-name-100x100.jpg -> file-name.jpg
+                        $clean_url = preg_replace( '/-\d+x\d+(?=\.(jpg|jpeg|png|gif|webp)$)/i', '', $url );
+                        if ( $clean_url !== $url ) {
+                            $id = attachment_url_to_postid( $clean_url );
+                        }
+                    }
+
+                    if ( $id ) {
+                        $image_ids[] = $id;
+                    }
+                }
+            }
+        }
+
+        // Unique and valid check
+        $image_ids = array_unique( $image_ids );
+        
+        // Filter to ensure they are actually attachments
+        $valid_ids = [];
+        foreach ( $image_ids as $id ) {
+            if ( 'attachment' === get_post_type( $id ) ) {
+                $valid_ids[] = $id;
+            }
+        }
+
+        return $valid_ids;
     }
 }

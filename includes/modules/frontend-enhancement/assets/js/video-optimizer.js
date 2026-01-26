@@ -127,8 +127,9 @@
                         },
                         volume: 1, // Default volume 100%
                         muted: false, // Not muted by default
-                        // Don't set ratio - let video use its natural size
-                        ratio: null,
+                        // Enforce 16:9 aspect ratio to ensure consistent player size
+                        // Vertical videos will be pillarboxed (black bars on sides)
+                        ratio: '16:9',
                         // Ensure controls are always visible
                         hideControls: false
                     });
@@ -319,8 +320,45 @@
                     video.className = iframe.className;
                 }
 
-                // Replace iframe with video
-                iframe.parentNode.replaceChild(video, iframe);
+                // Check for conflicting wrappers up the tree and unwrap
+                // Logic: Find the highest conflicting wrapper (wpb_video_wrapper, w-video, etc.)
+                // and replace it with the video element.
+                let targetWrapper = null;
+                let current = iframe.parentNode;
+
+                // Traverse up to 3 levels to find conflicting wrappers
+                for (let i = 0; i < 3; i++) {
+                    if (!current || !current.classList) break;
+
+                    if (current.classList.contains('wpb_video_wrapper') ||
+                        current.classList.contains('w-video') ||
+                        current.classList.contains('w-video-h')) {
+                        targetWrapper = current;
+                        // Keep looking up in case of nested wrappers like w-video > w-video-h
+                    }
+                    current = current.parentNode;
+                }
+
+                if (targetWrapper) {
+                    // Unwrap: Replace the highest conflicting wrapper with the video
+                    // This removes the CSS padding hacks and absolute positioning contexts
+                    targetWrapper.parentNode.replaceChild(video, targetWrapper);
+                } else {
+                    // Standard replacement
+                    iframe.parentNode.replaceChild(video, iframe);
+                }
+
+                // Do the same for wpg-video-wrapper if it became the direct parent and we want to strip it?
+                // Actually, if we replaced targetWrapper effectively, we are good.
+                // But wait, if wpg-video-wrapper was INSIDE targetWrapper, it's gone now?
+                // No, we are moving 'video'. 
+                // If 'iframe' was inside 'wpg-video-wrapper', then 'video' replaces 'iframe'.
+                // Then we move 'video' to replace 'targetWrapper'. 
+                // So 'wpg-video-wrapper' (if it was between video and targetWrapper) is abandoned.
+                // This is correct behavior to clean up the DOM.
+
+                // Add WPG wrapper for consistent styling if needed
+                // video.classList.add('wpg-video'); // Optional
 
                 return video;
             } catch (error) {

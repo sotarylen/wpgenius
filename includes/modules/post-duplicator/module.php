@@ -78,7 +78,5 @@ class PostDuplicatorModule extends W2P_Abstract_Module {
         $this->render_view( 'settings' );
     }
 
-    public function settings_key() {
-        return 'w2p_post_duplicator_settings';
-    }
+
 }

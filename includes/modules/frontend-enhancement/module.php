@@ -48,7 +48,7 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 	public function init() {
 		$this->register_settings();
 		
-		$settings = get_option( 'w2p_frontend_enhancement_settings', [] );
+		$settings = $this->get_settings();
 		
 		// Frontend asset loading (only on required pages)
 		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_frontend_assets' ] );
@@ -108,50 +108,115 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 	 * Register default settings
 	 */
 	public function register_settings() {
-		$defaults = [
-			// Lightbox settings
-			'lightbox_enabled'              => true,
-			'lightbox_animation'            => 'fade',
-			'lightbox_close_on_backdrop'    => true,
-			'lightbox_keyboard_nav'         => true,
-			'lightbox_show_counter'         => true,
-			'lightbox_allow_set_featured'   => true,
-			'lightbox_allow_delete'         => true,
-			'lightbox_autoplay_enabled'     => false,
-			'lightbox_autoplay_interval'    => 3,
-			'lightbox_zoom_enabled'         => true,
-			'lightbox_zoom_step'            => 0.2,
-			'lightbox_max_zoom'             => 3,
-			
-			// Video optimization settings
-			'video_enabled'                 => true,
-			'video_extract_poster'          => true,
-			'video_exclusive_playback'      => true,
-			'video_lightbox_button'         => true,
-			'video_lightbox_on_click'       => false,
-			'video_autoplay_prevention'     => true,
-			
-			// Code highlighting settings
-			'code_highlight_enabled'        => false,
-			'code_highlight_theme'          => 'default',
-			'code_highlight_line_numbers'   => false,
-			'code_highlight_show_language'  => false,
-			'code_highlight_copy_clipboard' => false,
-			'code_highlight_line_highlight' => false,
-			'code_highlight_command_line'   => false,
-			'code_highlight_singular_only'  => true,
-			'code_highlight_custom_style'   => '',
-			'code_highlight_font_family'    => 'monospace', // New: Add font family default
-			
-			// Audio player settings (reserved)
-			'audio_enabled'                 => false,
-			'audio_custom_player'           => false,
-		];
+		return include plugin_dir_path( __FILE__ ) . 'options.php';
+	}
 
-		$settings = get_option( 'w2p_frontend_enhancement_settings', [] );
-		if ( empty( $settings ) ) {
-			update_option( 'w2p_frontend_enhancement_settings', $defaults );
+    /**
+     * Override get_settings to handle nested tab data from CSF
+     */
+    public function get_settings() {
+        $settings = parent::get_settings();
+        
+        // Flatten frontend_enhancement_tabs if present (CSF nested tabs behavior)
+        if ( isset( $settings['frontend_enhancement_tabs'] ) && is_array( $settings['frontend_enhancement_tabs'] ) ) {
+            $settings = array_merge( $settings, $settings['frontend_enhancement_tabs'] );
+        }
+        
+        return $settings;
+    }
+
+	/**
+	 * Frontend asset loading (on-demand)
+	 */
+	/**
+	 * Check if current post has video content
+	 * 
+	 * @return boolean
+	 */
+	private function has_video_content() {
+		if ( ! is_singular() ) {
+			return false;
 		}
+
+		global $post;
+		if ( ! $post instanceof WP_Post ) {
+			return false;
+		}
+
+		// Check for core video block or embed blocks
+		if ( has_block( 'core/video' ) || has_block( 'core/embed' ) ) {
+			return true;
+		}
+
+		// Check for video shortcodes or tags in content
+		if ( has_shortcode( $post->post_content, 'video' ) || 
+			 strpos( $post->post_content, '<video' ) !== false || 
+			 strpos( $post->post_content, 'https://www.youtube.com' ) !== false ||
+			 strpos( $post->post_content, 'https://youtu.be' ) !== false ||
+			 strpos( $post->post_content, 'https://vimeo.com' ) !== false ||
+			 strpos( $post->post_content, 'https://player.bilibili.com' ) !== false ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Check if current post has images (for Lightbox)
+	 * 
+	 * @return boolean
+	 */
+	private function has_image_content() {
+		if ( ! is_singular() ) {
+			return false;
+		}
+
+		global $post;
+		if ( ! $post instanceof WP_Post ) {
+			return false;
+		}
+
+		// Check for core image or gallery blocks
+		if ( has_block( 'core/image' ) || has_block( 'core/gallery' ) || has_block( 'core/media-text' ) ) {
+			return true;
+		}
+
+		// Check for common image tags or shortcodes
+		if ( has_shortcode( $post->post_content, 'gallery' ) || 
+			 strpos( $post->post_content, '<img' ) !== false ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Check if current post has reader container
+	 * 
+	 * @return boolean
+	 */
+	private function has_reader_container() {
+		if ( ! is_singular() ) {
+			return false;
+		}
+
+		global $post;
+		if ( ! $post instanceof WP_Post ) {
+			return false;
+		}
+
+		// Check 1: Explicit support for 'chapter' CPT (as seen in body classes)
+		if ( is_singular( 'chapter' ) ) {
+			return true;
+		}
+
+		// Check 2: User Rule - ID "w2p-book-chapters" exists in content
+		// (Fallback for other post types where it might be manually added or shortcoded)
+		if ( strpos( $post->post_content, 'w2p-book-chapters' ) !== false ) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -163,25 +228,16 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 			return;
 		}
 		
-		$settings = get_option( 'w2p_frontend_enhancement_settings', [] );
+		$settings = $this->get_settings();
 
 		// Styles are now loaded globally via w2p_core_enqueue_scripts
-		wp_enqueue_script(
-			'w2p-admin-ui',
-			plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/w2p-admin-ui.js',
-			[ 'jquery' ],
-			'1.0.0',
-			true
-		);
-		wp_localize_script( 'w2p-admin-ui', 'w2p_ui_i18n', [
-			'confirm'       => __( 'Confirm', 'wp-genius' ),
-			'cancel'        => __( 'Cancel', 'wp-genius' ),
-			'confirm_title' => __( 'Confirmation', 'wp-genius' ),
-			'settings_saved'=> __( 'Settings saved successfully!', 'wp-genius' ),
-		] );
-		
+		// Only load Admin UI JS if we are actually going to use Lightbox or potentially other interactive features
+		$load_admin_ui = false;
+
 		// Lightbox assets
-		if ( ! empty( $settings['lightbox_enabled'] ) ) {
+		if ( ! empty( $settings['lightbox_enabled'] ) && $this->has_image_content() ) {
+			$load_admin_ui = true;
+			
 			wp_enqueue_script(
 				'wpg-lightbox',
 				plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/js/lightbox.js',
@@ -190,43 +246,14 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 				true
 			);
 			
-			// Add inline script to disable theme lightbox ASAP
-			wp_add_inline_script( 'wpg-lightbox', '
-				// Disable Magnific Popup on article images immediately
-				(function($) {
-					"use strict";
-					
-					// Capture click events before theme lightbox
-					document.addEventListener("click", function(e) {
-						var target = e.target;
-						
-						// Check if clicked element is an image
-						if (target.tagName === "IMG") {
-							var $img = $(target);
-							// Priority 1: Check custom container
-							var inCustomContainer = $img.closest("#w2p-post-content").length > 0;
-							
-							if (inCustomContainer) {
-								e.preventDefault();
-								e.stopPropagation();
-								e.stopImmediatePropagation();
-								
-								// Manually trigger WP Genius Lightbox after preventing theme lightbox
-								if (window.wpgLightbox && window.wpgLightbox.open) {
-									var index = window.wpgLightbox.images.findIndex(function(img) {
-										return img.element === target;
-									});
-									if (index >= 0) {
-										window.wpgLightbox.open(index);
-									}
-								}
-								
-								return false;
-							}
-						}
-					}, true); // Use capture phase (runs before bubble phase)
-				})(jQuery);
-			', 'before' );
+			// [Code Review] Inline JS extracted to external file assets/js/lightbox-init.js (Rule #1)
+			wp_enqueue_script(
+				'wpg-lightbox-init',
+				plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/js/lightbox-init.js',
+				[ 'wpg-lightbox' ],
+				'1.0.0',
+				true
+			);
 			
 			wp_localize_script( 'wpg-lightbox', 'wpgLightboxConfig', [
 				'postId'    => get_the_ID(),
@@ -255,7 +282,7 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 		}
 		
 		// Plyr video player assets
-		if ( ! empty( $settings['video_enabled'] ) ) {
+		if ( ! empty( $settings['video_enabled'] ) && $this->has_video_content() ) {
 			// Enqueue Plyr from CDN
 			wp_enqueue_style(
 				'plyr-css',
@@ -297,8 +324,8 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 			] );
 		}
 
-		// Reader enhancement assets
-		if ( ! empty( $settings['reader_enabled'] ) ) {
+		// Reader enhancement assets (Strict Check: Only if container ID exists)
+		if ( ! empty( $settings['reader_enabled'] ) && $this->has_reader_container() ) {
 			wp_enqueue_style(
 				'wpg-reader-css',
 				plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/css/reader.css',
@@ -320,6 +347,23 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 			] );
 		}
 		
+		// Load Admin UI only if needed
+		if ( $load_admin_ui ) {
+			wp_enqueue_script(
+				'w2p-admin-ui',
+				plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/w2p-admin-ui.js',
+				[ 'jquery' ],
+				'1.0.0',
+				true
+			);
+			wp_localize_script( 'w2p-admin-ui', 'w2p_ui_i18n', [
+				'confirm'       => __( 'Confirm', 'wp-genius' ),
+				'cancel'        => __( 'Cancel', 'wp-genius' ),
+				'confirm_title' => __( 'Confirmation', 'wp-genius' ),
+				'settings_saved'=> __( 'Settings saved successfully!', 'wp-genius' ),
+			] );
+		}
+
 	}
 
 	/**
@@ -348,7 +392,7 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 	 * Initialize Reader functionality
 	 */
 	private function init_reader() {
-		$settings = get_option( 'w2p_frontend_enhancement_settings', [] );
+		$settings = $this->get_settings();
 		$handler_path = plugin_dir_path( __FILE__ ) . 'includes/class-reader-handler.php';
 		if ( file_exists( $handler_path ) ) {
 			require_once $handler_path;
@@ -421,8 +465,40 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 			$result = wp_delete_attachment( $attachment_id, true );
 
 			if ( $result ) {
+				// [NEW] If post_id is provided, also remove the image tag from the post content
+				$post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+				if ( $post_id ) {
+					$post = get_post( $post_id );
+					if ( $post ) {
+						$content = $post->post_content;
+						
+						// Case 1: Remove <figure> blocks containing the image with wp-image-{ID} class
+						// Case 2: Remove <a> tags wrapping the image
+						// Case 3: Remove floating <img> tags with the specific class
+						
+						$patterns = [
+							// Figure wrappers (Gutenberg standard) - non-greedy to catch the closest figure
+							'/<figure[^>]*>(?:(?!<\/figure>).)*?wp-image-' . $attachment_id . '.*?<\/figure>/is',
+							// Links wrapping images
+							'/<a[^>]*>(?:(?!<\/a>).)*?wp-image-' . $attachment_id . '.*?<\/a>/is',
+							// Clean img tag
+							'/<img[^>]*wp-image-' . $attachment_id . '[^>]*>/is'
+						];
+						
+						$new_content = preg_replace( $patterns, '', $content );
+						
+						// Update post if content changed
+						if ( $new_content !== $content ) {
+							wp_update_post( [
+								'ID'           => $post_id,
+								'post_content' => $new_content
+							] );
+						}
+					}
+				}
+
 				wp_send_json_success( [
-					'message' => __( 'Image deleted successfully from media library!', 'wp-genius' ),
+					'message' => __( 'Delete Success!', 'wp-genius' ),
 				] );
 			} else {
 				wp_send_json_error( [ 'message' => __( 'Failed to delete image from media library.', 'wp-genius' ) ] );
@@ -434,7 +510,5 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 		}
 	}
 
-	public function settings_key() {
-		return 'w2p_frontend_enhancement_settings';
-	}
+
 }

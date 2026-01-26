@@ -15,23 +15,23 @@ if (!defined('ABSPATH')) {
 define('WP_GENIUS_FILE', __FILE__);
 
 // Include module framework (abstracts, loader, admin settings)
-require_once plugin_dir_path(__FILE__) . 'includes/abstract-module.php';
+require_once plugin_dir_path(__FILE__) . 'includes/csf/codestar-framework.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-abstract-module.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-module-loader.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-task-queue.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-admin-settings.php';
 require_once plugin_dir_path(__FILE__) . 'includes/class-logger.php';
 
 /**
- * Initialize the plugin
+ * Initialize the plugin (runs on init hook after translations are loaded)
  */
 function w2p_core_init() {
+    // Load plugin textdomain first
+    load_plugin_textdomain('wp-genius', false, dirname(plugin_basename(__FILE__)) . '/languages');
+    
     try {
-        load_plugin_textdomain('wp-genius', false, dirname(plugin_basename(__FILE__)) . '/languages');
-        
         // Initialize module loader
         $module_loader = new W2P_Module_Loader(plugin_dir_path(__FILE__) . 'includes/modules/');
-        
-        // Ensure core modules are enabled by default
-        w2p_core_ensure_modules_enabled($module_loader);
         
         // Initialize admin settings manager
         $admin_settings = new W2P_Admin_Settings($module_loader);
@@ -47,32 +47,9 @@ function w2p_core_init() {
         }
     }
 }
-add_action('plugins_loaded', 'w2p_core_init');
+add_action('init', 'w2p_core_init', 5); // Priority 5 to run after core init but before most other plugins
 
-/**
- * Ensure core modules are enabled
- */
-function w2p_core_ensure_modules_enabled($module_loader) {
-    $enabled = get_option('word2posts_modules', array());
-    
-    // Core modules list - these should be enabled by default
-    $core_modules = array(
-        'smart-aui', 
-        'system-health'
-    );
-    
-    $changed = false;
-    foreach ($core_modules as $module_id) {
-        if (!isset($enabled[$module_id])) {
-            $enabled[$module_id] = true;
-            $changed = true;
-        }
-    }
-    
-    if ($changed) {
-        update_option('word2posts_modules', $enabled);
-    }
-}
+
 
 /**
  * Register and enqueue core admin assets

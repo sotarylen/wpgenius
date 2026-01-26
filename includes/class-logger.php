@@ -1,8 +1,9 @@
 <?php
 /**
- * WPGenius Unified Logger
+ * 统一日志记录器
  *
- * Handles error and debug logging across the plugin.
+ * 提供标准化的静态方法（error, warning, info, debug）用于全插件范围内的日志记录。
+ * 支持上下文标记和时间戳自动添加，目前通过 error_log 输出，便于开发者调试和追踪错误。
  *
  * @package WP_Genius
  * @author WPGenius Team
@@ -59,6 +60,11 @@ class W2P_Logger {
      * @param string $context
      */
     public static function debug( $message, $context = 'general' ) {
+        // Disable debug logging for media-turbo to prevent debug.log bloat
+        if ( $context === 'media-turbo' ) {
+            return;
+        }
+        
         if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
             self::log( self::DEBUG, $message, $context );
         }

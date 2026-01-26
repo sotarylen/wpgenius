@@ -105,6 +105,51 @@ html body.wpg-reader-fullscreen #w2p-book-chapters {
     -webkit-overflow-scrolling: touch;
 }
 
+/* Footer Toolbar (Bottom Nav) */
+#wpg-reader-footer-toolbar {
+    margin-top: 60px;
+    padding-top: 30px;
+    border-top: 1px solid rgba(128, 128, 128, 0.1);
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+#wpg-reader-footer-toolbar .wpg-reader-nav-section {
+    display: flex !important;
+    gap: 40px !important;
+    /* Wider gap for easier clicking at bottom */
+}
+
+#wpg-reader-footer-toolbar .wpg-reader-btn-icon {
+    width: 48px !important;
+    /* Larger touch targets */
+    height: 48px !important;
+    font-size: 18px !important;
+    background-color: rgba(128, 128, 128, 0.05) !important;
+    border-radius: 50% !important;
+}
+
+#wpg-reader-footer-toolbar .wpg-reader-btn-icon:hover {
+    background-color: rgba(128, 128, 128, 0.15) !important;
+    color: inherit !important;
+}
+
+/* Ensure reset applies to footer too */
+#wpg-reader-footer-toolbar i {
+    padding: 0 !important;
+    margin: 0 !important;
+    /* FIX: Override parent container's !important font-family */
+    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome" !important;
+    font-weight: 900 !important;
+    /* Required for Solid icons */
+    font-style: normal !important;
+    font-variant: normal !important;
+    line-height: 1 !important;
+    text-rendering: auto !important;
+    -webkit-font-smoothing: antialiased !important;
+}
+
 /* Ensure all children of toolbar are visible and inherit styles */
 #wpg-reader-toolbar * {
     box-sizing: border-box;
@@ -156,6 +201,21 @@ html body.wpg-reader-fullscreen #w2p-book-chapters {
     line-height: 1 !important;
 }
 
+/* Force reset inner icon styles to prevent theme bleed (e.g. core.css padding) */
+#wpg-reader-toolbar i,
+#wpg-reader-toolbar .wpg-reader-btn-icon i,
+#wpg-reader-toolbar .wpg-reader-theme-btn i {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    line-height: 1 !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    text-align: center !important;
+    float: none !important;
+}
+
 #wpg-reader-toolbar .wpg-reader-btn-icon:hover {
     color: #fff !important;
     background-color: rgba(255, 255, 255, 0.1) !important;
@@ -198,16 +258,21 @@ html body.wpg-reader-fullscreen #w2p-book-chapters {
     color: var(--wpg-reader-text-primary) !important;
     border: 1px solid #3d3d3d !important;
     border: 1px solid var(--wpg-reader-border) !important;
-    padding: 4px 8px !important;
+    padding: 0 8px !important;
     border-radius: 4px !important;
     font-size: 13px !important;
     outline: none;
     cursor: pointer !important;
     min-width: 100px !important;
-    height: 30px !important;
+    height: 32px !important;
+    /* Match button height */
+    line-height: 30px !important;
+    /* Height - Borders */
     box-shadow: none !important;
     appearance: none;
     /* Might need custom arrow if this hides it, but standard select usually keeps it */
+    display: flex !important;
+    align-items: center !important;
 }
 
 /* Theme Buttons */

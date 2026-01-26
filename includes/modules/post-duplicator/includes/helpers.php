@@ -39,6 +39,7 @@ function get_option_value( $key = false, $option = false ) {
         'timestamp' => 'current',
         'title' => esc_html__( 'Copy', 'wp-genius' ),
         'slug' => esc_html__( 'copy', 'wp-genius' ),
+        'time_offset' => false,
         'time_offset_days' => 0,
         'time_offset_hours' => 0,
         'time_offset_minutes' => 0,
@@ -51,8 +52,16 @@ function get_option_value( $key = false, $option = false ) {
         'duplicate_other_future' => 'enabled',
     ];
     
-    $settings = get_option( 'w2p_post_duplicator_settings', [] );
-    $settings = wp_parse_args( $settings, $defaults );
+    // [Refactor] Read from Global Settings
+    $global_settings = get_option( 'w2p_settings', [] );
+    $settings = $defaults;
+
+    foreach ( $defaults as $def_key => $def_val ) {
+        $prefixed_key = 'post_duplicator_' . $def_key;
+        if ( isset( $global_settings[ $prefixed_key ] ) ) {
+            $settings[ $def_key ] = $global_settings[ $prefixed_key ];
+        }
+    }
 
     if ( $key ) {
         return isset( $settings[$key] ) ? $settings[$key] : null;
@@ -64,9 +73,10 @@ function get_option_value( $key = false, $option = false ) {
  * Update settings
  */
 function set_option_value( $key, $value = false, $option = false ) {
-    $settings = get_option( 'w2p_post_duplicator_settings', [] );
-    $settings[$key] = $value;
-    return update_option( 'w2p_post_duplicator_settings', $settings );
+    $settings = get_option( 'w2p_settings', [] );
+    $prefixed_key = 'post_duplicator_' . $key;
+    $settings[$prefixed_key] = $value;
+    return update_option( 'w2p_settings', $settings );
 }
 
 /**

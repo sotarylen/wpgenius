@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // 加载环境检测类
 if ( ! class_exists( 'MediaEngineEnvironmentChecker' ) ) {
-	require_once dirname( __FILE__ ) . '/../includes/class-environment-checker.php';
+	require_once dirname( __FILE__ ) . '/../includes/services/class-environment-service.php';
 }
 $env_results = MediaEngineEnvironmentChecker::check_all();
 ?>

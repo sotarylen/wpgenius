@@ -31,21 +31,52 @@ class SystemHealthCleanupService {
     }
 
     /**
-     * Clean Revisions
+     * Clean Revisions (Safe Mode)
      */
     public function clean_revisions() {
         global $wpdb;
-        $count = $wpdb->query( "DELETE FROM $wpdb->posts WHERE post_type = 'revision'" );
-        return (int) $count;
+        // Get IDs first to use WP API
+        $ids = $wpdb->get_col( "SELECT ID FROM $wpdb->posts WHERE post_type = 'revision'" );
+        
+        if ( empty( $ids ) ) {
+            return 0;
+        }
+
+        $count = 0;
+        foreach ( $ids as $id ) {
+            // Force delete, skip trash
+            if ( wp_delete_post_revision( $id ) ) {
+                $count++;
+            }
+            // Small pause every 50 items to prevent server overload
+            if ( $count % 50 === 0 ) {
+                usleep( 50000 ); 
+            }
+        }
+        return $count;
     }
 
     /**
-     * Clean Auto-Drafts
+     * Clean Auto-Drafts (Safe Mode)
      */
     public function clean_auto_drafts() {
         global $wpdb;
-        $count = $wpdb->query( "DELETE FROM $wpdb->posts WHERE post_status = 'auto-draft'" );
-        return (int) $count;
+        $ids = $wpdb->get_col( "SELECT ID FROM $wpdb->posts WHERE post_status = 'auto-draft'" );
+        
+        if ( empty( $ids ) ) {
+            return 0;
+        }
+
+        $count = 0;
+        foreach ( $ids as $id ) {
+            if ( wp_delete_post( $id, true ) ) {
+                $count++;
+            }
+            if ( $count % 50 === 0 ) {
+                usleep( 50000 );
+            }
+        }
+        return $count;
     }
 
     /**
@@ -53,6 +84,7 @@ class SystemHealthCleanupService {
      */
     public function clean_orphaned_meta() {
         global $wpdb;
+        // SQL is most efficient here as iterating all meta is not feasible
         $count = $wpdb->query( "DELETE pm FROM $wpdb->postmeta pm LEFT JOIN $wpdb->posts p ON pm.post_id = p.ID WHERE p.ID IS NULL" );
         return (int) $count;
     }
@@ -62,7 +94,30 @@ class SystemHealthCleanupService {
      */
     public function clean_transients() {
         global $wpdb;
+        // Standard SQL way to bulk clear transients
         $count = $wpdb->query( "DELETE FROM $wpdb->options WHERE option_name LIKE '_transient_%' OR option_name LIKE '_site_transient_%'" );
+        return (int) $count;
+    }
+
+    /**
+     * Clean Custom Field by Key
+     * 
+     * @param string $meta_key The meta key to delete.
+     * @return int Number of rows deleted.
+     */
+    public function clean_custom_field( $meta_key ) {
+        global $wpdb;
+        
+        if ( empty( $meta_key ) ) {
+            return 0;
+        }
+
+        // Delete all meta entries with the specified key
+        $count = $wpdb->query( $wpdb->prepare( 
+            "DELETE FROM $wpdb->postmeta WHERE meta_key = %s", 
+            $meta_key 
+        ) );
+        
         return (int) $count;
     }
 

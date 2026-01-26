@@ -116,6 +116,38 @@
 
             if (!action) return;
 
+            // Handle Custom Field Cleanup
+            if (action === 'custom_field') {
+                var metaKey = $('#w2p-custom-meta-key').val().trim();
+
+                if (!metaKey) {
+                    w2p.toast('Please enter a custom field name.', 'warning');
+                    return;
+                }
+
+                w2p.confirm(
+                    'DANGER: This will delete ALL data for custom field "' + metaKey + '". This action cannot be undone. Are you sure?',
+                    () => {
+                        w2p.loading($btn, true);
+                        $.post(w2pSystemHealth.ajax_url, {
+                            action: 'w2p_system_health_clean_custom_field',
+                            meta_key: metaKey,
+                            nonce: w2pSystemHealth.nonce
+                        }, (response) => {
+                            w2p.loading($btn, false);
+                            if (response.success) {
+                                $('#w2p-custom-meta-key').val(''); // Clear input
+                                w2p.toast(response.data.message || 'Cleaned successfully!', 'success');
+                            } else {
+                                w2p.toast(response.data.message || 'Error occurred', 'error');
+                            }
+                        }).fail(this.handleHealthError.bind(this, $btn));
+                    }
+                );
+                return;
+            }
+
+            // Standard cleanups
             w2p.loading($btn, true);
 
             $.post(w2pSystemHealth.ajax_url, {
@@ -130,8 +162,8 @@
             w2p.loading($btn, false);
 
             if (response.success) {
-                $count.text('0');
-                w2p.toast('Cleaned successfully!', 'success');
+                if ($count.length) $count.text('0');
+                w2p.toast(response.data.message || 'Cleaned successfully!', 'success');
             } else {
                 w2p.toast(response.data.message || 'Error occurred', 'error');
             }

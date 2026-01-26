@@ -1,0 +1,175 @@
+/**
+ * WP Genius Code Highlighting Custom Styles
+ * Custom color overrides and enhancements for Prism.js
+ */
+
+/* Ensure proper font stack for code blocks */
+code[class*="language-"],
+pre[class*="language-"] {
+    font-family: var(--wpg-code-font, monospace);
+}
+
+/* Markup/HTML Specific Styling */
+.language-markup .token.tag,
+.language-html .token.tag,
+.language-xml .token.tag {
+    color: #c41e3a;
+}
+
+.language-markup .token.attr-name,
+.language-html .token.attr-name,
+.language-xml .token.attr-name {
+    color: #e67e22;
+}
+
+.language-markup .token.attr-value,
+.language-html .token.attr-value,
+.language-xml .token.attr-value {
+    color: #27ae60;
+}
+
+.language-markup .token.punctuation,
+.language-html .token.punctuation,
+.language-xml .token.punctuation {
+    color: #595959;
+}
+
+.language-markup .token.doctype,
+.language-html .token.doctype {
+    color: #7f8c8d;
+    font-style: italic;
+}
+
+/* Bash/Shell Specific Styling */
+.language-bash .token.function,
+.language-shell .token.function,
+.language-sh .token.function,
+.language-zsh .token.function {
+    color: #3498db;
+    font-weight: 600;
+}
+
+.language-bash .token.keyword,
+.language-shell .token.keyword,
+.language-sh .token.keyword,
+.language-zsh .token.keyword {
+    color: #9b59b6;
+    font-weight: bold;
+}
+
+.language-bash .token.variable,
+.language-shell .token.variable,
+.language-sh .token.variable,
+.language-zsh .token.variable {
+    color: #e74c3c;
+}
+
+.language-bash .token.string,
+.language-shell .token.string,
+.language-sh .token.string,
+.language-zsh .token.string {
+    color: #27ae60;
+}
+
+.language-bash .token.comment,
+.language-shell .token.comment,
+.language-sh .token.comment,
+.language-zsh .token.comment {
+    color: #95a5a6;
+    font-style: italic;
+}
+
+.language-bash .token.builtin,
+.language-shell .token.builtin,
+.language-sh .token.builtin,
+.language-zsh .token.builtin {
+    color: #3498db;
+    font-weight: 600;
+}
+
+.language-bash .token.number,
+.language-shell .token.number,
+.language-sh .token.number,
+.language-zsh .token.number {
+    color: #f39c12;
+}
+
+.language-bash .token.operator,
+.language-shell .token.operator,
+.language-sh .token.operator,
+.language-zsh .token.operator {
+    color: #c0392b;
+}
+
+/* Parameter styling for bash */
+.language-bash .token.parameter,
+.language-shell .token.parameter,
+.language-sh .token.parameter,
+.language-zsh .token.parameter {
+    color: #16a085;
+}
+
+/* Command prompt styling */
+.language-bash .command-line-prompt,
+.language-shell .command-line-prompt,
+.language-sh .command-line-prompt,
+.language-zsh .command-line-prompt {
+    border-right-color: #bdc3c7;
+}
+
+/* Code block padding improvements */
+pre[class*="language-"] {
+    padding: 1.2em;
+    border-radius: 4px;
+}
+
+code[class*="language-"] {
+    padding: 0.1em 0.3em;
+}
+
+/* Selection styling for better visibility */
+pre[class*="language-"]::selection,
+pre[class*="language-"] ::selection,
+code[class*="language-"]::selection,
+code[class*="language-"] ::selection {
+    background: #b3d4fc;
+    color: inherit;
+}
+
+/* Line numbers styling improvements */
+.line-numbers-rows > span {
+    color: #999;
+    padding: 0;
+}
+
+.line-numbers-rows > span:before {
+    padding-right: 1em;
+    text-align: right;
+}
+
+/* Toolbar styling */
+div.code-toolbar > .toolbar {
+    opacity: 0.8;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+}
+
+div.code-toolbar:hover > .toolbar,
+div.code-toolbar:focus-within > .toolbar {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+div.code-toolbar > .toolbar > .toolbar-item > button,
+div.code-toolbar > .toolbar > .toolbar-item > a,
+div.code-toolbar > .toolbar > .toolbar-item > span {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+    transition: all 0.2s ease;
+}
+
+div.code-toolbar > .toolbar > .toolbar-item > button:hover,
+div.code-toolbar > .toolbar > .toolbar-item > a:hover,
+div.code-toolbar > .toolbar > .toolbar-item > span:hover {
+    background: rgba(0, 0, 0, 0.2);
+}

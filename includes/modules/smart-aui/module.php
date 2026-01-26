@@ -49,6 +49,19 @@ class SmartAUIModule extends W2P_Abstract_Module {
 	}
 
 	/**
+	 * Check if module is enabled
+	 */
+	public function is_enabled() {
+		$settings = get_option('w2p_settings', []);
+		return !empty($settings['module_' . $this->id()]);
+	}
+
+	/**
+	 * Initialize Module
+	 *
+	 * @return void
+	 */
+	/**
 	 * Initialize Module
 	 *
 	 * @return void
@@ -57,16 +70,16 @@ class SmartAUIModule extends W2P_Abstract_Module {
 		// 加载 Smart Auto Upload Images 插件
 		$this->load_smart_aui_plugin();
 		
-		// 注册设置
-		$this->register_settings();
+		// 同步设置 (CSF -> Legacy Option)
+		add_action( 'csf_w2p_settings_saved', [ $this, 'sync_settings' ] );
 		
+
 		// 添加进度可视化
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_progress_ui_scripts' ] );
 		add_action( 'admin_footer', [ $this, 'render_progress_ui_template' ] );
 
-        // 移除原生菜单并加载原生设置资源
-        add_action( 'admin_menu', [ $this, 'remove_native_admin_menu' ], 999 );
-        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_native_settings_assets' ] );
+		// 移除原生菜单
+		add_action( 'admin_menu', [ $this, 'remove_native_admin_menu' ], 999 );
 		
 		// 添加自动设置封面功能
 		add_action( 'save_post', [ $this, 'auto_set_featured_image' ], 20, 2 );
@@ -86,8 +99,76 @@ class SmartAUIModule extends W2P_Abstract_Module {
 		add_action( 'wp_ajax_w2p_smart_aui_get_post_details', [ $this, 'ajax_get_post_details' ] );
 		add_action( 'wp_ajax_w2p_smart_aui_save_post_content', [ $this, 'ajax_save_post_content' ] );
 		add_action( 'wp_ajax_w2p_smart_aui_clear_failed_logs', [ $this, 'ajax_clear_failed_logs' ] );
+		add_action( 'wp_ajax_w2p_smart_aui_get_failed_logs', [ $this, 'ajax_get_failed_logs' ] );
 		add_action( 'wp_ajax_w2p_smart_aui_get_attachment_id', [ $this, 'ajax_get_attachment_id' ] );
 	}
+
+
+	/**
+	 * Sync CSF Settings to Legacy Option
+	 * 
+	 * 该模块集成的 smart-auto-upload-images 库依赖 `smart_aui_settings` 选项。
+	 * 此方法将 WP Genius 的 CSF 设置同步到该选项，确保库能正常工作。
+	 *
+	 * @param array $w2p_settings 全局设置数组
+	 */
+	public function sync_settings( $w2p_settings ) {
+		if ( empty( $w2p_settings ) ) {
+			return;
+		}
+        
+        // Flatten smart_aui_tabs if present (CSF nested tabs behavior)
+        if ( isset( $w2p_settings['smart_aui_tabs'] ) && is_array( $w2p_settings['smart_aui_tabs'] ) ) {
+            $w2p_settings = array_merge( $w2p_settings, $w2p_settings['smart_aui_tabs'] );
+        }
+
+		$legacy_settings = get_option( 'smart_aui_settings', [] );
+		$has_changes = false;
+
+		// 映射 CSF 字段 ID 到 Legacy 字段 ID
+		$map = [
+			'smart_aui_base_url'                   => 'base_url',
+			'smart_aui_image_name_pattern'         => 'image_name_pattern',
+			'smart_aui_alt_text_pattern'           => 'alt_text_pattern',
+			'smart_aui_min_width'                  => 'min_width',
+			'smart_aui_min_height'                 => 'min_height',
+			'smart_aui_exclude_domains'            => 'exclude_domains',
+			'smart_aui_exclude_post_types'         => 'exclude_post_types',
+			'smart_aui_auto_set_featured_image'    => 'auto_set_featured_image',
+			'smart_aui_show_progress_ui'           => 'show_progress_ui',
+			'smart_aui_process_images_on_rest_api' => 'process_images_on_rest_api',
+			'smart_aui_concurrent_threads'         => 'concurrent_threads',
+			'smart_aui_max_retries'                => 'max_retries',
+			'smart_aui_skip_duplicates'            => 'skip_duplicates',
+			'smart_aui_capture_videos'             => 'capture_videos',
+		];
+
+		foreach ( $map as $csf_key => $legacy_key ) {
+			if ( isset( $w2p_settings[ $csf_key ] ) ) {
+				// CSF 返回 true/false 或 1/0，确保格式一致
+				$value = $w2p_settings[ $csf_key ];
+				
+				// 针对 exclude_post_types 特殊处理，确保是数组
+				if ( 'exclude_post_types' === $legacy_key && ! is_array( $value ) ) {
+					$value = [];
+				}
+
+				if ( ! isset( $legacy_settings[ $legacy_key ] ) || $legacy_settings[ $legacy_key ] !== $value ) {
+					$legacy_settings[ $legacy_key ] = $value;
+					$has_changes = true;
+				}
+			}
+		}
+
+		if ( $has_changes ) {
+			update_option( 'smart_aui_settings', $legacy_settings );
+		}
+	}
+
+	/**
+	 * Migrate Legacy Settings to Global (One-time)
+	 */
+
 
 	/**
 	 * 加载 Smart Auto Upload Images 插件
@@ -153,70 +234,69 @@ class SmartAUIModule extends W2P_Abstract_Module {
 	}
 
 	/**
-	 * Register Module Settings
-	 *
-	 * @return void
-	 */
-	public function register_settings() {
-		// Sync WP Genius settings with core Smart AUI settings
-		$core_settings = get_option( 'smart_aui_settings', [] );
-		
-		// Set defaults for WP Genius features if not already set
-		if ( ! isset( $core_settings['auto_set_featured_image'] ) ) {
-			$core_settings['auto_set_featured_image'] = true;
-		}
-		if ( ! isset( $core_settings['show_progress_ui'] ) ) {
-			$core_settings['show_progress_ui'] = true;
-		}
-		if ( ! isset( $core_settings['process_images_on_rest_api'] ) ) {
-			$core_settings['process_images_on_rest_api'] = true;
-		}
-		if ( ! isset( $core_settings['concurrent_threads'] ) ) {
-			$core_settings['concurrent_threads'] = 4;
-		}
-		if ( ! isset( $core_settings['max_retries'] ) ) {
-			$core_settings['max_retries'] = 3;
-		}
-		if ( ! isset( $core_settings['capture_videos'] ) ) {
-			$core_settings['capture_videos'] = false;
-		}
-
-		update_option( 'smart_aui_settings', $core_settings );
-	}
-
-	/**
 	 * Enqueue Progress UI Scripts
 	 */
 	public function enqueue_progress_ui_scripts( $hook ) {
         // Monitor hook for specific pages
-        $is_settings_page = isset( $_GET['page'] ) && ( $_GET['page'] === 'wp-genius-settings' || $_GET['page'] === 'wp-genius' );
+        $page = isset( $_GET['page'] ) ? $_GET['page'] : '';
+        $is_settings_page = ( $page === 'wp-genius-settings' || strpos( $page, 'wp-genius' ) !== false );
         
 		if ( ! in_array( $hook, [ 'post.php', 'post-new.php', 'edit.php' ] ) && ! $is_settings_page ) {
 			return;
 		}
 
-		$settings = get_option( 'smart_aui_settings', [] );
-		
-		// 确保设置有默认值
-		if ( ! isset( $settings['show_progress_ui'] ) ) {
-			$settings['show_progress_ui'] = true;
-		}
-		if ( ! isset( $settings['concurrent_threads'] ) ) {
-			$settings['concurrent_threads'] = 4;
-		}
-		if ( ! isset( $settings['max_retries'] ) ) {
-			$settings['max_retries'] = 3;
-		}
-		
-		// 注释掉此检查，始终加载脚本，让JS内部决定是否显示UI
-		// if ( empty( $settings['show_progress_ui'] ) ) {
-		// 	return;
-		// }
-
 		// 使用WP_GENIUS_FILE常量计算插件根目录URL
 		$plugin_url = plugin_dir_url( WP_GENIUS_FILE );
+
+        // If on settings page, load the settings manager JS
+        if ( $is_settings_page ) {
+            wp_enqueue_script( 'w2p-smart-aui-settings', $plugin_url . "includes/modules/smart-aui/assets/js/smart-aui-settings.js", [ 'jquery', 'w2p-admin-ui' ], '1.0.0', true );
+            
+            wp_localize_script( 'w2p-smart-aui-settings', 'w2pSmartAuiSettings', [
+                'ajax_url' => admin_url( 'admin-ajax.php' ),
+                'nonce'    => wp_create_nonce( 'w2p_smart_aui_progress' ),
+                'strings'  => [
+                    'loading'       => __( 'Loading logs...', 'wp-genius' ),
+                    'no_logs'       => __( 'No capture failures recorded.', 'wp-genius' ),
+                    'confirm_clear' => __( 'Are you sure?', 'wp-genius' ),
+                    'logs_cleared'  => __( 'Logs Cleared', 'wp-genius' ),
+                    'error_prefix'  => __( 'Error: ', 'wp-genius' ),
+                    'error_loading' => __( 'Error loading logs.', 'wp-genius' ),
+                    'unknown_error' => __( 'Unknown Error', 'wp-genius' ),
+                    'network_error' => __( 'Network Error', 'wp-genius' ),
+                ]
+            ]);
+            // We might still want the progress UI if we allow bulk actions or testing from settings page,
+            // but for now, let's keep them separate or load both if needed.
+            // Continuing to load the main UI script below if needed.
+        }
+
+
+
+		// [Refactor] Read from global settings directly
+		$global_settings = $this->get_settings();
 		
-		wp_register_script( 'w2p-smart-auto-upload', $plugin_url . "assets/js/smart-auto-upload-progress-ui.js", array( 'w2p-core-js' ), '1.0.0', true );
+		// Map global settings (prefixed) to legacy structure for JS
+		// [FIX] Use more robust fallback logic. strict isset might fail if value is 0 or empty string which are valid provided inputs.
+		// For numeric values, we cast. For boolean, we strict check or default.
+		
+		$settings = [
+			'show_progress_ui'   => isset( $global_settings['smart_aui_show_progress_ui'] ) ? (bool) $global_settings['smart_aui_show_progress_ui'] : true,
+			'concurrent_threads' => ! empty( $global_settings['smart_aui_concurrent_threads'] ) ? (int) $global_settings['smart_aui_concurrent_threads'] : 4,
+			'max_retries'        => isset( $global_settings['smart_aui_max_retries'] ) ? (int) $global_settings['smart_aui_max_retries'] : 3,
+			'skip_duplicates'    => isset( $global_settings['smart_aui_skip_duplicates'] ) ? (bool) $global_settings['smart_aui_skip_duplicates'] : true,
+			'base_url'           => ! empty( $global_settings['smart_aui_base_url'] ) ? $global_settings['smart_aui_base_url'] : site_url(),
+			'domain_exclusions'  => isset( $global_settings['smart_aui_exclude_domains'] ) ? $global_settings['smart_aui_exclude_domains'] : '',
+			'capture_videos'     => isset( $global_settings['smart_aui_capture_videos'] ) ? (bool) $global_settings['smart_aui_capture_videos'] : false,
+            'min_width'          => isset( $global_settings['smart_aui_min_width'] ) ? (int) $global_settings['smart_aui_min_width'] : 300,
+            'min_height'         => isset( $global_settings['smart_aui_min_height'] ) ? (int) $global_settings['smart_aui_min_height'] : 200,
+            'auto_set_featured'  => isset( $global_settings['smart_aui_auto_set_featured_image'] ) ? (bool) $global_settings['smart_aui_auto_set_featured_image'] : true,
+            'image_name_pattern' => ! empty( $global_settings['smart_aui_image_name_pattern'] ) ? $global_settings['smart_aui_image_name_pattern'] : '%filename%',
+            'alt_text_pattern'   => ! empty( $global_settings['smart_aui_alt_text_pattern'] ) ? $global_settings['smart_aui_alt_text_pattern'] : '%image_alt%',
+		];
+		
+		
+		wp_register_script( 'w2p-smart-auto-upload', $plugin_url . "includes/modules/smart-aui/assets/js/smart-aui-ui.js", [ 'w2p-core-js' ], '1.0.0', true );
 
 		wp_enqueue_script( 'w2p-smart-auto-upload' );
 
@@ -227,7 +307,7 @@ class SmartAUIModule extends W2P_Abstract_Module {
 				'ajax_url' => admin_url( 'admin-ajax.php' ),
 				'nonce' => wp_create_nonce( 'w2p_smart_aui_progress' ),
 				'debug' => WP_DEBUG,
-				'settings' => $settings, // 直接传递设置，避免AJAX竞争
+				'settings' => $settings, // Passed mapped settings
 				'i18n' => [
 					'confirmCancel' => __( 'Are you sure you want to cancel the image upload?', 'wp-genius' ),
 					'confirmSkip' => __( 'Are you sure you want to stop the current image capture and publish the article directly?\n\nNote: Successfully captured images will be replaced, failed images will keep their original URLs.', 'wp-genius' ),
@@ -250,8 +330,6 @@ class SmartAUIModule extends W2P_Abstract_Module {
 				],
 			]
 		);
-
-
 	}
 
     /**
@@ -261,67 +339,7 @@ class SmartAUIModule extends W2P_Abstract_Module {
         remove_submenu_page( 'options-general.php', 'smart-auto-upload-images' );
     }
 
-    /**
-     * Enqueue Native Settings Assets
-     */
-    public function enqueue_native_settings_assets( $hook ) {
-        // 只在 WP Genius 设置页面加载
-        // 检查 screen id 是否包含 wp-genius-settings
-        $screen = get_current_screen();
-        if ( ! $screen || strpos( $screen->id, 'wp-genius-settings' ) === false ) {
-            return;
-        }
 
-        // 确保插件已加载且常量定义
-        if ( ! defined( 'SMART_AUI_PLUGIN_DIR' ) || ! defined( 'SMART_AUI_PLUGIN_URL' ) ) {
-            return;
-        }
-
-        $asset_file_path = SMART_AUI_PLUGIN_DIR . 'dist/js/admin-settings.asset.php';
-        if ( ! file_exists( $asset_file_path ) ) {
-            return;
-        }
-
-        $asset_file = include $asset_file_path;
-        
-        // Only enqueue script if the actual JS file exists
-        if (file_exists(SMART_AUI_PLUGIN_DIR . 'dist/js/admin-settings.js')) {
-            wp_enqueue_script(
-                'smart-aui-admin-settings',
-                SMART_AUI_PLUGIN_URL . 'dist/js/admin-settings.js',
-                $asset_file['dependencies'],
-                $asset_file['version'],
-                true
-            );
-        }
-
-        // 确保 wp-components 样式已加载
-        wp_enqueue_style( 'wp-components' );
-
-        $css_asset_path = SMART_AUI_PLUGIN_DIR . 'dist/css/admin-settings-style.asset.php';
-        if ( file_exists( $css_asset_path ) ) {
-            $css_asset = include $css_asset_path;
-            // Only enqueue style if the actual CSS file exists
-            if (file_exists(SMART_AUI_PLUGIN_DIR . 'dist/css/admin-settings-style.css')) {
-                wp_enqueue_style(
-                    'smart-aui-admin-settings-style',
-                    SMART_AUI_PLUGIN_URL . 'dist/css/admin-settings-style.css',
-                    [ 'wp-components' ],
-                    $css_asset['version']
-                );
-            }
-        } else {
-             // Fallback if asset file missing but css exists
-             if (file_exists(SMART_AUI_PLUGIN_DIR . 'dist/css/admin-settings-style.css')) {
-                wp_enqueue_style(
-                    'smart-aui-admin-settings-style',
-                    SMART_AUI_PLUGIN_URL . 'dist/css/admin-settings-style.css',
-                    [ 'wp-components' ],
-                    SMART_AUI_VERSION
-                );
-             }
-        }
-    }
 
 	/**
 	 * Render Progress UI Template
@@ -359,9 +377,12 @@ class SmartAUIModule extends W2P_Abstract_Module {
 			}
 		}
 
-		// 检查是否启用
-		$settings = get_option( 'smart_aui_settings', [] );
-		if ( empty( $settings['auto_set_featured_image'] ) ) {
+
+		// Check if enabled (default true)
+		$settings = $this->get_settings();
+		$auto_set = isset($settings['smart_aui_auto_set_featured_image']) ? $settings['smart_aui_auto_set_featured_image'] : true;
+		
+		if ( ! $auto_set ) {
 			return;
 		}
 	
@@ -380,7 +401,7 @@ class SmartAUIModule extends W2P_Abstract_Module {
 		}
 	
 		// 检查 REST API 设置：如果是 REST API 请求且禁用了 REST API 支持，则跳过
-		if ( defined( 'REST_REQUEST' ) && REST_REQUEST && empty( $settings['process_images_on_rest_api'] ) ) {
+		if ( defined( 'REST_REQUEST' ) && REST_REQUEST && empty( $settings['smart_aui_process_images_on_rest_api'] ) ) {
 			return;
 		}
 	
@@ -439,8 +460,8 @@ class SmartAUIModule extends W2P_Abstract_Module {
 			$is_local = true;
 		} else {
 			// 检查是否匹配配置的 base_url
-			$settings = get_option( 'smart_aui_settings', [] );
-			$base_url = ! empty( $settings['base_url'] ) ? $settings['base_url'] : $site_url;
+			$settings = $this->get_settings();
+			$base_url = ! empty( $settings['smart_aui_base_url'] ) ? $settings['smart_aui_base_url'] : $site_url;
 			$base_domain = wp_parse_url( $base_url, PHP_URL_HOST );
 			if ( $image_domain === $base_domain ) {
 				$is_local = true;
@@ -860,14 +881,6 @@ class SmartAUIModule extends W2P_Abstract_Module {
 		$processed_content = $processor->process_post_content( $post->post_content, $post_data );
 		
 		if ( $processed_content !== false && $processed_content !== $post->post_content ) {
-			// Update DB directly
-			// Use wp_update_post with caution to avoid infinite loops, but here we just update content
-			// And we must ensure we don't trigger our own save_post hook loop if possible
-			// Actually our hook checks for DOING_AJAX so it might return early, which is GOOD.
-			// But wait, our hook returns early on AJAX?
-			// Plugin.php: 79: if ( ( defined( 'DOING_AJAX' ) && DOING_AJAX ) ) { return $data; }
-			// So wp_update_post won't trigger image processing again. Perfect.
-			
 			global $wpdb;
 			$wpdb->update( 
 				$wpdb->posts, 
@@ -1067,6 +1080,41 @@ class SmartAUIModule extends W2P_Abstract_Module {
 	}
 
 	/**
+	 * AJAX Get Failed Logs
+	 */
+	public function ajax_get_failed_logs() {
+		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
+
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
+
+		$container = \SmartAutoUploadImages\get_container();
+		$manager = $container->get( 'failed_images_manager' );
+
+		if ( ! $manager ) {
+			 wp_send_json_success( [] );
+		}
+
+		$logs = $manager->get_failed_urls();
+
+		// Format for display
+		$formatted_logs = [];
+		if ( ! empty( $logs ) && is_array( $logs ) ) {
+			foreach ( $logs as $url => $timestamp ) {
+				$formatted_logs[] = [
+					'url' => $url,
+					'time' => date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp )
+				];
+			}
+			// Reverse to show newest first
+			$formatted_logs = array_reverse( $formatted_logs );
+		}
+
+		wp_send_json_success( $formatted_logs );
+	}
+
+	/**
 	 * AJAX Clear Failed Logs
 	 */
 	public function ajax_clear_failed_logs() {
@@ -1193,17 +1241,24 @@ class SmartAUIModule extends W2P_Abstract_Module {
 		do_action( 'w2p_smart_aui_deactivated' );
 	}
 
-	public function render_settings() {
-		$this->render_view( 'settings' );
-	}
+	    public function register_settings() {
+        return include plugin_dir_path( __FILE__ ) . 'options.php';
+    }
 
-	public function settings_key() {
-		return 'smart_aui_settings';
-	}
+    /**
+     * Override get_settings to handle nested tab data from CSF
+     */
+    public function get_settings() {
+        $settings = parent::get_settings();
+        
+        // Flatten smart_aui_tabs if present (CSF nested tabs behavior)
+        if ( isset( $settings['smart_aui_tabs'] ) && is_array( $settings['smart_aui_tabs'] ) ) {
+            $settings = array_merge( $settings, $settings['smart_aui_tabs'] );
+        }
+        
+        return $settings;
+    }
 
-	/**
-	 * AJAX Get Attachment ID from Image URL
-	 */
 	public function ajax_get_attachment_id() {
 		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
 		

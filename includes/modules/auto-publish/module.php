@@ -38,17 +38,49 @@ class AutoPublishModule extends W2P_Abstract_Module {
 	}
 
 	/**
+	 * Check if module is enabled
+	 */
+	public function is_enabled() {
+		$settings = get_option('w2p_settings', []);
+		return !empty($settings['module_' . $this->id()]);
+	}
+
+	/**
+	 * Get Settings (Flattened)
+	 */
+	public function get_settings() {
+		$settings = parent::get_settings();
+		
+		if ( ! empty( $settings['auto_publish_tabs'] ) && is_array( $settings['auto_publish_tabs'] ) ) {
+			$settings = array_merge( $settings, $settings['auto_publish_tabs'] );
+		}
+		
+		return $settings;
+	}
+
+	/**
 	 * Initialize Module
 	 */
 	public function init() {
+		// Load CSF Options
+		$options_path = plugin_dir_path( __FILE__ ) . 'options.php';
+		if ( file_exists( $options_path ) && class_exists( 'CSF' ) ) {
+			require_once $options_path;
+		}
+
 		// Register Cron
 		add_filter( 'cron_schedules', [ $this, 'add_cron_schedules' ] );
 		add_action( 'w2p_auto_publish_cron', [ $this, 'run_auto_publish_batch' ] );
+		
+		// Update Cron on Settings Save
+		add_action( 'csf_w2p_settings_saved', [ $this, 'check_cron_schedule' ] );
 
 		// AJAX Handlers for Manual Processing
+		add_action( 'wp_ajax_w2p_auto_publish_clean_logs', [ $this, 'ajax_clean_logs' ] );
+		// Note: process_publish and get_stats might need adjustment if they rely on old nonces?
+		// We updated JS to use 'w2p_auto_publish_nonce' which is standard.
 		add_action( 'wp_ajax_w2p_auto_publish_process', [ $this, 'ajax_process_publish' ] );
 		add_action( 'wp_ajax_w2p_auto_publish_get_stats', [ $this, 'ajax_get_stats' ] );
-		add_action( 'wp_ajax_w2p_auto_publish_clean_logs', [ $this, 'ajax_clean_logs' ] );
 
 		// Pseudo-Cron / Page Load Trigger
 		add_action( 'init', [ $this, 'maybe_trigger_pseudo_cron' ] );
@@ -64,28 +96,56 @@ class AutoPublishModule extends W2P_Abstract_Module {
 	 * Enqueue Assets
 	 */
 	public function enqueue_assets( $hook ) {
-		// Only load on Post List and Settings page
-		if ( 'edit.php' !== $hook && strpos( $hook, 'wp-genius' ) === false && strpos( $hook, 'word2posts' ) === false ) {
+		// Load on:
+		// 1. Post List (edit.php)
+		// 2. Main WP Genius Settings (wp-genius-settings)
+		
+		$is_settings_page = ( strpos( $hook, 'wp-genius-settings' ) !== false );
+
+		if ( 'edit.php' !== $hook && ! $is_settings_page ) {
 			return;
 		}
 
 		$plugin_url = plugin_dir_url( WP_GENIUS_FILE );
 		
-		wp_register_script( 'w2p-auto-publish', $plugin_url . "assets/js/modules/auto-publish.js", array( 'w2p-core-js' ), '1.0.0', true );
+		wp_register_script( 'w2p-auto-publish', $plugin_url . "assets/js/modules/auto-publish.js", array( 'w2p-core-js', 'jquery' ), '1.0.0', true );
 
-		wp_enqueue_script( 'w2p-auto-publish' );
+		if ( $is_settings_page || 'edit.php' === $hook ) {
+			wp_enqueue_script( 'w2p-auto-publish' );
+			
+			global $wpdb;
+			$draft_count = (int) $wpdb->get_var( "SELECT COUNT(ID) FROM $wpdb->posts WHERE post_status = 'draft' AND post_type = 'post'" );
 
-		wp_localize_script(
-			'w2p-auto-publish',
-			'w2pAutoPublishParams',
-			[
-				'ajax_url' => admin_url( 'admin-ajax.php' ),
-				'nonce'    => wp_create_nonce( 'w2p_auto_publish_nonce' ),
-				'l10n'     => [
-					'processing' => __( 'Currently processing Post ID:', 'wp-genius' ),
+			wp_localize_script(
+				'w2p-auto-publish',
+				'w2p_auto_publish_config',
+				[
+					'ajax_url'    => admin_url( 'admin-ajax.php' ),
+					'nonce'       => wp_create_nonce( 'w2p_auto_publish_nonce' ),
+					'draft_count' => $draft_count,
+					'i18n'        => [
+						'processing'          => __( 'Processing', 'wp-genius' ),
+						'publishing'          => __( 'Publishing', 'wp-genius' ),
+						'preparing'           => __( 'Preparing', 'wp-genius' ),
+						'scheduled_running'   => __( 'A scheduled task is running.', 'wp-genius' ),
+						'stopping'            => __( 'Stopping...', 'wp-genius' ),
+						'stopped'             => __( 'Stopped.', 'wp-genius' ),
+						'all_finished'        => __( 'All Finished!', 'wp-genius' ),
+						'confirm_clear_logs'  => __( 'Are you sure you want to clear logs?', 'wp-genius' ),
+						'logs_cleared'        => __( 'Logs Cleared', 'wp-genius' ),
+						'error_clearing_logs' => __( 'Error Clearing Logs', 'wp-genius' ),
+						'network_error'       => __( 'Network Error', 'wp-genius' ),
+						'retry_stats'         => __( 'Retrying stats...', 'wp-genius' ),
+						'no_activity'         => __( 'No activity.', 'wp-genius' ),
+						'scheduled'           => __( 'Scheduled', 'wp-genius' ),
+						'manual'              => __( 'Manual', 'wp-genius' ),
+						'connection_error'    => __( 'Connection Error', 'wp-genius' ),
+						'error_prefix'        => __( 'Error', 'wp-genius' ),
+						'confirm_nav'         => __( 'Publishing in progress. Leave?', 'wp-genius' ),
+					]
 				]
-			]
-		);
+			);
+		}
 	}
 
 	/**
@@ -93,14 +153,14 @@ class AutoPublishModule extends W2P_Abstract_Module {
 	 */
 	public function render_progress_panel() {
 		$screen = get_current_screen();
+		if ( ! $screen ) return;
 		
-		// Only show on post list or our settings page
-		if ( $screen->id !== 'edit-post' && strpos( $screen->id, 'wp-genius' ) === false && strpos( $screen->id, 'word2posts' ) === false ) {
+		if ( $screen->id !== 'edit-post' && strpos( $screen->id, 'wp-genius-settings' ) === false && strpos( $screen->id, 'word2posts' ) === false ) {
 			return;
 		}
 
 		?>
-		<div id="w2p-scheduled-task-status" class="w2p-status-box" style="display:none;">
+		<div id="w2p-scheduled-task-status" class="w2p-status-box w2p-hidden">
 			<div class="status-header">
 				<span class="pulse-icon"></span>
 				<strong><?php _e( 'Scheduled Publishing in Progress...', 'wp-genius' ); ?></strong>
@@ -130,11 +190,49 @@ class AutoPublishModule extends W2P_Abstract_Module {
 	}
 
 	/**
+	 * Check and Update Cron Schedule
+	 * 
+	 * @param array $settings
+	 */
+	public function check_cron_schedule( $settings ) {
+		// Handle nested keys from CSF tabbed field
+		$cron_enabled = false;
+		$interval = 'hourly';
+
+		if ( ! empty( $settings['auto_publish_tabs']['auto_publish_cron_enabled'] ) ) {
+			$cron_enabled = $settings['auto_publish_tabs']['auto_publish_cron_enabled'];
+		} elseif ( ! empty( $settings['auto_publish_cron_enabled'] ) ) {
+			$cron_enabled = $settings['auto_publish_cron_enabled'];
+		}
+
+		if ( ! empty( $settings['auto_publish_tabs']['auto_publish_interval'] ) ) {
+			$interval = $settings['auto_publish_tabs']['auto_publish_interval'];
+		} elseif ( ! empty( $settings['auto_publish_interval'] ) ) {
+			$interval = $settings['auto_publish_interval'];
+		}
+		
+		error_log( 'Auto Publish Cron Check: ' . ( $cron_enabled ? 'Enabled' : 'Disabled' ) . ', Interval: ' . $interval );
+
+
+		// Clear existing hook first to ensure cleanliness
+		W2P_Task_Queue::unschedule( 'w2p_auto_publish_cron' );
+
+		if ( $cron_enabled ) {
+			// Schedule using Task Queue wrapper
+			// Note: The wrapper handles the check for existing schedule internally
+			W2P_Task_Queue::schedule_recurring( 'w2p_auto_publish_cron', [], $interval );
+			error_log( 'Auto Publish Cron Scheduled via Task Queue' );
+		}
+	}
+
+	/**
 	 * Run Auto Publish Batch (Cron)
 	 */
 	public function run_auto_publish_batch() {
-		$settings = get_option( 'w2p_auto_publish_settings', [] );
-		if ( empty( $settings['cron_enabled'] ) ) {
+		$global_settings = $this->get_settings();
+		
+        // Use new keys
+		if ( empty( $global_settings['auto_publish_cron_enabled'] ) ) {
 			return;
 		}
 
@@ -146,7 +244,7 @@ class AutoPublishModule extends W2P_Abstract_Module {
 		// Set scheduled lock
 		set_transient( 'w2p_auto_publish_active_lock', 'scheduled', 300 ); // 5 min safety lock
 
-		$batch_size = isset( $settings['batch_size'] ) ? absint( $settings['batch_size'] ) : 5;
+		$batch_size = isset( $global_settings['auto_publish_batch_size'] ) ? absint( $global_settings['auto_publish_batch_size'] ) : 5;
 		
 		$drafts = get_posts( [
 			'post_status'    => 'draft',
@@ -187,13 +285,13 @@ class AutoPublishModule extends W2P_Abstract_Module {
 
 		// Only run in admin or periodically on front-end
 		if ( is_admin() || ( ! is_admin() && mt_rand( 1, 100 ) <= 5 ) ) {
-			$settings = get_option( 'w2p_auto_publish_settings', [] );
-			if ( empty( $settings['cron_enabled'] ) ) {
+			$global_settings = $this->get_settings();
+			if ( empty( $global_settings['auto_publish_cron_enabled'] ) ) {
 				return;
 			}
 
 			$last_run = get_option( 'w2p_auto_publish_last_run', 0 );
-			$interval_name = isset( $settings['interval'] ) ? $settings['interval'] : 'hourly';
+			$interval_name = isset( $global_settings['auto_publish_interval'] ) ? $global_settings['auto_publish_interval'] : 'hourly';
 			
 			// Map interval names to seconds
 			$intervals = [
@@ -279,7 +377,6 @@ class AutoPublishModule extends W2P_Abstract_Module {
 		];
 		
 		// 设置文章级别的标记，告诉 wp_insert_post_data 钩子不要再次处理图片
-		// 使用 $_POST 而不是全局常量，避免影响后续请求
 		$_POST['w2p_smart_aui_processed'] = true;
 		
 		// 监控 wp_insert_post_data 钩子的返回值
@@ -437,8 +534,10 @@ class AutoPublishModule extends W2P_Abstract_Module {
 	 * Activation Hook: Schedule Cron
 	 */
 	public function enable() {
-		$settings = get_option( 'w2p_auto_publish_settings', [] );
-		$interval = isset( $settings['interval'] ) ? $settings['interval'] : 'hourly';
+        // We generally rely on the module loader, but if this method is called,
+        // we check config to set schedule.
+		$settings = $this->get_settings();
+		$interval = isset( $settings['auto_publish_interval'] ) ? $settings['auto_publish_interval'] : 'hourly';
 		
 		if ( ! wp_next_scheduled( 'w2p_auto_publish_cron' ) ) {
 			wp_schedule_event( time(), $interval, 'w2p_auto_publish_cron' );
@@ -454,8 +553,23 @@ class AutoPublishModule extends W2P_Abstract_Module {
 
 	/**
 	 * Render settings page
+	 * 
+	 * @note Refactored to use CSF
 	 */
 	public function render_settings() {
-		$this->render_view( 'settings' );
+		?>
+		<div class="wrap w2p-legacy-redirect">
+			<div class="w2p-info-box">
+				<i class="fa-solid fa-magic w2p-magic-icon"></i>
+				<h2 class="w2p-upgrade-title"><?php esc_html_e( 'Settings Upgrade', 'wp-genius' ); ?></h2>
+				<p class="w2p-upgrade-desc">
+					<?php esc_html_e( 'This module has been upgraded to use the new Codestar Framework for better stability and user experience.', 'wp-genius' ); ?>
+				</p>
+				<a href="<?php echo esc_url( admin_url( 'tools.php?page=w2p-auto-publish-settings' ) ); ?>" class="button button-primary button-hero">
+					<?php esc_html_e( 'Configure Auto Publish Settings', 'wp-genius' ); ?>
+				</a>
+			</div>
+		</div>
+		<?php
 	}
 }

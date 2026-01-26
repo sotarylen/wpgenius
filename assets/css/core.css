@@ -40,7 +40,7 @@
     --w2p-color-primary-hover: #0c825b;
     --w2p-color-primary-light: #eef2ff;
     --w2p-color-primary-focus: rgba(44, 110, 4, 0.2);
-    --w2p-gradient-primary: linear-gradient(135deg, #024240 0%, #10b981 100%);
+    --w2p-gradient-primary: linear-gradient(45deg, #024240 0%, #10b981 100%);
 
     --w2p-color-success: #10b981;
     --w2p-color-success-bg: #ecfdf5;
@@ -126,6 +126,10 @@
     background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
     min-height: 100vh;
     padding: var(--w2p-spacing-xs) var(--w2p-spacing-xl) var(--w2p-spacing-xl) var(--w2p-spacing-xs);
+}
+
+.csf-container {
+    font-family: var(--w2p-font-family-base);
 }
 
 .w2p-wrap h1,
@@ -651,6 +655,42 @@
     font-weight: var(--w2p-font-weight-medium);
 }
 
+.w2p-file-meta {
+    display: flex;
+    align-items: center;
+}
+
+.w2p-file-size {
+    color: var(--w2p-text-muted);
+    font-size: var(--w2p-font-size-xs);
+    margin-left: var(--w2p-spacing-xs);
+}
+
+.w2p-parent-info {
+    font-size: var(--w2p-font-size-xs);
+    color: var(--w2p-text-muted);
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.w2p-post-link {
+    color: var(--w2p-text-secondary);
+    text-decoration: none;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.w2p-post-link:hover {
+    color: var(--w2p-color-primary);
+    text-decoration: underline;
+}
+
 /* Premium Switch Styles */
 .w2p-switch {
     position: relative;
@@ -756,7 +796,7 @@
 
 .w2p-toast-close:hover {
     opacity: 1;
-    transform: scale(1.1);
+    transform: scale(1);
 }
 
 .w2p-toast.success {
@@ -797,7 +837,48 @@
     height: 12px;
     background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
     background-size: 200% 100%;
-    animation: w2p-skeleton-loading 1.5s infinite;
+
+    /* ==========================================================================
+   Module: Accelerate (Merged Styles)
+   ========================================================================== */
+
+    /* Delete with Images Link (Red Warning Color) */
+    .w2p-delete-with-images-btn {
+        color: #b32d2e !important;
+    }
+
+    .w2p-delete-with-images-btn:hover {
+        color: #a00 !important;
+        text-decoration: underline;
+    }
+
+    #w2p-delete-with-images-wrap {
+        color: #aaa;
+        margin-bottom: 10px;
+        text-align: right;
+    }
+
+    /* Local Avatar Preview */
+    #st-avatar-preview img {
+        width: 96px !important;
+        height: 96px !important;
+        border-radius: 50%;
+        object-fit: cover;
+        background: #f1f1f1;
+    }
+
+    /* Hide Notices (Conditional via body class) */
+    body.w2p-acc-hide-notices .otgs-is-not-registered,
+    body.w2p-acc-hide-notices .otgs-notice,
+    body.w2p-acc-hide-notices .update-message {
+        display: none !important;
+    }
+
+    /* Hide Default Avatar UI (Conditional via body class) */
+    body.w2p-acc-local-avatar .user-profile-picture {
+        display: none;
+    }
+
     border-radius: 4px;
     margin-bottom: 12px;
 }
@@ -1007,7 +1088,7 @@
     background: var(--w2p-bg-surface-secondary);
     border-radius: var(--w2p-radius-lg);
     border: 1px solid var(--w2p-border-color);
-    max-height: 550px;
+    max-height: 800px;
     overflow-y: auto;
     position: relative;
     box-shadow: var(--w2p-shadow-sm);
@@ -1036,6 +1117,13 @@
     padding: var(--w2p-spacing-sm) var(--w2p-spacing-md);
     border-bottom: 1px solid var(--w2p-border-color);
     vertical-align: middle;
+}
+
+.w2p-table td img {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: var(--w2p-radius-md);
 }
 
 .w2p-table tbody tr:last-child td {
@@ -1412,6 +1500,25 @@
     background: var(--w2p-color-info-bg);
 }
 
+.w2p-health-card.w2p-health-card-full {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    gap: var(--w2p-spacing-md);
+    text-align: left;
+    align-items: center;
+}
+
+.w2p-health-input-group {
+    display: flex;
+    gap: var(--w2p-spacing-sm);
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.w2p-health-input-group .w2p-input {
+    max-width: 300px;
+}
+
 .w2p-auto-publish-logs .wp-list-table th,
 .w2p-auto-publish-logs .wp-list-table td {
     padding: 10px 15px;
@@ -1482,17 +1589,16 @@
 /* Status Box */
 .w2p-status-box {
     display: block;
-    position: absolute;
-    top: 0;
-    right: 0;
+    position: static;
     width: 50%;
     background: var(--w2p-bg-surface);
     box-shadow: 0 0 24px 2px rgba(0, 0, 0, 0.1);
     border: 1px solid var(--w2p-border-color);
-    border-left: 8px solid var(--w2p-color-primary);
+    border-left: 5px solid var(--w2p-color-primary);
     padding: var(--w2p-spacing-md);
     border-radius: var(--w2p-radius-lg);
     margin: var(--w2p-spacing-md);
+    margin-left: 0;
     z-index: var(--w2p-z-index-overlay);
 }
 
@@ -1510,7 +1616,6 @@
     justify-content: space-between;
     align-items: center;
     padding: var(--w2p-spacing-md) 0;
-    vertical-align: middle;
     gap: var(--w2p-spacing-md);
 }
 
@@ -1520,6 +1625,40 @@
     font-size: var(--w2p-font-size-2xl);
     color: var(--w2p-color-primary);
 }
+
+/* Fix Chapter Index Module Styles */
+
+/* Layout: Split View (Config + Logs) */
+.w2p-fix-index-split {
+    display: grid;
+    grid-template-columns: minmax(450px, 1fr) 1.5fr;
+    gap: var(--w2p-spacing-xl);
+    align-items: start;
+}
+
+@media (max-width: 1024px) {
+    .w2p-fix-index-split {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Log Table Overrides for Fix Index */
+.w2p-fix-index-logs .wp-list-table {
+    border: none;
+    box-shadow: none;
+    margin: 0;
+}
+
+.w2p-fix-index-logs .wp-list-table th {
+    font-family: var(--w2p-font-family-base-bold);
+    background: var(--w2p-color-info-bg);
+}
+
+.w2p-fix-index-logs .wp-list-table th,
+.w2p-fix-index-logs .wp-list-table td {
+    padding: 10px 15px;
+}
+
 
 /* --- Highlighting Styles --- */
 /* Font Family Variable - Set inline in class-highlight-handler.php */
@@ -1929,131 +2068,6 @@ pre[class*="language-"] {
     letter-spacing: 0.5px;
 }
 
-/* Video Optimization */
-.wpg-video-wrapper {
-    width: 100%;
-    height: auto;
-    min-height: 300px;
-    /* max-height: 600px; */
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: #000;
-    overflow: hidden;
-    margin: 0 auto;
-}
-
-/* WPBakery/Impreza Support: When inside a container with padding-bottom aspect ratio hack */
-.w-video-h .wpg-video-wrapper,
-.w-video .wpg-video-wrapper {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-}
-
-.wpg-video-lightbox-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: rgba(0, 0, 0, 0.7);
-    color: var(--w2p-text-inverted);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    padding: var(--w2p-spacing-xs) var(--w2p-spacing-sm);
-    border-radius: var(--w2p-radius-md);
-    cursor: pointer;
-    font-size: var(--w2p-font-size-xs);
-    transition: all 0.2s ease;
-    z-index: 10;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-}
-
-.wpg-video-lightbox-btn:hover {
-    background: var(--w2p-color-primary);
-    border-color: var(--w2p-color-primary);
-    transform: scale(1.05);
-}
-
-/* Plyr Video Player Styles */
-.plyr {
-    width: auto !important;
-    /* 允许根据内容收缩 */
-    max-width: 100% !important;
-    height: 100% !important;
-    /* 填满高度受限的容器 */
-    max-height: 100%;
-    border-radius: var(--w2p-radius-md);
-    overflow: hidden;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    background: #000;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    /* 确保定位辅助 */
-}
-
-/* Force Plyr to fill WPBakery container */
-.w-video-h .plyr,
-.w-video .plyr {
-    position: absolute !important;
-    top: 0;
-    left: 0;
-    width: 100% !important;
-    height: 100% !important;
-}
-
-/* Ensure the video wrapper handles its own aspect ratio if needed, but don't force it to 0 height */
-.plyr__video-wrapper {
-    background: #000;
-    flex: 1 1 auto;
-    /* 核心修复：允许收缩，防止挤压工具栏 */
-    min-height: 0;
-    /* 允许在 Flex 容器中收缩 */
-    /* Ensure it fills parent in absolute/flex context */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Reset padding-bottom when parent is already handling aspect ratio */
-.w-video-h .plyr__video-wrapper,
-.w-video .plyr__video-wrapper {
-    padding-bottom: 0 !important;
-}
-
-.plyr__video-wrapper video {
-    width: auto !important;
-    /* 核心修复：竖屏视频不拉伸宽度 */
-    max-width: 100% !important;
-    height: 100% !important;
-    max-height: 100% !important;
-    object-fit: contain !important;
-}
-
-.plyr--full-ui input[type=range] {
-    color: var(--w2p-color-primary);
-}
-
-.plyr__control--overlaid {
-    background: var(--w2p-color-primary);
-}
-
-.plyr__controls {
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 100%) !important;
-    width: 100% !important;
-    flex: 0 0 auto;
-    /* 核心修复：工具栏不收缩且不溢出 */
-}
-
-/* Force show video elements inside plyr */
-.plyr video {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-}
 
 /* Smart Auto Upload Images Styles */
 
@@ -2160,8 +2174,9 @@ pre[class*="language-"] {
 }
 
 .w2p-smart-aui-status-text {
+    color: var(--w2p-color-info);
     font-size: var(--w2p-font-size-md);
-    line-height: 1.5;
+    line-height: 1.6;
 }
 
 /* Stats Row - Card based */
@@ -2732,4 +2747,312 @@ pre[class*="language-"] {
 
 .w2p-icon-card:hover .w2p-icon-tooltip {
     opacity: 1;
+}
+
+/* Module Upgrade Styles */
+.w2p-legacy-redirect {
+    text-align: center;
+    padding: 40px;
+}
+
+.w2p-magic-icon {
+    font-size: 48px;
+    color: var(--w2p-color-primary);
+    margin-bottom: 20px;
+}
+
+.w2p-upgrade-title {
+    margin-bottom: 20px;
+}
+
+.w2p-upgrade-desc {
+    font-size: 16px;
+    max-width: 600px;
+    margin: 0 auto 20px;
+    color: #666;
+}
+
+/* ================================================
+ * Utility Classes for Common Patterns
+ * Added: 2026-01-24 - CSF Migration Cleanup
+ * ================================================ */
+
+/* Display Utilities */
+.w2p-hidden {
+    display: none !important;
+}
+
+.w2p-invisible {
+    visibility: hidden;
+}
+
+/* Terminal/Console Output Styles */
+.w2p-terminal {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: var(--w2p-spacing-md);
+    border-radius: var(--w2p-radius-lg);
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.w2p-terminal-command {
+    color: #94a3b8;
+    margin-bottom: var(--w2p-spacing-xs);
+}
+
+.w2p-terminal-output {
+    margin-top: var(--w2p-spacing-xs);
+    color: #fbbf24;
+}
+
+.w2p-terminal-error {
+    color: #ef4444;
+}
+
+.w2p-terminal-success {
+    color: #10b981;
+}
+
+/* Processing/Progress Styles */
+.w2p-progress-fill {
+    width: 0%;
+    height: 100%;
+    background: var(--w2p-gradient-primary);
+    transition: width 0.3s ease;
+    border-radius: var(--w2p-radius-sm);
+}
+
+.w2p-processing-output {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: var(--w2p-spacing-md);
+    border-radius: var(--w2p-radius-lg);
+    font-family: monospace;
+    font-size: 13px;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: var(--w2p-spacing-lg);
+}
+
+.w2p-processing-stats {
+    background: #f9fafb;
+    padding: var(--w2p-spacing-md);
+    border-radius: var(--w2p-radius-lg);
+    margin-bottom: var(--w2p-spacing-lg);
+}
+
+.w2p-processing-stats h5 {
+    margin: 0 0 var(--w2p-spacing-sm) 0;
+    font-size: var(--w2p-font-size-base);
+    font-weight: var(--w2p-font-weight-medium);
+}
+
+/* Alert Boxes */
+.w2p-alert {
+    padding: 12px 16px;
+    border-radius: var(--w2p-radius-md);
+    margin-bottom: var(--w2p-spacing-md);
+}
+
+.w2p-alert-info {
+    background: #dbeafe;
+    color: #1e40af;
+    border-left: 4px solid #3b82f6;
+}
+
+.w2p-alert-success {
+    background: var(--w2p-color-success-bg);
+    color: var(--w2p-color-success);
+    border-left: 4px solid var(--w2p-color-success-border);
+}
+
+.w2p-alert-warning {
+    background: var(--w2p-color-warning-bg);
+    color: #78350f;
+    border-left: 4px solid var(--w2p-color-warning-border);
+}
+
+.w2p-alert-error {
+    background: var(--w2p-color-error-bg);
+    color: #7f1d1d;
+    border-left: 4px solid var(--w2p-color-error-border);
+}
+
+/* Table Enhancements */
+.w2p-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.w2p-table thead {
+    background: #f9fafb;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.w2p-table th {
+    padding: var(--w2p-spacing-sm);
+    text-align: left;
+    font-weight: var(--w2p-font-weight-medium);
+    border-bottom: 1px solid var(--w2p-border-color);
+}
+
+.w2p-table tbody tr:hover {
+    background: var(--w2p-bg-surface-secondary);
+}
+
+/* Queue Stats */
+.w2p-queue-stats {
+    font-size: var(--w2p-font-size-sm);
+    color: var(--w2p-text-secondary);
+}
+
+/* Attachment List */
+.w2p-attachment-list {
+    margin-bottom: var(--w2p-spacing-lg);
+}
+
+.w2p-attachment-list h5 {
+    margin: 0 0 var(--w2p-spacing-sm) 0;
+    font-size: var(--w2p-font-size-base);
+    font-weight: var(--w2p-font-weight-medium);
+}
+
+/* Flex Utilities */
+.w2p-flex {
+    display: flex;
+}
+
+.w2p-flex-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.w2p-flex-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Spacing Utilities */
+.w2p-mb-0 {
+    margin-bottom: 0 !important;
+}
+
+.w2p-mb-xs {
+    margin-bottom: var(--w2p-spacing-xs);
+}
+
+.w2p-mb-sm {
+    margin-bottom: var(--w2p-spacing-sm);
+}
+
+.w2p-mb-md {
+    margin-bottom: var(--w2p-spacing-md);
+}
+
+.w2p-mb-lg {
+    margin-bottom: var(--w2p-spacing-lg);
+}
+
+.w2p-mt-0 {
+    margin-top: 0 !important;
+}
+
+.w2p-mt-xs {
+    margin-top: var(--w2p-spacing-xs);
+}
+
+.w2p-mt-sm {
+    margin-top: var(--w2p-spacing-sm);
+}
+
+.w2p-mt-md {
+    margin-top: var(--w2p-spacing-md);
+}
+
+.w2p-mt-lg {
+    margin-top: var(--w2p-spacing-lg);
+}
+
+/* Text Utilities */
+.w2p-text-muted {
+    color: var(--w2p-text-muted);
+}
+
+.w2p-text-secondary {
+    color: var(--w2p-text-secondary);
+}
+
+.w2p-text-center {
+    text-align: center;
+}
+
+/* Monospace */
+.w2p-font-mono {
+    font-family: 'Courier New', Courier, monospace;
+}
+
+/* Border Utilities */
+.w2p-border-none {
+    border: none !important;
+}
+
+/* Scrollable Container */
+.w2p-scrollable {
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid var(--w2p-border-color-light);
+    border-radius: var(--w2p-radius-lg);
+}
+
+/* Field Note */
+.w2p-field-note {
+    display: block;
+    margin-top: var(--w2p-spacing-xs);
+    padding: var(--w2p-spacing-sm);
+    background: var(--w2p-bg-surface-secondary);
+    border-left: 3px solid var(--w2p-color-info);
+    border-radius: var(--w2p-radius-sm);
+    font-size: var(--w2p-font-size-sm);
+    color: var(--w2p-text-secondary);
+}
+
+/* Processing Actions */
+.w2p-processing-actions {
+    margin-bottom: var(--w2p-spacing-lg);
+}
+
+.w2p-processing-actions .w2p-btn {
+    justify-content: flex-start;
+}
+
+/* Stats Grid (for Media Engine) */
+.w2p-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.w2p-stat-label {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+.w2p-stat-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+/* Terminal Error State */
+.w2p-terminal-error {
+    color: #ef4444;
+    margin-top: var(--w2p-spacing-xs);
 }

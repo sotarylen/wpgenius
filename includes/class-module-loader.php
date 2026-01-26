@@ -3,15 +3,21 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+
+/**
+ * 模组加载器
+ * 
+ * 核心负责自动扫描、发现并实例化 modules/ 目录下的所有模组。
+ * 管理模组的生命周期，包括根据配置启用/禁用模组，以及触发相应的钩子函数，是插件模块化架构的核心驱动。
+ *
+ * @package WP_Genius
+ */
 class W2P_Module_Loader {
     protected $modules = array();
     protected $modules_dir;
-    protected $assets_modules_dir;
 
     public function __construct($modules_dir = '') {
         $this->modules_dir = $modules_dir ? $modules_dir : plugin_dir_path(__FILE__) . 'modules/';
-        // 添加 assets 目录作为额外的模块目录
-        $this->assets_modules_dir = plugin_dir_path(__FILE__) . '../assets/modules/';
     }
 
     // 发现并包含 modules 目录下每个模块的 main 文件（约定为 module.php）
@@ -19,11 +25,6 @@ class W2P_Module_Loader {
         // 从 includes/modules 目录加载模块
         if (is_dir($this->modules_dir)) {
             $this->load_modules_from_directory($this->modules_dir);
-        }
-        
-        // 从 assets/modules 目录加载模块
-        if (is_dir($this->assets_modules_dir)) {
-            $this->load_modules_from_directory($this->assets_modules_dir);
         }
     }
     
@@ -71,9 +72,13 @@ class W2P_Module_Loader {
     // 初始化已启用的模块
     public function init() {
         $this->discover();
-        $enabled = get_option('word2posts_modules', array());
+        $settings = get_option('w2p_settings', array());
+        
         foreach ($this->modules as $id => $module) {
-            $is_enabled = isset($enabled[$id]) ? (bool) $enabled[$id] : false;
+            $module_key = 'module_' . $id;
+            // [Fix] Relaxed check for boolean/integer/string '1'
+            $is_enabled = !empty($settings[$module_key]);
+            
             if ($is_enabled && method_exists($module, 'init')) {
                 try {
                     $module->init();
@@ -88,21 +93,26 @@ class W2P_Module_Loader {
         return $this->modules;
     }
 
+    // Check if module is enabled (unified method)
     public function is_enabled($id) {
-        $enabled = get_option('word2posts_modules', array());
-        return !empty($enabled[$id]);
+        $settings = get_option('w2p_settings', array());
+        $module_key = 'module_' . $id;
+        return !empty($settings[$module_key]);
     }
 
+    // Set module enabled state (unified method)
     public function set_enabled($id, $state) {
-        $enabled = get_option('word2posts_modules', array());
-        $old_state = isset($enabled[$id]) ? (bool) $enabled[$id] : false;
+        $settings = get_option('w2p_settings', array());
+        $module_key = 'module_' . $id;
+        
+        $old_state = isset($settings[$module_key]) ? (bool) $settings[$module_key] : false;
         $new_state = (bool) $state;
         
         if ($old_state !== $new_state) {
-            $enabled[$id] = $new_state;
-            update_option('word2posts_modules', $enabled);
-            
-            // 调用模块的 enable 或 disable 方法
+            $settings[$module_key] = $new_state;
+            update_option('w2p_settings', $settings);
+
+            // Trigger module hooks
             if (isset($this->modules[$id])) {
                 if ($new_state && method_exists($this->modules[$id], 'enable')) {
                     $this->modules[$id]->enable();

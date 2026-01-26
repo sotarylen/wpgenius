@@ -42,6 +42,7 @@ class SystemHealthModule extends W2P_Abstract_Module {
         add_action( 'wp_ajax_w2p_system_health_remove_links', [ $this, 'ajax_remove_links_handler' ] );
         add_action( 'wp_ajax_w2p_system_health_scan_duplicates', [ $this, 'ajax_scan_duplicates_handler' ] );
         add_action( 'wp_ajax_w2p_system_health_trash_duplicates', [ $this, 'ajax_trash_duplicates_handler' ] );
+        add_action( 'wp_ajax_w2p_system_health_clean_custom_field', [ $this, 'ajax_clean_custom_field_handler' ] );
         
         // Enhanced duplicate handlers for improved performance
         add_action( 'wp_ajax_w2p_system_health_scan_duplicates_improved', [ $this, 'ajax_scan_duplicates_improved_handler' ] );
@@ -61,7 +62,10 @@ class SystemHealthModule extends W2P_Abstract_Module {
 
         $plugin_url = plugin_dir_url( WP_GENIUS_FILE );
         
-        wp_register_script( 'w2p-system-health', $plugin_url . "assets/js/modules/system-health.js", array( 'w2p-core-js', 'w2p-fa-icons' ), '1.0.0', true );
+        $js_path = plugin_dir_path( WP_GENIUS_FILE ) . 'assets/js/modules/system-health.js';
+        $version = file_exists( $js_path ) ? filemtime( $js_path ) : '1.0.1';
+        
+        wp_register_script( 'w2p-system-health', $plugin_url . "assets/js/modules/system-health.js", array( 'w2p-core-js', 'w2p-fa-icons' ), $version, true );
 
         wp_enqueue_script( 'w2p-system-health' );
         
@@ -248,7 +252,29 @@ class SystemHealthModule extends W2P_Abstract_Module {
         ] );
     }
 
+    /**
+     * AJAX Handler for Custom Field Cleanup
+     */
+    public function ajax_clean_custom_field_handler() {
+        check_ajax_referer( 'w2p_system_health_nonce', 'nonce' );
+        
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ] );
+        }
 
+        $meta_key = isset( $_POST['meta_key'] ) ? sanitize_text_field( $_POST['meta_key'] ) : '';
+        if ( empty( $meta_key ) ) {
+            wp_send_json_error( [ 'message' => __( 'Please specify a custom field name.', 'wp-genius' ) ] );
+        }
+
+        $service = new SystemHealthCleanupService();
+        $count = $service->clean_custom_field( $meta_key );
+
+        wp_send_json_success( [ 
+            'message' => sprintf( __( 'Cleaned up %d entries for meta key "%s".', 'wp-genius' ), $count, $meta_key ),
+            'count'   => $count
+        ] );
+    }
 
     public function activate() {
         // Optional initialization on activation

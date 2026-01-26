@@ -1,19 +1,5 @@
 <?php
 /**
- * Plugin Name: Smart Auto Upload Images
- * Plugin URI: https://burhandodhy.me
- * Description: A modern WordPress plugin that automatically detects and uploads external images from post content with advanced settings.
- * Version: 1.2.1
- * Author: Burhan Nasir
- * Author URI: https://burhandodhy.me
- * Text Domain: smart-auto-upload-images
- * Domain Path: /languages
- * License: GPL v2 or later
- * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Requires at least: 6.2
- * Tested up to: 6.8
- * Requires PHP: 8.0
- *
  * @package SmartAutoUploadImages
  */
 

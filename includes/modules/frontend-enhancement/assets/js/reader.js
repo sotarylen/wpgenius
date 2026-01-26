@@ -20,14 +20,16 @@
             const defaults = {
                 fontSize: 20,
                 fontFamily: 'sans',
-                theme: 'light'
+                theme: 'light',
+                fullscreen: false
             };
 
             // Use config defaults if available, otherwise use defaults
+            // FIX: User settings (loadSettings) must override server defaults (wpgReaderDefaults)
             this.state = {
                 ...defaults,
-                ...this.loadSettings(),
-                ...(window.wpgReaderDefaults || {})
+                ...(window.wpgReaderDefaults || {}),
+                ...this.loadSettings()
             };
 
             this.init();
@@ -49,6 +51,11 @@
             this.applyStyles();
             this.bindEvents();
             this.restorePosition();
+
+            // Restore Fullscreen State
+            if (this.state.fullscreen) {
+                this.enterFullscreen();
+            }
         }
 
 
@@ -63,7 +70,14 @@
         }
 
         saveSettings() {
-            localStorage.setItem('wpg_reader_settings', JSON.stringify(this.state));
+            // FIX: Only save user preferences, NOT content specific data (like links)
+            const settingsToSave = {
+                fontSize: this.state.fontSize,
+                fontFamily: this.state.fontFamily,
+                theme: this.state.theme,
+                fullscreen: this.state.fullscreen
+            };
+            localStorage.setItem('wpg_reader_settings', JSON.stringify(settingsToSave));
         }
 
         createProgressBar() {
@@ -189,7 +203,7 @@
 
             $fullscreenSection.append($fullscreenBtn);
 
-            // Store reference for later use
+            // Using stored reference needed for API
             this.$fullscreenBtn = $fullscreenBtn;
 
             // Update local refs
@@ -197,13 +211,74 @@
             this.$sizeDisplay = $sizeDisplay;
 
             // Assemble toolbar
-            $toolbar.append($sizeSection, $fontSection, $themeSection, $fullscreenSection);
+            // [UX] Nav section added at the end
+            const $navSection = this.createNavSection();
+            $toolbar.append($sizeSection, $fontSection, $themeSection, $fullscreenSection, $navSection);
 
             // Insert toolbar BEFORE content container
             this.$container.before($toolbar);
 
             // Ensure toolbar is visible
             $toolbar.show();
+
+            // --- Footer Toolbar (Bottom of Content) ---
+            $('#wpg-reader-footer-toolbar').remove();
+            const $footerToolbar = $('<div>', { id: 'wpg-reader-footer-toolbar' });
+            const $footerNav = this.createNavSection();
+
+            // Add specific class for footer styling if needed
+            $footerNav.addClass('wpg-footer-nav');
+
+            $footerToolbar.append($footerNav);
+            this.$container.append($footerToolbar);
+        }
+
+        createNavSection() {
+            const links = this.state.links || {};
+            const $navSection = $('<div>', { class: 'wpg-reader-section wpg-reader-nav-section' });
+
+            // Prev Button
+            const $prevBtn = $('<button>', {
+                type: 'button',
+                class: 'wpg-reader-btn-icon',
+                title: '上一章',
+                disabled: !links.prev
+            });
+            $prevBtn.append($('<i>', { class: 'fas fa-chevron-left' }));
+            if (links.prev) {
+                $prevBtn.on('click', () => window.location.href = links.prev);
+            }
+
+            // TOC Button (Smart Exit Focus Mode)
+            const $tocBtn = $('<button>', {
+                type: 'button',
+                class: 'wpg-reader-btn-icon',
+                title: '返回目录',
+                disabled: !links.toc
+            });
+            $tocBtn.append($('<i>', { class: 'fas fa-list' }));
+            if (links.toc) {
+                $tocBtn.on('click', () => {
+                    this.state.fullscreen = false;
+                    this.saveSettings();
+                    window.location.href = links.toc;
+                });
+            }
+
+            // Next Button
+            const $nextBtn = $('<button>', {
+                type: 'button',
+                class: 'wpg-reader-btn-icon',
+                title: '下一章',
+                disabled: !links.next
+            });
+            $nextBtn.append($('<i>', { class: 'fas fa-chevron-right' }));
+            if (links.next) {
+                $nextBtn.on('click', () => window.location.href = links.next);
+            }
+
+            $navSection.append($prevBtn, $tocBtn, $nextBtn);
+            return $navSection;
         }
 
         changeFontSize(delta) {
@@ -368,6 +443,10 @@
 
         enterFullscreen() {
             try {
+                // Update state
+                this.state.fullscreen = true;
+                this.saveSettings();
+
                 // Update button state
                 this.$fullscreenBtn.data('fullscreen', 'true');
                 this.$fullscreenBtn.find('i').removeClass('fas fa-expand-alt').addClass('fas fa-compress-alt');
@@ -383,6 +462,10 @@
         exitFullscreen() {
 
             try {
+                // Update state
+                this.state.fullscreen = false;
+                this.saveSettings();
+
                 // Update button state
                 this.$fullscreenBtn.data('fullscreen', 'false');
                 this.$fullscreenBtn.find('i').removeClass('fas fa-compress-alt').addClass('fas fa-expand-alt');

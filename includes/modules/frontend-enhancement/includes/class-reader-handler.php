@@ -61,6 +61,75 @@ class WPG_Reader_Handler {
 		$font_family = isset( $this->settings['reader_font_family'] ) ? $this->settings['reader_font_family'] : 'sans';
 		$theme = isset( $this->settings['reader_theme'] ) ? $this->settings['reader_theme'] : 'light';
 
+		// Navigation Links Calculation
+		$nav_links = [
+			'prev' => '',
+			'next' => '',
+			'toc'  => ''
+		];
+
+		$post_id = get_the_ID();
+		$novel_id = get_post_meta( $post_id, 'related_novel_id', true );
+		$current_index = get_post_meta( $post_id, 'chapter_index', true );
+
+		if ( $novel_id ) {
+			// 1. Table of Contents (Novel Home)
+			$nav_links['toc'] = get_permalink( $novel_id );
+
+			// 2. Previous Chapter
+			if ( $current_index !== '' ) {
+				$prev_chapters = get_posts( [
+					'post_type'      => 'chapter',
+					'posts_per_page' => 1,
+					'meta_query'     => [
+						'relation' => 'AND',
+						[
+							'key'   => 'related_novel_id',
+							'value' => $novel_id
+						],
+						[
+							'key'     => 'chapter_index',
+							'value'   => $current_index,
+							'compare' => '<',
+							// 'type' => 'CHAR' // Default string comparison works for "01-00001" format
+						]
+					],
+					'orderby'  => 'meta_value', // String order
+					'meta_key' => 'chapter_index',
+					'order'    => 'DESC'
+				] );
+				
+				if ( ! empty( $prev_chapters ) ) {
+					$nav_links['prev'] = get_permalink( $prev_chapters[0]->ID );
+				}
+
+				// 3. Next Chapter
+				$next_chapters = get_posts( [
+					'post_type'      => 'chapter',
+					'posts_per_page' => 1,
+					'meta_query'     => [
+						'relation' => 'AND',
+						[
+							'key'   => 'related_novel_id',
+							'value' => $novel_id
+						],
+						[
+							'key'     => 'chapter_index',
+							'value'   => $current_index,
+							'compare' => '>',
+						]
+					],
+					'orderby'  => 'meta_value', // String order
+					'meta_key' => 'chapter_index',
+					'order'    => 'ASC'
+				] );
+
+				if ( ! empty( $next_chapters ) ) {
+					$nav_links['next'] = get_permalink( $next_chapters[0]->ID );
+				}
+			}
+		}
+
 		?>
 		<!-- WP Genius Reader Configuration -->
 		<script type="text/javascript">
@@ -69,7 +138,8 @@ class WPG_Reader_Handler {
 				window.wpgReaderDefaults = {
 					fontSize: <?php echo json_encode( $font_size ); ?>,
 					fontFamily: <?php echo json_encode( $font_family ); ?>,
-					theme: <?php echo json_encode( $theme ); ?>
+					theme: <?php echo json_encode( $theme ); ?>,
+					links: <?php echo json_encode( $nav_links ); ?>
 				};
 			}
 		</script>

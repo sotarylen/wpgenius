@@ -1,4 +1,4 @@
-<div id="w2p-smart-aui-backdrop" style="display:none;">
+<div id="w2p-smart-aui-backdrop" class="w2p-hidden">
     <div id="w2p-smart-aui-progress-container">
         <!-- Header -->
         <div class="w2p-smart-aui-header">
@@ -8,7 +8,7 @@
 
         <!-- Progress Bar -->
         <div class="w2p-smart-aui-progress-bar">
-            <div class="w2p-smart-aui-progress-fill" style="width: 0%;"></div>
+            <div class="w2p-smart-aui-progress-fill"></div>
         </div>
 
         <!-- Status Text -->
@@ -53,12 +53,12 @@
                 </div>
             </div>
             
-            <div id="w2p-smart-aui-current-url" style="display:none;"></div> <!-- Hidden debug info -->
+            <div id="w2p-smart-aui-current-url" class="w2p-hidden"></div> <!-- Hidden debug info -->
         </div>
 
         <!-- Footer -->
         <div class="w2p-smart-aui-footer">
-            <button id="w2p-smart-aui-skip-publish-btn" type="button" class="w2p-btn w2p-btn-primary" style="display:none;"><i class="fa-solid fa-check"></i><?php _e( 'Skip and Publish', 'wp-genius' ); ?></button>
+            <button id="w2p-smart-aui-skip-publish-btn" type="button" class="w2p-btn w2p-btn-primary w2p-hidden"><i class="fa-solid fa-rocket"></i><?php _e( 'Skip and Publish', 'wp-genius' ); ?></button>
             <button id="w2p-smart-aui-cancel-btn" type="button" class="w2p-btn w2p-btn-stop"><i class="fa-solid fa-xmark"></i><?php _e( 'Cancel Task', 'wp-genius' ); ?></button>
         </div>
     </div>

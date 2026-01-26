@@ -53,12 +53,46 @@ class WPG_Highlight_Handler {
 	/**
 	 * Enqueue core Prism assets and custom styles
 	 */
+	/**
+	 * Check if current post has code blocks
+	 * 
+	 * @return boolean
+	 */
+	private function has_code_block() {
+		if ( ! is_singular() ) {
+			return false;
+		}
+		
+		global $post;
+		if ( ! $post instanceof WP_Post ) {
+			return false;
+		}
+
+		// Simple check for <pre or <code tags in raw content
+		// This covers standard Gutenberg blocks, Classic Editor, and HTML blocks
+		if ( has_block( 'core/code' ) || 
+			 strpos( $post->post_content, '<pre' ) !== false || 
+			 strpos( $post->post_content, '<code' ) !== false ) {
+			return true;
+		}
+		
+		return false;
+	}
+
+	/**
+	 * Enqueue core Prism assets and custom styles
+	 */
 	public function enqueue_core_assets() {
 		// Only load on required pages if set
 		if ( ! empty( $this->settings['code_highlight_singular_only'] ) && ! is_singular() ) {
 			return;
 		}
 
+		// Optimization: Only load if code block exists
+		if ( ! $this->has_code_block() ) {
+			return;
+		}
+		
 		// Enqueue Prism.js assets based on settings
 		$theme = ! empty( $this->settings['code_highlight_theme'] ) ? $this->settings['code_highlight_theme'] : 'default';
 		
@@ -127,7 +161,7 @@ class WPG_Highlight_Handler {
 		// Enqueue custom premium toolbar and color styles
 		wp_enqueue_style(
 			'wpg-code-highlight-custom',
-			plugin_dir_url( WP_GENIUS_FILE ) . 'assets/css/modules/code-highlight.css',
+			plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/css/code-highlight.css',
 			[ 'prism-css' ],
 			'1.0.1'
 		);
@@ -158,9 +192,14 @@ class WPG_Highlight_Handler {
 		if ( ! empty( $this->settings['code_highlight_singular_only'] ) && ! is_singular() ) {
 			return;
 		}
+
+		// Optimization: Only load if code block exists
+		if ( ! $this->has_code_block() ) {
+			return;
+		}
 		
 		$post_content = get_the_content();
-		$languages = [ 'markup', 'css', 'javascript', 'php', 'clike' ];
+		$languages = [ 'markup', 'css', 'javascript', 'php', 'clike', 'bash' ];
 		$detected_languages = $this->detect_used_languages( $post_content );
 		$languages = array_unique( array_merge( $languages, $detected_languages ) );
 		
@@ -170,6 +209,8 @@ class WPG_Highlight_Handler {
 				'zsh'   => 'bash',
 				'sh'    => 'bash',
 				'shell' => 'bash',
+				'html'  => 'markup',
+				'xml'   => 'markup',
 				'js'    => 'javascript',
 				'py'    => 'python'
 			];
@@ -312,16 +353,20 @@ class WPG_Highlight_Handler {
 				'threshold' => 6
 			],
 			'markup' => [
-				'patterns' => [ '/<html/mi' => 5, '/<head>/mi' => 4, '/<body>/mi' => 4, '/<div/mi' => 2, '/<\w+[^>]*>/m' => 1 ],
-				'threshold' => 5
+				'patterns' => [ 
+					'/<html/mi' => 5, '/<head>/mi' => 4, '/<body>/mi' => 4, '/<div/mi' => 2, '/<\w+[^>]*>/m' => 1,
+					'/<meta\s+/mi' => 4, '/<script/mi' => 3, '/<style/mi' => 3, '/<link\s+/mi' => 3
+				],
+				'threshold' => 4
 			],
 			'bash' => [
 				'patterns' => [ 
 					'/^#!\/bin\/(ba)?sh/m' => 10, '/^#!\/bin\/zsh/m' => 10, 
 					'/\becho\s+/m' => 2, '/^\s*\w+=.*/m' => 1, '/\$\{?\w+\}?/m' => 2,
-					'/\bsudo\s+/m' => 2, '/\bapt-get\s+/m' => 3, '/\bnpm\s+/m' => 2
+					'/\bsudo\s+/m' => 2, '/\bapt-get\s+/m' => 3, '/\bnpm\s+/m' => 2, '/\bif\s+\[\s*/m' => 2,
+					'/\bfor\s+\w+\s+in\s+/m' => 2, '/\bdo\s*$/m' => 2, '/\bdone\s*$/m' => 2
 				],
-				'threshold' => 4
+				'threshold' => 3
 			],
 		];
 		
