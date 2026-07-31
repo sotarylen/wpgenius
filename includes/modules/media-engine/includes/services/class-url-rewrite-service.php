@@ -21,14 +21,23 @@ class MediaEngineUrlRewriteService {
 		global $wpdb;
 
 		$post_parent = wp_get_post_parent_id( $attachment_id );
+		if ( class_exists( 'W2P_Logger' ) ) {
+			W2P_Logger::debug( sprintf( 'rewrite_content start: attachment=%d, old=%s, new=%s, post_parent=%d', $attachment_id, $old_url, $new_url, (int) $post_parent ), 'media-engine' );
+		}
 		if ( ! $post_parent ) {
 			// Update GUID only if unattached
 			$wpdb->update( $wpdb->posts, [ 'guid' => $new_url ], [ 'ID' => $attachment_id ] );
-			return [ 'success' => true, 'replaced' => false ];
+			if ( class_exists( 'W2P_Logger' ) ) {
+				W2P_Logger::warning( sprintf( 'rewrite_content skipped — attachment %d has no post_parent', $attachment_id ), 'media-engine' );
+			}
+			return [ 'success' => true, 'replaced' => false, 'reason' => 'no_parent' ];
 		}
 
 		$post = get_post( $post_parent );
 		if ( ! $post ) {
+			if ( class_exists( 'W2P_Logger' ) ) {
+				W2P_Logger::warning( sprintf( 'rewrite_content skipped — parent post %d not found for attachment %d', $post_parent, $attachment_id ), 'media-engine' );
+			}
 			return [ 'success' => false, 'error' => 'Parent post not found' ];
 		}
 
@@ -81,9 +90,15 @@ class MediaEngineUrlRewriteService {
 		if ( $count > 0 && $new_content !== $content ) {
 			$wpdb->update( $wpdb->posts, [ 'post_content' => $new_content ], [ 'ID' => $post_parent ] );
 			$wpdb->update( $wpdb->posts, [ 'guid' => $new_url ], [ 'ID' => $attachment_id ] );
+			if ( class_exists( 'W2P_Logger' ) ) {
+				W2P_Logger::debug( sprintf( 'rewrite_content replaced %d occurrence(s) in post %d for attachment %d', $count, $post_parent, $attachment_id ), 'media-engine' );
+			}
 			return [ 'success' => true, 'replaced' => true, 'count' => $count ];
 		}
 
+		if ( class_exists( 'W2P_Logger' ) ) {
+			W2P_Logger::warning( sprintf( 'rewrite_content pattern matched but no replacement: attachment=%d, post=%d, old=%s, new=%s', $attachment_id, $post_parent, $old_url, $new_url ), 'media-engine' );
+		}
 		return [ 'success' => true, 'replaced' => false ];
 	}
 }

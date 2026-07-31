@@ -144,23 +144,36 @@ class MediaEngineProcessor {
 				}
 			}
 			if ( ! empty( $ids_to_upload ) ) {
+				W2P_Logger::debug( sprintf( 'Minio batch offload starting for %d attachments: %s', count( $ids_to_upload ), implode( ',', $ids_to_upload ) ), 'media-engine' );
 				$this->minio->upload_batch( $ids_to_upload );
 			}
 		}
 		
 		// 步骤4: 批量URL重写（此时wp_get_attachment_url已返回最终URL）
 		$rewrite_count = 0;
+		$skip_count    = 0;
 		foreach ( $attachment_ids as $id ) {
-			if ( isset( $results[ $id ]['original_url'] ) ) {
-				$original_url = $results[ $id ]['original_url'];
-				$new_url      = wp_get_attachment_url( $id );
-				if ( $new_url && $original_url !== $new_url ) {
-					$this->url_rewrite->rewrite_content( $id, $original_url, $new_url );
-					$rewrite_count++;
-				}
+			if ( ! isset( $results[ $id ]['original_url'] ) ) {
+				++$skip_count;
+				continue;
 			}
+			$original_url = $results[ $id ]['original_url'];
+			$new_url      = wp_get_attachment_url( $id );
+			if ( ! $new_url ) {
+				W2P_Logger::warning( sprintf( 'URL rewrite skipped — wp_get_attachment_url returned empty for attachment %d', $id ), 'media-engine' );
+				++$skip_count;
+				continue;
+			}
+			if ( $original_url === $new_url ) {
+				W2P_Logger::debug( sprintf( 'URL rewrite skipped — URL unchanged for attachment %d: %s', $id, $new_url ), 'media-engine' );
+				++$skip_count;
+				continue;
+			}
+			$result = $this->url_rewrite->rewrite_content( $id, $original_url, $new_url );
+			W2P_Logger::debug( sprintf( 'URL rewrite for attachment %d: old=%s, new=%s, result=%s', $id, $original_url, $new_url, wp_json_encode( $result ) ), 'media-engine' );
+			++$rewrite_count;
 		}
-		$this->logger->log_command( 'URL重写', sprintf( '处理了 %d 个附件', $rewrite_count ), 0 );
+		$this->logger->log_command( 'URL重写', sprintf( '处理了 %d 个附件，跳过 %d 个', $rewrite_count, $skip_count ), 0 );
 		
 		// 步骤5: 批量清理
 		$cleanup_count = 0;
