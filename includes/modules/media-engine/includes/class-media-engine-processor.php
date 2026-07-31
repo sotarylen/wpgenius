@@ -72,16 +72,16 @@ class MediaEngineProcessor {
 		}
 		$this->metadata->update( $attachment_id, $file_path, $convert_result['output_path'] );
 		$this->metadata->save_original_info( $attachment_id, basename( $file_path ) );
-		$this->metadata->save_original_info( $attachment_id, basename( $file_path ) );
 		
 		// Regenerate thumbnails (Always enabled)
 		$results['steps']['thumbnails'] = $this->thumbnail->regenerate( $attachment_id );
 		
-		$new_url = wp_get_attachment_url( $attachment_id );
-		$results['steps']['rewrite'] = $this->url_rewrite->rewrite_content( $attachment_id, $original_url, $new_url );
+		// Offload to Minio BEFORE URL rewrite so wp_get_attachment_url() returns the final Minio URL
 		if ( $this->is_minio_available() ) {
 			$results['steps']['minio'] = $this->minio->upload( $attachment_id );
 		}
+		$new_url = wp_get_attachment_url( $attachment_id );
+		$results['steps']['rewrite'] = $this->url_rewrite->rewrite_content( $attachment_id, $original_url, $new_url );
 		if ( $this->should_cleanup( $attachment_id ) ) {
 			$results['steps']['cleanup'] = $this->metadata->cleanup_original( $attachment_id );
 		}
@@ -107,7 +107,9 @@ class MediaEngineProcessor {
 			$original_url = wp_get_attachment_url( $id );
 			$convert_result = $this->converter->convert_to_webp( $id );
 			if ( ! $convert_result['success'] ) {
-				$results[ $id ] = $convert_result;
+				// Store original_url for failed conversions too — needed for path prefix
+				// rewrite if the original file is later offloaded to Minio.
+				$results[ $id ] = array_merge( $convert_result, [ 'original_url' => $original_url ] );
 				continue;
 			}
 			// 如果是WebP文件,标记为跳过转换,但仍然执行后续步骤
@@ -131,25 +133,13 @@ class MediaEngineProcessor {
 			$this->thumbnail->regenerate_batch( $ids_to_regenerate );
 		}
 		
-		// 步骤3: 批量URL重写
-		$rewrite_count = 0;
-		foreach ( $attachment_ids as $id ) {
-			if ( isset( $results[ $id ] ) && $results[ $id ]['success'] ) {
-				$original_url = $results[ $id ]['original_url'] ?? null;
-				if ( $original_url ) {
-					$new_url = wp_get_attachment_url( $id );
-					$this->url_rewrite->rewrite_content( $id, $original_url, $new_url );
-					$rewrite_count++;
-				}
-			}
-		}
-		$this->logger->log_command( 'URL重写', sprintf( '处理了 %d 个附件', $rewrite_count ), 0 );
-		
-		// 步骤4: 批量Minio上传
+		// 步骤3: 批量Minio上传（放在URL重写之前，确保wp_get_attachment_url返回最终Minio路径）
+		// 包含转换成功的文件和转换失败但原始文件仍可offload的文件
 		if ( $this->is_minio_available() ) {
 			$ids_to_upload = [];
 			foreach ( $attachment_ids as $id ) {
-				if ( isset( $results[ $id ] ) && $results[ $id ]['success'] ) {
+				// Offload any attachment that has original_url stored (successful or failed conversion)
+				if ( isset( $results[ $id ]['original_url'] ) ) {
 					$ids_to_upload[] = $id;
 				}
 			}
@@ -157,6 +147,20 @@ class MediaEngineProcessor {
 				$this->minio->upload_batch( $ids_to_upload );
 			}
 		}
+		
+		// 步骤4: 批量URL重写（此时wp_get_attachment_url已返回最终URL）
+		$rewrite_count = 0;
+		foreach ( $attachment_ids as $id ) {
+			if ( isset( $results[ $id ]['original_url'] ) ) {
+				$original_url = $results[ $id ]['original_url'];
+				$new_url      = wp_get_attachment_url( $id );
+				if ( $new_url && $original_url !== $new_url ) {
+					$this->url_rewrite->rewrite_content( $id, $original_url, $new_url );
+					$rewrite_count++;
+				}
+			}
+		}
+		$this->logger->log_command( 'URL重写', sprintf( '处理了 %d 个附件', $rewrite_count ), 0 );
 		
 		// 步骤5: 批量清理
 		$cleanup_count = 0;
