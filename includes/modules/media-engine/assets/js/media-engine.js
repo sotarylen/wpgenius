@@ -19,12 +19,22 @@
             completed: 0,
             failed: 0
         },
+        autoMode: 'idle',          // 'idle' | 'running' | 'paused' | 'completed' | 'stopped'
+        pauseRequested: false,     // 点击暂停置 true；当前批次 AJAX 回调末尾消费
+        stopRequested: false,      // 自动模式下点击停止置 true；当前批次回调末尾消费（优雅停止）
+        roundStartedCompleted: 0,  // 本轮开始时的已完成数（用于无进展检测）
+        roundNoProgress: 0,        // 连续无进展轮数
+        maxNoProgressRounds: (window.w2pMediaEngine && window.w2pMediaEngine.max_no_progress_rounds) || 3, // 防死循环阈值
+        failedIds: [],             // 本轮失败 id 集合（统计展示用）
+        autoRound: 0,              // 当前轮次计数
 
         /**
          * Initialize
          */
         init: function () {
             this.bindEvents();
+            // 确保初始按钮状态符合 idle 状态矩阵（页面加载时）
+            this.setAutoUI('idle');
         },
 
         /**
@@ -64,6 +74,20 @@
             $('#w2p-stop-conversion').on('click', function () {
                 self.stopProcessing();
             });
+
+            // 全自动处理
+            $('#w2p-start-auto').on('click', function () {
+                self.startAutoProcessing();
+            });
+
+            // 暂停/恢复
+            $('#w2p-pause-auto').on('click', function () {
+                if (self.autoMode === 'running' && !self.pauseRequested) {
+                    self.pauseAutoProcessing();
+                } else if (self.autoMode === 'paused') {
+                    self.resumeAutoProcessing();
+                }
+            });
         },
 
         /**
@@ -98,7 +122,7 @@
         },
 
         /**
-         * Scan attachments
+         * Scan attachments (manual flow — behavior unchanged)
          */
         scanAttachments: function () {
             const self = this;
@@ -108,38 +132,20 @@
             $('#w2p-processing-output').show();
             $('#w2p-output-content').html('<div style="color: #fbbf24;">Scanning...</div>');
 
-            $.ajax({
-                url: w2pMediaEngine.ajax_url,
-                type: 'POST',
-                data: {
-                    action: 'w2p_scan_attachments',
-                    nonce: w2pMediaEngine.nonce
-                },
-                success: function (response) {
-                    if (response.success) {
-                        self.queue = response.data.attachments || [];
-                        self.stats = {
-                            total: self.queue.length,
-                            pending: self.queue.length,
-                            processing: 0,
-                            completed: 0,
-                            failed: 0
-                        };
+            self.fetchPendingAttachments(function (response) {
+                if (response.success) {
+                    self.displayQueue();
 
-                        self.displayQueue();
+                    $('#w2p-output-content').html(
+                        '<div style="color: #10b981;">✓ Found ' + self.queue.length + ' attachments</div>'
+                    );
 
-                        $('#w2p-output-content').html(
-                            '<div style="color: #10b981;">✓ Found ' + self.queue.length + ' attachments</div>'
-                        );
-
-                        if (typeof w2p !== 'undefined' && w2p.toast) {
-                            w2p.toast('Found ' + self.queue.length + ' attachments', 'success');
-                        }
+                    if (typeof w2p !== 'undefined' && w2p.toast) {
+                        w2p.toast('Found ' + self.queue.length + ' attachments', 'success');
                     }
-                },
-                complete: function () {
-                    $button.prop('disabled', false).find('i').removeClass().addClass('fa-solid fa-chart-bar');
                 }
+            }).always(function () {
+                $button.prop('disabled', false).find('i').removeClass().addClass('fa-solid fa-chart-bar');
             });
         },
 
@@ -228,6 +234,19 @@
          */
         updateQueueStats: function () {
             const self = this;
+
+            // Check if wp.template is available
+            if (typeof wp !== 'undefined' && wp.template) {
+                try {
+                    const template = wp.template('w2p-media-queue-stats');
+                    $('#w2p-queue-stats').html(template(self.stats));
+                    return;
+                } catch (e) {
+                    console.error('Template rendering failed:', e);
+                }
+            }
+
+            // Fallback to simple string if template fails or is missing
             $('#w2p-queue-stats').html(
                 'Total: ' + self.stats.total + ' | ' +
                 'Pending: ' + self.stats.pending + ' | ' +
@@ -368,9 +387,34 @@
 
         /**
          * Stop processing
+         * 手动模式（autoMode==='idle'）：保持现有硬停行为
+         * 自动模式（running/paused）：优雅停止 —— 置 stopRequested，当前批次完成后结束整个流程
          */
         stopProcessing: function () {
             const self = this;
+
+            // 自动模式下：置 stopRequested，由批次回调末尾消费
+            if (self.autoMode !== 'idle') {
+                if (self.autoMode === 'running' || self.autoMode === 'paused') {
+                    self.stopRequested = true;
+
+                    $('#w2p-output-content').append(
+                        '<div style="color: #f59e0b;">⛔ 已请求停止，当前批次完成后结束…</div>'
+                    );
+
+                    if (typeof w2p !== 'undefined' && w2p.toast) {
+                        w2p.toast('已请求停止，当前批次完成后结束', 'warning');
+                    }
+                }
+
+                // 暂停状态下没有进行中的批次，直接结束
+                if (self.autoMode === 'paused') {
+                    self.autoStop('用户停止');
+                }
+                return;
+            }
+
+            // 手动模式：保持现有硬停行为
             self.stopped = true;
             self.processing = false;
 
@@ -415,12 +459,482 @@
             if (typeof w2p !== 'undefined' && w2p.toast) {
                 w2p.toast(message, self.stopped ? 'warning' : 'success');
             }
+        },
+
+        /* ======================================================================
+         * 全自动处理模式（MediaEngine 自动化处理）
+         * 自动循环：扫描 → 批次转换 → 再扫描 → 再转换，直到全部处理完成。
+         * 失败重试依赖「每轮重新 scan」：转换失败（mime 未变）或 Minio 失败（offload
+         * meta 未写）的图片，下次 scan 天然返回，无需前端维护失败 ID 列表。
+         * ====================================================================== */
+
+        /**
+         * 启动全自动处理（入口）
+         */
+        startAutoProcessing: function () {
+            const self = this;
+
+            if (self.autoMode === 'running' || self.autoMode === 'paused') return;
+
+            // 手动批处理进行中不允许启动自动模式
+            if (self.autoMode === 'idle' && self.processing) {
+                if (typeof w2p !== 'undefined' && w2p.toast) {
+                    w2p.toast('请先停止当前批处理，再启动全自动处理', 'warning');
+                }
+                return;
+            }
+
+            // 重置自动模式状态
+            self.autoMode = 'running';
+            self.pauseRequested = false;
+            self.stopRequested = false;
+            self.roundNoProgress = 0;
+            self.failedIds = [];
+            self.autoRound = 0;
+            self.roundStartedCompleted = 0;
+            self.currentBatchIndex = 0;
+            self.batches = [];
+            self.stopped = false;
+            self.processing = true;
+
+            self.setAutoUI('running');
+
+            $('#w2p-processing-output').show();
+            $('#w2p-output-content').html('<div style="color: #10b981;">▶ 全自动处理已启动</div>');
+
+            if (typeof w2p !== 'undefined' && w2p.toast) {
+                w2p.toast('全自动处理已启动', 'success');
+            }
+
+            self.autoScanAndProcess();
+        },
+
+        /**
+         * 获取待处理附件（扫描 AJAX 封装，手动/自动共用）
+         * 自动模式下：已完成数跨轮次累计（供「已完成 X」展示与无进展检测），失败数按本轮重置
+         */
+        fetchPendingAttachments: function (callback) {
+            const self = this;
+            const prevCompleted = self.stats.completed || 0;
+
+            return $.ajax({
+                url: w2pMediaEngine.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'w2p_scan_attachments',
+                    nonce: w2pMediaEngine.nonce
+                },
+                success: function (response) {
+                    if (response.success) {
+                        self.queue = response.data.attachments || [];
+                        self.stats = {
+                            total: self.queue.length,
+                            pending: self.queue.length,
+                            processing: 0,
+                            completed: 0,
+                            failed: 0
+                        };
+
+                        // 自动模式下：已完成数跨轮次累计，失败数按本轮重置
+                        if (self.autoMode === 'running') {
+                            self.stats.completed = prevCompleted;
+                        }
+
+                        if (typeof callback === 'function') {
+                            callback(response);
+                        }
+                    }
+                }
+            });
+        },
+
+        /**
+         * 自动扫描并处理（每轮入口）
+         */
+        autoScanAndProcess: function () {
+            const self = this;
+
+            if (self.autoMode !== 'running') return;
+
+            self.autoRound++;
+            self.failedIds = []; // 每轮清空失败集合
+
+            $('#w2p-output-content').append(
+                '<div style="color: #3b82f6;">🔄 第 ' + self.autoRound + ' 轮：扫描待处理图片…</div>'
+            );
+
+            self.fetchPendingAttachments(function (response) {
+                if (!response.success) {
+                    self.autoStop('扫描请求失败');
+                    return;
+                }
+
+                // 记录本轮开始时的已完成数（completed 跨轮次累计）
+                self.roundStartedCompleted = self.stats.completed;
+
+                if (self.queue.length === 0) {
+                    self.autoComplete();
+                    return;
+                }
+
+                self.displayQueue();
+
+                // 按 batchSize 切分批次
+                self.batches = [];
+                for (let i = 0; i < self.queue.length; i += self.batchSize) {
+                    self.batches.push(self.queue.slice(i, i + self.batchSize));
+                }
+                self.currentBatchIndex = 0;
+
+                $('#w2p-output-content').append(
+                    '<div style="color: #10b981;">✓ 第 ' + self.autoRound + ' 轮发现 ' + self.queue.length + ' 张待处理图片，共 ' + self.batches.length + ' 批</div>'
+                );
+
+                self.processNextAutoBatch();
+            });
+        },
+
+        /**
+         * 自动模式：处理下一批次（逻辑与手动 processNextBatch 平行）
+         */
+        processNextAutoBatch: function () {
+            const self = this;
+
+            if (self.autoMode !== 'running') return;
+
+            if (self.stopRequested) {
+                self.autoStop('用户停止');
+                return;
+            }
+
+            if (self.pauseRequested) {
+                self.enterPaused();
+                return;
+            }
+
+            if (self.currentBatchIndex >= self.batches.length) {
+                self.onAutoRoundFinished();
+                return;
+            }
+
+            const batch = self.batches[self.currentBatchIndex];
+            const batchIds = batch.map(item => item.id);
+            const startIndex = self.currentBatchIndex * self.batchSize;
+
+            $('#w2p-output-content').append(
+                '<div style="color: #3b82f6;">⚙️ 第 ' + self.autoRound + ' 轮 · 批次 ' + (self.currentBatchIndex + 1) + '/' + self.batches.length + '（' + batchIds.length + ' 张）</div>'
+            );
+
+            // 更新当前批次行状态为 PROCESSING
+            batch.forEach((item, idx) => {
+                const $row = $('#attachment-row-' + (startIndex + idx));
+                self.stats.pending--;
+                self.stats.processing++;
+                self.updateRowStatus($row, 'PROCESSING', 'Batch processing...');
+            });
+            self.updateQueueStats();
+
+            // 调用批次处理 API
+            $.ajax({
+                url: w2pMediaEngine.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'w2p_process_batch',
+                    nonce: w2pMediaEngine.nonce,
+                    attachment_ids: batchIds
+                },
+                success: function (response) {
+                    if (response.success) {
+                        const stats = response.data.stats;
+
+                        // 逐项更新状态并收集失败 id
+                        batch.forEach((item, idx) => {
+                            const $row = $('#attachment-row-' + (startIndex + idx));
+                            const convertResult = stats.convert[item.id];
+
+                            self.stats.processing--;
+
+                            if (convertResult && convertResult.success) {
+                                self.stats.completed++;
+                                self.updateRowStatus($row, 'DONE', 'Completed');
+                            } else {
+                                self.stats.failed++;
+                                self.failedIds.push(item.id);
+                                self.updateRowStatus($row, 'FAILED', convertResult?.error || 'Unknown error');
+                            }
+                        });
+                    } else {
+                        // 整批失败
+                        batch.forEach((item, idx) => {
+                            const $row = $('#attachment-row-' + (startIndex + idx));
+                            self.stats.processing--;
+                            self.stats.failed++;
+                            self.failedIds.push(item.id);
+                            self.updateRowStatus($row, 'FAILED', 'Batch failed');
+                        });
+                    }
+                    self.updateQueueStats();
+                    self.afterAutoBatch();
+                },
+                error: function () {
+                    // 请求失败
+                    batch.forEach((item, idx) => {
+                        const $row = $('#attachment-row-' + (startIndex + idx));
+                        self.stats.processing--;
+                        self.stats.failed++;
+                        self.failedIds.push(item.id);
+                        self.updateRowStatus($row, 'FAILED', 'Request failed');
+                    });
+                    self.updateQueueStats();
+                    self.afterAutoBatch();
+                }
+            });
+        },
+
+        /**
+         * 批次回调末尾公共逻辑（success / error 共用）
+         * 替代手动流程中 currentBatchIndex++ 后直接继续的逻辑
+         */
+        afterAutoBatch: function () {
+            const self = this;
+
+            self.currentBatchIndex++;
+            self.updateQueueStats();
+
+            if (self.autoMode !== 'running') return;      // 已被停止/完成
+
+            if (self.stopRequested) {
+                self.autoStop('用户停止');
+                return;
+            }
+
+            if (self.pauseRequested) {
+                self.enterPaused();                        // 当前批次跑完 → 暂停
+                return;
+            }
+
+            if (self.currentBatchIndex < self.batches.length) {
+                setTimeout(() => self.processNextAutoBatch(), 500);  // 下一批
+            } else {
+                self.onAutoRoundFinished();                // 本轮完成
+            }
+        },
+
+        /**
+         * 一轮所有批次处理完成后的收尾逻辑（无进展检测 / 暂停 / 下一轮）
+         */
+        onAutoRoundFinished: function () {
+            const self = this;
+
+            if (self.autoMode !== 'running') return;
+
+            // 本轮完成的增量（completed 跨轮次累计，roundStartedCompleted 为本轮起点）
+            const roundCompleted = self.stats.completed - self.roundStartedCompleted;
+
+            // 无进展检测：本轮无任何完成且存在失败 → 连续无进展轮数 +1，否则清零
+            if (roundCompleted === 0 && self.failedIds.length > 0) {
+                self.roundNoProgress++;
+            } else {
+                self.roundNoProgress = 0;
+            }
+
+            if (self.roundNoProgress >= self.maxNoProgressRounds) {
+                self.autoStop('连续 ' + self.maxNoProgressRounds + ' 轮无进展，请检查错误日志');
+                return;
+            }
+
+            if (self.stopRequested) {
+                self.autoStop('用户停止');
+                return;
+            }
+
+            if (self.pauseRequested) {
+                self.enterPaused();
+                return;
+            }
+
+            setTimeout(() => self.autoScanAndProcess(), 500);
+        },
+
+        /**
+         * 请求暂停（不打断当前 AJAX，当前批次完成后生效）
+         */
+        pauseAutoProcessing: function () {
+            const self = this;
+
+            if (self.autoMode !== 'running' || self.pauseRequested) return;
+
+            self.pauseRequested = true;
+
+            $('#w2p-output-content').append(
+                '<div style="color: #f59e0b;">⏸ 已请求暂停，将在当前批次完成后暂停…</div>'
+            );
+
+            self.setPauseButtonLabel('resume');
+
+            if (typeof w2p !== 'undefined' && w2p.toast) {
+                w2p.toast('已请求暂停，将在当前批次完成后暂停', 'warning');
+            }
+        },
+
+        /**
+         * 进入暂停状态
+         */
+        enterPaused: function () {
+            const self = this;
+
+            self.autoMode = 'paused';
+            self.processing = false;
+            self.setAutoUI('paused');
+
+            $('#w2p-output-content').append(
+                '<div style="color: #f59e0b;">⏸ 已暂停。点击[恢复]继续。已完成 ' + self.stats.completed + ' | 失败 ' + self.stats.failed + '</div>'
+            );
+        },
+
+        /**
+         * 恢复处理（接着执行下一批次 / 下一轮）
+         */
+        resumeAutoProcessing: function () {
+            const self = this;
+
+            if (self.autoMode !== 'paused') return;
+
+            self.autoMode = 'running';
+            self.pauseRequested = false;
+            self.processing = true;
+            self.setAutoUI('running');
+
+            $('#w2p-output-content').append(
+                '<div style="color: #10b981;">▶ 继续处理…</div>'
+            );
+
+            if (self.currentBatchIndex < self.batches.length) {
+                setTimeout(() => self.processNextAutoBatch(), 300);
+            } else {
+                setTimeout(() => self.autoScanAndProcess(), 300);
+            }
+        },
+
+        /**
+         * 自动处理完成
+         */
+        autoComplete: function () {
+            const self = this;
+
+            self.autoMode = 'completed';
+            self.processing = false;
+            self.setAutoUI('idle');
+
+            $('#w2p-output-content').append(
+                '<div style="color: #10b981;">✓ 自动处理完成！已完成 ' + self.stats.completed + ' | 失败 ' + self.stats.failed + '</div>'
+            );
+
+            if (self.stats.failed > 0) {
+                $('#w2p-output-content').append(
+                    '<div style="color: #ef4444;">⚠️ 有 ' + self.stats.failed + ' 个文件失败，请检查日志</div>'
+                );
+            }
+
+            if (typeof w2p !== 'undefined' && w2p.toast) {
+                w2p.toast('自动处理完成！已完成 ' + self.stats.completed + ' | 失败 ' + self.stats.failed, self.stats.failed > 0 ? 'warning' : 'success');
+            }
+        },
+
+        /**
+         * 停止自动处理
+         */
+        autoStop: function (reason) {
+            const self = this;
+
+            self.autoMode = 'stopped';
+            self.processing = false;
+            self.pauseRequested = false;
+            self.stopRequested = false;
+            self.setAutoUI('idle');
+
+            $('#w2p-output-content').append(
+                '<div style="color: #ef4444;">⛔ 自动处理已停止：' + reason + '。已完成 ' + self.stats.completed + ' | 失败 ' + self.stats.failed + '</div>'
+            );
+
+            if (typeof w2p !== 'undefined' && w2p.toast) {
+                w2p.toast('自动处理已停止：' + reason, 'warning');
+            }
+        },
+
+        /**
+         * 统一按钮状态（按状态矩阵控制 5 个按钮的显隐/禁用/标签）
+         */
+        setAutoUI: function (mode) {
+            const self = this;
+            const $startAuto = $('#w2p-start-auto');
+            const $pauseAuto = $('#w2p-pause-auto');
+            const $stop = $('#w2p-stop-conversion');
+            const $start = $('#w2p-start-conversion');
+            const $getStats = $('#w2p-get-stats');
+
+            const isActive = (mode === 'running' || mode === 'paused');
+
+            // #w2p-start-auto：running/paused 置灰并显示「正在处理中…」，其余可用「全自动处理」
+            if (isActive) {
+                $startAuto.prop('disabled', true);
+                self.setStartAutoLabel('running');
+            } else {
+                $startAuto.prop('disabled', false);
+                self.setStartAutoLabel('idle');
+            }
+            $startAuto.show();
+
+            // #w2p-pause-auto：running/paused 显示（暂停/恢复），其余隐藏
+            if (isActive) {
+                $pauseAuto.removeClass('w2p-hidden').show();
+                self.setPauseButtonLabel(mode === 'paused' ? 'resume' : 'pause');
+            } else {
+                $pauseAuto.addClass('w2p-hidden').hide();
+            }
+
+            // #w2p-stop-conversion：running/paused 显示（复用为自动模式停止按钮），其余隐藏
+            if (isActive) {
+                $stop.removeClass('w2p-hidden').show();
+            } else {
+                $stop.addClass('w2p-hidden').hide();
+            }
+
+            // #w2p-start-conversion：running/paused 隐藏，其余显示
+            if (isActive) {
+                $start.hide();
+            } else {
+                $start.show();
+            }
+
+            // #w2p-get-stats：running/paused 禁用
+            $getStats.prop('disabled', isActive);
+        },
+
+        /**
+         * 设置「全自动处理」按钮文字（保留 <i> 图标结构，仅重设文字节点）
+         */
+        setStartAutoLabel: function (mode) {
+            const $btn = $('#w2p-start-auto');
+            const label = (mode === 'running' || mode === 'paused') ? '正在处理中…' : '全自动处理';
+            const $icon = $btn.find('i');
+            $btn.empty().append($icon).append(document.createTextNode(' ' + label));
+        },
+
+        /**
+         * 设置「暂停/恢复」按钮图标与文字（fa-pause↔fa-play，暂停↔恢复）
+         */
+        setPauseButtonLabel: function (state) {
+            const $btn = $('#w2p-pause-auto');
+            const isResume = (state === 'resume');
+            const $icon = $btn.find('i');
+            $icon.removeClass().addClass('fa-solid ' + (isResume ? 'fa-play' : 'fa-pause'));
+            $btn.empty().append($icon).append(document.createTextNode(' ' + (isResume ? '恢复' : '暂停')));
         }
     };
 
     // Initialize
     $(document).ready(function () {
-        console.log('WP Genius Media Engine Loaded', { config: window.w2pMediaConfig, localized: typeof w2pMediaEngine });
         if (typeof w2pMediaEngine !== 'undefined') {
             MediaProcessingUI.init();
         } else {

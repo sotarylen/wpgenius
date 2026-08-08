@@ -560,6 +560,11 @@
     color: #fff;
 }
 
+.w2p-btn-warning {
+    background: var(--w2p-color-warning);
+    color: white;
+}
+
 .w2p-btn-info {
     background: var(--w2p-color-info);
     color: #fff;

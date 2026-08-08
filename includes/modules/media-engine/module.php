@@ -239,8 +239,9 @@ class MediaEngineModule extends W2P_Abstract_Module {
 
 		// Localize script for AJAX
 		wp_localize_script( 'w2p-media-engine', 'w2pMediaEngine', [
-			'ajax_url' => admin_url( 'admin-ajax.php' ),
-			'nonce'    => wp_create_nonce( 'w2p_media_engine_nonce' ),
+			'ajax_url'              => admin_url( 'admin-ajax.php' ),
+			'nonce'                 => wp_create_nonce( 'w2p_media_engine_nonce' ),
+			'max_no_progress_rounds'=> 3, // 全自动处理防死循环阈值（连续 N 轮无进展即停止）
 		] );
 	}
 

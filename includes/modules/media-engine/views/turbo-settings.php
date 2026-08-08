@@ -41,6 +41,16 @@ $settings = isset( $all_settings['media_engine_tabs'] ) ? $all_settings['media_e
                         <i class="fa-solid fa-play"></i>
                         <?php echo sprintf( esc_html__( 'Batch Conversion (%d items, batch %d)', 'wp-genius' ), $scan_limit, $batch_size ); ?>
                     </button>
+                    <!-- 全自动处理（新）：自动循环 扫描 → 批次转换 → 再扫描 → 再转换 直到全部完成 -->
+                    <button type="button" id="w2p-start-auto" class="w2p-btn w2p-btn-primary">
+                        <i class="fa-solid fa-rotate"></i>
+                        <?php esc_html_e( '全自动处理', 'wp-genius' ); ?>
+                    </button>
+                    <!-- 暂停/恢复（新，初始隐藏） -->
+                    <button type="button" id="w2p-pause-auto" class="w2p-btn w2p-btn-warning w2p-hidden">
+                        <i class="fa-solid fa-pause"></i>
+                        <?php esc_html_e( '暂停', 'wp-genius' ); ?>
+                    </button>
                     <button type="button" id="w2p-stop-conversion" class="w2p-btn w2p-btn-stop w2p-hidden">
                         <i class="fa-solid fa-stop"></i>
                         <?php esc_html_e( 'Stop Processing', 'wp-genius' ); ?>
@@ -54,20 +64,15 @@ $settings = isset( $all_settings['media_engine_tabs'] ) ? $all_settings['media_e
             </div>
 
             <!-- Attachment List -->
-            <div id="w2p-attachment-list" class="w2p-hidden w2p-attachment-list">
-                <div class="w2p-flex-between w2p-mb-sm">
-                    <h5 class="w2p-mb-0">
-                        <?php esc_html_e( 'Processing Queue', 'wp-genius' ); ?>
-                    </h5>
-                    <div id="w2p-queue-stats" class="w2p-queue-stats"></div>
-                </div>
-                <div class="w2p-scrollable">
-                    <table class="w2p-table">
+            <div id="w2p-attachment-list" class="w2p-hidden w2p-attachment-list ">
+                <div id="w2p-queue-stats" class="w2p-smart-aui-body"></div>
+                <div class="w2p-log-container">
+                    <table class="w2p-list-table fixed striped">
                         <thead>
                             <tr>
-                                <th><?php esc_html_e( 'Thumb', 'wp-genius' ); ?></th>
+                                <th width="100px"><?php esc_html_e( 'Thumb', 'wp-genius' ); ?></th>
                                 <th><?php esc_html_e( 'File', 'wp-genius' ); ?></th>
-                                <th><?php esc_html_e( 'Status', 'wp-genius' ); ?></th>
+                                <th width="200px"><?php esc_html_e( 'Status', 'wp-genius' ); ?></th>
                             </tr>
                         </thead>
                         <tbody id="w2p-attachment-tbody">
@@ -217,8 +222,35 @@ $settings = isset( $all_settings['media_engine_tabs'] ) ? $all_settings['media_e
     }
     
     
+
     // Note: Button click handlers have been moved to media-processing-ui.js
     // The MediaProcessingUI module now handles all button interactions
     
 })(jQuery);
+</script>
+
+<!-- Template: Queue Stats -->
+<script type="text/html" id="tmpl-w2p-media-queue-stats">
+    <div class="w2p-smart-aui-stats-row">
+        <span class="stat-item total">
+            <span class="label"><?php esc_html_e( 'Total', 'wp-genius' ); ?></span>
+            <span class="value">{{ data.total }}</span>
+        </span>
+        <span class="stat-item skipped">
+            <span class="label"><?php esc_html_e( 'Pending', 'wp-genius' ); ?></span>
+            <span class="value">{{ data.pending }}</span>
+        </span>
+        <span class="stat-item threads">
+            <span class="label"><?php esc_html_e( 'Processing', 'wp-genius' ); ?></span>
+            <span class="value">{{ data.processing }}</span>
+        </span>
+        <span class="stat-item success">
+            <span class="label"><?php esc_html_e( 'Completed', 'wp-genius' ); ?></span>
+            <span class="value">{{ data.completed }}</span>
+        </span>
+        <span class="stat-item failed">
+            <span class="label"><?php esc_html_e( 'Failed', 'wp-genius' ); ?></span>
+            <span class="value">{{ data.failed }}</span>
+        </span>
+    </div>
 </script>
