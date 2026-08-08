@@ -17,7 +17,8 @@
             pending: 0,
             processing: 0,
             completed: 0,
-            failed: 0
+            failed: 0,
+            failedTotal: 0          // 累计失败数（展示口径：跨轮次累计失败事件）
         },
         autoMode: 'idle',          // 'idle' | 'running' | 'paused' | 'completed' | 'stopped'
         pauseRequested: false,     // 点击暂停置 true；当前批次 AJAX 回调末尾消费
@@ -26,6 +27,9 @@
         roundNoProgress: 0,        // 连续无进展轮数
         maxNoProgressRounds: (window.w2pMediaEngine && window.w2pMediaEngine.max_no_progress_rounds) || 3, // 防死循环阈值
         failedIds: [],             // 本轮失败 id 集合（统计展示用）
+        lastRoundFailedIds: [],    // 上一轮失败 id 集合（防死循环「假进展」检测）
+        lastRoundQueueIds: [],     // 上一轮扫描队列 id（防死循环「假进展」检测）
+        queueUnchanged: false,     // 本轮队列与上轮完全一致（无任何附件离开待处理集合）
         autoRound: 0,              // 当前轮次计数
 
         /**
@@ -264,6 +268,9 @@
 
             if (self.processing) return;
 
+            // 手动批处理启动时重置自动模式状态，避免残留的 completed/stopped
+            // 使 stopProcessing 误走自动分支（不置 stopRequested 也不 autoStop）而硬停失效
+            self.autoMode = 'idle';
             self.processing = true;
             self.stopped = false;
             self.currentBatchIndex = 0;
@@ -338,6 +345,7 @@
                                 self.updateRowStatus($row, 'DONE', 'Completed');
                             } else {
                                 self.stats.failed++;
+                                self.stats.failedTotal++;
                                 self.updateRowStatus($row, 'FAILED', convertResult?.error || 'Unknown error');
                             }
                         });
@@ -355,6 +363,7 @@
                             const $row = $('#attachment-row-' + (startIndex + idx));
                             self.stats.processing--;
                             self.stats.failed++;
+                            self.stats.failedTotal++;
                             self.updateRowStatus($row, 'FAILED', 'Batch failed');
                         });
                         self.updateQueueStats();
@@ -372,6 +381,7 @@
                         const $row = $('#attachment-row-' + (startIndex + idx));
                         self.stats.processing--;
                         self.stats.failed++;
+                        self.stats.failedTotal++;
                         self.updateRowStatus($row, 'FAILED', 'Request failed');
                     });
                     self.updateQueueStats();
@@ -453,7 +463,7 @@
 
             $('#w2p-output-content').html(
                 '<div style="color: ' + (self.stopped ? '#f59e0b' : '#10b981') + ';">' + (self.stopped ? '⏸' : '✓') + ' ' + message + '</div>' +
-                '<div style="margin-top: 8px;">Completed: ' + self.stats.completed + ' | Failed: ' + self.stats.failed + '</div>'
+                '<div style="margin-top: 8px;">Completed: ' + self.stats.completed + ' | Failed: ' + self.stats.failedTotal + '</div>'
             );
 
             if (typeof w2p !== 'undefined' && w2p.toast) {
@@ -490,6 +500,9 @@
             self.stopRequested = false;
             self.roundNoProgress = 0;
             self.failedIds = [];
+            self.lastRoundFailedIds = [];
+            self.lastRoundQueueIds = [];
+            self.queueUnchanged = false;
             self.autoRound = 0;
             self.roundStartedCompleted = 0;
             self.currentBatchIndex = 0;
@@ -511,11 +524,13 @@
 
         /**
          * 获取待处理附件（扫描 AJAX 封装，手动/自动共用）
-         * 自动模式下：已完成数跨轮次累计（供「已完成 X」展示与无进展检测），失败数按本轮重置
+         * 自动模式下：已完成数与累计失败数跨轮次保留（供「已完成 X / 失败 Y」展示），
+         * 本轮失败数按轮重置（用于无进展检测）
          */
         fetchPendingAttachments: function (callback) {
             const self = this;
             const prevCompleted = self.stats.completed || 0;
+            const prevFailedTotal = self.stats.failedTotal || 0;
 
             return $.ajax({
                 url: w2pMediaEngine.ajax_url,
@@ -532,12 +547,14 @@
                             pending: self.queue.length,
                             processing: 0,
                             completed: 0,
-                            failed: 0
+                            failed: 0,
+                            failedTotal: 0
                         };
 
-                        // 自动模式下：已完成数跨轮次累计，失败数按本轮重置
+                        // 自动模式下：已完成数与累计失败数跨轮次保留，本轮失败数按轮重置
                         if (self.autoMode === 'running') {
                             self.stats.completed = prevCompleted;
+                            self.stats.failedTotal = prevFailedTotal;
                         }
 
                         if (typeof callback === 'function') {
@@ -571,6 +588,14 @@
 
                 // 记录本轮开始时的已完成数（completed 跨轮次累计）
                 self.roundStartedCompleted = self.stats.completed;
+
+                // 防死循环「假进展」检测：本轮队列与上轮完全一致 → 无任何附件离开待处理集合。
+                // 覆盖「转换成功但 offload meta 未写」场景（completed 每轮 +1 却始终 pending，
+                // 单靠 completed 增量无法识别无进展）
+                self.queueUnchanged = (self.lastRoundQueueIds.length > 0 &&
+                    self.lastRoundQueueIds.length === self.queue.length &&
+                    self.queue.every(a => self.lastRoundQueueIds.indexOf(a.id) !== -1));
+                self.lastRoundQueueIds = self.queue.map(a => a.id);
 
                 if (self.queue.length === 0) {
                     self.autoComplete();
@@ -659,6 +684,7 @@
                                 self.updateRowStatus($row, 'DONE', 'Completed');
                             } else {
                                 self.stats.failed++;
+                                self.stats.failedTotal++;
                                 self.failedIds.push(item.id);
                                 self.updateRowStatus($row, 'FAILED', convertResult?.error || 'Unknown error');
                             }
@@ -669,6 +695,7 @@
                             const $row = $('#attachment-row-' + (startIndex + idx));
                             self.stats.processing--;
                             self.stats.failed++;
+                            self.stats.failedTotal++;
                             self.failedIds.push(item.id);
                             self.updateRowStatus($row, 'FAILED', 'Batch failed');
                         });
@@ -682,6 +709,7 @@
                         const $row = $('#attachment-row-' + (startIndex + idx));
                         self.stats.processing--;
                         self.stats.failed++;
+                        self.stats.failedTotal++;
                         self.failedIds.push(item.id);
                         self.updateRowStatus($row, 'FAILED', 'Request failed');
                     });
@@ -731,12 +759,24 @@
             // 本轮完成的增量（completed 跨轮次累计，roundStartedCompleted 为本轮起点）
             const roundCompleted = self.stats.completed - self.roundStartedCompleted;
 
-            // 无进展检测：本轮无任何完成且存在失败 → 连续无进展轮数 +1，否则清零
-            if (roundCompleted === 0 && self.failedIds.length > 0) {
+            // 无进展检测（任一条件成立即累计）：
+            // 1) 本轮无任何完成且存在失败（原始判定）
+            // 2) 本轮失败集合与上一轮完全一致（新附件不断成功、旧附件持续失败时，completed 增量 >0
+            //    会掩盖无进展，用失败集合不变来识别）
+            // 3) 本轮队列与上轮完全一致（「假进展」漏洞：转换成功但 offload meta 未写时，
+            //    completed 每轮 +1 却始终 pending，失败集合为空，需用队列未缩小来识别）
+            const noProgressByCompletion = (roundCompleted === 0 && self.failedIds.length > 0);
+            const noProgressBySameFailures = (self.failedIds.length > 0 &&
+                self.lastRoundFailedIds.length === self.failedIds.length &&
+                self.failedIds.every(id => self.lastRoundFailedIds.indexOf(id) !== -1));
+            const noProgressByQueueUnchanged = self.queueUnchanged;
+
+            if (noProgressByCompletion || noProgressBySameFailures || noProgressByQueueUnchanged) {
                 self.roundNoProgress++;
             } else {
                 self.roundNoProgress = 0;
             }
+            self.lastRoundFailedIds = self.failedIds.slice();
 
             if (self.roundNoProgress >= self.maxNoProgressRounds) {
                 self.autoStop('连续 ' + self.maxNoProgressRounds + ' 轮无进展，请检查错误日志');
@@ -788,7 +828,7 @@
             self.setAutoUI('paused');
 
             $('#w2p-output-content').append(
-                '<div style="color: #f59e0b;">⏸ 已暂停。点击[恢复]继续。已完成 ' + self.stats.completed + ' | 失败 ' + self.stats.failed + '</div>'
+                '<div style="color: #f59e0b;">⏸ 已暂停。点击[恢复]继续。已完成 ' + self.stats.completed + ' | 失败 ' + self.stats.failedTotal + '</div>'
             );
         },
 
@@ -827,17 +867,17 @@
             self.setAutoUI('idle');
 
             $('#w2p-output-content').append(
-                '<div style="color: #10b981;">✓ 自动处理完成！已完成 ' + self.stats.completed + ' | 失败 ' + self.stats.failed + '</div>'
+                '<div style="color: #10b981;">✓ 自动处理完成！已完成 ' + self.stats.completed + ' | 失败 ' + self.stats.failedTotal + '</div>'
             );
 
-            if (self.stats.failed > 0) {
+            if (self.stats.failedTotal > 0) {
                 $('#w2p-output-content').append(
-                    '<div style="color: #ef4444;">⚠️ 有 ' + self.stats.failed + ' 个文件失败，请检查日志</div>'
+                    '<div style="color: #ef4444;">⚠️ 有 ' + self.stats.failedTotal + ' 个文件失败，请检查日志</div>'
                 );
             }
 
             if (typeof w2p !== 'undefined' && w2p.toast) {
-                w2p.toast('自动处理完成！已完成 ' + self.stats.completed + ' | 失败 ' + self.stats.failed, self.stats.failed > 0 ? 'warning' : 'success');
+                w2p.toast('自动处理完成！已完成 ' + self.stats.completed + ' | 失败 ' + self.stats.failedTotal, self.stats.failedTotal > 0 ? 'warning' : 'success');
             }
         },
 
@@ -854,7 +894,7 @@
             self.setAutoUI('idle');
 
             $('#w2p-output-content').append(
-                '<div style="color: #ef4444;">⛔ 自动处理已停止：' + reason + '。已完成 ' + self.stats.completed + ' | 失败 ' + self.stats.failed + '</div>'
+                '<div style="color: #ef4444;">⛔ 自动处理已停止：' + reason + '。已完成 ' + self.stats.completed + ' | 失败 ' + self.stats.failedTotal + '</div>'
             );
 
             if (typeof w2p !== 'undefined' && w2p.toast) {
