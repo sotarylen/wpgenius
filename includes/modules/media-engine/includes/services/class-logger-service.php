@@ -251,6 +251,52 @@ class MediaEngineConversionLogger {
 	}
 
 	/**
+	 * 记录缩略图生成结果（STEP2）
+	 *
+	 * 格式:
+	 * ===== STEP2: WP Media Regenerate =====
+	 * [时间戳] WP Media Regenerate {id1 id2 ...} Success: X/total | Skip: Y/total | Failed: Z/total
+	 *
+	 * @param array $attachment_ids 附件 ID 列表（空格分隔展示）
+	 * @param int   $success 成功数量
+	 * @param int   $skip    跳过数量
+	 * @param int   $failed  失败数量
+	 */
+	public function log_thumbnail_result( $attachment_ids, $success, $skip, $failed ) {
+		$total = count( $attachment_ids );
+		$this->write_log( '===== STEP2: WP Media Regenerate =====' );
+		$this->write_log( sprintf(
+			'[%s] WP Media Regenerate %s Success: %d/%d | Skip: %d/%d | Failed: %d/%d',
+			$this->get_timestamp(),
+			implode( ' ', $attachment_ids ),
+			$success, $total, $skip, $total, $failed, $total
+		) );
+	}
+
+	/**
+	 * 记录 Minio Offload 结果（STEP3）
+	 *
+	 * 格式:
+	 * ===== STEP3: WP Offload to Minio =====
+	 * [时间戳] WP Offload to Minio {id1 id2 ...} Success: X/total | Skip: Y/total | Failed: Z/total
+	 *
+	 * @param array $attachment_ids 附件 ID 列表（空格分隔展示）
+	 * @param int   $success 成功数量
+	 * @param int   $skip    跳过数量
+	 * @param int   $failed  失败数量
+	 */
+	public function log_offload_result( $attachment_ids, $success, $skip, $failed ) {
+		$total = count( $attachment_ids );
+		$this->write_log( '===== STEP3: WP Offload to Minio =====' );
+		$this->write_log( sprintf(
+			'[%s] WP Offload to Minio %s Success: %d/%d | Skip: %d/%d | Failed: %d/%d',
+			$this->get_timestamp(),
+			implode( ' ', $attachment_ids ),
+			$success, $total, $skip, $total, $failed, $total
+		) );
+	}
+
+	/**
 	 * 记录通用调试/状态信息（纯时间戳风格，与 log_command 等一致）
 	 *
 	 * @param string $message 日志消息

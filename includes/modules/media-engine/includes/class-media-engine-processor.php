@@ -144,7 +144,7 @@ class MediaEngineProcessor {
 				}
 			}
 			if ( ! empty( $ids_to_upload ) ) {
-				$this->logger->log_debug( sprintf( 'Minio batch offload starting for %d attachments: %s', count( $ids_to_upload ), implode( ',', $ids_to_upload ) ) );
+				// STEP3 标题行已由 log_offload_result 输出，此处不再记录冗余 debug
 				$this->minio->upload_batch( $ids_to_upload );
 			}
 		}
