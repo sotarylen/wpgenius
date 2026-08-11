@@ -83,17 +83,18 @@ class MediaEngineConverterService {
 			return [ 'success' => true, 'message' => 'Already WebP', 'output_path' => $file_path, 'skipped' => true ];
 		}
 		
-		return $this->convert_file_to_webp( $file_path );
+		return $this->convert_file_to_webp( $file_path, null, $attachment_id );
 	}
 
 	/**
 	 * Convert file to WebP (Core Logic)
 	 *
-	 * @param string $file_path Source file path
+	 * @param string      $file_path Source file path
 	 * @param string|null $output_path Output path (optional)
+	 * @param int         $attachment_id Attachment ID（用于格式化转换结果日志）
 	 * @return array Result
 	 */
-	public function convert_file_to_webp( $file_path, $output_path = null ) {
+	public function convert_file_to_webp( $file_path, $output_path = null, $attachment_id = 0 ) {
 		if ( ! file_exists( $file_path ) ) {
 			return [ 'success' => false, 'error' => __( 'Source file does not exist', 'wp-genius' ) ];
 		}
@@ -106,16 +107,21 @@ class MediaEngineConverterService {
 		$quality = $this->calculate_quality( $file_path, $mime_type );
 
 		if ( strpos( $mime_type, 'gif' ) !== false ) {
-			return $this->convert_gif( $file_path, $output_path, $quality );
+			return $this->convert_gif( $file_path, $output_path, $quality, $attachment_id );
 		} else {
-			return $this->convert_static( $file_path, $output_path, $quality );
+			return $this->convert_static( $file_path, $output_path, $quality, $attachment_id );
 		}
 	}
 
 	/**
 	 * Convert GIF to WebP
+	 *
+	 * @param string $file_path Source file path
+	 * @param string $output_path Output path
+	 * @param int    $quality Quality
+	 * @param int    $attachment_id Attachment ID（用于格式化转换结果日志）
 	 */
-	private function convert_gif( $file_path, $output_path, $quality ) {
+	private function convert_gif( $file_path, $output_path, $quality, $attachment_id = 0 ) {
 		if ( ! isset( $this->available_engines['gif2webp'] ) ) {
 			return [ 'success' => false, 'error' => __( 'gif2webp is not available', 'wp-genius' ) ];
 		}
@@ -141,13 +147,18 @@ class MediaEngineConverterService {
 			escapeshellarg( $output_path )
 		);
 
-		return $this->execute_command( $command, $output_path, 'gif2webp', $quality );
+		return $this->execute_command( $command, $output_path, 'gif2webp', $quality, $attachment_id, $file_path );
 	}
 
 	/**
 	 * Convert Static Image to WebP
+	 *
+	 * @param string $file_path Source file path
+	 * @param string $output_path Output path
+	 * @param int    $quality Quality
+	 * @param int    $attachment_id Attachment ID（用于格式化转换结果日志）
 	 */
-	private function convert_static( $file_path, $output_path, $quality ) {
+	private function convert_static( $file_path, $output_path, $quality, $attachment_id = 0 ) {
 		// Try vips first
 		if ( isset( $this->available_engines['vips'] ) ) {
 			$command = sprintf(
@@ -155,7 +166,7 @@ class MediaEngineConverterService {
 				escapeshellarg( $file_path ),
 				escapeshellarg( $output_path . '[Q=' . $quality . ',lossless=false]' )
 			);
-			$result = $this->execute_command( $command, $output_path, 'vips', $quality );
+			$result = $this->execute_command( $command, $output_path, 'vips', $quality, $attachment_id, $file_path );
 			if ( $result['success'] ) {
 				return $result;
 			}
@@ -169,7 +180,7 @@ class MediaEngineConverterService {
 				escapeshellarg( $file_path ),
 				escapeshellarg( $output_path )
 			);
-			return $this->execute_command( $command, $output_path, 'cwebp', $quality );
+			return $this->execute_command( $command, $output_path, 'cwebp', $quality, $attachment_id, $file_path );
 		}
 
 		return [ 'success' => false, 'error' => __( 'No conversion engine available', 'wp-genius' ) ];
@@ -177,15 +188,31 @@ class MediaEngineConverterService {
 
 	/**
 	 * Execute command wrapper
+	 *
+	 * @param string $command 执行的命令
+	 * @param string $output_path 输出文件路径
+	 * @param string $engine 转换引擎
+	 * @param int    $quality 质量参数
+	 * @param int    $attachment_id 附件 ID（用于格式化转换结果日志）
+	 * @param string $original_file 原文件完整路径（用于计算原大小与取文件名）
+	 * @return array Result
 	 */
-	private function execute_command( $command, $output_path, $engine, $quality ) {
+	private function execute_command( $command, $output_path, $engine, $quality, $attachment_id = 0, $original_file = '' ) {
 		$output = [];
 		$return_code = 0;
 		exec( $command, $output, $return_code );
 		
 		$output_str = implode( "\n", $output );
 		if ( $this->logger ) {
-			$this->logger->log_command( $command, $output_str, $return_code );
+			$this->logger->log_conversion_result(
+				$engine,
+				(int) $attachment_id,
+				$original_file,
+				(int) @filesize( $original_file ),
+				$output_path,
+				(int) @filesize( $output_path ),
+				( 0 === $return_code && file_exists( $output_path ) )
+			);
 		}
 
 		if ( $return_code === 0 && file_exists( $output_path ) ) {

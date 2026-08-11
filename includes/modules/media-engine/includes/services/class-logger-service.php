@@ -120,6 +120,35 @@ class MediaEngineConversionLogger {
 	}
 
 	/**
+	 * 记录格式化转换结果（结构化管道格式）
+	 *
+	 * 格式: [时间戳] {engine} | {attachment_id} | {原文件名} | {原大小} | {新文件名} | {新大小} | OK|NG
+	 *
+	 * @param string $engine        转换引擎（vips/gif2webp/cwebp）
+	 * @param int    $attachment_id 附件 ID
+	 * @param string $original_file 原文件完整路径（取 basename 展示）
+	 * @param int    $original_size 原文件大小（字节）
+	 * @param string $new_file      新文件完整路径（取 basename 展示）
+	 * @param int    $new_size      新文件大小（字节）
+	 * @param bool   $success       是否成功
+	 */
+	public function log_conversion_result( $engine, $attachment_id, $original_file, $original_size, $new_file, $new_size, $success ) {
+		$status = $success ? 'OK' : 'NG';
+		$message = sprintf(
+			'[%s] %s | %d | %s | %s | %s | %s | %s',
+			$this->get_timestamp(),
+			$engine,
+			(int) $attachment_id,
+			basename( $original_file ),
+			$this->format_size( $original_size ),
+			basename( $new_file ),
+			$this->format_size( $new_size ),
+			$status
+		);
+		$this->write_log( $message );
+	}
+
+	/**
 	 * 记录转换失败
 	 *
 	 * @param int    $attachment_id 附件 ID
@@ -292,6 +321,22 @@ class MediaEngineConversionLogger {
 		);
 
 		file_put_contents( $this->log_file, $marker . PHP_EOL . $content, LOCK_EX );
+	}
+
+	/**
+	 * 文件大小自适应格式化：<1MB 显示 KB，>=1MB 显示 MB（保留 1 位小数）
+	 *
+	 * 注意：不使用 WP 的 size_format（其输出带空格如 "800 KB"），
+	 * 老雷要求紧凑格式 "800KB" / "1.5MB"。
+	 *
+	 * @param int $bytes 字节数
+	 * @return string 格式化后的大小（如 800KB / 1.5MB）
+	 */
+	private function format_size( $bytes ) {
+		if ( $bytes >= 1048576 ) {
+			return round( $bytes / 1048576, 1 ) . 'MB';
+		}
+		return round( $bytes / 1024, 1 ) . 'KB';
 	}
 
 	/**
