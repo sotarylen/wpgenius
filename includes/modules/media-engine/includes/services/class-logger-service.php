@@ -255,7 +255,8 @@ class MediaEngineConversionLogger {
 	 *
 	 * 格式:
 	 * ===== STEP2: WP Media Regenerate =====
-	 * [时间戳] WP Media Regenerate {id1 id2 ...} Success: X/total | Skip: Y/total | Failed: Z/total
+	 * [时间戳] WP Media Regenerate {id1 id2 ...}
+	 * [时间戳] Success: X/total | Skip: Y/total | Failed: Z/total
 	 *
 	 * @param array $attachment_ids 附件 ID 列表（空格分隔展示）
 	 * @param int   $success 成功数量
@@ -266,9 +267,13 @@ class MediaEngineConversionLogger {
 		$total = count( $attachment_ids );
 		$this->write_log( '===== STEP2: WP Media Regenerate =====' );
 		$this->write_log( sprintf(
-			'[%s] WP Media Regenerate %s Success: %d/%d | Skip: %d/%d | Failed: %d/%d',
+			'[%s] WP Media Regenerate %s',
 			$this->get_timestamp(),
-			implode( ' ', $attachment_ids ),
+			implode( ' ', $attachment_ids )
+		) );
+		$this->write_log( sprintf(
+			'[%s] Success: %d/%d | Skip: %d/%d | Failed: %d/%d',
+			$this->get_timestamp(),
 			$success, $total, $skip, $total, $failed, $total
 		) );
 	}
@@ -278,7 +283,8 @@ class MediaEngineConversionLogger {
 	 *
 	 * 格式:
 	 * ===== STEP3: WP Offload to Minio =====
-	 * [时间戳] WP Offload to Minio {id1 id2 ...} Success: X/total | Skip: Y/total | Failed: Z/total
+	 * [时间戳] WP Offload to Minio {id1 id2 ...}
+	 * [时间戳] Success: X/total | Skip: Y/total | Failed: Z/total
 	 *
 	 * @param array $attachment_ids 附件 ID 列表（空格分隔展示）
 	 * @param int   $success 成功数量
@@ -289,9 +295,68 @@ class MediaEngineConversionLogger {
 		$total = count( $attachment_ids );
 		$this->write_log( '===== STEP3: WP Offload to Minio =====' );
 		$this->write_log( sprintf(
-			'[%s] WP Offload to Minio %s Success: %d/%d | Skip: %d/%d | Failed: %d/%d',
+			'[%s] WP Offload to Minio %s',
 			$this->get_timestamp(),
-			implode( ' ', $attachment_ids ),
+			implode( ' ', $attachment_ids )
+		) );
+		$this->write_log( sprintf(
+			'[%s] Success: %d/%d | Skip: %d/%d | Failed: %d/%d',
+			$this->get_timestamp(),
+			$success, $total, $skip, $total, $failed, $total
+		) );
+	}
+
+	/**
+	 * 记录步骤标题分隔行
+	 *
+	 * 格式: ===== {title} =====
+	 *
+	 * @param string $title 步骤标题
+	 */
+	public function log_step_header( $title ) {
+		$this->write_log( '===== ' . $title . ' =====' );
+	}
+
+	/**
+	 * 记录 URL 重写结果（STEP4）
+	 *
+	 * 格式: [时间戳] WP Rewrite Content URL | {附件ID} | {父级ID} | {新地址} | OK|NG
+	 *
+	 * @param int    $attachment_id 附件 ID
+	 * @param int    $post_parent   父级文章 ID（无父级为 0）
+	 * @param string $new_url       重写后的新地址
+	 * @param bool   $success       是否成功
+	 */
+	public function log_rewrite_result( $attachment_id, $post_parent, $new_url, $success ) {
+		$status = $success ? 'OK' : 'NG';
+		$this->write_log( sprintf(
+			'[%s] WP Rewrite Content URL | %d | %d | %s | %s',
+			$this->get_timestamp(),
+			(int) $attachment_id,
+			(int) $post_parent,
+			$new_url,
+			$status
+		) );
+	}
+
+	/**
+	 * 记录源文件清理结果（STEP5）
+	 *
+	 * 格式:
+	 * ===== STEP5: Clean Origin Media =====
+	 * [时间戳] Success: X/total | Skip: Y/total | Failed: Z/total
+	 *
+	 * @param array $attachment_ids 附件 ID 列表
+	 * @param int   $success 成功数量
+	 * @param int   $skip    跳过数量
+	 * @param int   $failed  失败数量
+	 */
+	public function log_cleanup_result( $attachment_ids, $success, $skip, $failed ) {
+		$total = count( $attachment_ids );
+		$this->write_log( '===== STEP5: Clean Origin Media =====' );
+		$this->write_log( sprintf(
+			'[%s] Success: %d/%d | Skip: %d/%d | Failed: %d/%d',
+			$this->get_timestamp(),
 			$success, $total, $skip, $total, $failed, $total
 		) );
 	}

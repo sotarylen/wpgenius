@@ -60,6 +60,9 @@ class MediaEngineProcessor {
 			return [ 'success' => false, 'error' => 'File not found' ];
 		}
 		$original_url = wp_get_attachment_url( $attachment_id );
+
+		// 单文件流程：转换前输出 STEP1 标题行（与批量流程保持一致）
+		$this->logger->log_step_header( 'STEP1: Convert Media Format to WebP' );
 		$convert_result = $this->converter->convert_to_webp( $attachment_id );
 		$results['steps']['convert'] = $convert_result;
 		if ( ! $convert_result['success'] ) {
@@ -97,7 +100,8 @@ class MediaEngineProcessor {
 		$this->logger->log_batch_start( $total, $total );
 		$results = [];
 		
-		// 步骤1: 批量转换所有图片
+		// 步骤1: 批量转换所有图片（STEP1 日志）
+		$this->logger->log_step_header( 'STEP1: Convert Media Format to WebP' );
 		foreach ( $attachment_ids as $id ) {
 			$file_path = get_attached_file( $id );
 			if ( ! $file_path || ! file_exists( $file_path ) ) {
@@ -149,7 +153,8 @@ class MediaEngineProcessor {
 			}
 		}
 		
-		// 步骤4: 批量URL重写（此时wp_get_attachment_url已返回最终URL）
+		// 步骤4: 批量URL重写（此时wp_get_attachment_url已返回最终URL，STEP4 日志）
+		$this->logger->log_step_header( 'STEP4: WP Rewrite Content URL' );
 		$rewrite_count = 0;
 		$skip_count    = 0;
 		foreach ( $attachment_ids as $id ) {
@@ -160,32 +165,40 @@ class MediaEngineProcessor {
 			$original_url = $results[ $id ]['original_url'];
 			$new_url      = wp_get_attachment_url( $id );
 			if ( ! $new_url ) {
-				$this->logger->log_debug( sprintf( 'URL rewrite skipped — wp_get_attachment_url returned empty for attachment %d', $id ) );
 				++$skip_count;
 				continue;
 			}
 			if ( $original_url === $new_url ) {
-				$this->logger->log_debug( sprintf( 'URL rewrite skipped — URL unchanged for attachment %d: %s', $id, $new_url ) );
 				++$skip_count;
 				continue;
 			}
 			$result = $this->url_rewrite->rewrite_content( $id, $original_url, $new_url );
-			$this->logger->log_debug( sprintf( 'URL rewrite for attachment %d: old=%s, new=%s, result=%s', $id, $original_url, $new_url, wp_json_encode( $result ) ) );
 			++$rewrite_count;
 		}
-		$this->logger->log_command( 'URL重写', sprintf( '处理了 %d 个附件，跳过 %d 个', $rewrite_count, $skip_count ), 0 );
 		
-		// 步骤5: 批量清理
-		$cleanup_count = 0;
+		// 步骤5: 批量清理（STEP5 日志，标题由 log_cleanup_result 内部输出）
+		$cleanup_success = 0;
+		$cleanup_skip    = 0;
+		$cleanup_failed  = 0;
 		foreach ( $attachment_ids as $id ) {
-			if ( isset( $results[ $id ] ) && $results[ $id ]['success'] && empty( $results[ $id ]['conversion_skipped'] ) ) {
-				if ( $this->should_cleanup( $id ) ) {
-					$this->metadata->cleanup_original( $id );
-					$cleanup_count++;
-				}
+			// 转换失败/跳过转换：无清理必要 → skip
+			if ( ! isset( $results[ $id ] ) || ! $results[ $id ]['success'] || ! empty( $results[ $id ]['conversion_skipped'] ) ) {
+				$cleanup_skip++;
+				continue;
+			}
+			// 不满足清理条件（keep_original / 未 offload）：skip
+			if ( ! $this->should_cleanup( $id ) ) {
+				$cleanup_skip++;
+				continue;
+			}
+			$cleanup_result = $this->metadata->cleanup_original( $id );
+			if ( ! empty( $cleanup_result['success'] ) && ! empty( $cleanup_result['count'] ) ) {
+				$cleanup_success++;
+			} else {
+				$cleanup_skip++; // 无原文件可清理（count=0）
 			}
 		}
-		$this->logger->log_command( '清理源文件', sprintf( '处理了 %d 个附件', $cleanup_count ), 0 );
+		$this->logger->log_cleanup_result( $attachment_ids, $cleanup_success, $cleanup_skip, $cleanup_failed );
 		
 		$succeeded = count( array_filter( $results, function( $r ) { return $r['success']; } ) );
 		$failed = $total - $succeeded;

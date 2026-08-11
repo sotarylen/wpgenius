@@ -48,11 +48,6 @@ class MediaEngineUrlRewriteService {
 		// ── Find and update the parent post ──────────────────────────────────
 		$post_parent = wp_get_post_parent_id( $attachment_id );
 
-		$this->logger->log_debug(
-			sprintf( 'rewrite_content: attachment=%d, old=%s, new=%s, parent=%d',
-				$attachment_id, $old_url, $new_url, (int) $post_parent )
-		);
-
 		if ( ! $post_parent ) {
 			return [
 				'success'  => true,
@@ -88,11 +83,8 @@ class MediaEngineUrlRewriteService {
 			$result['error']     = 'DB update failed';
 		}
 
-		$log_msg = sprintf(
-			'rewrite_content: post=%d, replaced=%d, ok=%s',
-			$post_parent, $count, $result['success'] ? 'true' : 'false'
-		);
-		$this->logger->log_debug( $log_msg );
+		// STEP4 结果行：附件ID | 父级ID | 新地址 | OK/NG
+		$this->logger->log_rewrite_result( $attachment_id, (int) $post_parent, $new_url, $result['success'] );
 
 		return $result;
 	}
