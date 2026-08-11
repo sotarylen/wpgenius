@@ -12,7 +12,7 @@ class MediaEngineThumbnailService {
 
 	public function __construct() {
 		if ( ! class_exists( 'MediaEngineConversionLogger' ) ) {
-			require_once plugin_dir_path( dirname( __FILE__ ) ) . 'class-conversion-logger.php';
+			require_once plugin_dir_path( dirname( __FILE__ ) ) . 'class-logger-service.php';
 		}
 		$this->logger = new MediaEngineConversionLogger();
 	}
