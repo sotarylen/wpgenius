@@ -48,13 +48,10 @@ class MediaEngineUrlRewriteService {
 		// ── Find and update the parent post ──────────────────────────────────
 		$post_parent = wp_get_post_parent_id( $attachment_id );
 
-		if ( class_exists( 'W2P_Logger' ) ) {
-			W2P_Logger::debug(
-				sprintf( 'rewrite_content: attachment=%d, old=%s, new=%s, parent=%d',
-					$attachment_id, $old_url, $new_url, (int) $post_parent ),
-				'media-engine'
-			);
-		}
+		$this->logger->log_debug(
+			sprintf( 'rewrite_content: attachment=%d, old=%s, new=%s, parent=%d',
+				$attachment_id, $old_url, $new_url, (int) $post_parent )
+		);
 
 		if ( ! $post_parent ) {
 			return [
@@ -91,13 +88,11 @@ class MediaEngineUrlRewriteService {
 			$result['error']     = 'DB update failed';
 		}
 
-		if ( class_exists( 'W2P_Logger' ) ) {
-			$log_msg = sprintf(
-				'rewrite_content: post=%d, replaced=%d, ok=%s',
-				$post_parent, $count, $result['success'] ? 'true' : 'false'
-			);
-			W2P_Logger::debug( $log_msg, 'media-engine' );
-		}
+		$log_msg = sprintf(
+			'rewrite_content: post=%d, replaced=%d, ok=%s',
+			$post_parent, $count, $result['success'] ? 'true' : 'false'
+		);
+		$this->logger->log_debug( $log_msg );
 
 		return $result;
 	}

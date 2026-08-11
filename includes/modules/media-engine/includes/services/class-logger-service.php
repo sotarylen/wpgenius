@@ -15,6 +15,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class MediaEngineConversionLogger {
 
 	/**
+	 * 日志文件最大尺寸（5MB）
+	 *
+	 * @var int
+	 */
+	const MAX_LOG_SIZE = 5242880; // 5 * 1024 * 1024
+
+	/**
 	 * 日志文件路径
 	 *
 	 * @var string
@@ -215,12 +222,76 @@ class MediaEngineConversionLogger {
 	}
 
 	/**
+	 * 记录通用调试/状态信息（纯时间戳风格，与 log_command 等一致）
+	 *
+	 * @param string $message 日志消息
+	 */
+	public function log_debug( $message ) {
+		$this->write_log( '[' . $this->get_timestamp() . '] ' . $message );
+	}
+
+	/**
 	 * 写入日志
 	 *
 	 * @param string $message 日志消息
 	 */
 	private function write_log( $message ) {
+		$this->enforce_size_limit();
 		file_put_contents( $this->log_file, $message . PHP_EOL, FILE_APPEND );
+	}
+
+	/**
+	 * 限制日志文件尺寸：超过 MAX_LOG_SIZE 时截断，保留最新约一半内容
+	 */
+	private function enforce_size_limit() {
+		if ( ! file_exists( $this->log_file ) ) {
+			return;
+		}
+
+		clearstatcache( true, $this->log_file );
+		$size = filesize( $this->log_file );
+
+		if ( false === $size || $size < self::MAX_LOG_SIZE ) {
+			return;
+		}
+
+		$this->truncate_log( $size );
+	}
+
+	/**
+	 * 截断日志：保留文件尾部约 MAX_LOG_SIZE/2 的内容，并写入截断标记
+	 *
+	 * @param int $size 当前文件尺寸（字节）
+	 */
+	private function truncate_log( $size ) {
+		$keep    = (int) ( self::MAX_LOG_SIZE / 2 );
+		$content = '';
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- 需要 fseek 精确读取文件尾部
+		$handle = fopen( $this->log_file, 'rb' );
+		if ( $handle ) {
+			fseek( $handle, max( 0, $size - $keep ) );
+			$content = fread( $handle, $keep );
+			fclose( $handle );
+
+			// 丢弃首行残行，保证保留内容从完整行开始
+			if ( false !== $content ) {
+				$first_newline = strpos( $content, "\n" );
+				if ( false !== $first_newline ) {
+					$content = substr( $content, $first_newline + 1 );
+				}
+			} else {
+				$content = '';
+			}
+		}
+
+		$marker = sprintf(
+			'[%s] --- Log truncated: exceeded %s, oldest entries removed, keeping most recent ---',
+			$this->get_timestamp(),
+			size_format( self::MAX_LOG_SIZE )
+		);
+
+		file_put_contents( $this->log_file, $marker . PHP_EOL . $content, LOCK_EX );
 	}
 
 	/**
@@ -271,5 +342,70 @@ class MediaEngineConversionLogger {
 		}
 
 		return array_slice( $file, -$lines );
+	}
+
+	/**
+	 * 高效读取日志文件尾部内容（用于日志查看浮层的轮询，避免读取整个文件）
+	 *
+	 * @param int $bytes 读取的字节数（默认 64KB）
+	 * @return string 日志尾部文本（从完整行开始）
+	 */
+	public function get_log_tail( $bytes = 65536 ) {
+		if ( ! file_exists( $this->log_file ) ) {
+			return '';
+		}
+
+		clearstatcache( true, $this->log_file );
+		$size = filesize( $this->log_file );
+
+		if ( false === $size || 0 === $size ) {
+			return '';
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- 需要 fseek 精确读取文件尾部
+		$handle = fopen( $this->log_file, 'rb' );
+		if ( ! $handle ) {
+			return '';
+		}
+
+		$offset = max( 0, $size - $bytes );
+		fseek( $handle, $offset );
+		$content = fread( $handle, $size - $offset );
+		fclose( $handle );
+
+		if ( false === $content ) {
+			return '';
+		}
+
+		// 从文件中部开始读取时，丢弃首行残行
+		if ( $offset > 0 ) {
+			$first_newline = strpos( $content, "\n" );
+			if ( false !== $first_newline ) {
+				$content = substr( $content, $first_newline + 1 );
+			}
+		}
+
+		return $content;
+	}
+
+	/**
+	 * 获取日志文件尺寸
+	 *
+	 * @return array { size_bytes: int, size_formatted: string }
+	 */
+	public function get_log_size() {
+		$size = 0;
+		if ( file_exists( $this->log_file ) ) {
+			clearstatcache( true, $this->log_file );
+			$filesize = filesize( $this->log_file );
+			if ( false !== $filesize ) {
+				$size = $filesize;
+			}
+		}
+
+		return [
+			'size_bytes'     => $size,
+			'size_formatted' => size_format( $size, 2 ),
+		];
 	}
 }

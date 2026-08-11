@@ -144,7 +144,7 @@ class MediaEngineProcessor {
 				}
 			}
 			if ( ! empty( $ids_to_upload ) ) {
-				W2P_Logger::debug( sprintf( 'Minio batch offload starting for %d attachments: %s', count( $ids_to_upload ), implode( ',', $ids_to_upload ) ), 'media-engine' );
+				$this->logger->log_debug( sprintf( 'Minio batch offload starting for %d attachments: %s', count( $ids_to_upload ), implode( ',', $ids_to_upload ) ) );
 				$this->minio->upload_batch( $ids_to_upload );
 			}
 		}
@@ -160,17 +160,17 @@ class MediaEngineProcessor {
 			$original_url = $results[ $id ]['original_url'];
 			$new_url      = wp_get_attachment_url( $id );
 			if ( ! $new_url ) {
-				W2P_Logger::warning( sprintf( 'URL rewrite skipped — wp_get_attachment_url returned empty for attachment %d', $id ), 'media-engine' );
+				$this->logger->log_debug( sprintf( 'URL rewrite skipped — wp_get_attachment_url returned empty for attachment %d', $id ) );
 				++$skip_count;
 				continue;
 			}
 			if ( $original_url === $new_url ) {
-				W2P_Logger::debug( sprintf( 'URL rewrite skipped — URL unchanged for attachment %d: %s', $id, $new_url ), 'media-engine' );
+				$this->logger->log_debug( sprintf( 'URL rewrite skipped — URL unchanged for attachment %d: %s', $id, $new_url ) );
 				++$skip_count;
 				continue;
 			}
 			$result = $this->url_rewrite->rewrite_content( $id, $original_url, $new_url );
-			W2P_Logger::debug( sprintf( 'URL rewrite for attachment %d: old=%s, new=%s, result=%s', $id, $original_url, $new_url, wp_json_encode( $result ) ), 'media-engine' );
+			$this->logger->log_debug( sprintf( 'URL rewrite for attachment %d: old=%s, new=%s, result=%s', $id, $original_url, $new_url, wp_json_encode( $result ) ) );
 			++$rewrite_count;
 		}
 		$this->logger->log_command( 'URL重写', sprintf( '处理了 %d 个附件，跳过 %d 个', $rewrite_count, $skip_count ), 0 );
