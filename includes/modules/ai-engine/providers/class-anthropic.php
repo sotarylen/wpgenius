@@ -13,9 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class AI_Provider_Anthropic
+ * Class W2P_AI_Provider_Anthropic
  */
-class AI_Provider_Anthropic implements AI_Provider_Interface {
+class W2P_AI_Provider_Anthropic implements W2P_AI_Provider_Interface {
 
 	/**
 	 * API base URL
@@ -294,4 +294,9 @@ class AI_Provider_Anthropic implements AI_Provider_Interface {
 
 		update_option( 'w2p_ai_anthropic_usage', $totals );
 	}
+}
+
+// Legacy alias for backward compatibility (pre-1.2.0 class name).
+if ( ! class_exists( 'AI_Provider_Anthropic', false ) ) {
+	class_alias( 'W2P_AI_Provider_Anthropic', 'AI_Provider_Anthropic' );
 }

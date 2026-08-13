@@ -13,9 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Interface AI_Provider_Interface
+ * Interface W2P_AI_Provider_Interface
  */
-interface AI_Provider_Interface {
+interface W2P_AI_Provider_Interface {
 
 	/**
 	 * Get provider name.
@@ -81,4 +81,9 @@ interface AI_Provider_Interface {
 	 * @return array
 	 */
 	public function get_total_usage(): array;
+}
+
+// Legacy alias for backward compatibility (pre-1.2.0 class name).
+if ( ! interface_exists( 'AI_Provider_Interface', false ) ) {
+	class_alias( 'W2P_AI_Provider_Interface', 'AI_Provider_Interface' );
 }

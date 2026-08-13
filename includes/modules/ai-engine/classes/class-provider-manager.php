@@ -13,9 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class AI_Provider_Manager
+ * Class W2P_AI_Provider_Manager
  */
-class AI_Provider_Manager {
+class W2P_AI_Provider_Manager {
 
 	/**
 	 * Registered providers
@@ -37,19 +37,19 @@ class AI_Provider_Manager {
 	 * @return void
 	 */
 	private function register_default_providers() {
-		$this->register_provider( new AI_Provider_OpenAI() );
-		$this->register_provider( new AI_Provider_Anthropic() );
-		$this->register_provider( new AI_Provider_Gemini() );
-		$this->register_provider( new AI_Provider_DeepSeek() );
+		$this->register_provider( new W2P_AI_Provider_OpenAI() );
+		$this->register_provider( new W2P_AI_Provider_Anthropic() );
+		$this->register_provider( new W2P_AI_Provider_Gemini() );
+		$this->register_provider( new W2P_AI_Provider_DeepSeek() );
 	}
 
 	/**
 	 * Register a provider
 	 *
-	 * @param AI_Provider_Interface $provider Provider instance.
+	 * @param W2P_AI_Provider_Interface $provider Provider instance.
 	 * @return void
 	 */
-	public function register_provider( AI_Provider_Interface $provider ): void {
+	public function register_provider( W2P_AI_Provider_Interface $provider ): void {
 		$this->providers[ $provider->get_slug() ] = $provider;
 	}
 
@@ -57,9 +57,9 @@ class AI_Provider_Manager {
 	 * Get a provider by slug
 	 *
 	 * @param string $slug Provider slug.
-	 * @return AI_Provider_Interface|null
+	 * @return W2P_AI_Provider_Interface|null
 	 */
-	public function get_provider( string $slug ): ?AI_Provider_Interface {
+	public function get_provider( string $slug ): ?W2P_AI_Provider_Interface {
 		return $this->providers[ $slug ] ?? null;
 	}
 
@@ -108,4 +108,9 @@ class AI_Provider_Manager {
 
 		return $usage;
 	}
+}
+
+// Legacy alias for backward compatibility (pre-1.2.0 class name).
+if ( ! class_exists( 'AI_Provider_Manager', false ) ) {
+	class_alias( 'W2P_AI_Provider_Manager', 'AI_Provider_Manager' );
 }

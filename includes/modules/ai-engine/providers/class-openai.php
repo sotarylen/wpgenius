@@ -13,9 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class AI_Provider_OpenAI
+ * Class W2P_AI_Provider_OpenAI
  */
-class AI_Provider_OpenAI implements AI_Provider_Interface {
+class W2P_AI_Provider_OpenAI implements W2P_AI_Provider_Interface {
 
 	/**
 	 * API base URL
@@ -282,4 +282,9 @@ class AI_Provider_OpenAI implements AI_Provider_Interface {
 
 		update_option( 'w2p_ai_openai_usage', $totals );
 	}
+}
+
+// Legacy alias for backward compatibility (pre-1.2.0 class name).
+if ( ! class_exists( 'AI_Provider_OpenAI', false ) ) {
+	class_alias( 'W2P_AI_Provider_Openai', 'AI_Provider_OpenAI' );
 }

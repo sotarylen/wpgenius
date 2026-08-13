@@ -13,9 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class AI_Scheduler
+ * Class W2P_AI_Scheduler
  */
-class AI_Scheduler {
+class W2P_AI_Scheduler {
 
 	/**
 	 * Option prefix for schedules
@@ -34,26 +34,26 @@ class AI_Scheduler {
 	/**
 	 * Provider Manager
 	 *
-	 * @var AI_Provider_Manager
+	 * @var W2P_AI_Provider_Manager
 	 */
 	private $provider_manager;
 
 	/**
 	 * Content Queue
 	 *
-	 * @var AI_Content_Queue
+	 * @var W2P_AI_Content_Queue
 	 */
 	private $content_queue;
 
 	/**
 	 * Constructor
 	 *
-	 * @param AI_Provider_Manager $provider_manager Provider manager instance.
-	 * @param AI_Content_Queue    $content_queue Content queue instance.
+	 * @param W2P_AI_Provider_Manager $provider_manager Provider manager instance.
+	 * @param W2P_AI_Content_Queue    $content_queue Content queue instance.
 	 */
-	public function __construct( AI_Provider_Manager $provider_manager = null, AI_Content_Queue $content_queue = null ) {
-		$this->provider_manager = $provider_manager ?? new AI_Provider_Manager();
-		$this->content_queue    = $content_queue ?? new AI_Content_Queue( $this->provider_manager );
+	public function __construct( W2P_AI_Provider_Manager $provider_manager = null, W2P_AI_Content_Queue $content_queue = null ) {
+		$this->provider_manager = $provider_manager ?? new W2P_AI_Provider_Manager();
+		$this->content_queue    = $content_queue ?? new W2P_AI_Content_Queue( $this->provider_manager );
 
 		// Initialize cron schedules
 		add_filter( 'cron_schedules', [ $this, 'add_cron_schedules' ] );
@@ -396,4 +396,9 @@ class AI_Scheduler {
 			'completed_today'   => (int) $completed_today,
 		];
 	}
+}
+
+// Legacy alias for backward compatibility (pre-1.2.0 class name).
+if ( ! class_exists( 'AI_Scheduler', false ) ) {
+	class_alias( 'W2P_AI_Scheduler', 'AI_Scheduler' );
 }

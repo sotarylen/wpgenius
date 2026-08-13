@@ -56,28 +56,28 @@ class AiEngineModule extends W2P_Abstract_Module {
 	/**
 	 * Provider Manager Instance
 	 *
-	 * @var AI_Provider_Manager|null
+	 * @var W2P_AI_Provider_Manager|null
 	 */
 	private $provider_manager = null;
 
 	/**
 	 * Prompt Engine Instance
 	 *
-	 * @var AI_Prompt_Engine|null
+	 * @var W2P_AI_Prompt_Engine|null
 	 */
 	private $prompt_engine = null;
 
 	/**
 	 * Content Queue Instance
 	 *
-	 * @var AI_Content_Queue|null
+	 * @var W2P_AI_Content_Queue|null
 	 */
 	private $content_queue = null;
 
 	/**
 	 * Scheduler Instance
 	 *
-	 * @var AI_Scheduler|null
+	 * @var W2P_AI_Scheduler|null
 	 */
 	private $scheduler = null;
 
@@ -91,10 +91,10 @@ class AiEngineModule extends W2P_Abstract_Module {
 		$this->load_dependencies();
 
 		// Initialize components
-		$this->provider_manager = new AI_Provider_Manager();
-		$this->prompt_engine    = new AI_Prompt_Engine();
-		$this->content_queue    = new AI_Content_Queue();
-		$this->scheduler        = new AI_Scheduler();
+		$this->provider_manager = new W2P_AI_Provider_Manager();
+		$this->prompt_engine    = new W2P_AI_Prompt_Engine();
+		$this->content_queue    = new W2P_AI_Content_Queue();
+		$this->scheduler        = new W2P_AI_Scheduler();
 
 		// Load CSF Options
 		$this->load_options();
@@ -177,7 +177,7 @@ class AiEngineModule extends W2P_Abstract_Module {
 	/**
 	 * Get Provider Manager instance
 	 *
-	 * @return AI_Provider_Manager
+	 * @return W2P_AI_Provider_Manager
 	 */
 	public function get_provider_manager() {
 		return $this->provider_manager;
@@ -186,7 +186,7 @@ class AiEngineModule extends W2P_Abstract_Module {
 	/**
 	 * Get Prompt Engine instance
 	 *
-	 * @return AI_Prompt_Engine
+	 * @return W2P_AI_Prompt_Engine
 	 */
 	public function get_prompt_engine() {
 		return $this->prompt_engine;
@@ -195,7 +195,7 @@ class AiEngineModule extends W2P_Abstract_Module {
 	/**
 	 * Get Content Queue instance
 	 *
-	 * @return AI_Content_Queue
+	 * @return W2P_AI_Content_Queue
 	 */
 	public function get_content_queue() {
 		return $this->content_queue;
@@ -204,7 +204,7 @@ class AiEngineModule extends W2P_Abstract_Module {
 	/**
 	 * Get Scheduler instance
 	 *
-	 * @return AI_Scheduler
+	 * @return W2P_AI_Scheduler
 	 */
 	public function get_scheduler() {
 		return $this->scheduler;

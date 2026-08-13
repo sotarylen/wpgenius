@@ -13,9 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class AI_Provider_DeepSeek
+ * Class W2P_AI_Provider_DeepSeek
  */
-class AI_Provider_DeepSeek implements AI_Provider_Interface {
+class W2P_AI_Provider_DeepSeek implements W2P_AI_Provider_Interface {
 
 	/**
 	 * API base URL
@@ -269,4 +269,9 @@ class AI_Provider_DeepSeek implements AI_Provider_Interface {
 
 		update_option( 'w2p_ai_deepseek_usage', $totals );
 	}
+}
+
+// Legacy alias for backward compatibility (pre-1.2.0 class name).
+if ( ! class_exists( 'AI_Provider_DeepSeek', false ) ) {
+	class_alias( 'W2P_AI_Provider_Deepseek', 'AI_Provider_DeepSeek' );
 }

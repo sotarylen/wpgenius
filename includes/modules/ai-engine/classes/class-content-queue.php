@@ -13,9 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class AI_Content_Queue
+ * Class W2P_AI_Content_Queue
  */
-class AI_Content_Queue {
+class W2P_AI_Content_Queue {
 
 	/**
 	 * Database table name
@@ -27,29 +27,29 @@ class AI_Content_Queue {
 	/**
 	 * Provider Manager
 	 *
-	 * @var AI_Provider_Manager
+	 * @var W2P_AI_Provider_Manager
 	 */
 	private $provider_manager;
 
 	/**
 	 * Prompt Engine
 	 *
-	 * @var AI_Prompt_Engine
+	 * @var W2P_AI_Prompt_Engine
 	 */
 	private $prompt_engine;
 
 	/**
 	 * Constructor
 	 *
-	 * @param AI_Provider_Manager $provider_manager Provider manager instance.
-	 * @param AI_Prompt_Engine    $prompt_engine Prompt engine instance.
+	 * @param W2P_AI_Provider_Manager $provider_manager Provider manager instance.
+	 * @param W2P_AI_Prompt_Engine    $prompt_engine Prompt engine instance.
 	 */
-	public function __construct( AI_Provider_Manager $provider_manager = null, AI_Prompt_Engine $prompt_engine = null ) {
+	public function __construct( W2P_AI_Provider_Manager $provider_manager = null, W2P_AI_Prompt_Engine $prompt_engine = null ) {
 		global $wpdb;
 		$this->table_name = $wpdb->prefix . 'w2p_ai_queue';
 
-		$this->provider_manager = $provider_manager ?? new AI_Provider_Manager();
-		$this->prompt_engine    = $prompt_engine ?? new AI_Prompt_Engine();
+		$this->provider_manager = $provider_manager ?? new W2P_AI_Provider_Manager();
+		$this->prompt_engine    = $prompt_engine ?? new W2P_AI_Prompt_Engine();
 
 		$this->maybe_create_table();
 	}
@@ -387,4 +387,9 @@ class AI_Content_Queue {
 
 		return $deleted;
 	}
+}
+
+// Legacy alias for backward compatibility (pre-1.2.0 class name).
+if ( ! class_exists( 'AI_Content_Queue', false ) ) {
+	class_alias( 'W2P_AI_Content_Queue', 'AI_Content_Queue' );
 }

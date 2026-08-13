@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Load provider classes if not already loaded.
 $ai_engine_path = __DIR__;
-if ( ! class_exists( 'AI_Provider_Interface' ) ) {
+if ( ! class_exists( 'W2P_AI_Provider_Interface' ) ) {
 	require_once $ai_engine_path . '/providers/class-provider-interface.php';
 	require_once $ai_engine_path . '/providers/class-openai.php';
 	require_once $ai_engine_path . '/providers/class-anthropic.php';

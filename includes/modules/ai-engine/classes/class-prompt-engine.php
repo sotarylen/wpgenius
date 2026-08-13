@@ -13,9 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class AI_Prompt_Engine
+ * Class W2P_AI_Prompt_Engine
  */
-class AI_Prompt_Engine {
+class W2P_AI_Prompt_Engine {
 
 	/**
 	 * Database table name
@@ -245,4 +245,9 @@ class AI_Prompt_Engine {
 			],
 		];
 	}
+}
+
+// Legacy alias for backward compatibility (pre-1.2.0 class name).
+if ( ! class_exists( 'AI_Prompt_Engine', false ) ) {
+	class_alias( 'W2P_AI_Prompt_Engine', 'AI_Prompt_Engine' );
 }

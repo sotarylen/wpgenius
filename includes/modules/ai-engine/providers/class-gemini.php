@@ -13,9 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class AI_Provider_Gemini
+ * Class W2P_AI_Provider_Gemini
  */
-class AI_Provider_Gemini implements AI_Provider_Interface {
+class W2P_AI_Provider_Gemini implements W2P_AI_Provider_Interface {
 
 	/**
 	 * API base URL
@@ -281,4 +281,9 @@ class AI_Provider_Gemini implements AI_Provider_Interface {
 
 		update_option( 'w2p_ai_gemini_usage', $totals );
 	}
+}
+
+// Legacy alias for backward compatibility (pre-1.2.0 class name).
+if ( ! class_exists( 'AI_Provider_Gemini', false ) ) {
+	class_alias( 'W2P_AI_Provider_Gemini', 'AI_Provider_Gemini' );
 }
