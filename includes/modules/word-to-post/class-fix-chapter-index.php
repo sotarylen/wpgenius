@@ -101,59 +101,15 @@ class FixChapterIndex {
 		// 获取已完成书籍列表
 		$finished_ids = get_option( 'w2p_fix_index_finished_books', array() );
 
-		// 构建查询参数
-		$query_args = array(
-			'post_type'              => $post_type,
-			'post_status'            => 'any',
-			'posts_per_page'         => $batch_size,
-			'offset'                 => $offset,
-			'orderby'                => array(
-				'menu_order' => 'ASC',
-				'ID'         => 'ASC',
-			),
-			// CRITICAL: 只获取ID和title，排除post_content避免内存溢出
-			'fields'                 => 'ids',
-			'no_found_rows'          => true,
-			'update_post_meta_cache' => false,
-			'update_post_term_cache' => false,
+		// 构建查询参数（helper 拆分）
+		$query_args = $this->build_scan_query_args(
+			$scan_mode,
+			$novel_id,
+			$scan_limit,
+			$batch_size,
+			$offset,
+			$finished_ids
 		);
-
-		$meta_query = array();
-
-		// 排除已处理的书籍 (仅在全量扫描模式下)
-		if ( ! empty( $finished_ids ) && $scan_mode === 'all' ) {
-			$meta_query[] = array(
-				'key'     => 'related_novel_id',
-				'value'   => $finished_ids,
-				'compare' => 'NOT IN',
-			);
-		}
-
-		// 按书籍扫描
-		if ( $scan_mode === 'by_novel' ) {
-			if ( $novel_id > 0 ) {
-				// 指定书籍ID
-				$meta_query[] = array(
-					'key'     => 'related_novel_id',
-					'value'   => $novel_id,
-					'compare' => '=',
-				);
-			} elseif ( $scan_limit > 0 ) {
-				// 扫描最新N本书
-				$novel_ids = $this->getRecentNovelIds( $scan_limit );
-				if ( ! empty( $novel_ids ) ) {
-					$meta_query[] = array(
-						'key'     => 'related_novel_id',
-						'value'   => $novel_ids,
-						'compare' => 'IN',
-					);
-				}
-			}
-		}
-
-		if ( ! empty( $meta_query ) ) {
-			$query_args['meta_query'] = $meta_query;
-		}
 
 		// 查询chapter文章 (只获取IDs)
 		$query = new WP_Query( $query_args );
@@ -304,6 +260,74 @@ class FixChapterIndex {
 				),
 			)
 		);
+	}
+
+	/**
+	 * 构建扫描查询参数（WP_Query args）。
+	 *
+	 * @param string $scan_mode    扫描模式（all/by_novel）。
+	 * @param int    $novel_id     指定书籍 ID（0 表示全部）。
+	 * @param int    $scan_limit   最近 N 本书限制。
+	 * @param int    $batch_size   批次大小。
+	 * @param int    $offset       偏移量。
+	 * @param array  $finished_ids 已完成书籍 ID 列表。
+	 * @return array
+	 */
+	private function build_scan_query_args( $scan_mode, $novel_id, $scan_limit, $batch_size, $offset, $finished_ids ) {
+		$query_args = array(
+			'post_type'              => 'chapter',
+			'post_status'            => 'any',
+			'posts_per_page'         => $batch_size,
+			'offset'                 => $offset,
+			'orderby'                => array(
+				'menu_order' => 'ASC',
+				'ID'         => 'ASC',
+			),
+			// CRITICAL: 只获取ID和title，排除post_content避免内存溢出
+			'fields'                 => 'ids',
+			'no_found_rows'          => true,
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+		);
+
+		$meta_query = array();
+
+		// 排除已处理的书籍 (仅在全量扫描模式下)
+		if ( ! empty( $finished_ids ) && $scan_mode === 'all' ) {
+			$meta_query[] = array(
+				'key'     => 'related_novel_id',
+				'value'   => $finished_ids,
+				'compare' => 'NOT IN',
+			);
+		}
+
+		// 按书籍扫描
+		if ( $scan_mode === 'by_novel' ) {
+			if ( $novel_id > 0 ) {
+				// 指定书籍ID
+				$meta_query[] = array(
+					'key'     => 'related_novel_id',
+					'value'   => $novel_id,
+					'compare' => '=',
+				);
+			} elseif ( $scan_limit > 0 ) {
+				// 扫描最新N本书
+				$novel_ids = $this->getRecentNovelIds( $scan_limit );
+				if ( ! empty( $novel_ids ) ) {
+					$meta_query[] = array(
+						'key'     => 'related_novel_id',
+						'value'   => $novel_ids,
+						'compare' => 'IN',
+					);
+				}
+			}
+		}
+
+		if ( ! empty( $meta_query ) ) {
+			$query_args['meta_query'] = $meta_query;
+		}
+
+		return $query_args;
 	}
 
 	/**
