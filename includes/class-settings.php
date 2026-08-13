@@ -7,7 +7,7 @@
  * 存储通道约定（2026-02 统一后）：
  * - 主通道：w2p_settings（CSF 驱动），模块配置按 tab key 存放，
  *   例如 media_engine_tabs / ai_engine_tabs / smart_aui_tabs 等；
- * - 独立通道（按需保留）：w2p_ai_*_key（已加密）、w2p_cms_migrator_settings（已加密）、
+ * - 独立通道（按需保留）：w2p_ai_*_key（已加密）、
  *   w2p_ai_schedule_*（P1-3 迁入自定义表后废弃）等；
  * - 废弃通道：w2p_media_turbo_settings（早期 register_setting 遗留，读取时作为
  *   media_engine_tabs 的兼容回退，不再写入）。

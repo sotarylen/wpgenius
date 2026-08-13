@@ -34,9 +34,8 @@ $options = array(
 	'w2p_ai_deepseek_usage',
 	'w2p_ai_schedules_migrated',
 	'w2p_db_version',
-	// CMS Migrator.
-	'w2p_cms_migrator_settings',
-	'w2p_cms_migration_progress',
+	// CMS Migrator（模块已废弃移除）
+	// w2p_cms_migrator_settings / w2p_cms_migration_progress 于 v1.3.0 移除。
 	// Word to Post.
 	'w2p_fix_index_finished_books',
 	'w2p_word_publish_settings',

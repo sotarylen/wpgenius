@@ -24,7 +24,6 @@ WP Genius combines multiple WordPress utilities into a single plugin platform fo
 * **System Health** - Database cleanup, orphaned media scanning, and duplicate detection.
 * **Accelerate** - Admin cleanup, update control, local avatars, and upload renaming.
 * **SMTP Mailer** - Configure SMTP for reliable email delivery.
-* **CMS Migrator** - Migrate content from external CMS databases into WordPress custom post types.
 
 = Security =
 
