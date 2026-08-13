@@ -48,18 +48,21 @@ class MediaEngineConverterService {
 	 */
 	private function detect_engines() {
 		// Detect vips
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- 系统工具调用（vips/cwebp），文件路径经 escapeshellarg。
 		exec( 'vips --version 2>&1', $output, $return_code );
 		if ( $return_code === 0 ) {
 			$this->available_engines['vips'] = true;
 		}
 
 		// Detect cwebp
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- 系统工具调用（vips/cwebp），文件路径经 escapeshellarg。
 		exec( 'cwebp -version 2>&1', $output, $return_code );
 		if ( $return_code === 0 ) {
 			$this->available_engines['cwebp'] = true;
 		}
 
 		// Detect gif2webp
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- 系统工具调用（vips/cwebp），文件路径经 escapeshellarg。
 		exec( 'gif2webp -version 2>&1', $output, $return_code );
 		if ( $return_code === 0 ) {
 			$this->available_engines['gif2webp'] = true;
@@ -217,6 +220,7 @@ class MediaEngineConverterService {
 	private function execute_command( $command, $output_path, $engine, $quality, $attachment_id = 0, $original_file = '' ) {
 		$output      = array();
 		$return_code = 0;
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- 系统工具调用（vips/cwebp），文件路径经 escapeshellarg。
 		exec( $command, $output, $return_code );
 
 		$output_str = implode( "\n", $output );

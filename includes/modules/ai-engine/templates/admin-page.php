@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$tabs = array(
+$w2p_tabs = array(
 	'generate'  => __( 'Generate', 'wp-genius' ),
 	'prompts'   => __( 'Prompts', 'wp-genius' ),
 	'schedules' => __( 'Schedules', 'wp-genius' ),
@@ -25,7 +25,7 @@ $active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'gen
 
 	<?php if ( ! empty( $this->provider_manager ) && ! empty( $this->prompt_engine ) && ! empty( $this->content_queue ) && ! empty( $this->scheduler ) ) : ?>
 	<nav class="nav-tab-wrapper">
-		<?php foreach ( $tabs as $tab_id => $tab_label ) : ?>
+		<?php foreach ( $w2p_tabs as $tab_id => $tab_label ) : ?>
 			<a href="<?php echo esc_url( admin_url( 'admin.php?page=wp-genius-ai-engine&tab=' . $tab_id ) ); ?>"
 				class="nav-tab <?php echo $active_tab === $tab_id ? 'nav-tab-active' : ''; ?>">
 				<?php echo esc_html( $tab_label ); ?>

@@ -49,7 +49,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<div class="w2p-duplicate-group-header">
 			<h4 class="group-title"></h4>
 			<button type="button" class="w2p-btn w2p-btn-secondary w2p-clean-group-btn" data-text-cleaning="Deleting...">
-			<span class="fa-solid fa-trash"></span><?php esc_html_e( 'Clean Group', 'wpgenius' ); ?>
+			<span class="fa-solid fa-trash"></span><?php esc_html_e( 'Clean Group', 'wp-genius' ); ?>
 			</button>
 		</div>
 		<div class="w2p-log-container" style="margin: 10px;">
@@ -57,11 +57,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<thead>
 					<tr>
 						<th width="30px"><input type="checkbox" disabled></th>
-						<th width="80px"><?php esc_html_e( 'ID', 'wpgenius' ); ?></th>
-						<th width="30%"><?php esc_html_e( 'Title', 'wpgenius' ); ?></th>
-						<th width="40%"><?php esc_html_e( 'Slug', 'wpgenius' ); ?></th>
-						<th width="15%"><?php esc_html_e( 'Date', 'wpgenius' ); ?></th>
-						<th width="10%"><?php esc_html_e( 'Action', 'wpgenius' ); ?></th>
+						<th width="80px"><?php esc_html_e( 'ID', 'wp-genius' ); ?></th>
+						<th width="30%"><?php esc_html_e( 'Title', 'wp-genius' ); ?></th>
+						<th width="40%"><?php esc_html_e( 'Slug', 'wp-genius' ); ?></th>
+						<th width="15%"><?php esc_html_e( 'Date', 'wp-genius' ); ?></th>
+						<th width="10%"><?php esc_html_e( 'Action', 'wp-genius' ); ?></th>
 					</tr>
 				</thead>
 				<tbody class="duplicate-posts-body"></tbody>
@@ -81,8 +81,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<td class="post-slug"><code></code></td>
 		<td class="post-date"></td>
 		<td class="post-status">
-			<span class="status-badge status-keep"><span class="fa-solid fa-check"></span><?php esc_html_e( 'Keep', 'wpgenius' ); ?></span>
-			<span class="status-badge status-delete"><span class="fa-solid fa-trash-can"></span><?php esc_html_e( 'Delete', 'wpgenius' ); ?></span>
+			<span class="status-badge status-keep"><span class="fa-solid fa-check"></span><?php esc_html_e( 'Keep', 'wp-genius' ); ?></span>
+			<span class="status-badge status-delete"><span class="fa-solid fa-trash-can"></span><?php esc_html_e( 'Delete', 'wp-genius' ); ?></span>
 		</td>
 	</tr>
 </template>
@@ -90,7 +90,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <!-- Template: Duplicate Empty -->
 <template id="w2p-duplicate-empty-template">
 	<div class="w2p-notice w2p-notice-success">
-		<p><span class="fa-solid fa-check-circle"></span><?php esc_html_e( 'Great! No duplicate posts found.', 'wpgenius' ); ?></p>
+		<p><span class="fa-solid fa-check-circle"></span><?php esc_html_e( 'Great! No duplicate posts found.', 'wp-genius' ); ?></p>
 	</div>
 </template>
 

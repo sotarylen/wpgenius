@@ -113,17 +113,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<p><?php esc_html_e( 'Scan posts for images wrapped in links and remove the links while keeping the images.', 'wp-genius' ); ?></p>
 						<select id="w2p-image-link-category" class="w2p-select w2p-min-w-200">
 							<option value="0"><?php esc_html_e( 'All Categories', 'wp-genius' ); ?></option>
-							<?php if ( isset( $categories ) && is_array( $categories ) ) : ?>
+							<?php if ( isset( $w2p_categories ) && is_array( $w2p_categories ) ) : ?>
 								<?php
-								foreach ( $categories as $cat ) :
-									$cat_id    = is_object( $cat ) ? ( $cat->term_id ?? 0 ) : ( is_array( $cat ) ? ( $cat['term_id'] ?? 0 ) : 0 );
-									$cat_name  = is_object( $cat ) ? ( $cat->name ?? '' ) : ( is_array( $cat ) ? ( $cat['name'] ?? '' ) : '' );
-									$cat_count = is_object( $cat ) ? ( $cat->count ?? 0 ) : ( is_array( $cat ) ? ( $cat['count'] ?? 0 ) : 0 );
-									if ( ! $cat_id ) {
+								foreach ( $w2p_categories as $w2p_cat ) :
+									$w2p_cat_id    = is_object( $w2p_cat ) ? ( $w2p_cat->term_id ?? 0 ) : ( is_array( $w2p_cat ) ? ( $w2p_cat['term_id'] ?? 0 ) : 0 );
+									$cat_name  = is_object( $w2p_cat ) ? ( $w2p_cat->name ?? '' ) : ( is_array( $w2p_cat ) ? ( $w2p_cat['name'] ?? '' ) : '' );
+									$cat_count = is_object( $w2p_cat ) ? ( $w2p_cat->count ?? 0 ) : ( is_array( $w2p_cat ) ? ( $w2p_cat['count'] ?? 0 ) : 0 );
+									if ( ! $w2p_cat_id ) {
 										continue;
 									}
 									?>
-									<option value="<?php echo esc_attr( $cat_id ); ?>"><?php echo esc_html( $cat_name ) . ' (' . esc_html( $cat_count ) . ')'; ?></option>
+									<option value="<?php echo esc_attr( $w2p_cat_id ); ?>"><?php echo esc_html( $cat_name ) . ' (' . esc_html( $cat_count ) . ')'; ?></option>
 								<?php endforeach; ?>
 							<?php endif; ?>
 						</select>
@@ -181,17 +181,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<p class="w2p-mb-sm"><?php esc_html_e( 'Scan and remove duplicate posts based on title and slug matching.', 'wp-genius' ); ?></p>
 						<select id="w2p-duplicate-category" class="w2p-select w2p-min-w-200">
 							<option value="0"><?php esc_html_e( 'All Categories', 'wp-genius' ); ?></option>
-							<?php if ( isset( $categories ) && is_array( $categories ) ) : ?>
+							<?php if ( isset( $w2p_categories ) && is_array( $w2p_categories ) ) : ?>
 								<?php
-								foreach ( $categories as $cat ) :
-									$cat_id    = is_object( $cat ) ? ( $cat->term_id ?? 0 ) : ( is_array( $cat ) ? ( $cat['term_id'] ?? 0 ) : 0 );
-									$cat_name  = is_object( $cat ) ? ( $cat->name ?? '' ) : ( is_array( $cat ) ? ( $cat['name'] ?? '' ) : '' );
-									$cat_count = is_object( $cat ) ? ( $cat->count ?? 0 ) : ( is_array( $cat ) ? ( $cat['count'] ?? 0 ) : 0 );
-									if ( ! $cat_id ) {
+								foreach ( $w2p_categories as $w2p_cat ) :
+									$w2p_cat_id    = is_object( $w2p_cat ) ? ( $w2p_cat->term_id ?? 0 ) : ( is_array( $w2p_cat ) ? ( $w2p_cat['term_id'] ?? 0 ) : 0 );
+									$cat_name  = is_object( $w2p_cat ) ? ( $w2p_cat->name ?? '' ) : ( is_array( $w2p_cat ) ? ( $w2p_cat['name'] ?? '' ) : '' );
+									$cat_count = is_object( $w2p_cat ) ? ( $w2p_cat->count ?? 0 ) : ( is_array( $w2p_cat ) ? ( $w2p_cat['count'] ?? 0 ) : 0 );
+									if ( ! $w2p_cat_id ) {
 										continue;
 									}
 									?>
-									<option value="<?php echo esc_attr( $cat_id ); ?>"><?php echo esc_html( $cat_name ) . ' (' . esc_html( $cat_count ) . ')'; ?></option>
+									<option value="<?php echo esc_attr( $w2p_cat_id ); ?>"><?php echo esc_html( $cat_name ) . ' (' . esc_html( $cat_count ) . ')'; ?></option>
 								<?php endforeach; ?>
 							<?php endif; ?>
 						</select>

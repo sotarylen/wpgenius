@@ -150,6 +150,7 @@ class MediaEngineCLI {
 
 		$command = sprintf( 'wp advmo offload --limit=%d --yes 2>&1', $limit );
 		$output  = array();
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- 系统工具调用，参数已消毒。
 		exec( $command, $output, $return_code );
 
 		if ( $return_code === 0 ) {

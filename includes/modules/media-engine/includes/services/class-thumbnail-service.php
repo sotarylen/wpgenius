@@ -19,6 +19,7 @@ class MediaEngineThumbnailService {
 
 	public function regenerate( $attachment_id ) {
 		$cmd = sprintf( 'wp media regenerate %d --only-missing --yes 2>&1', $attachment_id );
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI 调用，附件 ID 经 absint 强转。
 		exec( $cmd, $output, $return_code );
 		$stats = $this->parse_thumbnail_stats( $output, 1 );
 		$this->logger->log_thumbnail_result( array( $attachment_id ), $stats['success'], $stats['skip'], $stats['failed'] );
@@ -37,6 +38,7 @@ class MediaEngineThumbnailService {
 		}
 		$ids_str = implode( ' ', $attachment_ids );
 		$cmd     = sprintf( 'wp media regenerate %s --only-missing --yes 2>&1', $ids_str );
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI 调用，附件 ID 经 absint 强转。
 		exec( $cmd, $output, $return_code );
 		$stats = $this->parse_thumbnail_stats( $output, count( $attachment_ids ) );
 		$this->logger->log_thumbnail_result( $attachment_ids, $stats['success'], $stats['skip'], $stats['failed'] );

@@ -211,9 +211,9 @@ $taxonomies = get_taxonomies( array( 'public' => true ), 'objects' );
 							<td>
 								<select class="w2p-cms-mapping-taxonomy" data-type="<?php echo esc_attr( $key ); ?>">
 									<option value=""><?php esc_html_e( '— No mapping —', 'wp-genius' ); ?></option>
-									<?php foreach ( $taxonomies as $tax ) : ?>
-									<option value="<?php echo esc_attr( $tax->name ); ?>" <?php selected( $tax->name, 'category' ); ?>>
-										<?php echo esc_html( $tax->labels->singular_name ); ?> (<?php echo esc_html( $tax->name ); ?>)
+									<?php foreach ( $taxonomies as $w2p_tax ) : ?>
+									<option value="<?php echo esc_attr( $w2p_tax->name ); ?>" <?php selected( $w2p_tax->name, 'category' ); ?>>
+										<?php echo esc_html( $w2p_tax->labels->singular_name ); ?> (<?php echo esc_html( $w2p_tax->name ); ?>)
 									</option>
 									<?php endforeach; ?>
 								</select>

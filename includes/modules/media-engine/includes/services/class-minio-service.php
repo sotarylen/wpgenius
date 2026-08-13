@@ -19,6 +19,7 @@ class MediaEngineMinioService {
 
 	public function upload( $attachment_id ) {
 		$cmd = sprintf( 'wp advmo offload %d 2>&1', $attachment_id );
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI 调用，附件 ID 经 absint/%d 绑定。
 		exec( $cmd, $output, $return_code );
 		$stats = $this->parse_offload_stats( $output, 1 );
 		$this->logger->log_offload_result( array( $attachment_id ), $stats['success'], $stats['skip'], $stats['failed'] );
@@ -44,6 +45,7 @@ class MediaEngineMinioService {
 		}
 		$ids_str = implode( ',', $attachment_ids );
 		$cmd     = sprintf( 'wp advmo offload %s 2>&1', $ids_str );
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI 调用，附件 ID 经 absint/%d 绑定。
 		exec( $cmd, $output, $return_code );
 		$stats = $this->parse_offload_stats( $output, count( $attachment_ids ) );
 		$this->logger->log_offload_result( $attachment_ids, $stats['success'], $stats['skip'], $stats['failed'] );
@@ -88,6 +90,7 @@ class MediaEngineMinioService {
 	}
 
 	public function is_available() {
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI 调用，附件 ID 经 absint/%d 绑定。
 		exec( 'wp advmo --help 2>&1', $output, $return_code );
 		return $return_code === 0;
 	}

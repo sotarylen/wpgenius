@@ -104,6 +104,7 @@ class MediaEngineEnvironmentChecker {
 		// 执行检查命令
 		$output      = array();
 		$return_code = 0;
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- 静态检测命令（vips --version 等），非用户输入。
 		exec( $config['check_cmd'], $output, $return_code );
 
 		if ( $return_code === 0 && ! empty( $output ) ) {
@@ -112,6 +113,7 @@ class MediaEngineEnvironmentChecker {
 
 			// 获取命令路径
 			$which_output = array();
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- 静态检测命令（vips --version 等），非用户输入。
 			exec( "which $key 2>&1", $which_output );
 			if ( ! empty( $which_output[0] ) ) {
 				$result['path'] = $which_output[0];

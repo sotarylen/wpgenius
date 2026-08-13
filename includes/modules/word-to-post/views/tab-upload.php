@@ -59,12 +59,12 @@
 						<select name="cpt_type" id="word_to_posts_cpt_type" class="w2p-input-medium">
 							<?php
 							$post_types = get_post_types( array( 'public' => true ), 'objects' );
-							foreach ( $post_types as $post_type ) :
-								if ( $post_type->name === 'attachment' ) {
+							foreach ( $post_types as $w2p_pt ) :
+								if ( $w2p_pt->name === 'attachment' ) {
 									continue;
 								}
 								?>
-								<option value="<?php echo esc_attr( $post_type->name ); ?>"><?php echo esc_html( $post_type->label ); ?></option>
+								<option value="<?php echo esc_attr( $w2p_pt->name ); ?>"><?php echo esc_html( $w2p_pt->label ); ?></option>
 							<?php endforeach; ?>
 						</select>
 					</div>

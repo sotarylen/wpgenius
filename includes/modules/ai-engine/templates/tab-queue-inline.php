@@ -63,7 +63,7 @@ if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $ai_queue_table ) ) 
 						<td><?php echo esc_html( ucfirst( $item['provider'] ?? '' ) ); ?></td>
 						<td>
 							<?php
-							$status = $item['status'] ?? 'pending';
+							$item_status = $item['status'] ?? 'pending';
 							$colors = array(
 								'completed'  => array(
 									'bg' => '#edfaef',
@@ -78,18 +78,18 @@ if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $ai_queue_table ) ) 
 									'fg' => '#996800',
 								),
 							);
-							$style  = $colors[ $status ] ?? array(
+							$style = $colors[ $item_status ] ?? array(
 								'bg' => '#f0f0f1',
 								'fg' => '#50575e',
 							);
 							?>
 							<span style="padding: 2px 8px; border-radius: 3px; background: <?php echo esc_attr( $style['bg'] ); ?>; color: <?php echo esc_attr( $style['fg'] ); ?>;">
-								<?php echo esc_html( ucfirst( $status ) ); ?>
+								<?php echo esc_html( ucfirst( $item_status ) ); ?>
 							</span>
 						</td>
 						<td><?php echo esc_html( $item['created_at'] ?? '' ); ?></td>
 						<td>
-							<?php if ( 'completed' === $status && ! empty( $item['post_id'] ) ) : ?>
+							<?php if ( 'completed' === $item_status && ! empty( $item['post_id'] ) ) : ?>
 								<a href="<?php echo esc_url( get_edit_post_link( $item['post_id'] ) ); ?>" target="_blank">View Post</a>
 							<?php endif; ?>
 						</td>

@@ -9,11 +9,11 @@ $prefix = 'w2p_settings';
 // Get current post types for exclusion
 $post_types      = get_post_types( array( 'public' => true ), 'objects' );
 $exclude_options = array();
-foreach ( $post_types as $post_type ) {
-	if ( in_array( $post_type->name, array( 'attachment', 'revision', 'nav_menu_item' ) ) ) {
+foreach ( $post_types as $w2p_pt ) {
+	if ( in_array( $w2p_pt->name, array( 'attachment', 'revision', 'nav_menu_item' ) ) ) {
 		continue;
 	}
-	$exclude_options[ $post_type->name ] = $post_type->labels->name;
+	$exclude_options[ $w2p_pt->name ] = $w2p_pt->labels->name;
 }
 
 return array(
