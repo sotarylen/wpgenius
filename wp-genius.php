@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Define plugin constants
 define( 'WP_GENIUS_FILE', __FILE__ );
 define( 'W2P_VERSION', '1.2.0' );
+define( 'W2P_DB_VERSION', '1.0' );
 
 // Include module framework (abstracts, loader, admin settings)
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-abstract-module.php';
@@ -23,6 +24,91 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-admin-settings.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-logger.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-security.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-settings.php';
+
+// ---------- Activation / Deactivation lifecycle (G2/G3) ----------
+
+/**
+ * 创建/升级自定义表（schema 版本控制）。
+ *
+ * 由激活钩子与 w2p_core_init 调用：当记录的 w2p_db_version 落后于当前版本时，
+ * 重新触发各表 dbDelta（幂等），保证升级迁移。
+ *
+ * @return void
+ */
+function w2p_maybe_create_tables() {
+	if ( get_option( 'w2p_db_version' ) === W2P_DB_VERSION ) {
+		return;
+	}
+
+	// 触发 AI 引擎表创建（类构造时执行 dbDelta，幂等）。
+	$ai_base = plugin_dir_path( WP_GENIUS_FILE ) . 'includes/modules/ai-engine/';
+	if ( file_exists( $ai_base . 'providers/class-provider-interface.php' ) ) {
+		require_once $ai_base . 'providers/class-provider-interface.php';
+		require_once $ai_base . 'providers/class-openai.php';
+		require_once $ai_base . 'providers/class-anthropic.php';
+		require_once $ai_base . 'providers/class-gemini.php';
+		require_once $ai_base . 'providers/class-deepseek.php';
+		require_once $ai_base . 'classes/class-provider-manager.php';
+		require_once $ai_base . 'classes/class-prompt-engine.php';
+		require_once $ai_base . 'classes/class-content-queue.php';
+		require_once $ai_base . 'classes/class-scheduler.php';
+
+		// 构造即触发 prompts/queue/schedules 三张表创建。
+		new W2P_AI_Prompt_Engine();
+		$provider_manager = new W2P_AI_Provider_Manager();
+		new W2P_AI_Content_Queue( $provider_manager, new W2P_AI_Prompt_Engine() );
+		new W2P_AI_Scheduler( $provider_manager );
+	}
+
+	update_option( 'w2p_db_version', W2P_DB_VERSION );
+}
+
+/**
+ * 插件激活：建表 + 触发各模块 activate()。
+ *
+ * @return void
+ */
+function w2p_activate() {
+	w2p_maybe_create_tables();
+
+	$loader = new W2P_Module_Loader( plugin_dir_path( WP_GENIUS_FILE ) . 'includes/modules/' );
+	$loader->discover( true );
+	foreach ( $loader->get_available_modules() as $module ) {
+		if ( method_exists( $module, 'activate' ) ) {
+			$module->activate();
+		}
+	}
+}
+
+/**
+ * 插件停用：清除 cron，触发各模块 deactivate()。不删除任何用户数据。
+ *
+ * @return void
+ */
+function w2p_deactivate() {
+	// 清除插件注册的定时任务。
+	$hooks = array(
+		'w2p_ai_content_generation',
+		'w2p_ai_queue_processor',
+		'w2p_auto_publish_cron',
+		'w2p_media_turbo_cron',
+		'w2p_smart_aui_cleanup',
+	);
+	foreach ( $hooks as $hook ) {
+		wp_clear_scheduled_hook( $hook );
+	}
+
+	$loader = new W2P_Module_Loader( plugin_dir_path( WP_GENIUS_FILE ) . 'includes/modules/' );
+	$loader->discover( true );
+	foreach ( $loader->get_available_modules() as $module ) {
+		if ( method_exists( $module, 'deactivate' ) ) {
+			$module->deactivate();
+		}
+	}
+}
+
+register_activation_hook( WP_GENIUS_FILE, 'w2p_activate' );
+register_deactivation_hook( WP_GENIUS_FILE, 'w2p_deactivate' );
 
 // CSF (codestar-framework) 仅在 admin 请求加载，且必须在 init 钩子触发前完成 require：
 // CSF 在文件加载时注册 init 钩子（setup），setup 于 init priority 10 执行时才实例化 CSF_Options
@@ -39,6 +125,9 @@ function w2p_core_init() {
 	load_plugin_textdomain( 'wp-genius', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 
 	try {
+		// 升级时（w2p_db_version 落后）触发自定义表创建/迁移（幂等）。
+		w2p_maybe_create_tables();
+
 		// Initialize module loader
 		$module_loader = new W2P_Module_Loader( plugin_dir_path( __FILE__ ) . 'includes/modules/' );
 

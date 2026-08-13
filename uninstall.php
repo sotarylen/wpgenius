@@ -33,6 +33,7 @@ $options = array(
 	'w2p_ai_gemini_usage',
 	'w2p_ai_deepseek_usage',
 	'w2p_ai_schedules_migrated',
+	'w2p_db_version',
 	// CMS Migrator.
 	'w2p_cms_migrator_settings',
 	'w2p_cms_migration_progress',
