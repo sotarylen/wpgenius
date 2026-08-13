@@ -176,14 +176,51 @@ class W2P_AI_Content_Queue {
 	}
 
 	/**
+	 * 单条任务处理超时阈值（秒）。超过该时长仍处于 processing 的任务视为卡死，回收重试。
+	 *
+	 * @var int
+	 */
+	const PROCESSING_TIMEOUT = 900; // 15 minutes
+
+	/**
+	 * 默认每 tick 处理条数（平衡 cron 单次执行时长与吞吐）。
+	 *
+	 * @var int
+	 */
+	const DEFAULT_BATCH_SIZE = 3;
+
+	/**
 	 * Process queue
 	 *
+	 * 每次处理一小批（默认 3 条）并自动链式派发下一轮，避免单次 Cron 长时间阻塞；
+	 * 对超时未完成的 processing 任务做回收重试，保证断点续跑。
+	 *
+	 * @param int $limit 本次处理的条数上限。
 	 * @return bool
 	 */
-	public function process_queue(): bool {
+	public function process_queue( int $limit = self::DEFAULT_BATCH_SIZE ): bool {
 		global $wpdb;
 
-		// Get pending items
+		// 1. 回收卡死任务：processing 超过阈值（进程崩溃/超时）且未超最大重试次数 → 回到 pending 重试；
+		//    已超重试上限的标记为 failed，避免无限滞留 pending。
+		$wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$wpdb->prefix}w2p_ai_queue
+				 SET status = IF(attempts + 1 >= max_attempts, 'failed', 'pending'),
+				     attempts = attempts + 1,
+				     error = %s,
+				     processed_at = NULL
+				 WHERE status = 'processing'
+				 AND processed_at IS NOT NULL
+				 AND processed_at < %s
+				 AND attempts < max_attempts",
+				'processing timeout',
+				gmdate( 'Y-m-d H:i:s', time() - self::PROCESSING_TIMEOUT )
+			)
+		);
+
+		// 2. 取一批 pending 任务。
+		$limit = max( 1, min( 10, $limit ) );
 		$items = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM {$wpdb->prefix}w2p_ai_queue
@@ -191,7 +228,7 @@ class W2P_AI_Content_Queue {
 				 AND attempts < max_attempts
 				 ORDER BY created_at ASC
 				 LIMIT %d",
-				10 // Process 10 items at a time
+				$limit
 			),
 			ARRAY_A
 		);
@@ -202,6 +239,14 @@ class W2P_AI_Content_Queue {
 
 		foreach ( $items as $item ) {
 			$this->process_item( $item );
+		}
+
+		// 3. 若仍有余量任务，链式派发下一轮（WP-Cron 单次事件），批量生成的任务无需等待下一个 hourly tick。
+		$remaining = (int) $wpdb->get_var(
+			"SELECT COUNT(*) FROM {$wpdb->prefix}w2p_ai_queue WHERE status = 'pending' AND attempts < max_attempts"
+		);
+		if ( $remaining > 0 ) {
+			W2P_Task_Queue::schedule_single( 'w2p_ai_queue_processor', array(), 0 );
 		}
 
 		return true;
@@ -216,10 +261,13 @@ class W2P_AI_Content_Queue {
 	private function process_item( array $item ): bool {
 		global $wpdb;
 
-		// Update status to processing
+		// Update status to processing and stamp the start time (used for stuck-task recovery).
 		$wpdb->update(
 			$this->table_name,
-			[ 'status' => 'processing' ],
+			[
+				'status'       => 'processing',
+				'processed_at' => current_time( 'mysql' ),
+			],
 			[ 'id' => $item['id'] ]
 		);
 

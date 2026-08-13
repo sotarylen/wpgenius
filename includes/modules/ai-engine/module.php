@@ -531,7 +531,8 @@ class AiEngineModule extends W2P_Abstract_Module {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ) );
 		}
 
-		$result = $this->content_queue->process_queue();
+		// 手动触发可处理更大批量（浏览器端 AJAX 生命周期内）。
+		$result = $this->content_queue->process_queue( 5 );
 
 		if ( $result ) {
 			wp_send_json_success( array( 'message' => __( 'Queue processed.', 'wp-genius' ) ) );
