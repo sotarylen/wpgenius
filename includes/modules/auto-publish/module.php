@@ -108,7 +108,7 @@ class W2P_AutoPublishModule extends W2P_Abstract_Module {
 
 		$plugin_url = plugin_dir_url( WP_GENIUS_FILE );
 
-		wp_register_script( 'w2p-auto-publish', plugin_dir_url( __FILE__ ) . 'assets/js/auto-publish.js', array( 'w2p-core-js', 'jquery' ), '1.2.0', true );
+		wp_register_script( 'w2p-auto-publish', plugin_dir_url( __FILE__ ) . 'assets/js/auto-publish.js', array( 'w2p-core-js', 'jquery' ), W2P_VERSION, true );
 
 		if ( $is_settings_page || 'edit.php' === $hook ) {
 			wp_enqueue_script( 'w2p-auto-publish' );

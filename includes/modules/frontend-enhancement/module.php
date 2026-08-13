@@ -238,7 +238,7 @@ class W2P_FrontendEnhancementModule extends W2P_Abstract_Module {
 				'wpg-lightbox',
 				plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/js/lightbox.js',
 				array( 'jquery', 'w2p-admin-ui' ),
-				'1.2.0', // Feature: support 3 animation types (fade, slide, zoom)
+				W2P_VERSION, // Feature: support 3 animation types (fade, slide, zoom)
 				true
 			);
 
@@ -287,7 +287,7 @@ class W2P_FrontendEnhancementModule extends W2P_Abstract_Module {
 				'wpg-video-player',
 				plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/css/video-player.css',
 				array( 'plyr-css' ),
-				'1.2.0'
+				W2P_VERSION
 			);
 
 			wp_enqueue_script(
@@ -303,7 +303,7 @@ class W2P_FrontendEnhancementModule extends W2P_Abstract_Module {
 				'wpg-video-optimizer',
 				plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/js/video-optimizer.js',
 				array( 'jquery', 'plyr-js' ),
-				'1.2.0',
+				W2P_VERSION,
 				true
 			);
 
@@ -325,14 +325,14 @@ class W2P_FrontendEnhancementModule extends W2P_Abstract_Module {
 				'wpg-reader-css',
 				plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/css/reader.css',
 				array(),
-				'1.2.0'
+				W2P_VERSION
 			);
 
 			wp_enqueue_script(
 				'wpg-reader-js',
 				plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/js/reader.js',
 				array( 'jquery' ),
-				'1.2.0',
+				W2P_VERSION,
 				true
 			);
 
@@ -355,7 +355,7 @@ class W2P_FrontendEnhancementModule extends W2P_Abstract_Module {
 				'w2p-admin-ui',
 				plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/w2p-admin-ui.js',
 				array( 'jquery' ),
-				'1.2.0',
+				W2P_VERSION,
 				true
 			);
 			wp_localize_script(

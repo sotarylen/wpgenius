@@ -11,8 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 
-// Define plugin file constant
+// Define plugin constants
 define( 'WP_GENIUS_FILE', __FILE__ );
+define( 'W2P_VERSION', '1.2.0' );
 
 // Include module framework (abstracts, loader, admin settings)
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-abstract-module.php';
@@ -88,7 +89,7 @@ function w2p_core_enqueue_scripts() {
 		}
 
 			// Register Assets Globally
-			wp_register_style( 'w2p-core-css', plugin_dir_url( __FILE__ ) . 'assets/css/core.css', array(), '1.2.0' );
+			wp_register_style( 'w2p-core-css', plugin_dir_url( __FILE__ ) . 'assets/css/core.css', array(), W2P_VERSION );
 			wp_register_script( 'w2p-admin-ui', plugin_dir_url( __FILE__ ) . 'assets/js/w2p-admin-ui.js', array( 'jquery' ), '1.0.0', true );
 			wp_localize_script(
 				'w2p-admin-ui',

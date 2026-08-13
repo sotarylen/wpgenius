@@ -163,7 +163,7 @@ class WPG_Highlight_Handler {
 			'wpg-code-highlight-custom',
 			plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/css/code-highlight.css',
 			array( 'prism-css' ),
-			'1.2.0'
+			W2P_VERSION
 		);
 
 		// Add custom styles if provided

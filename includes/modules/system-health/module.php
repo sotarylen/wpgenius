@@ -61,7 +61,7 @@ class W2P_SystemHealthModule extends W2P_Abstract_Module {
 		$plugin_url = plugin_dir_url( WP_GENIUS_FILE );
 
 		$js_path = plugin_dir_path( __FILE__ ) . 'assets/js/system-health.js';
-		$version = file_exists( $js_path ) ? filemtime( $js_path ) : '1.2.0';
+		$version = file_exists( $js_path ) ? filemtime( $js_path ) : W2P_VERSION;
 		$js_url  = plugin_dir_url( __FILE__ ) . 'assets/js/system-health.js';
 
 		wp_enqueue_script( 'w2p-system-health', $js_url, array( 'jquery', 'w2p-core-js' ), $version, true );

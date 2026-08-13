@@ -351,7 +351,7 @@ class W2P_MediaEngineModule extends W2P_Abstract_Module {
 			'w2p-media-engine',
 			plugin_dir_url( __FILE__ ) . 'assets/js/media-engine.js',
 			array( 'jquery' ),
-			'1.2.0',
+			W2P_VERSION,
 			true
 		);
 
@@ -360,12 +360,12 @@ class W2P_MediaEngineModule extends W2P_Abstract_Module {
 			'w2p-media-audit',
 			plugin_dir_url( __FILE__ ) . 'assets/js/media-audit.js',
 			array( 'jquery' ),
-			'1.2.0',
+			W2P_VERSION,
 			true
 		);
 
 		// Register sub-module assets for on-demand use
-		wp_register_script( 'w2p-clipboard-upload', plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/modules/clipboard-upload.js', array( 'w2p-core-js' ), '1.2.0', true );
+		wp_register_script( 'w2p-clipboard-upload', plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/modules/clipboard-upload.js', array( 'w2p-core-js' ), W2P_VERSION, true );
 
 		// Localize script for AJAX
 		wp_localize_script(

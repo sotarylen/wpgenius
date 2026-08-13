@@ -229,7 +229,7 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 			'w2p-ai-engine',
 			$plugin_url . 'includes/modules/ai-engine/assets/css/ai-engine.css',
 			array(),
-			'1.2.0'
+			W2P_VERSION
 		);
 
 		// JS
@@ -237,7 +237,7 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 			'w2p-ai-engine',
 			$plugin_url . 'includes/modules/ai-engine/assets/js/ai-engine.js',
 			array( 'jquery', 'wp-util' ),
-			'1.2.0',
+			W2P_VERSION,
 			true
 		);
 

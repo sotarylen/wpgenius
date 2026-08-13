@@ -202,14 +202,14 @@ class W2P_CmsMigratorModule extends W2P_Abstract_Module {
 			'w2p-cms-migrator',
 			$plugin_url . 'includes/modules/cms-migrator/assets/css/cms-migrator.css',
 			array(),
-			'1.2.0'
+			W2P_VERSION
 		);
 
 		wp_enqueue_script(
 			'w2p-cms-migrator',
 			$plugin_url . 'includes/modules/cms-migrator/assets/js/cms-migrator.js',
 			array( 'jquery', 'wp-util' ),
-			'1.2.0',
+			W2P_VERSION,
 			true
 		);
 
