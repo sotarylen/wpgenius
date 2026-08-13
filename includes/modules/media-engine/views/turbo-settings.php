@@ -18,10 +18,12 @@ $settings = isset( $all_settings['media_engine_tabs'] ) ? $all_settings['media_e
     
     <!-- Media Processing Center -->
     <div class="w2p-section">
-        <div class="w2p-section-header">
+
+        <!-- <div class="w2p-section-header">
             <h4><?php esc_html_e( 'Media Processing Center', 'wp-genius' ); ?></h4>
             <p class="description"><?php esc_html_e( 'Process images using external command-line tools.', 'wp-genius' ); ?></p>
-        </div>
+        </div> -->
+
         <div class="w2p-section-body">
             
             <!-- Processing Actions -->
@@ -54,6 +56,11 @@ $settings = isset( $all_settings['media_engine_tabs'] ) ? $all_settings['media_e
                     <button type="button" id="w2p-stop-conversion" class="w2p-btn w2p-btn-stop w2p-hidden">
                         <i class="fa-solid fa-stop"></i>
                         <?php esc_html_e( 'Stop Processing', 'wp-genius' ); ?>
+                    </button>
+                    <span style="border-left:1px solid var(--w2p-border-color);height:24px;margin:0 4px;"></span>
+                    <button type="button" id="w2p-view-log" class="w2p-btn w2p-btn-secondary">
+                        <i class="fa-solid fa-file-lines"></i>
+                        <?php esc_html_e( 'View Log', 'wp-genius' ); ?>
                     </button>
                 </div>
             </div>
@@ -93,6 +100,95 @@ $settings = isset( $all_settings['media_engine_tabs'] ) ? $all_settings['media_e
     </div>
 
 </div>
+
+<!-- Log Viewer Modal -->
+<div id="w2p-log-modal" class="w2p-log-overlay">
+    <div class="w2p-confirm-modal w2p-log-viewer">
+        <div class="w2p-modal-header">
+            <h4>
+                <i class="fa-solid fa-file-lines"></i>
+                <?php esc_html_e( 'Conversion Log', 'wp-genius' ); ?>
+                <span id="w2p-log-size" style="font-weight:normal;font-size:13px;margin-left:8px;opacity:0.7;"></span>
+            </h4>
+            <button type="button" id="w2p-close-log" class="w2p-modal-close" style="background:none;border:none;cursor:pointer;font-size:22px;color:inherit;padding:2px 6px;line-height:1;">&times;</button>
+        </div>
+        <div class="w2p-modal-body">
+            <pre id="w2p-log-content" class="w2p-terminal" style="margin:0;height:420px;white-space:pre-wrap;word-break:break-all;"></pre>
+        </div>
+        <div class="w2p-modal-footer">
+            <button type="button" id="w2p-refresh-log" class="w2p-btn w2p-btn-secondary">
+                <i class="fa-solid fa-rotate"></i> <?php esc_html_e( 'Refresh', 'wp-genius' ); ?>
+            </button>
+            <button type="button" id="w2p-clear-log" class="w2p-btn w2p-btn-secondary" style="color:var(--w2p-color-error);border-color:var(--w2p-color-error);">
+                <i class="fa-solid fa-trash"></i> <?php esc_html_e( 'Clear Log', 'wp-genius' ); ?>
+            </button>
+            <button type="button" id="w2p-modal-close-log" class="w2p-btn w2p-btn-primary">
+                <?php esc_html_e( 'Close', 'wp-genius' ); ?>
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+#w2p-log-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: var(--w2p-z-index-overlay, 999999);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease;
+}
+#w2p-log-modal.active {
+    opacity: 1;
+    visibility: visible;
+}
+#w2p-log-modal .w2p-confirm-modal.w2p-log-viewer {
+    width: 860px;
+    max-width: 92%;
+    max-height: 88vh;
+    flex-direction: column;
+    display: flex;
+    transform: scale(0.1);
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+#w2p-log-modal.active .w2p-confirm-modal.w2p-log-viewer {
+    transform: scale(1);
+}
+#w2p-log-modal .w2p-confirm-modal.w2p-log-viewer .w2p-modal-body {
+    height: auto;
+    max-height: none;
+    overflow: hidden;
+    padding: 0;
+    flex: 1;
+    min-height: 0;
+}
+#w2p-log-modal .w2p-confirm-modal.w2p-log-viewer .w2p-modal-body pre {
+    height: 420px;
+    overflow-y: auto;
+    border-radius: 0;
+    margin: 0;
+}
+#w2p-log-modal .w2p-modal-footer .w2p-btn-secondary[style*="error"] {
+    background: transparent;
+}
+#w2p-log-modal .w2p-modal-footer .w2p-btn-secondary[style*="error"]:hover {
+    background: var(--w2p-color-error);
+    color: #fff;
+}
+#w2p-log-modal .w2p-modal-header h4 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+</style>
 
 <script>
 (function($) {

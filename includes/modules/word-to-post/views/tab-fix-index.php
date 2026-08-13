@@ -15,7 +15,7 @@
                 <button type="button" id="fix-index-auto-btn" class="w2p-btn w2p-btn-success">
                     <i class="fa fa-magic"></i> <?php _e('Auto Update', 'wp-genius'); ?>
                 </button>
-                <button type="button" id="fix-index-stop-btn" class="w2p-btn w2p-btn-warning" style="display:none;">
+                <button type="button" id="fix-index-stop-btn" class="w2p-btn w2p-btn-stop" style="display:none;">
                     <i class="fa fa-stop"></i> <?php _e('Stop', 'wp-genius'); ?>
                 </button>
                 <button type="button" id="fix-index-reset-btn" class="w2p-btn w2p-btn-secondary" style="display:none;">

@@ -97,11 +97,7 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
         if ( strpos( $hook, 'wp-genius-settings' ) === false ) {
             return;
         }
-
         $plugin_url = plugin_dir_url( WP_GENIUS_FILE );
-        
-        // Register helper scripts that might be needed by other modules or this one in admin
-        wp_register_script( 'w2p-fa-icons', $plugin_url . "assets/js/w2p-fa-icons.js", array( 'jquery' ), '1.0.0', true );
     }
 
 	/**
@@ -246,14 +242,7 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 				true
 			);
 			
-			// [Code Review] Inline JS extracted to external file assets/js/lightbox-init.js (Rule #1)
-			wp_enqueue_script(
-				'wpg-lightbox-init',
-				plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/js/lightbox-init.js',
-				[ 'wpg-lightbox' ],
-				'1.0.0',
-				true
-			);
+
 			
 			wp_localize_script( 'wpg-lightbox', 'wpgLightboxConfig', [
 				'postId'    => get_the_ID(),
@@ -349,6 +338,9 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 		
 		// Load Admin UI only if needed
 		if ( $load_admin_ui ) {
+            // [Fix] Enqueue Core CSS for Lightbox/UI styles (registered globally in wp-genius.php)
+            wp_enqueue_style( 'w2p-core-css' );
+
 			wp_enqueue_script(
 				'w2p-admin-ui',
 				plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/w2p-admin-ui.js',

@@ -27,7 +27,7 @@ return [
             'tabs' => [
                 // Tab 1: Settings (merged General + Filtering + Advanced)
                 [
-                    'title' => __( 'Settings', 'wp-genius' ),
+                    'title' => __( 'Smart AUI Settings', 'wp-genius' ),
                     'icon'  => 'fa fa-cog',
                     'fields' => [
                         // === General Settings ===
@@ -163,32 +163,33 @@ return [
                 ],
                 // Tab 2: Logs
                 [
-                    'title' => __( 'Logs', 'wp-genius' ),
+                    'title' => __( 'Capture Failure Logs', 'wp-genius' ),
                     'icon'  => 'fa fa-history',
                     'fields' => [
-                        [
-                            'id'      => '_subheading_failed_logs',
-                            'type'    => 'subheading',
-                            'content' => __( 'Capture Failure Logs', 'wp-genius' ),
-                        ],
                         [
                             'type'    => 'content',
                             'content' => '
                                 <div class="w2p-section">
                                     <div class="w2p-section-body">
-                                        <p class="description">
+                                        <div class="w2p-section-header">
+                                            <h3>' . __( 'Capture Failure Logs', 'wp-genius' ) . '</h3>
+                                            <p>
+                                                <button type="button" id="w2p-smart-aui-clear-logs" class="w2p-btn w2p-btn-primary">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                    ' . __( 'Clear All Logs', 'wp-genius' ) . '
+                                                </button>
+                                            </p>
+                                        </div>
+
+                                        <div class="w2p-alert w2p-alert-success">
+                                            <i class="fa-solid fa-circle-check"></i>
                                             ' . __( 'The following image URLs failed to download and will be skipped in future attempts to avoid infinite retry loops.', 'wp-genius' ) . '
-                                        </p>
+                                        </div>
+
                                         <div class="w2p-log-container" id="w2p-smart-aui-logs-container">
                                             ' . __( 'Loading logs...', 'wp-genius' ) . '
                                         </div>
                                     </div>
-                                    <p>
-                                        <button type="button" id="w2p-smart-aui-clear-logs" class="w2p-btn w2p-btn-primary">
-                                            <i class="fa-solid fa-trash"></i>
-                                            ' . __( 'Clear All Logs', 'wp-genius' ) . '
-                                        </button>
-                                    </p>
                                 </div>
                             ',
                         ]

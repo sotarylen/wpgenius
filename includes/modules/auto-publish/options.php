@@ -3,7 +3,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	die; // Cannot access directly.
 }
 
-// Return configuration array instead of calling CSF::createSection directly
+// Helper to get template content
+$get_template_content = function() {
+    ob_start();
+    include plugin_dir_path( __FILE__ ) . 'views/manual-publish-ui.php';
+    return ob_get_clean();
+};
+
 return [
 	'module_id' => 'auto-publish',
 	'id'     => 'auto_publish',
@@ -16,7 +22,7 @@ return [
             'tabs' => [
                 // Tab 1: Configuration
                 [
-                    'title'  => __( 'Configuration', 'wp-genius' ),
+                    'title'  => __( 'Auto Publish', 'wp-genius' ),
                     'icon'   => 'fa fa-sliders',
                     'fields' => [
                         [
@@ -56,72 +62,12 @@ return [
                 ],
                 // Tab 2: Tools
                 [
-                    'title'  => __( 'Tools', 'wp-genius' ),
+                    'title'  => __( 'Manual Bulk Publish', 'wp-genius' ),
                     'icon'   => 'fa fa-tools',
                     'fields' => [
                         [
                             'type'    => 'content',
-                            'content' => '
-                                <div class="w2p-auto-publish-logs">
-                                    <div class="w2p-section-header">
-                                        <h4>' . __( 'Manual Bulk Publish', 'wp-genius' ) . '</h4>
-                                        <div class="w2p-header-actions">
-                                            <button type="button" id="w2p-start-publish" class="button button-primary w2p-btn w2p-btn-primary">
-                                                <i class="fa-solid fa-play"></i>
-                                                ' . __( 'Start Now', 'wp-genius' ) . '
-                                            </button>
-                                            <button type="button" id="w2p-stop-publish" class="button w2p-btn w2p-btn-stop hidden">
-                                                <i class="fa-solid fa-pause"></i>
-                                                ' . __( 'Stop', 'wp-genius' ) . '
-                                            </button>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="w2p-manual-publish-controls">
-                                        <div class="w2p-manual-publish-info">
-                                            <div class="w2p-progress-text">
-                                                <strong class="w2p-progress-counter">0/0</strong>
-                                            </div>
-                                            <div class="progress-text">' . __( 'Ready to start...', 'wp-genius' ) . '</div>
-                                        </div>
-                                        
-                                        <div id="w2p-publish-progress" class="hidden mt-15">
-                                            <div class="progress-bar-container">
-                                                <div class="progress-bar-inner" style="width: 0%;"></div>
-                                            </div>
-                                            <div id="w2p-smart-aui-preview-area" class="w2p-smart-aui-preview-area mt-15"></div>
-                                        </div>
-                                    </div>
-                                </div>',
-                        ],
-                        [
-                            'type'    => 'content',
-                            'content' => '
-                                <div class="w2p-auto-publish-logs">
-                                    <div class="w2p-section-header w2p-section-spacing">
-                                        <h4>' . __( 'Publish Logs', 'wp-genius' ) . '</h4>
-                                        <button type="button" id="w2p-clean-logs" class="button w2p-btn w2p-btn-secondary w2p-btn-small">
-                                            <i class="fa-solid fa-trash"></i>
-                                            ' . __( 'Clear Logs', 'wp-genius' ) . '
-                                        </button>
-                                    </div>
-                                    
-                                    <div class="w2p-log-container">
-                                        <table class="wp-list-table widefat fixed striped">
-                                            <thead>
-                                                <tr>
-                                                    <th width="20%">' . __( 'Time', 'wp-genius' ) . '</th>
-                                                    <th>' . __( 'Post', 'wp-genius' ) . '</th>
-                                                    <th width="15%">' . __( 'Source', 'wp-genius' ) . '</th>
-                                                    <th width="15%">' . __( 'Status', 'wp-genius' ) . '</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="w2p-publish-logs-body">
-                                                <tr><td colspan="4">' . __( 'Loading logs...', 'wp-genius' ) . '</td></tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>',
+                            'content' => $get_template_content(),
                         ],
                     ],
                 ],
@@ -129,3 +75,4 @@ return [
         ],
 	],
 ];
+

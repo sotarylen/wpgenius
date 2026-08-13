@@ -10,9 +10,6 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$module_dir = plugin_dir_path(__FILE__);
-$settings_file = $module_dir . 'settings.php';
-
 return [
     'module_id' => 'system-health',
     'id'     => 'system_health',
@@ -21,19 +18,38 @@ return [
     'fields' => [
         [
             'type'    => 'content',
-            'content' => (function() use ($settings_file) {
-                // 确保 SystemHealthCleanupService 类被加载
-                $service_file = plugin_dir_path(__FILE__) . 'cleanup-service.php';
-                if (file_exists($service_file)) {
-                    require_once $service_file;
+            'content' => (function() {
+                $module_dir = plugin_dir_path(__FILE__);
+                
+                // Ensure Service is loaded
+                if (file_exists($module_dir . 'cleanup-service.php')) {
+                    require_once $module_dir . 'cleanup-service.php';
                 }
                 
-                if (file_exists($settings_file)) {
-                    ob_start();
-                    include $settings_file;
-                    return ob_get_clean();
+                // Initialize Data
+                $service = new SystemHealthCleanupService();
+                $stats   = [
+                    'revisions'     => '-',
+                    'auto_drafts'   => '-',
+                    'orphaned_meta' => '-',
+                    'transients'    => '-',
+                ];
+                $categories = $service->get_categories();
+                
+                ob_start();
+
+                // Load Views
+                if (file_exists($module_dir . 'views/settings-page.php')) {
+                    include $module_dir . 'views/settings-page.php';
+                } else {
+                     echo '<div class="w2p-notice w2p-notice-error"><p>' . esc_html__('Error: View file not found.', 'wp-genius') . '</p></div>';
                 }
-                return '<div class="w2p-info-box"><p>' . __('System Health tools not available.', 'wp-genius') . '</p></div>';
+
+                if (file_exists($module_dir . 'views/js-templates.php')) {
+                    include $module_dir . 'views/js-templates.php';
+                }
+
+                return ob_get_clean();
             })(),
         ],
     ],

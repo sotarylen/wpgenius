@@ -23,16 +23,16 @@ if ( ! class_exists( 'CSF_Field_slider' ) ) {
         'unit' => '',
       ) );
 
-      $is_unit = ( ! empty( $args['unit'] ) ) ? ' csf--is-unit' : '';
-
       echo $this->field_before();
 
-      echo '<div class="csf--wrap">';
-      echo '<div class="csf-slider-ui"></div>';
-      echo '<div class="csf--input">';
-      echo '<input type="number" name="'. esc_attr( $this->field_name() ) .'" value="'. esc_attr( $this->value ) .'"'. $this->field_attributes( array( 'class' => 'csf-input-number'. esc_attr( $is_unit ) ) ) .' data-min="'. esc_attr( $args['min'] ) .'" data-max="'. esc_attr( $args['max'] ) .'" data-step="'. esc_attr( $args['step'] ) .'" step="any" />';
-      echo ( ! empty( $args['unit'] ) ) ? '<span class="csf--unit">'. esc_attr( $args['unit'] ) .'</span>' : '';
+      echo '<div class="w2p-range-group">';
+      
+      echo '<div class="w2p-range-header">';
+      echo '<span class="w2p-range-value"></span>';
       echo '</div>';
+
+      echo '<input type="range" name="'. esc_attr( $this->field_name() ) .'" value="'. esc_attr( $this->value ) .'" class="w2p-range-slider" min="'. esc_attr( $args['min'] ) .'" max="'. esc_attr( $args['max'] ) .'" step="'. esc_attr( $args['step'] ) .'" data-suffix="'. esc_attr( $args['unit'] ) .'"'. $this->field_attributes() .' />';
+
       echo '</div>';
 
       echo $this->field_after();
@@ -41,8 +41,8 @@ if ( ! class_exists( 'CSF_Field_slider' ) ) {
 
     public function enqueue() {
 
-      if ( ! wp_script_is( 'jquery-ui-slider' ) ) {
-        wp_enqueue_script( 'jquery-ui-slider' );
+      if ( ! wp_script_is( 'w2p-range-slider' ) ) {
+        wp_enqueue_script( 'w2p-range-slider' );
       }
 
     }

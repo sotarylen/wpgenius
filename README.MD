@@ -30,11 +30,29 @@ WP Genius 将多个实用的 WordPress 功能整合为一个统一的插件平�
 - 进度可视化界面
 - 兼容 MinIO/S3 等对象存储
 
-### AI Content Assistant（AI 内容助手）
-集成 OpenAI API，辅助内容创作。
-- AI 自动生成文章摘要
-- AI 智能标签推荐
-- 图片 Alt 文本自动生成
+### Auto Publish（自动发布）
+自动发布草稿文章，支持定时任务和手动批量发布。
+- 支持定时发布（每5/15/30分钟或每小时）
+- 批量自动发布草稿
+- 支持手动触发发布流程
+
+### Frontend Enhancement（前端增强）
+提升前端用户体验的工具集。
+- **Lightbox**：集成轻量级图片灯箱效果
+- **视频优化**：优化视频播放体验
+- **阅读模式**：为特定内容提供专注阅读体验
+
+### Post Duplicator（文章复制）
+快速复制文章、页面及自定义文章类型。
+- 复制文章内容、标题、摘要
+- 复制自定义字段和分类法
+- 支持所有文章类型
+
+### SMTP Mailer（SMTP 邮件）
+配置 SMTP 邮件发送服务，替代默认的 PHP mail()。
+- 支持自定义 SMTP 服务器、端口、加密方式
+- 支持测试邮件发送
+- 确保邮件送达率
 
 ### Accelerate（网站加速与清理）
 优化 WordPress 后台体验和更新行为控制。
@@ -43,12 +61,6 @@ WP Genius 将多个实用的 WordPress 功能整合为一个统一的插件平�
 - **本地头像**：使用本地上传的图片作为用户头像
 - **上传重命名**：自定义上传文件的命名规则
 - 禁用月份下拉筛选，优化数据库查询
-
-### SEO & Internal Linker（SEO 内链与目录）
-自动化 SEO 优化操作。
-- **关键词内链**：设置关键词自动转换为指定链接
-- **目录生成**：自动为文章生成目录结构
-- 支持手动使用短代码 `[w2p_toc]` 插入目录
 
 ### System Health（系统健康）
 数据库维护和内容优化工具。
@@ -119,14 +131,29 @@ WP Genius 将多个实用的 WordPress 功能整合为一个统一的插件平�
 - 进度界面显示
 - 视频捕获
 
-### AI Assistant 配置
+### Auto Publish 配置
 
-在「AI Content Assistant」标签页中：
-- API Key
-- API Base URL
-- 模型选择
-- 自动生成摘要
-- 自动生成标签
+在「Auto Publish」标签页中：
+- 启用/禁用定时发布
+- 设置发布间隔（5分钟、15分钟、30分钟、每小时）
+- 设置单次发布数量
+
+### Frontend Enhancement 配置
+
+在「Frontend Enhancement」标签页中：
+- 启用/禁用 Lightbox
+- 启用/禁用视频优化
+- 启用/禁用代码高亮
+
+### SMTP Mailer 配置
+
+在「SMTP Mailer」标签页中：
+- SMTP 服务器地址
+- 端口号
+- 认证方式（SSL/TLS）
+- 用户名和密码
+- 发件人邮箱和名称
+- 发送测试邮件
 
 ### Accelerate 配置
 
@@ -147,20 +174,6 @@ WP Genius 将多个实用的 WordPress 功能整合为一个统一的插件平�
 **上传重命名：**
 - 启用自定义上传命名
 - 设置命名规则（支持变量：{timestamp}、{sanitized}、{rand}、{date}、{user_id}、{orig}、{ext} 等）
-
-### SEO & Internal Linker 配置
-
-在「SEO & Internal Linker」标签页中：
-
-**关键词内链：**
-- 启用/禁用关键词内链
-- 添加关键词-URL 映射
-
-**目录生成：**
-- 启用/禁用自动目录
-- 设置最小标题数量阈值
-- 设置目录深度
-- 设置自动插入目录
 
 ### System Health 配置
 
@@ -187,12 +200,11 @@ WP Genius 将多个实用的 WordPress 功能整合为一个统一的插件平�
 3. 图片 URL 将被替换为本地地址
 4. 可在设置中调整下载行为
 
-### 使用 AI 辅助
+### 自动发布文章
 
-1. 启用 AI Assistant 模块并配置 API Key
-2. 在文章编辑页面右侧的「AI Content Assistant」元框中
-3. 点击「Generate AI Excerpt」生成摘要
-4. 点击「Suggest AI Tags」获取标签建议
+1. 启用 Auto Publish 模块
+2. 在设置中开启定时任务（如每5分钟）
+3. 系统将自动检测草稿文章并按计划发布
 
 ### 清理数据库
 
@@ -215,9 +227,11 @@ wp-genius/
 │       ├── word-to-post/
 │       ├── media-engine/
 │       ├── smart-aui/
-│       ├── ai-assistant/
+│       ├── auto-publish/
+│       ├── frontend-enhancement/
+│       ├── post-duplicator/
+│       ├── smtp-mailer/
 │       ├── accelerate/
-│       ├── seo-linker/
 │       └── system-health/
 ├── assets/
 │   ├── css/                  # 样式文件

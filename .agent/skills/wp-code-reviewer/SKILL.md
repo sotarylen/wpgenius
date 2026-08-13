@@ -1,6 +1,6 @@
 ---
 name: wp-code-reviewer
-description: 专门针对 WordPress 插件的深度代码审查专家。当用户要求检查、审查或寻找代码问题时激活。
+description: 执行 WordPress 插件深度代码审查。触发条件：检查代码、安全扫描、审查逻辑、审计样式。检查项：Nonce、Sanitization、Escaping、内联样式、代码冗余、架构一致性。
 ---
 
 # WordPress 专业代码审查协议

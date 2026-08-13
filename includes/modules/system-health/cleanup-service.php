@@ -176,40 +176,56 @@ class SystemHealthCleanupService {
      * Scan for posts with images wrapped in links
      */
     public function scan_posts_with_linked_images( $category_id = 0 ) {
-        $args = [
-            'post_type'      => 'post',
-            'post_status'    => [ 'publish', 'draft', 'pending', 'private', 'future' ],
-            'posts_per_page' => -1,
-            'fields'         => 'ids',
-            'suppress_filters' => true,
-        ];
+        global $wpdb;
 
+        // Get all public post types to avoid missing CPTs
+        $post_types = get_post_types( [ 'public' => true ], 'names' );
+        // Ensure default 'post' is included (though logic above should catch it)
+        if ( ! in_array( 'post', $post_types ) ) {
+            $post_types[] = 'post';
+        }
+        
+        // Sanitize for SQL IN clause
+        $post_types_sql = "'" . implode( "','", array_map( 'esc_sql', $post_types ) ) . "'";
+        $post_statuses = "'publish', 'draft', 'pending', 'private', 'future'";
+        
+        $where_category = '';
         if ( $category_id > 0 ) {
-            $args['tax_query'] = [
-                [
-                    'taxonomy' => 'category',
-                    'field'    => 'term_id',
-                    'terms'    => $category_id,
-                ],
-            ];
+            $term_taxonomy_id = $wpdb->get_var( $wpdb->prepare( "SELECT term_taxonomy_id FROM $wpdb->term_taxonomy WHERE term_id = %d", $category_id ) );
+            if ( $term_taxonomy_id ) {
+                $where_category = $wpdb->prepare( " AND ID IN (SELECT object_id FROM $wpdb->term_relationships WHERE term_taxonomy_id = %d)", $term_taxonomy_id );
+            }
         }
 
-        $query = new WP_Query( $args );
-        $post_ids = $query->posts;
+        // Use direct SQL for performance
+        // First filter with strict LIKE to find candidates (much faster than PHP loop)
+        // LIMIT 500 to prevent browser crash rendering too many rows
+        $like_pattern = '%<a%<img%</a>%';
+        $sql = "
+            SELECT ID, post_title, post_content 
+            FROM $wpdb->posts 
+            WHERE post_type IN ($post_types_sql) 
+            AND post_status IN ($post_statuses) 
+            AND post_content LIKE %s 
+            $where_category
+            ORDER BY ID DESC
+            LIMIT 10000
+        ";
 
+        // Query expecting one string arg for LIKE pattern
+        $posts = $wpdb->get_results( $wpdb->prepare( $sql, $like_pattern ) );
         $results = [];
 
-        if ( ! empty( $post_ids ) ) {
-            foreach ( $post_ids as $post_id ) {
-                $content = get_post_field( 'post_content', $post_id );
-                
-                // Regular expression to find a links surrounding img tags, allowing whitespace
-                // <a ...>\s*<img ...>\s*</a>
-                if ( preg_match( '/<a [^>]*>\s*<img [^>]*>\s*<\/a>/is', $content ) ) {
+        if ( ! empty( $posts ) ) {
+            foreach ( $posts as $post ) {
+                // Double check with Regex to ensure it's truly an image inside a link
+                // Uses \s+ to match any whitespace including newlines
+                if ( preg_match( '/<a\s+[^>]*>\s*<img\s+[^>]*>\s*<\/a>/is', $post->post_content ) ) {
+                    $edit_url = get_edit_post_link( $post->ID, 'raw' );
                     $results[] = [
-                        'id'       => $post_id,
-                        'title'    => get_the_title( $post_id ),
-                        'edit_url' => get_edit_post_link( $post_id, '' ),
+                        'id'       => $post->ID,
+                        'title'    => $post->post_title,
+                        'edit_url' => $edit_url ? $edit_url : '',
                     ];
                 }
             }
@@ -225,7 +241,8 @@ class SystemHealthCleanupService {
         $content = get_post_field( 'post_content', $post_id );
         
         // Replace <a ...>\s*<img ...>\s*</a> with just the img tag content
-        $pattern = '/<a [^>]*>\s*(<img [^>]*>)\s*<\/a>/is';
+        // Uses \s+ for robust whitespace matching
+        $pattern = '/<a\s+[^>]*>\s*(<img\s+[^>]*>)\s*<\/a>/is';
         $new_content = preg_replace( $pattern, '$1', $content );
 
         if ( $new_content !== $content ) {
@@ -246,10 +263,11 @@ class SystemHealthCleanupService {
         global $wpdb;
 
         try {
-            // 1. First, find titles that have duplicates using a lightweight SQL query
-            // We only care about post titles that appear more than once.
+            // Get all public post types
+            $post_types = get_post_types( [ 'public' => true ], 'names' );
+            if ( ! in_array( 'post', $post_types ) ) $post_types[] = 'post';
+            $post_types_sql = "'" . implode( "','", array_map( 'esc_sql', $post_types ) ) . "'";
             
-            $post_types = "'post'";
             $post_statuses = "'publish', 'draft', 'pending', 'private', 'future'";
             
             if ( $category_id > 0 ) {
@@ -258,7 +276,7 @@ class SystemHealthCleanupService {
                     FROM $wpdb->posts p
                     INNER JOIN $wpdb->term_relationships tr ON (p.ID = tr.object_id)
                     INNER JOIN $wpdb->term_taxonomy tt ON (tr.term_taxonomy_id = tt.term_taxonomy_id)
-                    WHERE p.post_type = 'post'
+                    WHERE p.post_type IN ($post_types_sql)
                     AND p.post_status IN ($post_statuses)
                     AND p.post_title != ''
                     AND tt.term_id = %d
@@ -270,7 +288,7 @@ class SystemHealthCleanupService {
                 $sql_find_duplicates = "
                     SELECT post_title, COUNT(*) as count
                     FROM $wpdb->posts
-                    WHERE post_type = $post_types
+                    WHERE post_type IN ($post_types_sql)
                     AND post_status IN ($post_statuses)
                     AND post_title != ''
                     GROUP BY post_title
@@ -278,10 +296,6 @@ class SystemHealthCleanupService {
                 ";
             }
 
-            // Optimize: limit results if too many? No, user wants to find all.
-            // But to avoid OOM on millions of rows, maybe we process in chunks?
-            // For now, getting just titles having duplicates is relatively light.
-            
             $duplicate_titles_rows = $wpdb->get_results( $sql_find_duplicates );
 
             if ( empty( $duplicate_titles_rows ) ) {
@@ -289,10 +303,6 @@ class SystemHealthCleanupService {
             }
 
             $duplicate_titles = wp_list_pluck( $duplicate_titles_rows, 'post_title' );
-            
-            // 2. Now fetch the actual post data only for these titles
-            // To prevent huge queries, we might need to chunk this if there are thousands of duplicate titles.
-            // But let's assume a reasonable limit or fetch all since we are only fetching minimal fields.
             
             // Escape titles for IN clause
             $escaped_titles = [];
@@ -341,9 +351,9 @@ class SystemHealthCleanupService {
                                     'title'            => $p->post_title,
                                     'slug'             => $p->post_name,
                                     'date'             => $p->post_date,
-                                    'edit_url'         => $edit_url ? $edit_url : '', // Can be slow if called many times, but ID-based link generation is fast
-                                    'recommended_keep' => ( $index === 0 ), // Keep the oldest
-                                    'selected'         => ( $index !== 0 ), // Select others
+                                    'edit_url'         => $edit_url ? $edit_url : '', 
+                                    'recommended_keep' => ( $index === 0 ),
+                                    'selected'         => ( $index !== 0 ),
                                 ];
                             }
 

@@ -1,6 +1,6 @@
 ---
 name: wp-refactor-expert
-description: 专门负责按最新规范重构 WordPress 插件逻辑的专家。当用户要求重构、清理冗余或调整架构时激活。
+description: 执行 WordPress 插件架构重构。触发条件：重构代码、清理遗留代码、移动逻辑到类。动作：文件迁移 (includes/templates)、函数去重、添加前缀、标准化。
 ---
 
 # WordPress 插件重构执行手册

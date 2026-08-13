@@ -37,6 +37,7 @@
          */
         init: function () {
             this.bindEvents();
+            this.initLogViewer();
             // 确保初始按钮状态符合 idle 状态矩阵（页面加载时）
             this.setAutoUI('idle');
         },
@@ -970,6 +971,134 @@
             const $icon = $btn.find('i');
             $icon.removeClass().addClass('fa-solid ' + (isResume ? 'fa-play' : 'fa-pause'));
             $btn.empty().append($icon).append(document.createTextNode(' ' + (isResume ? '恢复' : '暂停')));
+        },
+
+        /* ======================================================================
+         * 日志查看浮层（Log Viewer Modal）
+         * ====================================================================== */
+
+        logPollingTimer: null,
+
+        /**
+         * 初始化日志查看器事件绑定
+         */
+        initLogViewer: function () {
+            const self = this;
+
+            $('#w2p-view-log').on('click', function () {
+                self.openLogModal();
+            });
+
+            $('#w2p-close-log, #w2p-modal-close-log').on('click', function () {
+                self.closeLogModal();
+            });
+
+            $('#w2p-log-modal').on('click', function (e) {
+                if ($(e.target).is('#w2p-log-modal')) {
+                    self.closeLogModal();
+                }
+            });
+
+            $(document).on('keydown', function (e) {
+                if (e.key === 'Escape' && $('#w2p-log-modal').hasClass('active')) {
+                    self.closeLogModal();
+                }
+            });
+
+            $('#w2p-refresh-log').on('click', function () {
+                self.fetchLog();
+            });
+
+            $('#w2p-clear-log').on('click', function () {
+                self.clearLog();
+            });
+        },
+
+        /**
+         * 打开日志浮层
+         */
+        openLogModal: function () {
+            const self = this;
+
+            $('#w2p-log-modal').addClass('active');
+            self.fetchLog();
+            self.logPollingTimer = setInterval(function () {
+                self.fetchLog();
+            }, 3000);
+        },
+
+        /**
+         * 关闭日志浮层
+         */
+        closeLogModal: function () {
+            if (this.logPollingTimer) {
+                clearInterval(this.logPollingTimer);
+                this.logPollingTimer = null;
+            }
+            $('#w2p-log-modal').removeClass('active');
+        },
+
+        /**
+         * 拉取日志尾部内容
+         */
+        fetchLog: function () {
+            $.ajax({
+                url: w2pMediaEngine.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'w2p_get_conversion_log',
+                    nonce: w2pMediaEngine.nonce
+                },
+                success: function (response) {
+                    if (response.success) {
+                        const $content = $('#w2p-log-content');
+                        const wasAtBottom = $content[0].scrollHeight - $content.scrollTop() - $content.outerHeight() < 60;
+
+                        $content.text(response.data.lines || w2pMediaEngine.i18n.log_empty);
+
+                        $('#w2p-log-size').text(
+                            response.data.size_display + ' / ' + (response.data.max_bytes / 1048576) + ' MB'
+                        );
+
+                        if (wasAtBottom) {
+                            $content.scrollTop($content[0].scrollHeight);
+                        }
+                    }
+                }
+            });
+        },
+
+        /**
+         * 清空日志（带确认）
+         */
+        clearLog: function () {
+            const doClear = function () {
+                $.ajax({
+                    url: w2pMediaEngine.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'w2p_clear_conversion_log',
+                        nonce: w2pMediaEngine.nonce
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            $('#w2p-log-content').text(w2pMediaEngine.i18n.log_cleared);
+                            $('#w2p-log-size').text(
+                                response.data.size_display + ' / 5.00 MB'
+                            );
+                            if (typeof w2p !== 'undefined' && w2p.toast) {
+                                w2p.toast(w2pMediaEngine.i18n.log_cleared, 'success');
+                            }
+                        }
+                    }
+                });
+            };
+
+            if (typeof w2p !== 'undefined' && w2p.confirm) {
+                w2p.confirm(w2pMediaEngine.i18n.clear_confirm, doClear);
+            } else if (confirm(w2pMediaEngine.i18n.clear_confirm)) {
+                doClear();
+            }
         }
     };
 

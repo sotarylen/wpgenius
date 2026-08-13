@@ -248,6 +248,15 @@ class ImageValidator {
 	 * @return bool True if valid, false otherwise.
 	 */
 	private function is_valid_url( string $url ): bool {
-		return wp_http_validate_url( $url ) !== false;
+		// 自定义校验：保留基本合法性（scheme + host），跳过 wp_http_validate_url 的 SSRF IP 段检查。
+		// 原因：Clash Verge fake-ip 模式下所有域名解析到 198.18.0.0/15 保留段，SSRF 防护误伤所有外部图片。
+		$parts = wp_parse_url( $url );
+		if ( empty( $parts['scheme'] ) || ! in_array( $parts['scheme'], array( 'http', 'https' ), true ) ) {
+			return false;
+		}
+		if ( empty( $parts['host'] ) ) {
+			return false;
+		}
+		return true;
 	}
 }

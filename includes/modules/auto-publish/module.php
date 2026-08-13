@@ -41,8 +41,8 @@ class AutoPublishModule extends W2P_Abstract_Module {
 	 * Check if module is enabled
 	 */
 	public function is_enabled() {
-		$settings = get_option('w2p_settings', []);
-		return !empty($settings['module_' . $this->id()]);
+		$settings = get_option( 'w2p_settings', array() );
+		return ! empty( $settings[ 'module_' . $this->id() ] );
 	}
 
 	/**
@@ -50,11 +50,11 @@ class AutoPublishModule extends W2P_Abstract_Module {
 	 */
 	public function get_settings() {
 		$settings = parent::get_settings();
-		
+
 		if ( ! empty( $settings['auto_publish_tabs'] ) && is_array( $settings['auto_publish_tabs'] ) ) {
 			$settings = array_merge( $settings, $settings['auto_publish_tabs'] );
 		}
-		
+
 		return $settings;
 	}
 
@@ -69,27 +69,27 @@ class AutoPublishModule extends W2P_Abstract_Module {
 		}
 
 		// Register Cron
-		add_filter( 'cron_schedules', [ $this, 'add_cron_schedules' ] );
-		add_action( 'w2p_auto_publish_cron', [ $this, 'run_auto_publish_batch' ] );
-		
+		add_filter( 'cron_schedules', array( $this, 'add_cron_schedules' ) );
+		add_action( 'w2p_auto_publish_cron', array( $this, 'run_auto_publish_batch' ) );
+
 		// Update Cron on Settings Save
-		add_action( 'csf_w2p_settings_saved', [ $this, 'check_cron_schedule' ] );
+		add_action( 'csf_w2p_settings_saved', array( $this, 'check_cron_schedule' ) );
 
 		// AJAX Handlers for Manual Processing
-		add_action( 'wp_ajax_w2p_auto_publish_clean_logs', [ $this, 'ajax_clean_logs' ] );
+		add_action( 'wp_ajax_w2p_auto_publish_clean_logs', array( $this, 'ajax_clean_logs' ) );
 		// Note: process_publish and get_stats might need adjustment if they rely on old nonces?
 		// We updated JS to use 'w2p_auto_publish_nonce' which is standard.
-		add_action( 'wp_ajax_w2p_auto_publish_process', [ $this, 'ajax_process_publish' ] );
-		add_action( 'wp_ajax_w2p_auto_publish_get_stats', [ $this, 'ajax_get_stats' ] );
+		add_action( 'wp_ajax_w2p_auto_publish_process', array( $this, 'ajax_process_publish' ) );
+		add_action( 'wp_ajax_w2p_auto_publish_get_stats', array( $this, 'ajax_get_stats' ) );
 
 		// Pseudo-Cron / Page Load Trigger
-		add_action( 'init', [ $this, 'maybe_trigger_pseudo_cron' ] );
+		add_action( 'init', array( $this, 'maybe_trigger_pseudo_cron' ) );
 
 		// Enqueue Assets
-		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 
 		// Progress Panel (Admin Notice)
-		add_action( 'admin_notices', [ $this, 'render_progress_panel' ] );
+		add_action( 'admin_notices', array( $this, 'render_progress_panel' ) );
 	}
 
 	/**
@@ -99,7 +99,7 @@ class AutoPublishModule extends W2P_Abstract_Module {
 		// Load on:
 		// 1. Post List (edit.php)
 		// 2. Main WP Genius Settings (wp-genius-settings)
-		
+
 		$is_settings_page = ( strpos( $hook, 'wp-genius-settings' ) !== false );
 
 		if ( 'edit.php' !== $hook && ! $is_settings_page ) {
@@ -107,23 +107,23 @@ class AutoPublishModule extends W2P_Abstract_Module {
 		}
 
 		$plugin_url = plugin_dir_url( WP_GENIUS_FILE );
-		
-		wp_register_script( 'w2p-auto-publish', $plugin_url . "assets/js/modules/auto-publish.js", array( 'w2p-core-js', 'jquery' ), '1.0.0', true );
+
+		wp_register_script( 'w2p-auto-publish', plugin_dir_url( __FILE__ ) . 'assets/js/auto-publish.js', array( 'w2p-core-js', 'jquery' ), '1.0.0', true );
 
 		if ( $is_settings_page || 'edit.php' === $hook ) {
 			wp_enqueue_script( 'w2p-auto-publish' );
-			
+
 			global $wpdb;
 			$draft_count = (int) $wpdb->get_var( "SELECT COUNT(ID) FROM $wpdb->posts WHERE post_status = 'draft' AND post_type = 'post'" );
 
 			wp_localize_script(
 				'w2p-auto-publish',
 				'w2p_auto_publish_config',
-				[
+				array(
 					'ajax_url'    => admin_url( 'admin-ajax.php' ),
 					'nonce'       => wp_create_nonce( 'w2p_auto_publish_nonce' ),
 					'draft_count' => $draft_count,
-					'i18n'        => [
+					'i18n'        => array(
 						'processing'          => __( 'Processing', 'wp-genius' ),
 						'publishing'          => __( 'Publishing', 'wp-genius' ),
 						'preparing'           => __( 'Preparing', 'wp-genius' ),
@@ -142,8 +142,8 @@ class AutoPublishModule extends W2P_Abstract_Module {
 						'connection_error'    => __( 'Connection Error', 'wp-genius' ),
 						'error_prefix'        => __( 'Error', 'wp-genius' ),
 						'confirm_nav'         => __( 'Publishing in progress. Leave?', 'wp-genius' ),
-					]
-				]
+					),
+				)
 			);
 		}
 	}
@@ -153,8 +153,10 @@ class AutoPublishModule extends W2P_Abstract_Module {
 	 */
 	public function render_progress_panel() {
 		$screen = get_current_screen();
-		if ( ! $screen ) return;
-		
+		if ( ! $screen ) {
+			return;
+		}
+
 		if ( $screen->id !== 'edit-post' && strpos( $screen->id, 'wp-genius-settings' ) === false && strpos( $screen->id, 'word2posts' ) === false ) {
 			return;
 		}
@@ -174,30 +176,30 @@ class AutoPublishModule extends W2P_Abstract_Module {
 	 * Add custom cron schedules
 	 */
 	public function add_cron_schedules( $schedules ) {
-		$schedules['w2p_every_5_minutes'] = [
+		$schedules['w2p_every_5_minutes']  = array(
 			'interval' => 300,
 			'display'  => __( 'Every 5 Minutes', 'wp-genius' ),
-		];
-		$schedules['w2p_every_15_minutes'] = [
+		);
+		$schedules['w2p_every_15_minutes'] = array(
 			'interval' => 900,
 			'display'  => __( 'Every 15 Minutes', 'wp-genius' ),
-		];
-		$schedules['w2p_every_30_minutes'] = [
+		);
+		$schedules['w2p_every_30_minutes'] = array(
 			'interval' => 1800,
 			'display'  => __( 'Every 30 Minutes', 'wp-genius' ),
-		];
+		);
 		return $schedules;
 	}
 
 	/**
 	 * Check and Update Cron Schedule
-	 * 
+	 *
 	 * @param array $settings
 	 */
 	public function check_cron_schedule( $settings ) {
 		// Handle nested keys from CSF tabbed field
 		$cron_enabled = false;
-		$interval = 'hourly';
+		$interval     = 'hourly';
 
 		if ( ! empty( $settings['auto_publish_tabs']['auto_publish_cron_enabled'] ) ) {
 			$cron_enabled = $settings['auto_publish_tabs']['auto_publish_cron_enabled'];
@@ -210,9 +212,7 @@ class AutoPublishModule extends W2P_Abstract_Module {
 		} elseif ( ! empty( $settings['auto_publish_interval'] ) ) {
 			$interval = $settings['auto_publish_interval'];
 		}
-		
-		error_log( 'Auto Publish Cron Check: ' . ( $cron_enabled ? 'Enabled' : 'Disabled' ) . ', Interval: ' . $interval );
-
+		// error_log( 'Auto Publish Cron Check: ' . ( $cron_enabled ? 'Enabled' : 'Disabled' ) . ', Interval: ' . $interval );
 
 		// Clear existing hook first to ensure cleanliness
 		W2P_Task_Queue::unschedule( 'w2p_auto_publish_cron' );
@@ -220,8 +220,9 @@ class AutoPublishModule extends W2P_Abstract_Module {
 		if ( $cron_enabled ) {
 			// Schedule using Task Queue wrapper
 			// Note: The wrapper handles the check for existing schedule internally
-			W2P_Task_Queue::schedule_recurring( 'w2p_auto_publish_cron', [], $interval );
-			error_log( 'Auto Publish Cron Scheduled via Task Queue' );
+			W2P_Task_Queue::schedule_recurring( 'w2p_auto_publish_cron', array(), $interval );
+		//
+		// 	error_log( 'Auto Publish Cron Scheduled via Task Queue' );
 		}
 	}
 
@@ -230,8 +231,8 @@ class AutoPublishModule extends W2P_Abstract_Module {
 	 */
 	public function run_auto_publish_batch() {
 		$global_settings = $this->get_settings();
-		
-        // Use new keys
+
+		// Use new keys
 		if ( empty( $global_settings['auto_publish_cron_enabled'] ) ) {
 			return;
 		}
@@ -245,21 +246,27 @@ class AutoPublishModule extends W2P_Abstract_Module {
 		set_transient( 'w2p_auto_publish_active_lock', 'scheduled', 300 ); // 5 min safety lock
 
 		$batch_size = isset( $global_settings['auto_publish_batch_size'] ) ? absint( $global_settings['auto_publish_batch_size'] ) : 5;
-		
-		$drafts = get_posts( [
-			'post_status'    => 'draft',
-			'posts_per_page' => $batch_size,
-			'orderby'        => 'date',
-			'order'          => 'ASC',
-		] );
+
+		$drafts = get_posts(
+			array(
+				'post_status'    => 'draft',
+				'posts_per_page' => $batch_size,
+				'orderby'        => 'date',
+				'order'          => 'ASC',
+			)
+		);
 
 		foreach ( $drafts as $post ) {
 			// Update status for UI visibility
-			set_transient( 'w2p_auto_publish_scheduled_status', [
-				'post_id' => $post->ID,
-				'title'   => $post->post_title,
-				'time'    => current_time( 'mysql' ),
-			], 300 );
+			set_transient(
+				'w2p_auto_publish_scheduled_status',
+				array(
+					'post_id' => $post->ID,
+					'title'   => $post->post_title,
+					'time'    => current_time( 'mysql' ),
+				),
+				300
+			);
 
 			$this->publish_post( $post->ID, 'scheduled' );
 		}
@@ -290,19 +297,19 @@ class AutoPublishModule extends W2P_Abstract_Module {
 				return;
 			}
 
-			$last_run = get_option( 'w2p_auto_publish_last_run', 0 );
+			$last_run      = get_option( 'w2p_auto_publish_last_run', 0 );
 			$interval_name = isset( $global_settings['auto_publish_interval'] ) ? $global_settings['auto_publish_interval'] : 'hourly';
-			
+
 			// Map interval names to seconds
-			$intervals = [
+			$intervals = array(
 				'w2p_every_5_minutes'  => 300,
 				'w2p_every_15_minutes' => 900,
 				'w2p_every_30_minutes' => 1800,
 				'hourly'               => 3600,
 				'twicedaily'           => 43200,
 				'daily'                => 86400,
-			];
-			
+			);
+
 			$seconds = isset( $intervals[ $interval_name ] ) ? $intervals[ $interval_name ] : 3600;
 
 			if ( ( time() - $last_run ) >= $seconds ) {
@@ -331,30 +338,30 @@ class AutoPublishModule extends W2P_Abstract_Module {
 
 		if ( ! $skip_processing && class_exists( 'SmartAutoUploadImages\Services\ImageProcessorExtended' ) ) {
 			// Hook for progress updates
-			$progress_callback = function( $image, $result, $index ) use ( $post_id, $post ) {
+			$progress_callback = function ( $image, $result, $index ) use ( $post_id, $post ) {
 				// Get current status to preserve title/time
 				$current_status = get_transient( 'w2p_auto_publish_scheduled_status' );
 				if ( ! is_array( $current_status ) ) {
-					$current_status = [
+					$current_status = array(
 						'post_id' => $post_id,
 						'title'   => $post->post_title,
 						'time'    => current_time( 'mysql' ),
-					];
+					);
 				}
-				
+
 				$current_status['image_progress'] = sprintf( __( 'Processing image %d...', 'wp-genius' ), $index + 1 );
 				set_transient( 'w2p_auto_publish_scheduled_status', $current_status, 300 );
 			};
-			
+
 			add_action( 'smart_aui_image_processed', $progress_callback, 10, 3 );
-			
+
 			// Process!
 			$processor = new \SmartAutoUploadImages\Services\ImageProcessorExtended();
 			// We pass $post explicitly to ensure it uses the latest object
-			$processed_content = $processor->process_post_content( $post->post_content, [ 'ID' => $post_id ] );
-			
+			$processed_content = $processor->process_post_content( $post->post_content, array( 'ID' => $post_id ) );
+
 			remove_action( 'smart_aui_image_processed', $progress_callback );
-			
+
 			if ( $processed_content && $processed_content !== $post->post_content ) {
 				// Update post content
 				$post->post_content = $processed_content;
@@ -364,43 +371,43 @@ class AutoPublishModule extends W2P_Abstract_Module {
 		// Clear post cache before reading content to ensure we get the latest version
 		clean_post_cache( $post_id );
 		wp_cache_delete( $post_id, 'posts' );
-		
+
 		// Update post status and set current date as publish date
 		$current_time = current_time( 'mysql' );
-		$args = [
+		$args         = array(
 			'ID'            => $post_id,
 			'post_content'  => $post->post_content, // Use the processed content from memory
 			'post_status'   => 'publish',
 			'post_date'     => $current_time,
 			'post_date_gmt' => get_gmt_from_date( $current_time ),
 			'edit_date'     => true,
-		];
-		
+		);
+
 		// 设置文章级别的标记，告诉 wp_insert_post_data 钩子不要再次处理图片
 		$_POST['w2p_smart_aui_processed'] = true;
-		
+
 		// 监控 wp_insert_post_data 钩子的返回值
-		$monitor_hook = function( $data ) use ( $post_id ) {
+		$monitor_hook = function ( $data ) use ( $post_id ) {
 			return $data;
 		};
 		add_filter( 'wp_insert_post_data', $monitor_hook, 999, 1 );
-		
+
 		$result = wp_update_post( $args, true );
-		
+
 		// 移除监控钩子
 		remove_filter( 'wp_insert_post_data', $monitor_hook, 999 );
-		
+
 		// 清除标记，以便下一篇文章可以正常处理
 		unset( $_POST['w2p_smart_aui_processed'] );
-		
+
 		if ( is_wp_error( $result ) ) {
 			$this->log_activity( $post_id, 'error', $result->get_error_message(), $source );
 			return false;
 		}
-		
+
 		// 验证状态是否真的更新了
 		$updated_post = get_post( $post_id );
-		
+
 		if ( $updated_post->post_status !== 'publish' ) {
 			$this->log_activity( $post_id, 'error', 'Status not updated to publish', $source );
 			return false;
@@ -414,17 +421,20 @@ class AutoPublishModule extends W2P_Abstract_Module {
 	 * Log Activity
 	 */
 	private function log_activity( $post_id, $status, $message = '', $source = 'manual' ) {
-		$logs = get_option( 'w2p_auto_publish_logs', [] );
+		$logs = get_option( 'w2p_auto_publish_logs', array() );
 		$post = get_post( $post_id );
-		
-		array_unshift( $logs, [
-			'time'    => current_time( 'mysql' ),
-			'post_id' => $post_id,
-			'title'   => $post ? $post->post_title : 'Unknown',
-			'status'  => $status,
-			'source'  => $source,
-			'message' => $message,
-		] );
+
+		array_unshift(
+			$logs,
+			array(
+				'time'    => current_time( 'mysql' ),
+				'post_id' => $post_id,
+				'title'   => $post ? $post->post_title : 'Unknown',
+				'status'  => $status,
+				'source'  => $source,
+				'message' => $message,
+			)
+		);
 
 		// Keep only last 100 logs
 		$logs = array_slice( $logs, 0, 100 );
@@ -436,7 +446,7 @@ class AutoPublishModule extends W2P_Abstract_Module {
 	 */
 	public function ajax_process_publish() {
 		check_ajax_referer( 'w2p_auto_publish_nonce', 'nonce' );
-		
+
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( 'No permission' );
 		}
@@ -450,30 +460,34 @@ class AutoPublishModule extends W2P_Abstract_Module {
 		// Set/Extend manual lock
 		set_transient( 'w2p_auto_publish_active_lock', 'manual', 60 ); // 1 min heart-beat lock
 
-		$exclude = isset( $_POST['exclude'] ) ? array_map( 'absint', (array) $_POST['exclude'] ) : [];
+		$exclude = isset( $_POST['exclude'] ) ? array_map( 'absint', (array) $_POST['exclude'] ) : array();
 
-		$drafts = get_posts( [
-			'post_status'    => 'draft',
-			'posts_per_page' => 1,
-			'orderby'        => 'date',
-			'order'          => 'ASC',
-			'fields'         => 'ids',
-			'post__not_in'   => $exclude,
-		] );
+		$drafts = get_posts(
+			array(
+				'post_status'    => 'draft',
+				'posts_per_page' => 1,
+				'orderby'        => 'date',
+				'order'          => 'ASC',
+				'fields'         => 'ids',
+				'post__not_in'   => $exclude,
+			)
+		);
 
 		if ( empty( $drafts ) ) {
-			wp_send_json_success( [ 'finished' => true ] );
+			wp_send_json_success( array( 'finished' => true ) );
 		}
 
-		$post_id = $drafts[0];
+		$post_id        = $drafts[0];
 		$custom_content = isset( $_POST['post_content'] ) ? wp_kses_post( wp_unslash( $_POST['post_content'] ) ) : null;
-		
+
 		if ( $this->publish_post( $post_id, 'manual', $custom_content ) ) {
-			wp_send_json_success( [
-				'finished' => false,
-				'post_id'  => $post_id,
-				'title'    => get_the_title( $post_id ),
-			] );
+			wp_send_json_success(
+				array(
+					'finished' => false,
+					'post_id'  => $post_id,
+					'title'    => get_the_title( $post_id ),
+				)
+			);
 		} else {
 			wp_send_json_error( 'Failed to publish' );
 		}
@@ -484,7 +498,7 @@ class AutoPublishModule extends W2P_Abstract_Module {
 	 */
 	public function ajax_get_stats() {
 		check_ajax_referer( 'w2p_auto_publish_nonce', 'nonce' );
-		
+
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( 'No permission' );
 		}
@@ -492,29 +506,33 @@ class AutoPublishModule extends W2P_Abstract_Module {
 		if ( session_status() === PHP_SESSION_ACTIVE ) {
 			session_write_close();
 		}
-		$exclude = isset( $_POST['exclude'] ) ? array_map( 'absint', (array) $_POST['exclude'] ) : [];
-		
+		$exclude = isset( $_POST['exclude'] ) ? array_map( 'absint', (array) $_POST['exclude'] ) : array();
+
 		global $wpdb;
 		$draft_count = (int) $wpdb->get_var( "SELECT COUNT(ID) FROM $wpdb->posts WHERE post_status = 'draft' AND post_type = 'post'" );
 
-		$next_draft = get_posts( [
-			'post_status'    => 'draft',
-			'posts_per_page' => 1,
-			'orderby'        => 'date',
-			'order'          => 'ASC',
-			'post__not_in'   => $exclude,
-		] );
+		$next_draft = get_posts(
+			array(
+				'post_status'    => 'draft',
+				'posts_per_page' => 1,
+				'orderby'        => 'date',
+				'order'          => 'ASC',
+				'post__not_in'   => $exclude,
+			)
+		);
 
-		wp_send_json_success( [
-			'draft_count'      => $draft_count,
-			'next_post'        => ! empty( $next_draft ) ? [
-				'id'    => $next_draft[0]->ID,
-				'title' => $next_draft[0]->post_title,
-			] : null,
-			'scheduled_status' => get_transient( 'w2p_auto_publish_scheduled_status' ),
-			'active_lock'      => get_transient( 'w2p_auto_publish_active_lock' ),
-			'logs'             => get_option( 'w2p_auto_publish_logs', [] ),
-		] );
+		wp_send_json_success(
+			array(
+				'draft_count'      => $draft_count,
+				'next_post'        => ! empty( $next_draft ) ? array(
+					'id'    => $next_draft[0]->ID,
+					'title' => $next_draft[0]->post_title,
+				) : null,
+				'scheduled_status' => get_transient( 'w2p_auto_publish_scheduled_status' ),
+				'active_lock'      => get_transient( 'w2p_auto_publish_active_lock' ),
+				'logs'             => get_option( 'w2p_auto_publish_logs', array() ),
+			)
+		);
 	}
 
 	/**
@@ -525,7 +543,7 @@ class AutoPublishModule extends W2P_Abstract_Module {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( 'No permission' );
 		}
-		
+
 		delete_option( 'w2p_auto_publish_logs' );
 		wp_send_json_success();
 	}
@@ -534,11 +552,11 @@ class AutoPublishModule extends W2P_Abstract_Module {
 	 * Activation Hook: Schedule Cron
 	 */
 	public function enable() {
-        // We generally rely on the module loader, but if this method is called,
-        // we check config to set schedule.
+		// We generally rely on the module loader, but if this method is called,
+		// we check config to set schedule.
 		$settings = $this->get_settings();
 		$interval = isset( $settings['auto_publish_interval'] ) ? $settings['auto_publish_interval'] : 'hourly';
-		
+
 		if ( ! wp_next_scheduled( 'w2p_auto_publish_cron' ) ) {
 			wp_schedule_event( time(), $interval, 'w2p_auto_publish_cron' );
 		}
@@ -553,7 +571,7 @@ class AutoPublishModule extends W2P_Abstract_Module {
 
 	/**
 	 * Render settings page
-	 * 
+	 *
 	 * @note Refactored to use CSF
 	 */
 	public function render_settings() {

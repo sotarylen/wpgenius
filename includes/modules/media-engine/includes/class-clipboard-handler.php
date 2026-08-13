@@ -1,7 +1,7 @@
 <?php
 /**
  * Clipboard Upload Handler
- * 
+ *
  * Handles clipboard image upload functionality for the Media Engine module.
  *
  * @package WP_Genius
@@ -13,25 +13,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class W2P_Clipboard_Handler {
-	
+
 	/**
 	 * Constructor
 	 */
 	public function __construct() {
 		// Enqueue scripts for Admin
-		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
-		
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+
 		// Classic Editor Button
-		add_filter( 'mce_buttons', [ $this, 'register_tinymce_button' ] );
-		add_filter( 'mce_external_plugins', [ $this, 'register_tinymce_plugin' ] );
-		
+		add_filter( 'mce_buttons', array( $this, 'register_tinymce_button' ) );
+		add_filter( 'mce_external_plugins', array( $this, 'register_tinymce_plugin' ) );
+
 		// AJAX handlers
-		add_action( 'wp_ajax_w2p_clipboard_upload', [ $this, 'ajax_handle_upload' ] );
-		
+		add_action( 'wp_ajax_w2p_clipboard_upload', array( $this, 'ajax_handle_upload' ) );
+
 		// CSS for icon
-		add_action( 'admin_head', [ $this, 'add_icon_styles' ] );
+		add_action( 'admin_head', array( $this, 'add_icon_styles' ) );
 	}
-	
+
 	/**
 	 * Register TinyMCE Button
 	 */
@@ -39,7 +39,7 @@ class W2P_Clipboard_Handler {
 		array_push( $buttons, 'w2p_clipboard_toggle' );
 		return $buttons;
 	}
-	
+
 	/**
 	 * Register TinyMCE Plugin
 	 */
@@ -47,7 +47,7 @@ class W2P_Clipboard_Handler {
 		$plugin_array['w2p_clipboard_upload'] = plugins_url( '../assets/js/clipboard-upload.js', __FILE__ );
 		return $plugin_array;
 	}
-	
+
 	/**
 	 * Add Icon Styles
 	 */
@@ -64,49 +64,49 @@ class W2P_Clipboard_Handler {
 		</style>
 		<?php
 	}
-	
+
 	/**
 	 * Enqueue Assets
 	 */
 	public function enqueue_assets( $hook ) {
 		// Only load on Post Edit and Media Library pages
-		$relevant_pages = [ 'post.php', 'post-new.php', 'upload.php' ];
+		$relevant_pages = array( 'post.php', 'post-new.php', 'upload.php' );
 		if ( ! in_array( $hook, $relevant_pages ) ) {
 			return;
 		}
 
-		wp_register_script( 
-			'w2p-clipboard-upload', 
-			plugins_url( '../assets/js/clipboard-upload.js', __FILE__ ), 
-			[ 'jquery', 'w2p-core-js' ], 
-			'1.0.0', 
-			true 
+		wp_register_script(
+			'w2p-clipboard-upload',
+			plugins_url( '../assets/js/clipboard-upload.js', __FILE__ ),
+			array( 'jquery', 'w2p-core-js' ),
+			'1.0.0',
+			true
 		);
 
-		$module_settings = get_option( 'media_engine', [] );
-		$settings = [
+		$module_settings = get_option( 'media_engine', array() );
+		$settings        = array(
 			'enabled'      => isset( $module_settings['clipboard_enabled'] ) ? $module_settings['clipboard_enabled'] : false,
 			'image_prefix' => isset( $module_settings['clipboard_prefix'] ) ? $module_settings['clipboard_prefix'] : 'clipboard_',
-		];
-		
+		);
+
 		wp_enqueue_script( 'w2p-clipboard-upload' );
 
 		wp_localize_script(
 			'w2p-clipboard-upload',
 			'w2pClipboardParams',
-			[
+			array(
 				'ajax_url' => admin_url( 'admin-ajax.php' ),
 				'nonce'    => wp_create_nonce( 'w2p_clipboard_upload' ),
 				'settings' => $settings,
-				'l10n'     => [
+				'l10n'     => array(
 					'uploading' => __( 'Uploading clipboard image...', 'wp-genius' ),
 					'success'   => __( 'Image uploaded successfully!', 'wp-genius' ),
 					'error'     => __( 'Failed to upload clipboard image.', 'wp-genius' ),
-				]
-			]
+				),
+			)
 		);
 	}
-	
+
 	/**
 	 * AJAX Handle Upload
 	 */
@@ -133,7 +133,7 @@ class W2P_Clipboard_Handler {
 
 		wp_send_json_success( $result );
 	}
-	
+
 	/**
 	 * Save Base64 Image to Media Library
 	 */
@@ -144,7 +144,7 @@ class W2P_Clipboard_Handler {
 		}
 
 		$extension = strtolower( $type[1] );
-		if ( ! in_array( $extension, [ 'jpg', 'jpeg', 'gif', 'png', 'webp' ] ) ) {
+		if ( ! in_array( $extension, array( 'jpg', 'jpeg', 'gif', 'png', 'webp' ) ) ) {
 			return new WP_Error( 'invalid_extension', 'Unsupported image type' );
 		}
 
@@ -154,12 +154,12 @@ class W2P_Clipboard_Handler {
 		}
 
 		// Prepare filename
-		$module_settings = get_option( 'media_engine', [] );
-		$prefix = isset( $module_settings['clipboard_prefix'] ) ? $module_settings['clipboard_prefix'] : 'clipboard_';
-		$filename = $prefix . uniqid() . '.' . $extension;
+		$module_settings = get_option( 'media_engine', array() );
+		$prefix          = isset( $module_settings['clipboard_prefix'] ) ? $module_settings['clipboard_prefix'] : 'clipboard_';
+		$filename        = $prefix . uniqid() . '.' . $extension;
 
 		$upload_dir = wp_upload_dir();
-		$file_path = $upload_dir['path'] . '/' . $filename;
+		$file_path  = $upload_dir['path'] . '/' . $filename;
 
 		// Save to file
 		file_put_contents( $file_path, $data );
@@ -170,14 +170,14 @@ class W2P_Clipboard_Handler {
 		}
 
 		// Add to Media Library
-		$file_type = wp_check_filetype( $filename, null );
-		$attachment = [
+		$file_type  = wp_check_filetype( $filename, null );
+		$attachment = array(
 			'post_mime_type' => $file_type['type'],
 			'post_title'     => preg_replace( '/\.[^.]+$/', '', $filename ),
 			'post_content'   => '',
 			'post_status'    => 'inherit',
 			'guid'           => $upload_dir['url'] . '/' . $filename,
-		];
+		);
 
 		$attach_id = wp_insert_attachment( $attachment, $file_path, $post_id );
 
@@ -186,13 +186,13 @@ class W2P_Clipboard_Handler {
 		}
 
 		// Generate metadata
-		require_once( ABSPATH . 'wp-admin/includes/image.php' );
+		require_once ABSPATH . 'wp-admin/includes/image.php';
 		$attach_data = wp_generate_attachment_metadata( $attach_id, $file_path );
 		wp_update_attachment_metadata( $attach_id, $attach_data );
 
-		return [
+		return array(
 			'id'  => $attach_id,
 			'url' => wp_get_attachment_url( $attach_id ),
-		];
+		);
 	}
 }

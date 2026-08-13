@@ -1,25 +1,34 @@
-# CakePHP 3
+# Dependencies
+/vendor/
+composer.lock
 
-/vendor/*
-/config/app.php
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-/tmp/cache/models/*
-!/tmp/cache/models/empty
-/tmp/cache/persistent/*
-!/tmp/cache/persistent/empty
-/tmp/cache/views/*
-!/tmp/cache/views/empty
-/tmp/sessions/*
-!/tmp/sessions/empty
-/tmp/tests/*
-!/tmp/tests/empty
+# OS
+.DS_Store
+Thumbs.db
 
-/logs/*
-!/logs/empty
+# Logs
+*.log
 
-# CakePHP 2
+# Build artifacts
+phpcs-report.txt
+phpcs-report.json
 
-/app/tmp/*
-/app/Config/core.php
-/app/Config/database.php
-/vendors/*
+# WordPress
+wp-config.php
+
+# Temporary
+/tmp/
+
+# Agent workspace / tooling
+.workbuddy/
+# .agent/ is tracked (agent rules & skills)
+
+# Backup files
+*.bak*

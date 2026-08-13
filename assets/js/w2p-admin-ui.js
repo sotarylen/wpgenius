@@ -11,12 +11,12 @@
          * Initialize the UI system
          */
         init: function () {
-            this.createToastContainer();
-            this.createModalOverlay();
+            // Lazy load components:
+            this.initLightbox();
         },
 
         /**
-         * Create the container for toast notifications
+         * Create the container for toast notifications (Lazy)
          */
         createToastContainer: function () {
             if (!document.querySelector('.w2p-toast-container')) {
@@ -24,6 +24,7 @@
                 container.className = 'w2p-toast-container';
                 document.body.appendChild(container);
             }
+            return document.querySelector('.w2p-toast-container');
         },
 
         /**
@@ -68,7 +69,7 @@
          * @param {number} duration Duration in ms (default 3000)
          */
         toast: function (message, type = 'info', duration = 3000) {
-            const container = document.querySelector('.w2p-toast-container');
+            const container = this.createToastContainer();
             const toast = document.createElement('div');
 
             // Get icon
@@ -121,6 +122,9 @@
          * @param {Function} onCancel Callback when cancelled
          */
         confirm: function (message, onConfirm, onCancel) {
+            // Ensure overlay exists (lazy load)
+            this.createModalOverlay();
+
             const overlay = document.querySelector('.w2p-modal-overlay');
             const title = overlay.querySelector('.w2p-modal-title');
             const body = overlay.querySelector('.w2p-modal-body');
@@ -217,5 +221,53 @@
             W2P_UI.toast(window.w2p_ui_i18n ? window.w2p_ui_i18n.settings_saved : 'Settings Saved!', 'success');
         }
     }
+
+    // ==============================
+    // Lightbox Module
+    // ==============================
+    W2P_UI.initLightbox = function () {
+        // Event delegation for lightbox triggers
+        $(document).on('click', '.wpg-lightbox-btn, [data-lightbox="true"]', (e) => {
+            e.preventDefault();
+            const $btn = $(e.currentTarget);
+            const src = $btn.data('src') || $btn.attr('href');
+            const title = $btn.data('title') || '';
+            const gallery = $btn.data('gallery');
+
+            if (src) {
+                this.openLightbox(src, title, gallery);
+            }
+        });
+    };
+
+    W2P_UI.openLightbox = function (src, title, gallery) {
+        let overlay = $('.wpg-lightbox-overlay');
+
+        if (!overlay.length) {
+            overlay = $('<div class="wpg-lightbox-overlay"></div>');
+            const closeBtn = $('<button class="wpg-lightbox-close"><i class="dashicons dashicons-no-alt"></i></button>');
+            const content = $('<div class="wpg-lightbox-content"></div>');
+            const img = $('<img src="" alt="">');
+            const caption = $('<div class="wpg-lightbox-caption"></div>');
+
+            content.append(img).append(caption);
+            overlay.append(closeBtn).append(content);
+            $('body').append(overlay);
+
+            // Close events
+            closeBtn.on('click', () => overlay.fadeOut());
+            overlay.on('click', (e) => {
+                if ($(e.target).is('.wpg-lightbox-overlay')) overlay.fadeOut();
+            });
+        }
+
+        const $img = overlay.find('img');
+        const $caption = overlay.find('.wpg-lightbox-caption');
+
+        $img.attr('src', src);
+        $caption.text(title || '');
+
+        overlay.fadeIn();
+    };
 
 })(window, document, jQuery);

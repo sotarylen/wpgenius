@@ -25,7 +25,7 @@ $env_results = MediaEngineEnvironmentChecker::check_all();
 					<h4><i class="fa-solid fa-stethoscope"></i> <?php esc_html_e( 'Environment Check', 'wp-genius' ); ?></h4>
 					<p class="description" style="margin: 5px 0 0;"><?php esc_html_e( 'Verify that all required dependencies are available for media processing.', 'wp-genius' ); ?></p>
 				</div>
-				<button type="button" id="w2p-recheck-environment" class="w2p-btn w2p-btn-secondary">
+				<button type="button" id="w2p-recheck-environment" class="w2p-btn w2p-btn-primary">
 					<i class="fa-solid fa-rotate"></i>
 					<?php esc_html_e( 'Recheck Environment', 'wp-genius' ); ?>
 				</button>

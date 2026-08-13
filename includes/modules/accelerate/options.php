@@ -55,26 +55,13 @@ $defaults = [
     'accelerate_block_external_http'              => true,
 ];
 
-// Ensure keys match new prefixed format if legacy data uses old keys?
-// CSF usually handles default values if the key is missing in DB.
-// Since we are using a unified w2p_settings array in the future, 
-// for now this file returns the SECTION definition.
-// The actual values are stored in 'w2p_settings' (if unified) or 'w2p_accelerate_settings' (legacy mode module.php currently uses).
-// Checking module.php: `settings_key` returns `w2p_accelerate_settings`.
-// So we should stick to that scope.
-
+// Return the module definition
 return [
     'module_id' => 'accelerate',
     'id'     => 'accelerate',
     'title'  => __('Accelerate', 'wp-genius'),
     'icon'   => 'fa-solid fa-gauge-high',
     'fields' => [
-        // [
-        //     'id'      => '_subheading_optimization',
-        //     'type'    => 'subheading',
-        //     'content' => __('Optimize WordPress admin interface and performance', 'wp-genius'),
-        // ],
-        
         // Admin Bar Section
         [
             'id'      => '_subheading_admin_bar',
@@ -263,72 +250,75 @@ return [
         [
             'id'      => '_subheading_update_behaviors',
             'type'    => 'subheading',
-            'content' => __('Update Behaviors', 'wp-genius'),
+            'content' => __('Update Control', 'wp-genius'),
         ],
         [
-            'id'      => 'accelerate_disable_auto_update_plugin',
+            'id'      => 'accelerate_disable_auto_updates',
             'type'    => 'switcher',
-            'title'   => __('Disable Plugin Auto-Update', 'wp-genius'),
+            'title'   => __('Disable All Auto-Updates', 'wp-genius'),
+            'label'   => __('Prevents WordPress from automatically updating plugins and themes.', 'wp-genius'),
             'default' => true,
         ],
         [
-            'id'      => 'accelerate_disable_auto_update_theme',
-            'type'    => 'switcher',
-            'title'   => __('Disable Theme Auto-Update', 'wp-genius'),
-            'default' => true,
-        ],
-        [
-            'id'      => 'accelerate_remove_wp_update_plugins',
+            'id'      => 'accelerate_disable_plugin_updates',
             'type'    => 'switcher',
             'title'   => __('Disable Plugin Update Checks', 'wp-genius'),
+            'label'   => __('Prevents WordPress from checking for plugin updates (both scheduled and manual).', 'wp-genius'),
             'default' => true,
         ],
         [
-            'id'      => 'accelerate_remove_wp_update_themes',
+            'id'      => 'accelerate_disable_theme_updates',
             'type'    => 'switcher',
             'title'   => __('Disable Theme Update Checks', 'wp-genius'),
+            'label'   => __('Prevents WordPress from checking for theme updates.', 'wp-genius'),
             'default' => true,
         ],
         [
-            'id'      => 'accelerate_remove_maybe_update_core',
+            'id'      => 'accelerate_disable_core_updates',
             'type'    => 'switcher',
             'title'   => __('Disable Core Update Checks', 'wp-genius'),
-            'default' => true,
-        ],
-        [
-            'id'      => 'accelerate_remove_maybe_update_plugins',
-            'type'    => 'switcher',
-            'title'   => __('Disable Plugin Checks (Admin Init)', 'wp-genius'),
-            'label'    => __('Blocks explicit update checks on admin page load.', 'wp-genius'),
-            'default' => true,
-        ],
-        [
-            'id'      => 'accelerate_remove_maybe_update_themes',
-            'type'    => 'switcher',
-            'title'   => __('Disable Theme Checks (Admin Init)', 'wp-genius'),
-            'label'    => __('Blocks explicit update checks on admin page load.', 'wp-genius'),
             'default' => true,
         ],
         [
             'id'      => 'accelerate_hide_plugin_notices',
             'type'    => 'switcher',
             'title'   => __('Hide Plugin Notices', 'wp-genius'),
-            'label'    => __('Hides annoying update notices and registration prompts.', 'wp-genius'),
+            'label'   => __('Hides annoying update notices and registration prompts.', 'wp-genius'),
             'default' => false,
         ],
+        
+        // HTTP Blocking
         [
-            'id'      => 'accelerate_block_acf_updates',
-            'type'    => 'switcher',
-            'title'   => __('Block ACF Updates', 'wp-genius'),
-            'label'    => __('Blocks outgoing requests to ACF update servers.', 'wp-genius'),
-            'default' => false,
+            'id'      => '_subheading_http_blocking',
+            'type'    => 'subheading',
+            'content' => __('HTTP Blocking', 'wp-genius'),
+        ],
+        [
+            'id'      => 'accelerate_blind_http_requests',
+            'type'    => 'repeater',
+            'title'   => __('Blocked HTTP Patterns', 'wp-genius'),
+            'button_title' => __('Add Pattern', 'wp-genius'),
+            'fields'  => [
+                [
+                    'id'    => 'url_pattern',
+                    'type'  => 'text',
+                    'title' => __('URL Pattern', 'wp-genius'),
+                    'placeholder' => 'e.g., connect.advancedcustomfields.com',
+                ],
+            ],
+            'help'    => __('Requests containing these strings in the URL will be blocked.', 'wp-genius'),
+            'default' => [],
         ],
         [
             'id'      => 'accelerate_block_external_http',
             'type'    => 'switcher',
-            'title'   => __('Block External HTTP (DANGER)', 'wp-genius'),
+            'title'   => __('Block All External HTTP (DANGER)', 'wp-genius'),
             'label'    => __('⚠️ Use only for local development! Blocks all external update checks.', 'wp-genius'),
             'default' => false,
+            'class'   => 'w2p-danger-toggle',
+            'attributes' => [
+                'data-confirm' => __('Warning: Enabling this feature will block all external HTTP requests, including plugin and theme update checks. This will significantly speed up the backend but may cause some features to fail. Are you sure you want to continue?', 'wp-genius'),
+            ],
         ],
     ],
 ];
