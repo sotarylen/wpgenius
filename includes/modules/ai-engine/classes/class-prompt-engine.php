@@ -73,7 +73,7 @@ class W2P_AI_Prompt_Engine {
 		}
 
 		$results = $wpdb->get_results(
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- 动态 WHERE 片段值经 prepare 占位符传递。
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders -- 动态 WHERE 片段值经 prepare 占位符传递（运行时占位符与参数匹配）。
 			$wpdb->prepare(
 				"SELECT * FROM {$wpdb->prefix}w2p_ai_prompts {$where} ORDER BY name ASC",
 				$query_args

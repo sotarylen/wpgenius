@@ -10,7 +10,7 @@ $prefix = 'w2p_settings';
 $post_types      = get_post_types( array( 'public' => true ), 'objects' );
 $exclude_options = array();
 foreach ( $post_types as $w2p_pt ) {
-	if ( in_array( $w2p_pt->name, array( 'attachment', 'revision', 'nav_menu_item' ) ) ) {
+	if ( in_array( $w2p_pt->name, array( 'attachment', 'revision', 'nav_menu_item' ), true ) ) {
 		continue;
 	}
 	$exclude_options[ $w2p_pt->name ] = $w2p_pt->labels->name;

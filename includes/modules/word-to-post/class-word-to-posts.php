@@ -172,18 +172,18 @@ class WordToPosts {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 同上。
 		$category = isset( $_POST['category'] ) ? absint( $_POST['category'] ) : 0;
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 上层方法已验 nonce（见方法开头）。
-		$tags     = isset( $_POST['tags'] ) ? sanitize_text_field( wp_unslash( $_POST['tags'] ) ) : '';
+		$tags = isset( $_POST['tags'] ) ? sanitize_text_field( wp_unslash( $_POST['tags'] ) ) : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- handleFileUpload 已验 nonce，此处读取后续参数。
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 同上。
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 同上。
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 同上。
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 同上。
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 同上。
-		$author   = isset( $_POST['author'] ) ? absint( $_POST['author'] ) : get_current_user_id();
+		$author = isset( $_POST['author'] ) ? absint( $_POST['author'] ) : get_current_user_id();
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 上层方法已验 nonce（见方法开头）。
 		$cpt_type = isset( $_POST['cpt_type'] ) ? sanitize_text_field( $_POST['cpt_type'] ) : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 上层方法已验 nonce（见方法开头）。
-		$cpt_id   = isset( $_POST['cpt_id'] ) ? intval( $_POST['cpt_id'] ) : 0;
+		$cpt_id = isset( $_POST['cpt_id'] ) ? intval( $_POST['cpt_id'] ) : 0;
 
 		if ( empty( $cpt_type ) || empty( $cpt_id ) ) {
 			wp_send_json_error( __( 'Missing CPT association information.', 'wp-genius' ) );
@@ -256,7 +256,7 @@ class WordToPosts {
 					$styleName      = $paragraphStyle ? $paragraphStyle->getStyleName() : '';
 
 					// 如果 styleName 是 '2' 或者 '3'，则识别为标题
-					if ( $styleName == '2' || $styleName == '3' ) {
+					if ( $styleName === '2' || $styleName === '3' ) {
 						if ( $currentChapter ) {
 							$currentChapter['content'] = $currentContent;
 							$chapters[]                = $currentChapter;
@@ -707,7 +707,7 @@ class WordToPosts {
 		for ( $i = 0; $i < $count; $i++ ) {
 			$temp = (int) ( $num_str[ $i ] );
 			$vt   = $chiUni[ $count - $i - 1 ]; // unit
-			if ( $temp == 0 ) {
+			if ( $temp === 0 ) {
 				if ( $count - $i - 1 < 4 ) { // End of section
 					// Handle complex zero logic if needed, simplified here
 				}

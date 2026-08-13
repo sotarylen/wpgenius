@@ -244,7 +244,7 @@ class SmartAUIModule extends W2P_Abstract_Module {
 		$page             = isset( $_GET['page'] ) ? $_GET['page'] : '';
 		$is_settings_page = ( $page === 'wp-genius-settings' || strpos( $page, 'wp-genius' ) !== false );
 
-		if ( ! in_array( $hook, array( 'post.php', 'post-new.php', 'edit.php' ) ) && ! $is_settings_page ) {
+		if ( ! in_array( $hook, array( 'post.php', 'post-new.php', 'edit.php' ), true ) && ! $is_settings_page ) {
 			return;
 		}
 
@@ -356,7 +356,7 @@ class SmartAUIModule extends W2P_Abstract_Module {
 
 		// 允许在文章编辑页面、文章列表页面以及插件设置页面加载
 		$allowed_bases = array( 'post', 'edit', 'toplevel_page_wp-genius', 'wp-genius_page_wp-genius-settings' );
-		if ( ! in_array( $screen->base, $allowed_bases ) && strpos( $screen->id, 'wp-genius' ) === false ) {
+		if ( ! in_array( $screen->base, $allowed_bases , true ) && strpos( $screen->id, 'wp-genius' ) === false ) {
 			return;
 		}
 

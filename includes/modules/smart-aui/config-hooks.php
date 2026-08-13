@@ -54,7 +54,7 @@ add_filter(
 	function ( $timeout ) {
 		// 在保存文章时增加超时时间
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 仅读取 action 名调整超时，不改状态。
-		if ( isset( $_POST['action'] ) && in_array( $_POST['action'], array( 'editpost', 'inline-save' ) ) ) {
+		if ( isset( $_POST['action'] ) && in_array( $_POST['action'], array( 'editpost', 'inline-save' ), true ) ) {
 			return 300; // 5分钟
 		}
 		return $timeout;
@@ -66,7 +66,7 @@ add_action(
 	'admin_enqueue_scripts',
 	function () {
 		global $pagenow;
-		if ( in_array( $pagenow, array( 'post.php', 'post-new.php' ) ) ) {
+		if ( in_array( $pagenow, array( 'post.php', 'post-new.php' ), true ) ) {
 			// 延长心跳间隔
 			add_filter(
 				'heartbeat_settings',

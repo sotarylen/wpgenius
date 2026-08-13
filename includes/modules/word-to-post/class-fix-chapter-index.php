@@ -181,7 +181,7 @@ class FixChapterIndex {
 			$current_novel_id = intval( get_post_meta( $post_id, 'related_novel_id', true ) );
 
 			// 跨书籍检测：如果 novel_id 变了
-			if ( $last_novel_id > 0 && $current_novel_id != $last_novel_id ) {
+			if ( $last_novel_id > 0 && $current_novel_id !== $last_novel_id ) {
 				if ( ! empty( $logs ) ) {
 					// 如本批次已有处理过的章节，则在此截断处理，留待下一批次
 					// 同时标记上一个书籍已完成
@@ -268,7 +268,7 @@ class FixChapterIndex {
 
 		// 检查当前书籍是否已完成
 		// 如果本批次处理了章节，且当前有 last_novel_id
-		if ( $finished_novel_id == 0 && $last_novel_id > 0 && ! empty( $logs ) ) {
+		if ( $finished_novel_id === 0 && $last_novel_id > 0 && ! empty( $logs ) ) {
 			// 检查下一批次是否还有该书籍的章节
 			$next_offset                  = $offset + $batch_size;
 			$check_args                   = $query_args;
@@ -282,7 +282,7 @@ class FixChapterIndex {
 				$next_novel_id = intval( get_post_meta( $next_post_id, 'related_novel_id', true ) );
 
 				// 如果下一个章节不属于当前书籍，说明当前书籍已完成
-				if ( $next_novel_id != $last_novel_id ) {
+				if ( $next_novel_id !== $last_novel_id ) {
 					$finished_novel_id = $last_novel_id;
 				}
 			} else {
@@ -322,7 +322,7 @@ class FixChapterIndex {
 		}
 
 		$finished_ids = get_option( 'w2p_fix_index_finished_books', array() );
-		if ( ! in_array( $novel_id, $finished_ids ) ) {
+		if ( ! in_array( $novel_id, $finished_ids , true ) ) {
 			$finished_ids[] = $novel_id;
 			update_option( 'w2p_fix_index_finished_books', $finished_ids );
 		}

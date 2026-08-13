@@ -188,7 +188,7 @@ class SystemHealthCleanupService {
 		// Get all public post types to avoid missing CPTs
 		$post_types = get_post_types( array( 'public' => true ), 'names' );
 		// Ensure default 'post' is included (though logic above should catch it)
-		if ( ! in_array( 'post', $post_types ) ) {
+		if ( ! in_array( 'post', $post_types , true ) ) {
 			$post_types[] = 'post';
 		}
 
@@ -276,7 +276,7 @@ class SystemHealthCleanupService {
 		try {
 			// Get all public post types
 			$post_types = get_post_types( array( 'public' => true ), 'names' );
-			if ( ! in_array( 'post', $post_types ) ) {
+			if ( ! in_array( 'post', $post_types , true ) ) {
 				$post_types[] = 'post';
 			}
 			$post_types_sql = "'" . implode( "','", array_map( 'esc_sql', $post_types ) ) . "'";

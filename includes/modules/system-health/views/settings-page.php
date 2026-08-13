@@ -116,9 +116,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 							<?php if ( isset( $w2p_categories ) && is_array( $w2p_categories ) ) : ?>
 								<?php
 								foreach ( $w2p_categories as $w2p_cat ) :
-									$w2p_cat_id    = is_object( $w2p_cat ) ? ( $w2p_cat->term_id ?? 0 ) : ( is_array( $w2p_cat ) ? ( $w2p_cat['term_id'] ?? 0 ) : 0 );
-									$cat_name  = is_object( $w2p_cat ) ? ( $w2p_cat->name ?? '' ) : ( is_array( $w2p_cat ) ? ( $w2p_cat['name'] ?? '' ) : '' );
-									$cat_count = is_object( $w2p_cat ) ? ( $w2p_cat->count ?? 0 ) : ( is_array( $w2p_cat ) ? ( $w2p_cat['count'] ?? 0 ) : 0 );
+									$w2p_cat_id = is_object( $w2p_cat ) ? ( $w2p_cat->term_id ?? 0 ) : ( is_array( $w2p_cat ) ? ( $w2p_cat['term_id'] ?? 0 ) : 0 );
+									$cat_name   = is_object( $w2p_cat ) ? ( $w2p_cat->name ?? '' ) : ( is_array( $w2p_cat ) ? ( $w2p_cat['name'] ?? '' ) : '' );
+									$cat_count  = is_object( $w2p_cat ) ? ( $w2p_cat->count ?? 0 ) : ( is_array( $w2p_cat ) ? ( $w2p_cat['count'] ?? 0 ) : 0 );
 									if ( ! $w2p_cat_id ) {
 										continue;
 									}
@@ -184,9 +184,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 							<?php if ( isset( $w2p_categories ) && is_array( $w2p_categories ) ) : ?>
 								<?php
 								foreach ( $w2p_categories as $w2p_cat ) :
-									$w2p_cat_id    = is_object( $w2p_cat ) ? ( $w2p_cat->term_id ?? 0 ) : ( is_array( $w2p_cat ) ? ( $w2p_cat['term_id'] ?? 0 ) : 0 );
-									$cat_name  = is_object( $w2p_cat ) ? ( $w2p_cat->name ?? '' ) : ( is_array( $w2p_cat ) ? ( $w2p_cat['name'] ?? '' ) : '' );
-									$cat_count = is_object( $w2p_cat ) ? ( $w2p_cat->count ?? 0 ) : ( is_array( $w2p_cat ) ? ( $w2p_cat['count'] ?? 0 ) : 0 );
+									$w2p_cat_id = is_object( $w2p_cat ) ? ( $w2p_cat->term_id ?? 0 ) : ( is_array( $w2p_cat ) ? ( $w2p_cat['term_id'] ?? 0 ) : 0 );
+									$cat_name   = is_object( $w2p_cat ) ? ( $w2p_cat->name ?? '' ) : ( is_array( $w2p_cat ) ? ( $w2p_cat['name'] ?? '' ) : '' );
+									$cat_count  = is_object( $w2p_cat ) ? ( $w2p_cat->count ?? 0 ) : ( is_array( $w2p_cat ) ? ( $w2p_cat['count'] ?? 0 ) : 0 );
 									if ( ! $w2p_cat_id ) {
 										continue;
 									}

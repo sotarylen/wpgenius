@@ -399,7 +399,7 @@ class AccelerateModule extends W2P_Abstract_Module {
 			$('#st-remove-avatar').on('click', function(e) {
 				e.preventDefault();
 				$('#st_local_avatar').val('');
-				$('#st-avatar-preview').html('<img src="<?php echo $blank_img; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- 行 382 已 esc_url 处理。?>" width="96" height="96" style="background:#f1f1f1;border-radius:50%;" />');
+				$('#st-avatar-preview').html('<img src="<?php echo $blank_img; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- 行 382 已 esc_url 处理。 ?>" width="96" height="96" style="background:#f1f1f1;border-radius:50%;" />');
 			});
 		})(jQuery);
 		</script>

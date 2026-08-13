@@ -64,7 +64,7 @@ if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $ai_queue_table ) ) 
 						<td>
 							<?php
 							$item_status = $item['status'] ?? 'pending';
-							$colors = array(
+							$colors      = array(
 								'completed'  => array(
 									'bg' => '#edfaef',
 									'fg' => '#00a32a',
@@ -78,7 +78,7 @@ if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $ai_queue_table ) ) 
 									'fg' => '#996800',
 								),
 							);
-							$style = $colors[ $item_status ] ?? array(
+							$style       = $colors[ $item_status ] ?? array(
 								'bg' => '#f0f0f1',
 								'fg' => '#50575e',
 							);

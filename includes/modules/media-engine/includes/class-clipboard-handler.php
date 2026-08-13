@@ -71,7 +71,7 @@ class W2P_Clipboard_Handler {
 	public function enqueue_assets( $hook ) {
 		// Only load on Post Edit and Media Library pages
 		$relevant_pages = array( 'post.php', 'post-new.php', 'upload.php' );
-		if ( ! in_array( $hook, $relevant_pages ) ) {
+		if ( ! in_array( $hook, $relevant_pages , true ) ) {
 			return;
 		}
 
@@ -144,7 +144,7 @@ class W2P_Clipboard_Handler {
 		}
 
 		$extension = strtolower( $type[1] );
-		if ( ! in_array( $extension, array( 'jpg', 'jpeg', 'gif', 'png', 'webp' ) ) ) {
+		if ( ! in_array( $extension, array( 'jpg', 'jpeg', 'gif', 'png', 'webp' ), true ) ) {
 			return new WP_Error( 'invalid_extension', 'Unsupported image type' );
 		}
 

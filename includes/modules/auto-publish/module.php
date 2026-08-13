@@ -335,7 +335,7 @@ class AutoPublishModule extends W2P_Abstract_Module {
 		// Allow image processing even during AJAX/Cron for auto-publish
 		// Unless explicitly skipped by frontend
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- publish_post 被 AJAX（上层已验 nonce）与 Cron 调用；此处仅读取标志。
-		$skip_processing = isset( $_POST['skip_image_processing'] ) && $_POST['skip_image_processing'] == '1';
+		$skip_processing = isset( $_POST['skip_image_processing'] ) && $_POST['skip_image_processing'] === '1';
 
 		if ( ! $skip_processing && class_exists( 'SmartAutoUploadImages\Services\ImageProcessorExtended' ) ) {
 			// Hook for progress updates

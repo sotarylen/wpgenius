@@ -231,10 +231,10 @@ class WordToPostModule extends W2P_Abstract_Module {
 						});
 
 						if (selected.length === 0) {
-							alert('<?php _e( 'Please select at least one chapter.', 'wp-genius' ); // phpcs:ignore WordPress.Security.EscapeOutput.UnsafePrintingFunction -- 静态 i18n 嵌入 JS，无用户输入。?>');
+							alert('<?php _e( 'Please select at least one chapter.', 'wp-genius' ); // phpcs:ignore WordPress.Security.EscapeOutput.UnsafePrintingFunction -- 静态 i18n 嵌入 JS，无用户输入。 ?>');
 							return;
 						}
-						if (!confirm('<?php _e( 'Are you sure you want to auto-identify indexes for specified chapters?', 'wp-genius' ); // phpcs:ignore WordPress.Security.EscapeOutput.UnsafePrintingFunction -- 静态 i18n 嵌入 JS，无用户输入。?>')) {
+						if (!confirm('<?php _e( 'Are you sure you want to auto-identify indexes for specified chapters?', 'wp-genius' ); // phpcs:ignore WordPress.Security.EscapeOutput.UnsafePrintingFunction -- 静态 i18n 嵌入 JS，无用户输入。 ?>')) {
 							return;
 						}
 
@@ -249,7 +249,7 @@ class WordToPostModule extends W2P_Abstract_Module {
 							// If I use post_ids, count is small usually.
 							// Let's just use the Init logic updated to accept post_ids.
 							post_ids: selected,
-							word_to_posts_fix_index_nonce: '<?php echo wp_create_nonce( 'word_to_posts_fix_index' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- nonce 嵌入 JS，非用户输入。?>'
+							word_to_posts_fix_index_nonce: '<?php echo wp_create_nonce( 'word_to_posts_fix_index' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- nonce 嵌入 JS，非用户输入。 ?>'
 						};
 						
 						// We need a JS function to handle the batch flow UI... 

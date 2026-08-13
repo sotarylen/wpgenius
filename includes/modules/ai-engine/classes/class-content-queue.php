@@ -144,7 +144,7 @@ class W2P_AI_Content_Queue {
 
 		$offset = ( $page - 1 ) * $per_page;
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- 动态 WHERE 片段值经 prepare 占位符传递；LIMIT/OFFSET 在 prepare 内以 %d 绑定。
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders -- 动态 WHERE 片段值经 prepare 占位符传递（运行时占位符与参数严格匹配）；LIMIT/OFFSET 以 %d 绑定。
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT q.*, p.name as prompt_name
