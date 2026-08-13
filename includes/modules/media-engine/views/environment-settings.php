@@ -32,7 +32,8 @@ $env_results = MediaEngineEnvironmentChecker::check_all();
 			</div>
 		</div>
 		<div class="w2p-section-body">
-			<?php echo MediaEngineEnvironmentChecker::render_status_html( $env_results ); ?>
+			<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_status_html 内部自转义（esc_html_e），为安全渲染函数边界。
+			echo MediaEngineEnvironmentChecker::render_status_html( $env_results ); ?>
 		</div>
 	</div>
 </div>

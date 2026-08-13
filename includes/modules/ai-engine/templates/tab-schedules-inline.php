@@ -91,7 +91,7 @@ unset( $schedule );
 
 <script type="text/javascript">
 jQuery(document).ready(function($) {
-	var nonce = '<?php echo $nonce; ?>';
+	var nonce = '<?php echo $nonce; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- 内部值/自转义输出嵌入 JS/模板，非用户输入。 ?>';
 	var prompts = <?php echo wp_json_encode( $ai_prompts ); ?>;
 
 	$('#ai-add-schedule-btn').on('click', function() {

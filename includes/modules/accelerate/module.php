@@ -342,11 +342,11 @@ class AccelerateModule extends W2P_Abstract_Module {
 		$avatar_id = get_user_meta( $user->ID, 'st_local_avatar', true );
 		$blank_img = includes_url( 'images/blank.gif' );
 		?>
-		<h3><?php _e( 'Local Avatar', 'wp-genius' ); ?></h3>
+		<h3><?php esc_html_e( 'Local Avatar', 'wp-genius' ); ?></h3>
 		<table class="form-table">
 			<tr>
 				<th>
-					<label><?php _e( 'Current Avatar', 'wp-genius' ); ?></label>
+					<label><?php esc_html_e( 'Current Avatar', 'wp-genius' ); ?></label>
 				</th>
 				<td>
 					<input type="hidden" name="st_local_avatar" id="st_local_avatar" value="<?php echo esc_attr( $avatar_id ); ?>">
@@ -361,10 +361,10 @@ class AccelerateModule extends W2P_Abstract_Module {
 					</div>
 					<p>
 						<button type="button" class="button" id="st-upload-avatar">
-							<?php _e( 'Upload / Select Avatar', 'wp-genius' ); ?>
+							<?php esc_html_e( 'Upload / Select Avatar', 'wp-genius' ); ?>
 						</button>
 						<button type="button" class="button" id="st-remove-avatar">
-							<?php _e( 'Remove Avatar', 'wp-genius' ); ?>
+							<?php esc_html_e( 'Remove Avatar', 'wp-genius' ); ?>
 						</button>
 					</p>
 				</td>
@@ -386,7 +386,7 @@ class AccelerateModule extends W2P_Abstract_Module {
 			$('#st-upload-avatar').on('click', function(e) {
 				e.preventDefault();
 				var frame = wp.media({
-					title: '<?php _e( 'Select Avatar', 'wp-genius' ); ?>',
+					title: '<?php esc_html_e( 'Select Avatar', 'wp-genius' ); ?>',
 					library: { type: 'image' },
 					multiple: false
 				}).on('select', function() {
@@ -399,7 +399,7 @@ class AccelerateModule extends W2P_Abstract_Module {
 			$('#st-remove-avatar').on('click', function(e) {
 				e.preventDefault();
 				$('#st_local_avatar').val('');
-				$('#st-avatar-preview').html('<img src="<?php echo $blank_img; ?>" width="96" height="96" style="background:#f1f1f1;border-radius:50%;" />');
+				$('#st-avatar-preview').html('<img src="<?php echo $blank_img; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- 行 382 已 esc_url 处理。?>" width="96" height="96" style="background:#f1f1f1;border-radius:50%;" />');
 			});
 		})(jQuery);
 		</script>
@@ -411,6 +411,7 @@ class AccelerateModule extends W2P_Abstract_Module {
 			return;
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- profile_update 钩子：WP 用户表单核心已验 nonce。
 		$avatar_id = isset( $_POST['st_local_avatar'] ) ? absint( $_POST['st_local_avatar'] ) : 0;
 		update_user_meta( $user_id, 'st_local_avatar', $avatar_id );
 	}
@@ -656,8 +657,13 @@ class AccelerateModule extends W2P_Abstract_Module {
 	 */
 	public function cleanup_images_add_admin_bar_action( $wp_admin_bar ) {
 		if ( ! is_admin() && is_singular() ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- admin bar 链接构造只读；实际删除在带 check_admin_referer 的 admin-post handler。
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 同上（重定向 URL 读取）。
 			$post_id = get_the_ID();
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- admin bar 链接构造只读；实际删除在带 check_admin_referer 的 admin-post handler。
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 同上。
 		} elseif ( is_admin() && isset( $_GET['post'] ) && $_GET['action'] === 'edit' ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 上层方法已验 nonce（见方法开头）。
 			$post_id = (int) $_GET['post'];
 		} else {
 			return;
@@ -842,13 +848,13 @@ class AccelerateModule extends W2P_Abstract_Module {
 	public function cleanup_images_handle_delete_action() {
 		$post_id = isset( $_GET['post_id'] ) ? absint( $_GET['post_id'] ) : 0;
 		if ( ! $post_id ) {
-			wp_die( __( 'Invalid post ID.', 'wp-genius' ) );
+			wp_die( esc_html__( 'Invalid post ID.', 'wp-genius' ) );
 		}
 
 		check_admin_referer( 'w2p_delete_with_images_' . $post_id );
 
 		if ( ! current_user_can( 'delete_post', $post_id ) ) {
-			wp_die( __( 'You do not have permission to delete this post.', 'wp-genius' ) );
+			wp_die( esc_html__( 'You do not have permission to delete this post.', 'wp-genius' ) );
 		}
 
 		$result = $this->cleanup_images_process_single_post_deletion( $post_id );

@@ -61,7 +61,10 @@ class ImageProcessorExtended {
 	public function process_post_content( string $content, array $post_data, string $target_url = '' ) {
 		// [FIX 1] 确保 Post ID 存在，以解决附件未关联的问题
 		if ( empty( $post_data['ID'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- save_post 内容处理钩子，WP 核心已验 nonce。
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 同上。
 			if ( isset( $_POST['post_ID'] ) ) {
+				// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- save_post 钩子，WP 核心已验 nonce。
 				$post_data['ID'] = intval( $_POST['post_ID'] );
 			} elseif ( isset( $GLOBALS['post']->ID ) ) {
 				$post_data['ID'] = $GLOBALS['post']->ID;

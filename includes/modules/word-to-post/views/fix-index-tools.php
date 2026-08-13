@@ -13,29 +13,29 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <div class="w2p-section">
 	<div class="w2p-section-header">
-		<h3><?php _e( 'Index Fixer Tools', 'wp-genius' ); ?></h3>
+		<h3><?php esc_html_e( 'Index Fixer Tools', 'wp-genius' ); ?></h3>
 		<div class="w2p-section-actions">
 			<!-- Global Nonce for AJAX -->
-			<input type="hidden" id="fix_index_nonce" value="<?php echo wp_create_nonce( 'fix_chapter_index' ); ?>">
+			<input type="hidden" id="fix_index_nonce" value="<?php echo esc_attr( wp_create_nonce( 'fix_chapter_index' ) ); ?>">
 			
 			<button type="button" id="fix-index-scan-btn" class="button button-secondary">
-				<i class="fa fa-search"></i> <?php _e( 'Scan Issues', 'wp-genius' ); ?>
+				<i class="fa fa-search"></i> <?php esc_html_e( 'Scan Issues', 'wp-genius' ); ?>
 			</button>
 			
 			<button type="button" id="fix-index-auto-btn" class="button button-primary">
-				<i class="fa fa-magic"></i> <?php _e( 'Auto Fix All', 'wp-genius' ); ?>
+				<i class="fa fa-magic"></i> <?php esc_html_e( 'Auto Fix All', 'wp-genius' ); ?>
 			</button>
 
 			<button type="button" id="fix-index-execute-btn" class="button button-primary" style="display:none;">
-				<i class="fa fa-play"></i> <?php _e( 'Apply Fixes', 'wp-genius' ); ?>
+				<i class="fa fa-play"></i> <?php esc_html_e( 'Apply Fixes', 'wp-genius' ); ?>
 			</button>
 
 			<button type="button" id="fix-index-stop-btn" class="button button-secondary" style="display:none;">
-				<i class="fa fa-stop"></i> <?php _e( 'Stop', 'wp-genius' ); ?>
+				<i class="fa fa-stop"></i> <?php esc_html_e( 'Stop', 'wp-genius' ); ?>
 			</button>
 
 			<button type="button" id="fix-index-reset-btn" class="button button-secondary" style="display:none;">
-				<i class="fa fa-undo"></i> <?php _e( 'Reset', 'wp-genius' ); ?>
+				<i class="fa fa-undo"></i> <?php esc_html_e( 'Reset', 'wp-genius' ); ?>
 			</button>
 		</div>
 	</div>
@@ -50,7 +50,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<span id="fix-progress-text">0 / 0</span>
 				<span id="finished-count-text" style="display:none; margin-left: 10px; color: #666;"></span>
 				<a href="#" id="fix-index-clear-progress" style="float:right; text-decoration:none; font-size:12px;">
-					<?php _e( 'Clear History', 'wp-genius' ); ?>
+					<?php esc_html_e( 'Clear History', 'wp-genius' ); ?>
 				</a>
 			</div>
 		</div>
@@ -60,15 +60,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<table class="widefat striped">
 				<thead>
 					<tr>
-						<th style="width: 20%;"><?php _e( 'New Index', 'wp-genius' ); ?></th>
-						<th style="width: 20%;"><?php _e( 'Volume', 'wp-genius' ); ?></th>
-						<th><?php _e( 'Title', 'wp-genius' ); ?></th>
+						<th style="width: 20%;"><?php esc_html_e( 'New Index', 'wp-genius' ); ?></th>
+						<th style="width: 20%;"><?php esc_html_e( 'Volume', 'wp-genius' ); ?></th>
+						<th><?php esc_html_e( 'Title', 'wp-genius' ); ?></th>
 					</tr>
 				</thead>
 				<tbody id="fix-logs-tbody">
 					<tr>
 						<td colspan="3" style="text-align:center; color:#999;">
-							<?php _e( 'Ready to scan. Please configure settings in the "Fix Index - Settings" tab first.', 'wp-genius' ); ?>
+							<?php esc_html_e( 'Ready to scan. Please configure settings in the "Fix Index - Settings" tab first.', 'wp-genius' ); ?>
 						</td>
 					</tr>
 				</tbody>

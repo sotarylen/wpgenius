@@ -17,6 +17,7 @@ $tabs = array(
 	'settings'  => __( 'Settings', 'wp-genius' ),
 );
 
+// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- tab 参数只读用于视图切换。
 $active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'generate';
 ?>
 <div class="wrap w2p-ai-engine">

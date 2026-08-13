@@ -57,7 +57,7 @@ $nonce = wp_create_nonce( 'w2p_ai_engine_nonce' );
 
 <script type="text/javascript">
 jQuery(document).ready(function($) {
-	var nonce = '<?php echo $nonce; ?>';
+	var nonce = '<?php echo $nonce; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- 内部值/自转义输出嵌入 JS/模板，非用户输入。 ?>';
 
 	$('#ai-add-prompt-btn').on('click', function(e) {
 		e.preventDefault();

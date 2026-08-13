@@ -53,6 +53,7 @@ add_filter(
 	'wp_php_timeout',
 	function ( $timeout ) {
 		// 在保存文章时增加超时时间
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 仅读取 action 名调整超时，不改状态。
 		if ( isset( $_POST['action'] ) && in_array( $_POST['action'], array( 'editpost', 'inline-save' ) ) ) {
 			return 300; // 5分钟
 		}

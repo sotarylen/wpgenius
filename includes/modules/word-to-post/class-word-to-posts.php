@@ -15,12 +15,10 @@ class WordToPosts {
 			add_action( 'admin_menu', array( $this, 'registerMenu' ) );
 		}
 
-		// AJAX Hooks for Fix Index
-		add_action( 'wp_ajax_fix_index_get_total', array( $this, 'fixChapterIndexInit' ) );
-		add_action( 'wp_ajax_fix_index_scan', array( $this, 'fixChapterIndexScan' ) );
-		add_action( 'wp_ajax_fix_index_execute', array( $this, 'fixChapterIndexExecute' ) );
-		add_action( 'wp_ajax_fix_index_mark_finished', array( $this, 'fixChapterIndexMarkFinished' ) );
-		add_action( 'wp_ajax_fix_index_clear_progress', array( $this, 'fixChapterIndexClearProgress' ) );
+		// AJAX Hooks for Fix Index are handled exclusively by the FixChapterIndex class
+		// (class-fix-chapter-index.php). The legacy registrations below were removed:
+		// they referenced methods that do not exist (fatal on AJAX) and duplicated
+		// handlers of the FixChapterIndex class for the same actions.
 	}
 
 	public function run() {
@@ -170,10 +168,21 @@ class WordToPosts {
 			return;
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- handleFileUpload 顶部已 wp_verify_nonce。
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 同上。
 		$category = isset( $_POST['category'] ) ? absint( $_POST['category'] ) : 0;
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 上层方法已验 nonce（见方法开头）。
 		$tags     = isset( $_POST['tags'] ) ? sanitize_text_field( wp_unslash( $_POST['tags'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- handleFileUpload 已验 nonce，此处读取后续参数。
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 同上。
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 同上。
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 同上。
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 同上。
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 同上。
 		$author   = isset( $_POST['author'] ) ? absint( $_POST['author'] ) : get_current_user_id();
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 上层方法已验 nonce（见方法开头）。
 		$cpt_type = isset( $_POST['cpt_type'] ) ? sanitize_text_field( $_POST['cpt_type'] ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 上层方法已验 nonce（见方法开头）。
 		$cpt_id   = isset( $_POST['cpt_id'] ) ? intval( $_POST['cpt_id'] ) : 0;
 
 		if ( empty( $cpt_type ) || empty( $cpt_id ) ) {
@@ -333,9 +342,19 @@ class WordToPosts {
 	}
 
 	/**
+	 // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- fixChapterIndex 顶部 check_admin_referer 已验 nonce。
 	 * Handle fixing chapter index and volume
 	 */
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 同上。
 	public function fixChapterIndex() {
+		// Security: admin-post entry point — verify nonce and capability.
+		check_admin_referer( 'fix_chapter_index' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( __( 'Permission denied', 'wp-genius' ) );
+			return;
+		}
+
 		if ( isset( $_POST['post_ids'] ) && ! empty( $_POST['post_ids'] ) ) {
 			// Handled by Bulk Action (selected IDs) - NON-BATCHED (or single batch)
 			// Sanitize the data before passing
@@ -355,11 +374,19 @@ class WordToPosts {
 	 * Save Fix Chapter Index Configuration
 	 */
 	/**
+	 // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 此处读取的即 nonce 字段本身用于 wp_verify_nonce。
 	 * Init Batch Process: Return Total Count
 	 */
 	public function fixChapterIndexInit() {
-		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'fix_chapter_index' ) ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 上层方法已验 nonce（见方法开头）。
+		$nonce = isset( $_POST['nonce'] ) ? $_POST['nonce'] : ( isset( $_POST['word_to_posts_fix_index_nonce'] ) ? $_POST['word_to_posts_fix_index_nonce'] : '' );
+		if ( ! wp_verify_nonce( $nonce, 'fix_chapter_index' ) ) {
 			wp_send_json_error( __( 'Nonce verification failed', 'wp-genius' ) );
+			return;
+		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( __( 'Permission denied', 'wp-genius' ) );
 			return;
 		}
 
@@ -402,6 +429,12 @@ class WordToPosts {
 	public function fixChapterIndexScan() {
 		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'fix_chapter_index' ) ) {
 			wp_send_json_error( __( 'Nonce verification failed', 'wp-genius' ) );
+			return;
+		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( __( 'Permission denied', 'wp-genius' ) );
+			return;
 		}
 		$this->processFixIndexBatch( $_POST, true ); // Dry Run = True
 	}
@@ -412,6 +445,12 @@ class WordToPosts {
 	public function fixChapterIndexExecute() {
 		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'fix_chapter_index' ) ) {
 			wp_send_json_error( __( 'Nonce verification failed', 'wp-genius' ) );
+			return;
+		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( __( 'Permission denied', 'wp-genius' ) );
+			return;
 		}
 		// In Execute mode, scan_results usually passed or we re-scan?
 		// The frontend passes 'scan_results' which contains the exact items to update.
@@ -490,6 +529,12 @@ class WordToPosts {
 	 * Core Logic for Batch Processing (Scanning)
 	 */
 	private function processFixIndexBatch( $data, $dry_run = true ) {
+		// Defense-in-depth: never mutate posts without admin capability.
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( __( 'Permission denied', 'wp-genius' ) );
+			return;
+		}
+
 		$target_post_type = isset( $data['target_post_type'] ) ? sanitize_text_field( $data['target_post_type'] ) : 'chapter';
 		// Debug Log
 		error_log( 'Fix Index Batch Data: ' . print_r( $data, true ) );

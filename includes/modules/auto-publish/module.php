@@ -165,7 +165,7 @@ class AutoPublishModule extends W2P_Abstract_Module {
 		<div id="w2p-scheduled-task-status" class="w2p-status-box w2p-hidden">
 			<div class="status-header">
 				<span class="pulse-icon"></span>
-				<strong><?php _e( 'Scheduled Publishing in Progress...', 'wp-genius' ); ?></strong>
+				<strong><?php esc_html_e( 'Scheduled Publishing in Progress...', 'wp-genius' ); ?></strong>
 			</div>
 			<p class="status-detail"></p>
 		</div>
@@ -334,6 +334,7 @@ class AutoPublishModule extends W2P_Abstract_Module {
 
 		// Allow image processing even during AJAX/Cron for auto-publish
 		// Unless explicitly skipped by frontend
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- publish_post 被 AJAX（上层已验 nonce）与 Cron 调用；此处仅读取标志。
 		$skip_processing = isset( $_POST['skip_image_processing'] ) && $_POST['skip_image_processing'] == '1';
 
 		if ( ! $skip_processing && class_exists( 'SmartAutoUploadImages\Services\ImageProcessorExtended' ) ) {

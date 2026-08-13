@@ -40,7 +40,7 @@ $settings = W2P_Settings::tab_with_legacy( 'media_engine_tabs', 'w2p_media_turbo
 					?>
 					<button type="button" id="w2p-start-conversion" class="w2p-btn w2p-btn-secondary">
 						<i class="fa-solid fa-play"></i>
-						<?php printf( esc_html__( 'Batch Conversion (%1$d items, batch %2$d)', 'wp-genius' ), $scan_limit, $batch_size ); ?>
+						<?php /* translators: 1: scan limit, 2: batch size. */ printf( esc_html__( 'Batch Conversion (%1$d items, batch %2$d)', 'wp-genius' ), absint( $scan_limit ), absint( $batch_size ) ); ?>
 					</button>
 					<!-- 全自动处理（新）：自动循环 扫描 → 批次转换 → 再扫描 → 再转换 直到全部完成 -->
 					<button type="button" id="w2p-start-auto" class="w2p-btn w2p-btn-primary">

@@ -86,12 +86,12 @@ class WordToPostModule extends W2P_Abstract_Module {
 		// Verify nonce
 		if ( ! isset( $_POST['word_to_posts_upload_nonce'] ) ||
 			! wp_verify_nonce( $_POST['word_to_posts_upload_nonce'], 'word_to_posts_upload' ) ) {
-			wp_die( __( 'Security check failed', 'wp-genius' ) );
+			wp_die( esc_html__( 'Security check failed', 'wp-genius' ) );
 		}
 
 		// Check permissions
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( __( 'You do not have permission to perform this action', 'wp-genius' ) );
+			wp_die( esc_html__( 'You do not have permission to perform this action', 'wp-genius' ) );
 		}
 
 		// Delegate to the main WordToPosts class for actual processing
@@ -110,11 +110,11 @@ class WordToPostModule extends W2P_Abstract_Module {
 	public function handle_scan() {
 		if ( ! isset( $_POST['word_to_posts_scan_nonce'] ) ||
 			! wp_verify_nonce( $_POST['word_to_posts_scan_nonce'], 'word_to_posts_scan' ) ) {
-			wp_die( __( 'Security check failed', 'wp-genius' ) );
+			wp_die( esc_html__( 'Security check failed', 'wp-genius' ) );
 		}
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( __( 'You do not have permission to perform this action', 'wp-genius' ) );
+			wp_die( esc_html__( 'You do not have permission to perform this action', 'wp-genius' ) );
 		}
 
 		if ( class_exists( 'WordToPosts' ) ) {
@@ -132,11 +132,11 @@ class WordToPostModule extends W2P_Abstract_Module {
 	public function handle_clean() {
 		if ( ! isset( $_POST['word_to_posts_clean_nonce'] ) ||
 			! wp_verify_nonce( $_POST['word_to_posts_clean_nonce'], 'word_to_posts_clean' ) ) {
-			wp_die( __( 'Security check failed', 'wp-genius' ) );
+			wp_die( esc_html__( 'Security check failed', 'wp-genius' ) );
 		}
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( __( 'You do not have permission to perform this action', 'wp-genius' ) );
+			wp_die( esc_html__( 'You do not have permission to perform this action', 'wp-genius' ) );
 		}
 
 		if ( class_exists( 'WordToPosts' ) ) {
@@ -171,11 +171,16 @@ class WordToPostModule extends W2P_Abstract_Module {
 	}
 
 	public function handle_fix_chapter_index_save_config() {
-		if ( class_exists( 'WordToPosts' ) ) {
-			$word_to_posts = new WordToPosts();
-			$word_to_posts->fixChapterIndexSaveConfig();
+		// Legacy action: fix-index configuration is now managed by CSF settings.
+		// Keep the endpoint secure and report the migration instead of a fatal call
+		// to a removed method.
+		check_ajax_referer( 'fix_chapter_index', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'wp-genius' ) ) );
 		}
-		exit;
+
+		wp_send_json_error( array( 'message' => __( 'Fix Index settings are now managed in the WP Genius settings page.', 'wp-genius' ) ) );
 	}
 
 	public function handle_fix_chapter_index_init() {
@@ -187,11 +192,14 @@ class WordToPostModule extends W2P_Abstract_Module {
 	}
 
 	public function handle_fix_chapter_index_process() {
-		if ( class_exists( 'WordToPosts' ) ) {
-			$word_to_posts = new WordToPosts();
-			$word_to_posts->fixChapterIndexProcess();
+		// Legacy action without a backing method — refuse securely.
+		check_ajax_referer( 'fix_chapter_index', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'wp-genius' ) ) );
 		}
-		exit;
+
+		wp_send_json_error( array( 'message' => __( 'This action is no longer used. Use the batch fix-index tool instead.', 'wp-genius' ) ) );
 	}
 
 	public function inject_bulk_action_script() {
@@ -205,7 +213,7 @@ class WordToPostModule extends W2P_Abstract_Module {
 				var bulkSelects = $('select[name="action"], select[name="action2"]');
 				bulkSelects.each(function() {
 					if ($(this).find('option[value="fix_chapter_index"]').length === 0) {
-						$(this).append('<option value="fix_chapter_index"><?php _e( 'Auto Identify (Fix Index)', 'wp-genius' ); ?></option>');
+						$(this).append('<option value="fix_chapter_index"><?php esc_attr_e( 'Auto Identify (Fix Index)', 'wp-genius' ); ?></option>');
 					}
 				});
 
@@ -223,11 +231,10 @@ class WordToPostModule extends W2P_Abstract_Module {
 						});
 
 						if (selected.length === 0) {
-							alert('<?php _e( 'Please select at least one chapter.', 'wp-genius' ); ?>');
+							alert('<?php _e( 'Please select at least one chapter.', 'wp-genius' ); // phpcs:ignore WordPress.Security.EscapeOutput.UnsafePrintingFunction -- 静态 i18n 嵌入 JS，无用户输入。?>');
 							return;
 						}
-
-						if (!confirm('<?php _e( 'Are you sure you want to auto-identify indexes for specified chapters?', 'wp-genius' ); ?>')) {
+						if (!confirm('<?php _e( 'Are you sure you want to auto-identify indexes for specified chapters?', 'wp-genius' ); // phpcs:ignore WordPress.Security.EscapeOutput.UnsafePrintingFunction -- 静态 i18n 嵌入 JS，无用户输入。?>')) {
 							return;
 						}
 
@@ -242,7 +249,7 @@ class WordToPostModule extends W2P_Abstract_Module {
 							// If I use post_ids, count is small usually.
 							// Let's just use the Init logic updated to accept post_ids.
 							post_ids: selected,
-							word_to_posts_fix_index_nonce: '<?php echo wp_create_nonce( 'word_to_posts_fix_index' ); ?>'
+							word_to_posts_fix_index_nonce: '<?php echo wp_create_nonce( 'word_to_posts_fix_index' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- nonce 嵌入 JS，非用户输入。?>'
 						};
 						
 						// We need a JS function to handle the batch flow UI... 

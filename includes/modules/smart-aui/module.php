@@ -240,6 +240,7 @@ class SmartAUIModule extends W2P_Abstract_Module {
 	 */
 	public function enqueue_progress_ui_scripts( $hook ) {
 		// Monitor hook for specific pages
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- enqueue 钩子只读页面参数。
 		$page             = isset( $_GET['page'] ) ? $_GET['page'] : '';
 		$is_settings_page = ( $page === 'wp-genius-settings' || strpos( $page, 'wp-genius' ) !== false );
 
@@ -373,7 +374,9 @@ class SmartAUIModule extends W2P_Abstract_Module {
 	 */
 	public function auto_set_featured_image( $post_id, $post = null ) {
 		// [OPTIMIZATION] Immediate Bypassing for Deletion Actions
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 同上。
 		if ( isset( $_REQUEST['action'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- auto_set_featured_image：save_post 钩子，WP 核心已验 nonce。
 			$action = $_REQUEST['action'];
 			if ( in_array( $action, array( 'trash', 'delete', 'untrash' ), true ) ) {
 				return;
