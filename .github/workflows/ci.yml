@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  phpcs:
+    name: PHP CodeSniffer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Run PHPCS (WordPress Coding Standards)
+        run: vendor/bin/phpcs -d memory_limit=512M --standard=phpcs.xml.dist .
+
+  lint:
+    name: PHP Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Lint own source files
+        run: |
+          set -e
+          FAIL=0
+          while IFS= read -r -d '' f; do
+            if ! php -l "$f" > /dev/null 2>&1; then
+              echo "Syntax error in: $f"
+              php -l "$f"
+              FAIL=1
+            fi
+          done < <(find . -name '*.php' -not -path './vendor/*' \
+            -not -path './includes/csf/*' \
+            -not -path '*/library/*' \
+            -not -path '*/vendor-prefixed/*' \
+            -print0)
+          exit $FAIL
+
+  structure:
+    name: Plugin Structure & Module Integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Verify module bootstrap contracts
+        run: |
+          set -e
+          for d in includes/modules/*/; do
+            if [ ! -f "$d/module.php" ]; then
+              echo "Missing module.php in $d"
+              exit 1
+            fi
+          done
+          echo "All modules have module.php entrypoints."
+
+      - name: Verify plugin header
+        run: |
+          set -e
+          grep -q "Plugin Name: WP Genius" wp-genius.php
+          grep -q "Version:" wp-genius.php
+          echo "Plugin header OK."
