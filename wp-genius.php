@@ -23,6 +23,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-task-queue.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-admin-settings.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-logger.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-security.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-settings.php';
 
 /**
  * Initialize the plugin (runs on init hook after translations are loaded)

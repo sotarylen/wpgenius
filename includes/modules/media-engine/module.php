@@ -163,8 +163,7 @@ class MediaEngineModule extends W2P_Abstract_Module {
 		if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Permission denied' );
 
 		$processor = new MediaEngineProcessor();
-		$all_settings = get_option( 'w2p_settings', [] );
-		$settings = isset( $all_settings['media_engine_tabs'] ) ? $all_settings['media_engine_tabs'] : [];
+		$settings  = W2P_Settings::tab_with_legacy( 'media_engine_tabs', 'w2p_media_turbo_settings', array() );
 		
 		$limit = isset( $settings['scan_limit'] ) ? absint( $settings['scan_limit'] ) : 100;
 		

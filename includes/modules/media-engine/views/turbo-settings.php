@@ -10,8 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-$all_settings = get_option( 'w2p_settings', [] );
-$settings = isset( $all_settings['media_engine_tabs'] ) ? $all_settings['media_engine_tabs'] : [];
+$settings = W2P_Settings::tab_with_legacy( 'media_engine_tabs', 'w2p_media_turbo_settings', array() );
 ?>
 
 <div class="w2p-settings-panel w2p-media-turbo-settings">

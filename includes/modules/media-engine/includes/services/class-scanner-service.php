@@ -11,7 +11,7 @@ class MediaEngineScannerService {
 	private $settings;
 
 	public function __construct() {
-		$this->settings = get_option( 'w2p_media_turbo_settings', [] );
+		$this->settings = W2P_Settings::tab_with_legacy( 'media_engine_tabs', 'w2p_media_turbo_settings', array() );
 	}
 
 	public function get_pending_attachments( $limit = 100, $offset = 0 ) {

@@ -19,7 +19,7 @@ class MediaEngineProcessor {
 	private $minio_available = null;
 
 	public function __construct() {
-		$this->settings = get_option( 'w2p_media_turbo_settings', [] );
+		$this->settings = W2P_Settings::tab_with_legacy( 'media_engine_tabs', 'w2p_media_turbo_settings', array() );
 		$services_dir = plugin_dir_path( __FILE__ ) . 'services/';
 		
 		// Load Services
