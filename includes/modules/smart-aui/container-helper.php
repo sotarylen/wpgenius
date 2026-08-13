@@ -7,6 +7,11 @@
 
 namespace SmartAutoUploadImages;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
+
 if ( ! function_exists( 'SmartAutoUploadImages\\get_container' ) ) {
 	/**
 	 * Get or create the plugin container

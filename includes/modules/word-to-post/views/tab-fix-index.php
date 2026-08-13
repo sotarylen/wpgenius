@@ -1,3 +1,4 @@
+<?php if ( ! defined( 'ABSPATH' ) ) { exit; } // Direct access guard. ?>
 <div id="w2p-tab-fix-index" class="w2p-wrapper">
 	<input type="hidden" id="fix_index_nonce" value="<?php echo esc_attr( wp_create_nonce( 'fix_chapter_index' ) ); ?>">
 	

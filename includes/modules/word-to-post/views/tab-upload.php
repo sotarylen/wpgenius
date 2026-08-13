@@ -1,3 +1,4 @@
+<?php if ( ! defined( 'ABSPATH' ) ) { exit; } // Direct access guard. ?>
 <div id="w2p-tab-upload" class="w2p-wrapper">
 	<div class="w2p-section">
 		<div class="w2p-section-body">
