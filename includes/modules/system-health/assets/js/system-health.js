@@ -9,6 +9,34 @@
     window.WPGenius = window.WPGenius || {};
 
     // ==============================
+    // CSF tabbed 初始化修复
+    //
+    // 问题：System Health 的 tabbed 字段依赖 CSF 的 csf_reload_script 在
+    // section 切换时初始化（csf_field_tabbed）。若未初始化，点击 tab 链接
+    // （href="#"）会触发 hashchange，CSF 左侧导航误切回第一个 section。
+    // 修复：主动初始化 + 阻止默认跳转双保险。
+    // ==============================
+    var initCsfTabbed = function () {
+        if (typeof $.fn.csf_field_tabbed === 'function') {
+            $('.csf-field-tabbed').each(function () {
+                if (!$(this).data('w2p-tabbed-inited')) {
+                    $(this).data('w2p-tabbed-inited', true);
+                    $(this).csf_field_tabbed();
+                }
+            });
+        }
+
+        // 兜底：阻止 tabbed 链接默认行为，避免 hash 变化导致 CSF 左侧导航切换 section。
+        $(document).off('click.w2p-tabbed').on('click.w2p-tabbed', '.csf-tabbed-nav a', function (e) {
+            e.preventDefault();
+        });
+    };
+
+    $(document).ready(initCsfTabbed);
+    // section 动态切换/渲染后再次尝试初始化（幂等）。
+    $(document).on('csf-reload-script', initCsfTabbed);
+
+    // ==============================
     // 系统健康模块 (System Health)
     // ==============================
     WPGenius.SystemHealth = {
