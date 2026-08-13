@@ -14,6 +14,13 @@
     <exclude-pattern>*/.agent/*</exclude-pattern>
     <exclude-pattern>*/.vscode/*</exclude-pattern>
 
+    <!-- Bundled third-party code: not scanned / not auto-fixed -->
+    <exclude-pattern>*/includes/csf/*</exclude-pattern>
+    <exclude-pattern>*/includes/modules/post-duplicator/includes/*</exclude-pattern>
+    <exclude-pattern>*/includes/modules/post-duplicator/m4c-postduplicator.php</exclude-pattern>
+    <exclude-pattern>*/includes/modules/smart-aui/library/*</exclude-pattern>
+    <exclude-pattern>*/includes/modules/word-to-post/library/*</exclude-pattern>
+
     <!-- Exclude specific files -->
     <exclude-pattern>composer.json</exclude-pattern>
     <exclude-pattern>composer.lock</exclude-pattern>
