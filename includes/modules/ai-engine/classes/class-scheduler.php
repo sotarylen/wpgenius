@@ -51,7 +51,7 @@ class W2P_AI_Scheduler {
 	 * @param W2P_AI_Provider_Manager $provider_manager Provider manager instance.
 	 * @param W2P_AI_Content_Queue    $content_queue Content queue instance.
 	 */
-	public function __construct( W2P_AI_Provider_Manager $provider_manager = null, W2P_AI_Content_Queue $content_queue = null ) {
+	public function __construct( ?W2P_AI_Provider_Manager $provider_manager = null, ?W2P_AI_Content_Queue $content_queue = null ) {
 		$this->provider_manager = $provider_manager ?? new W2P_AI_Provider_Manager();
 		$this->content_queue    = $content_queue ?? new W2P_AI_Content_Queue( $this->provider_manager );
 

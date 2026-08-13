@@ -44,7 +44,7 @@ class W2P_AI_Content_Queue {
 	 * @param W2P_AI_Provider_Manager $provider_manager Provider manager instance.
 	 * @param W2P_AI_Prompt_Engine    $prompt_engine Prompt engine instance.
 	 */
-	public function __construct( W2P_AI_Provider_Manager $provider_manager = null, W2P_AI_Prompt_Engine $prompt_engine = null ) {
+	public function __construct( ?W2P_AI_Provider_Manager $provider_manager = null, ?W2P_AI_Prompt_Engine $prompt_engine = null ) {
 		global $wpdb;
 		$this->table_name = $wpdb->prefix . 'w2p_ai_queue';
 
