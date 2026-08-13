@@ -15,7 +15,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'WP_GENIUS_FILE', __FILE__ );
 
 // Include module framework (abstracts, loader, admin settings)
-require_once plugin_dir_path( __FILE__ ) . 'includes/csf/codestar-framework.php';
+// Note: CSF (codestar-framework) is loaded lazily only on admin settings pages
+// to keep frontend/Cron/REST requests free of the framework overhead.
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-abstract-module.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-module-loader.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-task-queue.php';
@@ -34,8 +35,17 @@ function w2p_core_init() {
 		// Initialize module loader
 		$module_loader = new W2P_Module_Loader( plugin_dir_path( __FILE__ ) . 'includes/modules/' );
 
-		// Initialize admin settings manager
-		$admin_settings = new W2P_Admin_Settings( $module_loader );
+		// Register the admin settings page lazily (admin only).
+		// This keeps CSF framework and full module discovery out of frontend/Cron/REST requests.
+		if ( is_admin() ) {
+			add_action(
+				'admin_init',
+				function () use ( $module_loader ) {
+					new W2P_Admin_Settings( $module_loader );
+				},
+				5
+			);
+		}
 
 		// Initialize and load enabled modules
 		$module_loader->init();

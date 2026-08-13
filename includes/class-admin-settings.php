@@ -29,6 +29,14 @@ class W2P_Admin_Settings {
 		$prefix = 'w2p_settings';
 
 		// 1. Initialize Framework
+		// CSF 延迟加载：仅管理设置页需要，前台/Cron/REST 请求不加载框架。
+		if ( ! class_exists( 'CSF' ) ) {
+			$csf_path = plugin_dir_path( WP_GENIUS_FILE ) . 'includes/csf/codestar-framework.php';
+			if ( file_exists( $csf_path ) ) {
+				require_once $csf_path;
+			}
+		}
+
 		if ( class_exists( 'CSF' ) ) {
 			CSF::createOptions(
 				$prefix,
@@ -58,7 +66,7 @@ class W2P_Admin_Settings {
 			// Check loader code: init() calls discover().
 			// So we should call discover() here to be sure, or purely rely on access.
 			// Since we want to show ALL modules (even disabled ones), we need discovery.
-			$this->loader->discover();
+			$this->loader->discover( true );
 			$modules = $this->loader->get_available_modules();
 
 			if ( ! empty( $modules ) ) {

@@ -21,25 +21,43 @@ class W2P_Module_Loader {
 	}
 
 	// 发现并包含 modules 目录下每个模块的 main 文件（约定为 module.php）
-	public function discover() {
+	// 按需加载：默认仅加载已启用模块；设置页需展示全部模块开关，传 $include_all=true。
+	public function discover( $include_all = false ) {
 		// 从 includes/modules 目录加载模块
 		if ( is_dir( $this->modules_dir ) ) {
-			$this->load_modules_from_directory( $this->modules_dir );
+			$this->load_modules_from_directory( $this->modules_dir, $include_all );
 		}
 	}
 
 	// 从指定目录加载模块
-	protected function load_modules_from_directory( $directory ) {
+	protected function load_modules_from_directory( $directory, $include_all = false ) {
 		// Use simpler glob which is faster than scandir + custom filtering often
 		$dirs = glob( $directory . '*', GLOB_ONLYDIR );
 		if ( ! $dirs ) {
 			return;
 		}
 
+		$settings = get_option( 'w2p_settings', array() );
+
 		foreach ( $dirs as $path ) {
 			$dirname = basename( $path );
-			$class   = $this->class_name_from_dir( $dirname );
-			$found   = false;
+
+			// 已实例化（如 init() 已加载启用模块，设置页再次 discover(true) 时跳过）。
+			if ( isset( $this->modules[ $dirname ] ) ) {
+				continue;
+			}
+
+			// 按需加载：非管理场景（前台/Cron/REST）只加载启用模块，避免解析未启用模块代码。
+			if ( ! $include_all ) {
+				$module_key = 'module_' . $dirname;
+				$is_enabled = ! empty( $settings[ $module_key ] );
+				if ( ! $is_enabled ) {
+					continue;
+				}
+			}
+
+			$class = $this->class_name_from_dir( $dirname );
+			$found = false;
 
 			// 1. Check if class is already loaded or can be autoloaded (Composer)
 			if ( class_exists( $class ) ) {
