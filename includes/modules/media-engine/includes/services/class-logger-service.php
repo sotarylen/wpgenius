@@ -32,14 +32,62 @@ class MediaEngineConversionLogger {
 	 * 构造函数
 	 */
 	public function __construct() {
-		$upload_dir     = wp_upload_dir();
-		$this->log_file = $upload_dir['basedir'] . '/conversion_optimized.log';
+		$upload_dir = wp_upload_dir();
+		$log_dir    = $upload_dir['basedir'] . '/wpgenius';
+
+		// 确保日志目录存在且不可被 Web 直接访问。
+		$this->ensure_log_dir( $log_dir );
+
+		$this->log_file = $log_dir . '/conversion_optimized.log';
+
+		// 迁移旧日志（原位于 uploads 根目录，Web 可直读）。
+		$legacy_file = $upload_dir['basedir'] . '/conversion_optimized.log';
+		if ( file_exists( $legacy_file ) ) {
+			if ( ! file_exists( $this->log_file ) ) {
+				@rename( $legacy_file, $this->log_file );
+			} else {
+				@unlink( $legacy_file );
+			}
+		}
 
 		// 确保日志文件存在
 		if ( ! file_exists( $this->log_file ) ) {
 			touch( $this->log_file );
 		}
 	}
+
+	/**
+	 * 创建受保护的日志目录（防目录列表 + 防直接访问）。
+	 *
+	 * @param string $log_dir 日志目录绝对路径。
+	 * @return void
+	 */
+	private function ensure_log_dir( $log_dir ) {
+		if ( ! is_dir( $log_dir ) ) {
+			wp_mkdir_p( $log_dir );
+		}
+
+		// 目录列表哨兵文件（Nginx/Apache 下均阻止目录列出）。
+		if ( ! file_exists( $log_dir . '/index.php' ) ) {
+			@file_put_contents( $log_dir . '/index.php', '<?php // Silence is golden.' );
+		}
+
+		// Apache 下拒绝直接访问（兼容 2.2 与 2.4）。
+		if ( ! file_exists( $log_dir . '/.htaccess' ) ) {
+			@file_put_contents(
+				$log_dir . '/.htaccess',
+				"# Deny direct access to log files\n" .
+				"<IfModule mod_authz_core.c>\n" .
+				"Require all denied\n" .
+				"</IfModule>\n" .
+				"<IfModule !mod_authz_core.c>\n" .
+				"Order deny,allow\n" .
+				"Deny from all\n" .
+				"</IfModule>\n"
+			);
+		}
+	}
+
 
 	/**
 	 * 记录转换开始
