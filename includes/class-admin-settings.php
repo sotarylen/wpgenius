@@ -29,7 +29,9 @@ class W2P_Admin_Settings {
 		$prefix = 'w2p_settings';
 
 		// 1. Initialize Framework
-		// CSF 延迟加载：仅管理设置页需要，前台/Cron/REST 请求不加载框架。
+		// CSF 已在插件文件加载阶段（is_admin 守卫）require，此处仅防御性检查。
+		// 注意：不能在此时才 require —— CSF 在文件加载时注册 init 钩子（setup），
+		// 延迟 require 会让 setup 错过 init 而无法注册设置菜单。
 		if ( ! class_exists( 'CSF' ) ) {
 			$csf_path = plugin_dir_path( WP_GENIUS_FILE ) . 'includes/csf/codestar-framework.php';
 			if ( file_exists( $csf_path ) ) {
