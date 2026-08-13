@@ -51,24 +51,4 @@ class W2P_Task_Queue {
 			wp_unschedule_event( $timestamp, $hook, $args );
 		}
 	}
-
-	/**
-	 * Async Request Helper (Non-blocking HTTP request)
-	 * Useful for triggering background processing immediately without waiting for Cron.
-	 *
-	 * @param string $action AJAX action name
-	 * @param array  $data   Post data
-	 */
-	public static function dispatch_async( $action, $data = array() ) {
-		$args = array(
-			'method'    => 'POST',
-			'timeout'   => 0.01,
-			'blocking'  => false,
-			'body'      => array_merge( $data, array( 'action' => $action ) ),
-			'cookies'   => $_COOKIE,
-			'sslverify' => apply_filters( 'https_local_ssl_verify', false ),
-		);
-
-		wp_remote_post( admin_url( 'admin-ajax.php' ), $args );
-	}
 }
