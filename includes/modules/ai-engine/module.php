@@ -18,6 +18,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class W2P_AiEngineModule extends W2P_Abstract_Module {
 
 	/**
+	 * AJAX handler instance.
+	 *
+	 * @var W2P_AI_Engine_Ajax|null
+	 */
+	private $ajax;
+
+	/**
 	 * Module ID
 	 *
 	 * @return string
@@ -25,7 +32,6 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 	public static function id() {
 		return 'ai-engine';
 	}
-
 	/**
 	 * Module Name
 	 *
@@ -34,7 +40,6 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 	public static function name() {
 		return __( 'AI Content Engine', 'wp-genius' );
 	}
-
 	/**
 	 * Module Description
 	 *
@@ -43,7 +48,6 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 	public static function description() {
 		return __( 'AI-powered content creation engine with multi-model support and scheduled generation.', 'wp-genius' );
 	}
-
 	/**
 	 * Module Icon
 	 *
@@ -52,35 +56,6 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 	public static function icon() {
 		return 'fa-solid fa-robot';
 	}
-
-	/**
-	 * Provider Manager Instance
-	 *
-	 * @var W2P_AI_Provider_Manager|null
-	 */
-	private $provider_manager = null;
-
-	/**
-	 * Prompt Engine Instance
-	 *
-	 * @var W2P_AI_Prompt_Engine|null
-	 */
-	private $prompt_engine = null;
-
-	/**
-	 * Content Queue Instance
-	 *
-	 * @var W2P_AI_Content_Queue|null
-	 */
-	private $content_queue = null;
-
-	/**
-	 * Scheduler Instance
-	 *
-	 * @var W2P_AI_Scheduler|null
-	 */
-	private $scheduler = null;
-
 	/**
 	 * Initialize Module
 	 *
@@ -96,6 +71,10 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 		$this->content_queue    = new W2P_AI_Content_Queue();
 		$this->scheduler        = new W2P_AI_Scheduler();
 
+		// 装配 AJAX 职责类（God class 拆分）。
+		require_once __DIR__ . '/includes/class-ajax.php';
+		$this->ajax = new W2P_AI_Engine_Ajax( $this );
+
 		// Load CSF Options
 		$this->load_options();
 
@@ -105,7 +84,6 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 		// Create database tables
 		$this->maybe_create_tables();
 	}
-
 	/**
 	 * Load Dependencies
 	 *
@@ -128,7 +106,6 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 		require_once $providers_dir . 'class-gemini.php';
 		require_once $providers_dir . 'class-deepseek.php';
 	}
-
 	/**
 	 * Load CSF Options
 	 *
@@ -140,7 +117,6 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 			require_once $options_path;
 		}
 	}
-
 	/**
 	 * Register Hooks
 	 *
@@ -151,20 +127,20 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 
 		// AJAX handlers
-		add_action( 'wp_ajax_w2p_ai_generate', array( $this, 'ajax_generate_content' ) );
-		add_action( 'wp_ajax_w2p_ai_validate_key', array( $this, 'ajax_validate_api_key' ) );
-		add_action( 'wp_ajax_w2p_ai_get_models', array( $this, 'ajax_get_models' ) );
-		add_action( 'wp_ajax_w2p_ai_get_prompt', array( $this, 'ajax_get_prompt' ) );
-		add_action( 'wp_ajax_w2p_ai_save_prompt', array( $this, 'ajax_save_prompt' ) );
-		add_action( 'wp_ajax_w2p_ai_delete_prompt', array( $this, 'ajax_delete_prompt' ) );
-		add_action( 'wp_ajax_w2p_ai_get_queue', array( $this, 'ajax_get_queue' ) );
-		add_action( 'wp_ajax_w2p_ai_process_queue', array( $this, 'ajax_process_queue' ) );
-		add_action( 'wp_ajax_w2p_ai_save_schedule', array( $this, 'ajax_save_schedule' ) );
-		add_action( 'wp_ajax_w2p_ai_delete_schedule', array( $this, 'ajax_delete_schedule' ) );
-		add_action( 'wp_ajax_w2p_ai_toggle_schedule', array( $this, 'ajax_toggle_schedule' ) );
-		add_action( 'wp_ajax_w2p_ai_get_usage', array( $this, 'ajax_get_usage' ) );
-		add_action( 'wp_ajax_w2p_ai_save_settings', array( $this, 'ajax_save_settings' ) );
-		add_action( 'wp_ajax_w2p_ai_create_draft', array( $this, 'ajax_create_draft' ) );
+		add_action( 'wp_ajax_w2p_ai_generate', array( $this->ajax, 'ajax_generate_content' ) );
+		add_action( 'wp_ajax_w2p_ai_validate_key', array( $this->ajax, 'ajax_validate_api_key' ) );
+		add_action( 'wp_ajax_w2p_ai_get_models', array( $this->ajax, 'ajax_get_models' ) );
+		add_action( 'wp_ajax_w2p_ai_get_prompt', array( $this->ajax, 'ajax_get_prompt' ) );
+		add_action( 'wp_ajax_w2p_ai_save_prompt', array( $this->ajax, 'ajax_save_prompt' ) );
+		add_action( 'wp_ajax_w2p_ai_delete_prompt', array( $this->ajax, 'ajax_delete_prompt' ) );
+		add_action( 'wp_ajax_w2p_ai_get_queue', array( $this->ajax, 'ajax_get_queue' ) );
+		add_action( 'wp_ajax_w2p_ai_process_queue', array( $this->ajax, 'ajax_process_queue' ) );
+		add_action( 'wp_ajax_w2p_ai_save_schedule', array( $this->ajax, 'ajax_save_schedule' ) );
+		add_action( 'wp_ajax_w2p_ai_delete_schedule', array( $this->ajax, 'ajax_delete_schedule' ) );
+		add_action( 'wp_ajax_w2p_ai_toggle_schedule', array( $this->ajax, 'ajax_toggle_schedule' ) );
+		add_action( 'wp_ajax_w2p_ai_get_usage', array( $this->ajax, 'ajax_get_usage' ) );
+		add_action( 'wp_ajax_w2p_ai_save_settings', array( $this->ajax, 'ajax_save_settings' ) );
+		add_action( 'wp_ajax_w2p_ai_create_draft', array( $this->ajax, 'ajax_create_draft' ) );
 
 		// Cron hooks
 		add_action( 'w2p_ai_content_generation', array( $this->scheduler, 'run_scheduled_tasks' ) );
@@ -173,7 +149,6 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 		// Settings saved hook
 		add_action( 'csf_w2p_settings_saved', array( $this, 'on_settings_saved' ) );
 	}
-
 	/**
 	 * Get Provider Manager instance
 	 *
@@ -182,7 +157,6 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 	public function get_provider_manager() {
 		return $this->provider_manager;
 	}
-
 	/**
 	 * Get Prompt Engine instance
 	 *
@@ -191,7 +165,6 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 	public function get_prompt_engine() {
 		return $this->prompt_engine;
 	}
-
 	/**
 	 * Get Content Queue instance
 	 *
@@ -200,7 +173,6 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 	public function get_content_queue() {
 		return $this->content_queue;
 	}
-
 	/**
 	 * Get Scheduler instance
 	 *
@@ -209,7 +181,6 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 	public function get_scheduler() {
 		return $this->scheduler;
 	}
-
 	/**
 	 * Enqueue Admin Assets
 	 *
@@ -260,7 +231,6 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 			)
 		);
 	}
-
 	/**
 	 * Render Admin Page
 	 *
@@ -272,7 +242,6 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 
 		include __DIR__ . '/templates/admin-page.php';
 	}
-
 	/**
 	 * Create Database Tables
 	 *
@@ -302,457 +271,6 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
 	}
-
-	/**
-	 * AJAX: Generate Content
-	 *
-	 * @return void
-	 */
-	public function ajax_generate_content() {
-		check_ajax_referer( 'w2p_ai_engine_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'edit_posts' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ) );
-		}
-
-		$prompt_id = isset( $_POST['prompt_id'] ) ? absint( $_POST['prompt_id'] ) : 0;
-		$provider  = isset( $_POST['provider'] ) ? sanitize_text_field( $_POST['provider'] ) : '';
-		$model     = isset( $_POST['model'] ) ? sanitize_text_field( $_POST['model'] ) : '';
-		$variables = isset( $_POST['variables'] ) ? map_deep( wp_unslash( $_POST['variables'] ), 'sanitize_text_field' ) : array();
-		$quantity  = isset( $_POST['quantity'] ) ? absint( $_POST['quantity'] ) : 1;
-
-		if ( empty( $provider ) || empty( $model ) ) {
-			wp_send_json_error( array( 'message' => __( 'Please select a provider and model.', 'wp-genius' ) ) );
-		}
-
-		// Get provider instance
-		$provider_instance = $this->provider_manager->get_provider( $provider );
-		if ( ! $provider_instance ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid AI provider.', 'wp-genius' ) ) );
-		}
-
-		// Validate API key
-		if ( ! $provider_instance->validate_key() ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid API key.', 'wp-genius' ) ) );
-		}
-
-		// Get prompt template
-		$prompt = $this->prompt_engine->get_prompt( $prompt_id );
-		if ( ! $prompt ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid prompt template.', 'wp-genius' ) ) );
-		}
-
-		// Process variables in template
-		$processed_prompt = $this->prompt_engine->process_template( $prompt['template'], $variables );
-
-		// Generate content
-		$results = array();
-		for ( $i = 0; $i < $quantity; $i++ ) {
-			$result = $provider_instance->generate(
-				array(
-					'prompt'      => $processed_prompt,
-					'model'       => $model,
-					'temperature' => $prompt['temperature'] ?? 0.7,
-					'max_tokens'  => $prompt['max_tokens'] ?? 2000,
-				)
-			);
-
-			if ( is_wp_error( $result ) ) {
-				wp_send_json_error( array( 'message' => $result->get_error_message() ) );
-			}
-
-			$results[] = $result;
-		}
-
-		wp_send_json_success(
-			array(
-				'content' => $results,
-				'usage'   => $provider_instance->get_last_usage(),
-			)
-		);
-	}
-
-	/**
-	 * AJAX: Validate API Key
-	 *
-	 * @return void
-	 */
-	public function ajax_validate_api_key() {
-		check_ajax_referer( 'w2p_ai_engine_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ) );
-		}
-
-		$provider = isset( $_POST['provider'] ) ? sanitize_text_field( $_POST['provider'] ) : '';
-		$api_key  = isset( $_POST['api_key'] ) ? sanitize_text_field( $_POST['api_key'] ) : '';
-
-		if ( empty( $provider ) || empty( $api_key ) ) {
-			wp_send_json_error( array( 'message' => __( 'Please provide provider and API key.', 'wp-genius' ) ) );
-		}
-
-		$provider_instance = $this->provider_manager->get_provider( $provider );
-		if ( ! $provider_instance ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid AI provider.', 'wp-genius' ) ) );
-		}
-
-		$provider_instance->set_api_key( $api_key );
-		$is_valid = $provider_instance->validate_key();
-
-		if ( $is_valid ) {
-			wp_send_json_success( array( 'message' => __( 'API key is valid.', 'wp-genius' ) ) );
-		} else {
-			wp_send_json_error( array( 'message' => __( 'API key is invalid.', 'wp-genius' ) ) );
-		}
-	}
-
-	/**
-	 * AJAX: Get Available Models
-	 *
-	 * @return void
-	 */
-	public function ajax_get_models() {
-		check_ajax_referer( 'w2p_ai_engine_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'edit_posts' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ) );
-		}
-
-		$provider = isset( $_POST['provider'] ) ? sanitize_text_field( $_POST['provider'] ) : '';
-
-		$provider_instance = $this->provider_manager->get_provider( $provider );
-		if ( ! $provider_instance ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid AI provider.', 'wp-genius' ) ) );
-		}
-
-		$models = $provider_instance->get_models();
-		wp_send_json_success( array( 'models' => $models ) );
-	}
-
-	/**
-	 * AJAX: Save Prompt
-	 *
-	 * @return void
-	 */
-	public function ajax_save_prompt() {
-		check_ajax_referer( 'w2p_ai_engine_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ) );
-		}
-
-		$name        = isset( $_POST['name'] ) ? sanitize_text_field( $_POST['name'] ) : '';
-		$template    = isset( $_POST['template'] ) ? wp_kses_post( $_POST['template'] ) : '';
-		$variables   = isset( $_POST['variables'] ) ? map_deep( wp_unslash( $_POST['variables'] ), 'sanitize_text_field' ) : array();
-		$temperature = isset( $_POST['temperature'] ) ? floatval( $_POST['temperature'] ) : 0.7;
-		$max_tokens  = isset( $_POST['max_tokens'] ) ? absint( $_POST['max_tokens'] ) : 2000;
-
-		if ( empty( $name ) || empty( $template ) ) {
-			wp_send_json_error( array( 'message' => __( 'Name and template are required.', 'wp-genius' ) ) );
-		}
-
-		$prompt_id = $this->prompt_engine->save_prompt(
-			array(
-				'name'        => $name,
-				'template'    => $template,
-				'variables'   => $variables,
-				'temperature' => $temperature,
-				'max_tokens'  => $max_tokens,
-			)
-		);
-
-		if ( $prompt_id ) {
-			wp_send_json_success(
-				array(
-					'id'      => $prompt_id,
-					'message' => __( 'Prompt saved.', 'wp-genius' ),
-				)
-			);
-		} else {
-			wp_send_json_error( array( 'message' => __( 'Failed to save prompt.', 'wp-genius' ) ) );
-		}
-	}
-
-	/**
-	 * AJAX: Delete Prompt
-	 *
-	 * @return void
-	 */
-	public function ajax_delete_prompt() {
-		check_ajax_referer( 'w2p_ai_engine_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ) );
-		}
-
-		$prompt_id = isset( $_POST['prompt_id'] ) ? absint( $_POST['prompt_id'] ) : 0;
-
-		if ( ! $prompt_id ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid prompt ID.', 'wp-genius' ) ) );
-		}
-
-		$deleted = $this->prompt_engine->delete_prompt( $prompt_id );
-
-		if ( $deleted ) {
-			wp_send_json_success( array( 'message' => __( 'Prompt deleted.', 'wp-genius' ) ) );
-		} else {
-			wp_send_json_error( array( 'message' => __( 'Failed to delete prompt.', 'wp-genius' ) ) );
-		}
-	}
-
-	/**
-	 * AJAX: Get Queue
-	 *
-	 * @return void
-	 */
-	public function ajax_get_queue() {
-		check_ajax_referer( 'w2p_ai_engine_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'edit_posts' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ) );
-		}
-
-		$page     = isset( $_GET['page'] ) ? absint( $_GET['page'] ) : 1;
-		$per_page = 20;
-
-		$queue = $this->content_queue->get_queue( $page, $per_page );
-		wp_send_json_success( $queue );
-	}
-
-	/**
-	 * AJAX: Process Queue
-	 *
-	 * @return void
-	 */
-	public function ajax_process_queue() {
-		check_ajax_referer( 'w2p_ai_engine_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ) );
-		}
-
-		// 手动触发可处理更大批量（浏览器端 AJAX 生命周期内）。
-		$result = $this->content_queue->process_queue( 5 );
-
-		if ( $result ) {
-			wp_send_json_success( array( 'message' => __( 'Queue processed.', 'wp-genius' ) ) );
-		} else {
-			wp_send_json_error( array( 'message' => __( 'Failed to process queue.', 'wp-genius' ) ) );
-		}
-	}
-
-	/**
-	 * AJAX: Save Schedule
-	 *
-	 * @return void
-	 */
-	public function ajax_save_schedule() {
-		check_ajax_referer( 'w2p_ai_engine_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ) );
-		}
-
-		$schedule_data = array(
-			'name'       => isset( $_POST['name'] ) ? sanitize_text_field( $_POST['name'] ) : '',
-			'provider'   => isset( $_POST['provider'] ) ? sanitize_text_field( $_POST['provider'] ) : '',
-			'model'      => isset( $_POST['model'] ) ? sanitize_text_field( $_POST['model'] ) : '',
-			'prompt_id'  => isset( $_POST['prompt_id'] ) ? absint( $_POST['prompt_id'] ) : 0,
-			'frequency'  => isset( $_POST['frequency'] ) ? sanitize_text_field( $_POST['frequency'] ) : 'daily',
-			'time'       => isset( $_POST['time'] ) ? sanitize_text_field( $_POST['time'] ) : '09:00',
-			'quantity'   => isset( $_POST['quantity'] ) ? absint( $_POST['quantity'] ) : 1,
-			'status'     => isset( $_POST['status'] ) ? sanitize_text_field( $_POST['status'] ) : 'draft',
-			'categories' => isset( $_POST['categories'] ) ? array_map( 'absint', (array) $_POST['categories'] ) : array(),
-			'tags'       => isset( $_POST['tags'] ) ? array_map( 'sanitize_text_field', (array) $_POST['tags'] ) : array(),
-			'featured'   => isset( $_POST['featured'] ) ? (bool) $_POST['featured'] : false,
-			'variables'  => isset( $_POST['variables'] ) ? map_deep( wp_unslash( $_POST['variables'] ), 'sanitize_text_field' ) : array(),
-		);
-
-		$schedule_id = $this->scheduler->save_schedule( $schedule_data );
-
-		if ( $schedule_id ) {
-			wp_send_json_success(
-				array(
-					'id'      => $schedule_id,
-					'message' => __( 'Schedule saved.', 'wp-genius' ),
-				)
-			);
-		} else {
-			wp_send_json_error( array( 'message' => __( 'Failed to save schedule.', 'wp-genius' ) ) );
-		}
-	}
-
-	/**
-	 * AJAX: Delete Schedule
-	 *
-	 * @return void
-	 */
-	public function ajax_delete_schedule() {
-		check_ajax_referer( 'w2p_ai_engine_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ) );
-		}
-
-		$schedule_id = isset( $_POST['schedule_id'] ) ? absint( $_POST['schedule_id'] ) : 0;
-
-		if ( ! $schedule_id ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid schedule ID.', 'wp-genius' ) ) );
-		}
-
-		$deleted = $this->scheduler->delete_schedule( $schedule_id );
-
-		if ( $deleted ) {
-			wp_send_json_success( array( 'message' => __( 'Schedule deleted.', 'wp-genius' ) ) );
-		} else {
-			wp_send_json_error( array( 'message' => __( 'Failed to delete schedule.', 'wp-genius' ) ) );
-		}
-	}
-
-	/**
-	 * AJAX: Toggle Schedule
-	 *
-	 * @return void
-	 */
-	public function ajax_toggle_schedule() {
-		check_ajax_referer( 'w2p_ai_engine_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ) );
-		}
-
-		$schedule_id = isset( $_POST['schedule_id'] ) ? absint( $_POST['schedule_id'] ) : 0;
-
-		if ( ! $schedule_id ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid schedule ID.', 'wp-genius' ) ) );
-		}
-
-		$new_status = $this->scheduler->toggle_schedule( $schedule_id );
-
-		wp_send_json_success(
-			array(
-				'status'  => $new_status,
-				'message' => $new_status ? __( 'Schedule enabled.', 'wp-genius' ) : __( 'Schedule disabled.', 'wp-genius' ),
-			)
-		);
-	}
-
-	/**
-	 * AJAX: Get Usage Stats
-	 *
-	 * @return void
-	 */
-	public function ajax_get_usage() {
-		check_ajax_referer( 'w2p_ai_engine_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ) );
-		}
-
-		$usage = $this->provider_manager->get_all_usage();
-		wp_send_json_success( array( 'usage' => $usage ) );
-	}
-
-	/**
-	 * AJAX: Get Single Prompt
-	 *
-	 * @return void
-	 */
-	public function ajax_get_prompt() {
-		check_ajax_referer( 'w2p_ai_engine_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'edit_posts' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ) );
-		}
-
-		$prompt_id = isset( $_POST['prompt_id'] ) ? absint( $_POST['prompt_id'] ) : 0;
-
-		if ( ! $prompt_id ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid prompt ID.', 'wp-genius' ) ) );
-		}
-
-		$prompt = $this->prompt_engine->get_prompt( $prompt_id );
-
-		if ( ! $prompt ) {
-			wp_send_json_error( array( 'message' => __( 'Prompt not found.', 'wp-genius' ) ) );
-		}
-
-		wp_send_json_success( array( 'prompt' => $prompt ) );
-	}
-
-	/**
-	 * AJAX: Save API Settings
-	 *
-	 * @return void
-	 */
-	public function ajax_save_settings() {
-		check_ajax_referer( 'w2p_ai_engine_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ) );
-		}
-
-		$api_keys = isset( $_POST['api_keys'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['api_keys'] ) ) : array();
-
-		$providers = array( 'openai', 'anthropic', 'gemini', 'deepseek' );
-
-		foreach ( $providers as $provider_slug ) {
-			if ( ! empty( $api_keys[ $provider_slug ] ) ) {
-				$provider = $this->provider_manager->get_provider( $provider_slug );
-				if ( $provider ) {
-					$provider->set_api_key( $api_keys[ $provider_slug ] );
-				}
-			}
-		}
-
-		wp_send_json_success( array( 'message' => __( 'Settings saved.', 'wp-genius' ) ) );
-	}
-
-	/**
-	 * AJAX: Create Draft Post from AI Content
-	 *
-	 * @return void
-	 */
-	public function ajax_create_draft() {
-		check_ajax_referer( 'w2p_ai_engine_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'edit_posts' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ) );
-		}
-
-		$title   = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
-		$content = isset( $_POST['content'] ) ? wp_kses_post( wp_unslash( $_POST['content'] ) ) : '';
-
-		if ( empty( $title ) || empty( $content ) ) {
-			wp_send_json_error( array( 'message' => __( 'Title and content are required.', 'wp-genius' ) ) );
-		}
-
-		$post_id = wp_insert_post(
-			array(
-				'post_title'   => $title,
-				'post_content' => $content,
-				'post_status'  => 'draft',
-				'post_type'    => 'post',
-			),
-			true
-		);
-
-		if ( is_wp_error( $post_id ) ) {
-			wp_send_json_error( array( 'message' => $post_id->get_error_message() ) );
-		}
-
-		// Mark as AI generated.
-		update_post_meta( $post_id, '_w2p_ai_generated', true );
-
-		wp_send_json_success(
-			array(
-				'post_id'  => $post_id,
-				'edit_url' => get_edit_post_link( $post_id, 'raw' ),
-				'message'  => __( 'Post created.', 'wp-genius' ),
-			)
-		);
-	}
-
 	/**
 	 * On Settings Saved
 	 *
@@ -761,6 +279,118 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 	public function on_settings_saved() {
 		// Update cron schedule based on settings.
 		$this->scheduler->update_cron_schedule();
+	}
+	/**
+	 * AJAX: ajax_generate_content（委托至 W2P_AI_Engine_Ajax）。
+	 *
+	 * @return void
+	 */
+	public function ajax_generate_content() {
+		$this->ajax->ajax_generate_content();
+	}
+	/**
+	 * AJAX: ajax_validate_api_key（委托至 W2P_AI_Engine_Ajax）。
+	 *
+	 * @return void
+	 */
+	public function ajax_validate_api_key() {
+		$this->ajax->ajax_validate_api_key();
+	}
+	/**
+	 * AJAX: ajax_get_models（委托至 W2P_AI_Engine_Ajax）。
+	 *
+	 * @return void
+	 */
+	public function ajax_get_models() {
+		$this->ajax->ajax_get_models();
+	}
+	/**
+	 * AJAX: ajax_save_prompt（委托至 W2P_AI_Engine_Ajax）。
+	 *
+	 * @return void
+	 */
+	public function ajax_save_prompt() {
+		$this->ajax->ajax_save_prompt();
+	}
+	/**
+	 * AJAX: ajax_delete_prompt（委托至 W2P_AI_Engine_Ajax）。
+	 *
+	 * @return void
+	 */
+	public function ajax_delete_prompt() {
+		$this->ajax->ajax_delete_prompt();
+	}
+	/**
+	 * AJAX: ajax_get_queue（委托至 W2P_AI_Engine_Ajax）。
+	 *
+	 * @return void
+	 */
+	public function ajax_get_queue() {
+		$this->ajax->ajax_get_queue();
+	}
+	/**
+	 * AJAX: ajax_process_queue（委托至 W2P_AI_Engine_Ajax）。
+	 *
+	 * @return void
+	 */
+	public function ajax_process_queue() {
+		$this->ajax->ajax_process_queue();
+	}
+	/**
+	 * AJAX: ajax_save_schedule（委托至 W2P_AI_Engine_Ajax）。
+	 *
+	 * @return void
+	 */
+	public function ajax_save_schedule() {
+		$this->ajax->ajax_save_schedule();
+	}
+	/**
+	 * AJAX: ajax_delete_schedule（委托至 W2P_AI_Engine_Ajax）。
+	 *
+	 * @return void
+	 */
+	public function ajax_delete_schedule() {
+		$this->ajax->ajax_delete_schedule();
+	}
+	/**
+	 * AJAX: ajax_toggle_schedule（委托至 W2P_AI_Engine_Ajax）。
+	 *
+	 * @return void
+	 */
+	public function ajax_toggle_schedule() {
+		$this->ajax->ajax_toggle_schedule();
+	}
+	/**
+	 * AJAX: ajax_get_usage（委托至 W2P_AI_Engine_Ajax）。
+	 *
+	 * @return void
+	 */
+	public function ajax_get_usage() {
+		$this->ajax->ajax_get_usage();
+	}
+	/**
+	 * AJAX: ajax_get_prompt（委托至 W2P_AI_Engine_Ajax）。
+	 *
+	 * @return void
+	 */
+	public function ajax_get_prompt() {
+		$this->ajax->ajax_get_prompt();
+	}
+	/**
+	 * AJAX: ajax_save_settings（委托至 W2P_AI_Engine_Ajax）。
+	 *
+	 * @return void
+	 */
+	public function ajax_save_settings() {
+		$this->ajax->ajax_save_settings();
+	}
+	/**
+	 * AJAX: ajax_create_draft（委托至 W2P_AI_Engine_Ajax）。
+	 *
+	 * @return void
+	 */
+	public function ajax_create_draft() {
+		$this->ajax->ajax_create_draft();
 	}
 }
 
