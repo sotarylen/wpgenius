@@ -15,19 +15,20 @@ $ai_prompts   = $ai_prompts ?? array();
 
 $nonce = wp_create_nonce( 'w2p_ai_engine_nonce' );
 
-// Get schedules from options.
+// Get schedules from the schedules table (P1-3: migrated off options storage).
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- 表名由 $wpdb->prefix 常量拼接。
 global $wpdb;
-$ai_schedules        = array();
-$ai_schedule_results = $wpdb->get_results(
-	"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE 'w2p_ai_schedule_%' AND option_name NOT LIKE '%last_run%'",
+$ai_schedules = $wpdb->get_results(
+	"SELECT * FROM {$wpdb->prefix}w2p_ai_schedules ORDER BY created_at ASC, name ASC",
 	ARRAY_A
-);
-foreach ( $ai_schedule_results as $row ) {
-	$schedule = json_decode( $row['option_value'], true );
-	if ( $schedule ) {
-		$ai_schedules[] = $schedule;
-	}
+) ?: array();
+// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+foreach ( $ai_schedules as &$schedule ) {
+	$schedule['categories'] = json_decode( $schedule['categories'] ?: '[]', true );
+	$schedule['tags']       = json_decode( $schedule['tags'] ?: '[]', true );
+	$schedule['variables']  = json_decode( $schedule['variables'] ?: '{}', true );
 }
+unset( $schedule );
 ?>
 <div class="w2p-ai-engine-wrap">
 	<h3><?php esc_html_e( 'Content Schedules', 'wp-genius' ); ?></h3>

@@ -304,10 +304,24 @@ class W2P_AI_Content_Queue {
 			$title = substr( wp_strip_all_tags( $content ), 0, 100 );
 		}
 
-		// Get schedule settings
+		// Get schedule settings (from the schedules table; legacy option storage removed in P1-3).
 		$schedule = null;
 		if ( $item['schedule_id'] ) {
-			$schedule = get_option( 'w2p_ai_schedule_' . $item['schedule_id'], null );
+			global $wpdb;
+			$row = $wpdb->get_row(
+				$wpdb->prepare(
+					"SELECT status, categories, tags FROM {$wpdb->prefix}w2p_ai_schedules WHERE id = %s",
+					$item['schedule_id']
+				),
+				ARRAY_A
+			);
+			if ( $row ) {
+				$schedule = [
+					'status'     => $row['status'],
+					'categories' => json_decode( $row['categories'] ?: '[]', true ),
+					'tags'       => json_decode( $row['tags'] ?: '[]', true ),
+				];
+			}
 		}
 
 		$post_data = [
