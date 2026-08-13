@@ -20,7 +20,7 @@ class MediaEngineConverterService {
 	 *
 	 * @var array
 	 */
-	private $available_engines = [];
+	private $available_engines = array();
 
 	public function __construct() {
 		// Initialize Logger
@@ -35,10 +35,10 @@ class MediaEngineConverterService {
 		if ( class_exists( 'MediaEngineConversionLogger' ) ) {
 			$this->logger = new MediaEngineConversionLogger();
 		} elseif ( class_exists( 'MediaEngineLoggerService' ) ) {
-             // Handle renamed class if applicable, or keep original name in new file
-             // Based on previous move, class name inside file might still be MediaEngineConversionLogger
-             $this->logger = new MediaEngineConversionLogger(); 
-        }
+			// Handle renamed class if applicable, or keep original name in new file
+			// Based on previous move, class name inside file might still be MediaEngineConversionLogger
+			$this->logger = new MediaEngineConversionLogger();
+		}
 
 		$this->detect_engines();
 	}
@@ -75,14 +75,22 @@ class MediaEngineConverterService {
 	public function convert_to_webp( $attachment_id ) {
 		$file_path = get_attached_file( $attachment_id );
 		if ( ! $file_path || ! file_exists( $file_path ) ) {
-			return [ 'success' => false, 'error' => 'File not found' ];
+			return array(
+				'success' => false,
+				'error'   => 'File not found',
+			);
 		}
-		
+
 		$ext = strtolower( pathinfo( $file_path, PATHINFO_EXTENSION ) );
 		if ( $ext === 'webp' ) {
-			return [ 'success' => true, 'message' => 'Already WebP', 'output_path' => $file_path, 'skipped' => true ];
+			return array(
+				'success'     => true,
+				'message'     => 'Already WebP',
+				'output_path' => $file_path,
+				'skipped'     => true,
+			);
 		}
-		
+
 		return $this->convert_file_to_webp( $file_path, null, $attachment_id );
 	}
 
@@ -96,7 +104,10 @@ class MediaEngineConverterService {
 	 */
 	public function convert_file_to_webp( $file_path, $output_path = null, $attachment_id = 0 ) {
 		if ( ! file_exists( $file_path ) ) {
-			return [ 'success' => false, 'error' => __( 'Source file does not exist', 'wp-genius' ) ];
+			return array(
+				'success' => false,
+				'error'   => __( 'Source file does not exist', 'wp-genius' ),
+			);
 		}
 
 		if ( $output_path === null ) {
@@ -104,7 +115,7 @@ class MediaEngineConverterService {
 		}
 
 		$mime_type = mime_content_type( $file_path );
-		$quality = $this->calculate_quality( $file_path, $mime_type );
+		$quality   = $this->calculate_quality( $file_path, $mime_type );
 
 		if ( strpos( $mime_type, 'gif' ) !== false ) {
 			return $this->convert_gif( $file_path, $output_path, $quality, $attachment_id );
@@ -123,19 +134,22 @@ class MediaEngineConverterService {
 	 */
 	private function convert_gif( $file_path, $output_path, $quality, $attachment_id = 0 ) {
 		if ( ! isset( $this->available_engines['gif2webp'] ) ) {
-			return [ 'success' => false, 'error' => __( 'gif2webp is not available', 'wp-genius' ) ];
+			return array(
+				'success' => false,
+				'error'   => __( 'gif2webp is not available', 'wp-genius' ),
+			);
 		}
 
 		$file_size_mb = filesize( $file_path ) / 1024 / 1024;
 		if ( $file_size_mb <= 1 ) {
 			$compression_method = 4;
-			$mixed_mode = '';
+			$mixed_mode         = '';
 		} elseif ( $file_size_mb <= 5 ) {
 			$compression_method = 5;
-			$mixed_mode = '-mixed';
+			$mixed_mode         = '-mixed';
 		} else {
 			$compression_method = 6;
-			$mixed_mode = '-mixed';
+			$mixed_mode         = '-mixed';
 		}
 
 		$command = sprintf(
@@ -166,7 +180,7 @@ class MediaEngineConverterService {
 				escapeshellarg( $file_path ),
 				escapeshellarg( $output_path . '[Q=' . $quality . ',lossless=false]' )
 			);
-			$result = $this->execute_command( $command, $output_path, 'vips', $quality, $attachment_id, $file_path );
+			$result  = $this->execute_command( $command, $output_path, 'vips', $quality, $attachment_id, $file_path );
 			if ( $result['success'] ) {
 				return $result;
 			}
@@ -183,7 +197,10 @@ class MediaEngineConverterService {
 			return $this->execute_command( $command, $output_path, 'cwebp', $quality, $attachment_id, $file_path );
 		}
 
-		return [ 'success' => false, 'error' => __( 'No conversion engine available', 'wp-genius' ) ];
+		return array(
+			'success' => false,
+			'error'   => __( 'No conversion engine available', 'wp-genius' ),
+		);
 	}
 
 	/**
@@ -198,10 +215,10 @@ class MediaEngineConverterService {
 	 * @return array Result
 	 */
 	private function execute_command( $command, $output_path, $engine, $quality, $attachment_id = 0, $original_file = '' ) {
-		$output = [];
+		$output      = array();
 		$return_code = 0;
 		exec( $command, $output, $return_code );
-		
+
 		$output_str = implode( "\n", $output );
 		if ( $this->logger ) {
 			$this->logger->log_conversion_result(
@@ -216,19 +233,19 @@ class MediaEngineConverterService {
 		}
 
 		if ( $return_code === 0 && file_exists( $output_path ) ) {
-			return [
-				'success' => true,
+			return array(
+				'success'     => true,
 				'output_path' => $output_path,
-				'engine' => $engine,
-				'quality' => $quality,
-			];
+				'engine'      => $engine,
+				'quality'     => $quality,
+			);
 		}
 
-		return [
+		return array(
 			'success' => false,
-			'error' => ! empty( $output_str ) ? $output_str : __( 'Conversion failed', 'wp-genius' ),
-			'engine' => $engine,
-		];
+			'error'   => ! empty( $output_str ) ? $output_str : __( 'Conversion failed', 'wp-genius' ),
+			'engine'  => $engine,
+		);
 	}
 
 	/**
@@ -237,13 +254,19 @@ class MediaEngineConverterService {
 	private function calculate_quality( $file_path, $mime_type ) {
 		$size_mb = filesize( $file_path ) / 1024 / 1024;
 		if ( strpos( $mime_type, 'gif' ) !== false ) {
-			if ( $size_mb > 10 ) return 20;
-			elseif ( $size_mb > 5 ) return 30;
-			else return 50;
+			if ( $size_mb > 10 ) {
+				return 20;
+			} elseif ( $size_mb > 5 ) {
+				return 30;
+			} else {
+				return 50;
+			}
+		} elseif ( $size_mb > 10 ) {
+				return 50;
+		} elseif ( $size_mb > 5 ) {
+			return 60;
 		} else {
-			if ( $size_mb > 10 ) return 50;
-			elseif ( $size_mb > 5 ) return 60;
-			else return 75;
+			return 75;
 		}
 	}
 
@@ -251,14 +274,14 @@ class MediaEngineConverterService {
 	 * Get WebP output path
 	 */
 	private function get_webp_path( $file_path ) {
-		$dir = dirname( $file_path );
-		$filename = pathinfo( $file_path, PATHINFO_FILENAME );
-		$ext = strtolower( pathinfo( $file_path, PATHINFO_EXTENSION ) );
+		$dir       = dirname( $file_path );
+		$filename  = pathinfo( $file_path, PATHINFO_FILENAME );
+		$ext       = strtolower( pathinfo( $file_path, PATHINFO_EXTENSION ) );
 		$webp_path = $dir . '/' . $filename . '.webp';
 
 		// Handle naming conflicts if not GIF
 		if ( $ext !== 'gif' ) {
-			$gif_path = $dir . '/' . $filename . '.gif';
+			$gif_path      = $dir . '/' . $filename . '.gif';
 			$gif_webp_path = $dir . '/' . $filename . '.webp';
 			if ( file_exists( $gif_path ) || file_exists( $gif_webp_path ) ) {
 				$webp_path = $dir . '/' . $filename . '-static.webp';
@@ -270,6 +293,4 @@ class MediaEngineConverterService {
 	public function get_logger() {
 		return $this->logger;
 	}
-
-
 }

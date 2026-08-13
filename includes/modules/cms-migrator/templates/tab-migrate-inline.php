@@ -14,27 +14,33 @@ $settings = get_option( 'w2p_cms_migrator_settings', array() );
 $progress = get_option( 'w2p_cms_migration_progress', array() );
 
 // Get registered post types for mapping dropdown.
-$post_types = get_post_types( array( 'public' => true, '_builtin' => false ), 'objects' );
+$post_types = get_post_types(
+	array(
+		'public'   => true,
+		'_builtin' => false,
+	),
+	'objects'
+);
 $all_types  = get_post_types( array( 'public' => true ), 'objects' );
 
 // Content type definitions.
 $content_types = array(
-	'books'    => array(
+	'books'   => array(
 		'label'   => __( 'Books', 'wp-genius' ),
 		'icon'    => 'fa-solid fa-book',
 		'default' => 'book',
 	),
-	'albums'   => array(
+	'albums'  => array(
 		'label'   => __( 'Albums', 'wp-genius' ),
 		'icon'    => 'fa-solid fa-images',
 		'default' => 'album',
 	),
-	'models'   => array(
+	'models'  => array(
 		'label'   => __( 'Models', 'wp-genius' ),
 		'icon'    => 'fa-solid fa-user',
 		'default' => 'model',
 	),
-	'studios'  => array(
+	'studios' => array(
 		'label'   => __( 'Studios', 'wp-genius' ),
 		'icon'    => 'fa-solid fa-building',
 		'default' => 'studio',

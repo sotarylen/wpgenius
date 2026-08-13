@@ -48,13 +48,13 @@ $usage     = $this->provider_manager->get_all_usage();
 							</div>
 							<p class="description">
 								<?php
-								$docs_urls = [
+								$docs_urls = array(
 									'openai'    => 'https://platform.openai.com/api-keys',
 									'anthropic' => 'https://console.anthropic.com/settings/keys',
 									'gemini'    => 'https://makersuite.google.com/app/apikey',
 									'deepseek'  => 'https://platform.deepseek.com/api_keys',
-								];
-								$url = $docs_urls[ $provider['slug'] ] ?? '#';
+								);
+								$url       = $docs_urls[ $provider['slug'] ] ?? '#';
 								printf(
 									/* translators: %s: API key documentation URL */
 									esc_html__( 'Get your API key from %s', 'wp-genius' ),

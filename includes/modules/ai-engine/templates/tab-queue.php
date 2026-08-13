@@ -91,12 +91,16 @@ $queue = $this->content_queue->get_queue( 1, 50 );
 			<div class="tablenav bottom">
 				<div class="tablenav-pages">
 					<?php
-					echo wp_kses_post( paginate_links( [
-						'base'    => add_query_arg( 'paged', '%#%' ),
-						'format'  => '',
-						'current' => $queue['page'],
-						'total'   => $queue['pages'],
-					] ) );
+					echo wp_kses_post(
+						paginate_links(
+							array(
+								'base'    => add_query_arg( 'paged', '%#%' ),
+								'format'  => '',
+								'current' => $queue['page'],
+								'total'   => $queue['pages'],
+							)
+						)
+					);
 					?>
 				</div>
 			</div>

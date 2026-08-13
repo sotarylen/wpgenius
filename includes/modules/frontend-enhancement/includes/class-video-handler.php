@@ -1,7 +1,7 @@
 <?php
 /**
  * Video Handler Class
- * 
+ *
  * Backend handler for video player optimization.
  *
  * @package WP_Genius
@@ -22,12 +22,12 @@ class WPG_Video_Handler {
 	 */
 	public function __construct() {
 		// Content filter to modify video output
-		add_filter( 'the_content', [ $this, 'process_video_content' ], 20 );
+		add_filter( 'the_content', array( $this, 'process_video_content' ), 20 );
 	}
 
 	/**
 	 * Process video content
-	 * 
+	 *
 	 * @param string $content Post content
 	 * @return string Modified content
 	 */
@@ -36,7 +36,7 @@ class WPG_Video_Handler {
 			return $content;
 		}
 
-		$settings = get_option( 'w2p_frontend_enhancement_settings', [] );
+		$settings = get_option( 'w2p_frontend_enhancement_settings', array() );
 
 		// Remove autoplay if enabled
 		if ( ! empty( $settings['video_autoplay_prevention'] ) ) {
@@ -47,7 +47,7 @@ class WPG_Video_Handler {
 		if ( ! empty( $settings['video_lightbox_button'] ) ) {
 			$content = preg_replace_callback(
 				'/(<video[^>]*>.*?<\/video>)/is',
-				[ $this, 'wrap_video' ],
+				array( $this, 'wrap_video' ),
 				$content
 			);
 		}
@@ -57,13 +57,13 @@ class WPG_Video_Handler {
 
 	/**
 	 * Wrap video with container
-	 * 
+	 *
 	 * @param array $matches Regex matches
 	 * @return string Wrapped video HTML
 	 */
 	private function wrap_video( $matches ) {
 		$video_html = $matches[1];
-		
+
 		// Check if already wrapped
 		if ( strpos( $video_html, 'wpg-video-wrapper' ) !== false ) {
 			return $video_html;
@@ -78,17 +78,17 @@ class WPG_Video_Handler {
 
 	/**
 	 * Get videos from post content
-	 * 
+	 *
 	 * @param int $post_id Post ID
 	 * @return array Array of video data
 	 */
 	public static function get_post_videos( $post_id ) {
 		$post = get_post( $post_id );
 		if ( ! $post ) {
-			return [];
+			return array();
 		}
 
-		$videos = [];
+		$videos  = array();
 		$content = $post->post_content;
 
 		// Parse HTML to extract videos
@@ -103,10 +103,10 @@ class WPG_Video_Handler {
 				}
 
 				if ( $src ) {
-					$videos[] = [
+					$videos[] = array(
 						'src'  => $src,
 						'html' => $video_tag,
-					];
+					);
 				}
 			}
 		}

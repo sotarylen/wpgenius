@@ -1,7 +1,7 @@
 <?php
 /**
  * Audio Player Handler Class (Reserved)
- * 
+ *
  * Backend handler for audio player functionality.
  * This is a placeholder for future implementation.
  *

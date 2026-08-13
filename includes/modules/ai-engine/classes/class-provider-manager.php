@@ -22,7 +22,7 @@ class W2P_AI_Provider_Manager {
 	 *
 	 * @var array
 	 */
-	private $providers = [];
+	private $providers = array();
 
 	/**
 	 * Constructor
@@ -78,14 +78,14 @@ class W2P_AI_Provider_Manager {
 	 * @return array
 	 */
 	public function get_providers_list(): array {
-		$list = [];
+		$list = array();
 
 		foreach ( $this->providers as $slug => $provider ) {
-			$list[] = [
-				'slug'  => $slug,
-				'name'  => $provider->get_name(),
-				'key'   => get_option( 'w2p_ai_' . $slug . '_key', '' ) ? true : false,
-			];
+			$list[] = array(
+				'slug' => $slug,
+				'name' => $provider->get_name(),
+				'key'  => get_option( 'w2p_ai_' . $slug . '_key', '' ) ? true : false,
+			);
 		}
 
 		return $list;
@@ -97,13 +97,13 @@ class W2P_AI_Provider_Manager {
 	 * @return array
 	 */
 	public function get_all_usage(): array {
-		$usage = [];
+		$usage = array();
 
 		foreach ( $this->providers as $slug => $provider ) {
-			$usage[ $slug ] = [
+			$usage[ $slug ] = array(
 				'name'  => $provider->get_name(),
 				'usage' => $provider->get_total_usage(),
-			];
+			);
 		}
 
 		return $usage;

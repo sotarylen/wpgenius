@@ -62,13 +62,13 @@ $stats     = $this->scheduler->get_stats();
 							</td>
 							<td class="column-schedule">
 								<?php
-								$frequency_labels = [
+								$frequency_labels = array(
 									'hourly'      => __( 'Every Hour', 'wp-genius' ),
 									'twice_daily' => __( 'Twice Daily', 'wp-genius' ),
 									'daily'       => __( 'Daily', 'wp-genius' ),
 									'weekly'      => __( 'Weekly', 'wp-genius' ),
-								];
-								$frequency = $schedule['frequency'] ?? 'daily';
+								);
+								$frequency        = $schedule['frequency'] ?? 'daily';
 								echo esc_html( ( $frequency_labels[ $frequency ] ?? $frequency ) . ' at ' . $schedule['time'] );
 								?>
 							</td>

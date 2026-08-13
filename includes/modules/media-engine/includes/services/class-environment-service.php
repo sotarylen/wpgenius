@@ -20,32 +20,32 @@ class MediaEngineEnvironmentChecker {
 	 * @return array 命令配置数组
 	 */
 	private static function get_required_commands() {
-		return [
-			'vips'      => [
+		return array(
+			'vips'     => array(
 				'name'        => 'libvips',
 				'check_cmd'   => 'vips --version 2>&1',
 				'description' => __( 'High-performance image processing library (primary engine for static images)', 'wp-genius' ),
 				'priority'    => 'high',
-			],
-			'cwebp'     => [
+			),
+			'cwebp'    => array(
 				'name'        => 'cwebp',
 				'check_cmd'   => 'cwebp -version 2>&1',
 				'description' => __( 'WebP encoder from Google (fallback for static images)', 'wp-genius' ),
 				'priority'    => 'medium',
-			],
-			'gif2webp'  => [
+			),
+			'gif2webp' => array(
 				'name'        => 'gif2webp',
 				'check_cmd'   => 'gif2webp -version 2>&1',
 				'description' => __( 'Animated GIF to WebP converter (required for GIF processing)', 'wp-genius' ),
 				'priority'    => 'high',
-			],
-			'wp-cli'    => [
+			),
+			'wp-cli'   => array(
 				'name'        => 'WP-CLI',
 				'check_cmd'   => 'wp --version 2>&1',
 				'description' => __( 'WordPress command-line interface (required for batch operations)', 'wp-genius' ),
 				'priority'    => 'critical',
-			],
-		];
+			),
+		);
 	}
 
 	/**
@@ -54,18 +54,18 @@ class MediaEngineEnvironmentChecker {
 	 * @return array 检查结果
 	 */
 	public static function check_all() {
-		$results = [
+		$results = array(
 			'all_passed'  => true,
 			'can_process' => false,
-			'commands'    => [],
+			'commands'    => array(),
 			'php'         => self::check_php_requirements(),
 			'system'      => self::check_system_info(),
-		];
+		);
 
 		$required_commands = self::get_required_commands();
 
 		foreach ( $required_commands as $key => $config ) {
-			$check_result = self::check_command( $key, $config );
+			$check_result                = self::check_command( $key, $config );
 			$results['commands'][ $key ] = $check_result;
 
 			if ( ! $check_result['available'] && $config['priority'] === 'critical' ) {
@@ -91,7 +91,7 @@ class MediaEngineEnvironmentChecker {
 	 * @return array 检查结果
 	 */
 	private static function check_command( $key, $config ) {
-		$result = [
+		$result = array(
 			'name'        => $config['name'],
 			'description' => $config['description'],
 			'priority'    => $config['priority'],
@@ -99,10 +99,10 @@ class MediaEngineEnvironmentChecker {
 			'version'     => '',
 			'path'        => '',
 			'error'       => '',
-		];
+		);
 
 		// 执行检查命令
-		$output      = [];
+		$output      = array();
 		$return_code = 0;
 		exec( $config['check_cmd'], $output, $return_code );
 
@@ -111,7 +111,7 @@ class MediaEngineEnvironmentChecker {
 			$result['version']   = implode( ' ', $output );
 
 			// 获取命令路径
-			$which_output = [];
+			$which_output = array();
 			exec( "which $key 2>&1", $which_output );
 			if ( ! empty( $which_output[0] ) ) {
 				$result['path'] = $which_output[0];
@@ -129,14 +129,14 @@ class MediaEngineEnvironmentChecker {
 	 * @return array PHP 检查结果
 	 */
 	private static function check_php_requirements() {
-		return [
-			'version'        => PHP_VERSION,
-			'version_ok'     => version_compare( PHP_VERSION, '7.4', '>=' ),
-			'exec_enabled'   => function_exists( 'exec' ),
-			'proc_open'      => function_exists( 'proc_open' ),
-			'memory_limit'   => ini_get( 'memory_limit' ),
-			'max_exec_time'  => ini_get( 'max_execution_time' ),
-		];
+		return array(
+			'version'       => PHP_VERSION,
+			'version_ok'    => version_compare( PHP_VERSION, '7.4', '>=' ),
+			'exec_enabled'  => function_exists( 'exec' ),
+			'proc_open'     => function_exists( 'proc_open' ),
+			'memory_limit'  => ini_get( 'memory_limit' ),
+			'max_exec_time' => ini_get( 'max_execution_time' ),
+		);
 	}
 
 	/**
@@ -146,7 +146,7 @@ class MediaEngineEnvironmentChecker {
 	 */
 	private static function check_system_info() {
 		$cpu_cores = 1;
-		
+
 		// 尝试获取 CPU 核心数
 		if ( function_exists( 'shell_exec' ) ) {
 			$cores_output = shell_exec( 'getconf _NPROCESSORS_ONLN 2>&1' );
@@ -155,11 +155,11 @@ class MediaEngineEnvironmentChecker {
 			}
 		}
 
-		return [
+		return array(
 			'os'        => PHP_OS,
 			'cpu_cores' => $cpu_cores,
 			'uname'     => function_exists( 'php_uname' ) ? php_uname() : 'N/A',
-		];
+		);
 	}
 
 	/**

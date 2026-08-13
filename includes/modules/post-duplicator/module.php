@@ -62,21 +62,19 @@ class PostDuplicatorModule extends W2P_Abstract_Module {
 		require_once MTPHR_POST_DUPLICATOR_DIR . 'includes/edit.php';
 		// require_once MTPHR_POST_DUPLICATOR_DIR . 'includes/notices.php'; // Probably not needed if we remove the settings framework notices
 
-        // Register settings (handled by framework via Settings UI, but we need to ensure defaults are available if not set)
+		// Register settings (handled by framework via Settings UI, but we need to ensure defaults are available if not set)
 	}
 
-    /**
-     * Enqueue Assets
-     */
-    public function enqueue_assets( $hook ) {
-        // This module's assets are largely handled by includes/scripts.php
-        // We can hook into admin_enqueue_scripts here if we moved logic from scripts.php to here
-        // But for now, letting scripts.php handle it via its own hook in init() is fine
-    }
+	/**
+	 * Enqueue Assets
+	 */
+	public function enqueue_assets( $hook ) {
+		// This module's assets are largely handled by includes/scripts.php
+		// We can hook into admin_enqueue_scripts here if we moved logic from scripts.php to here
+		// But for now, letting scripts.php handle it via its own hook in init() is fine
+	}
 
-    public function render_settings() {
-        $this->render_view( 'settings' );
-    }
-
-
+	public function render_settings() {
+		$this->render_view( 'settings' );
+	}
 }

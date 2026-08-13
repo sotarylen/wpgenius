@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$prompts = $this->prompt_engine->get_prompts();
+$prompts         = $this->prompt_engine->get_prompts();
 $default_prompts = $this->prompt_engine->get_default_prompts();
 ?>
 <div class="w2p-ai-tab-content">
@@ -44,7 +44,7 @@ $default_prompts = $this->prompt_engine->get_default_prompts();
 							</td>
 							<td class="column-variables">
 								<?php
-								$variables = $prompt['variables'] ?? [];
+								$variables = $prompt['variables'] ?? array();
 								if ( ! empty( $variables ) ) {
 									echo esc_html( count( $variables ) . ' ' . __( 'variables', 'wp-genius' ) );
 								} else {

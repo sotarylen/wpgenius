@@ -97,19 +97,19 @@ class W2P_AI_Content_Queue {
 	public function add_to_queue( array $data ) {
 		global $wpdb;
 
-		$defaults = [
-			'schedule_id' => null,
-			'provider'    => '',
-			'model'       => '',
-			'prompt_id'   => 0,
-			'variables'   => [],
-			'status'      => 'pending',
-			'max_attempts'=> 3,
-		];
+		$defaults = array(
+			'schedule_id'  => null,
+			'provider'     => '',
+			'model'        => '',
+			'prompt_id'    => 0,
+			'variables'    => array(),
+			'status'       => 'pending',
+			'max_attempts' => 3,
+		);
 
 		$data = wp_parse_args( $data, $defaults );
 
-		$insert_data = [
+		$insert_data = array(
 			'schedule_id'  => $data['schedule_id'] ? absint( $data['schedule_id'] ) : null,
 			'provider'     => sanitize_text_field( $data['provider'] ),
 			'model'        => sanitize_text_field( $data['model'] ),
@@ -117,7 +117,7 @@ class W2P_AI_Content_Queue {
 			'variables'    => wp_json_encode( $data['variables'] ),
 			'status'       => sanitize_text_field( $data['status'] ),
 			'max_attempts' => absint( $data['max_attempts'] ),
-		];
+		);
 
 		$wpdb->insert( $this->table_name, $insert_data );
 
@@ -138,7 +138,7 @@ class W2P_AI_Content_Queue {
 		$where      = '';
 		$query_args = array();
 		if ( ! empty( $status ) ) {
-			$where       = ' WHERE q.status = %s';
+			$where        = ' WHERE q.status = %s';
 			$query_args[] = $status;
 		}
 
@@ -166,13 +166,13 @@ class W2P_AI_Content_Queue {
 		);
 		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
-		return [
-			'items'     => $results ?? [],
-			'total'     => (int) $total,
-			'page'      => $page,
-			'per_page'  => $per_page,
-			'pages'     => ceil( $total / $per_page ),
-		];
+		return array(
+			'items'    => $results ?? array(),
+			'total'    => (int) $total,
+			'page'     => $page,
+			'per_page' => $per_page,
+			'pages'    => ceil( $total / $per_page ),
+		);
 	}
 
 	/**
@@ -264,11 +264,11 @@ class W2P_AI_Content_Queue {
 		// Update status to processing and stamp the start time (used for stuck-task recovery).
 		$wpdb->update(
 			$this->table_name,
-			[
+			array(
 				'status'       => 'processing',
 				'processed_at' => current_time( 'mysql' ),
-			],
-			[ 'id' => $item['id'] ]
+			),
+			array( 'id' => $item['id'] )
 		);
 
 		// Get provider
@@ -286,16 +286,18 @@ class W2P_AI_Content_Queue {
 		}
 
 		// Process variables
-		$variables = json_decode( $item['variables'], true ) ?? [];
+		$variables        = json_decode( $item['variables'], true ) ?? array();
 		$processed_prompt = $this->prompt_engine->process_template( $prompt['template'], $variables );
 
 		// Generate content
-		$result = $provider->generate( [
-			'prompt'      => $processed_prompt,
-			'model'       => $item['model'],
-			'temperature' => $prompt['temperature'] ?? 0.7,
-			'max_tokens'  => $prompt['max_tokens'] ?? 2000,
-		] );
+		$result = $provider->generate(
+			array(
+				'prompt'      => $processed_prompt,
+				'model'       => $item['model'],
+				'temperature' => $prompt['temperature'] ?? 0.7,
+				'max_tokens'  => $prompt['max_tokens'] ?? 2000,
+			)
+		);
 
 		if ( is_wp_error( $result ) ) {
 			$this->mark_failed( $item['id'], $result->get_error_message() );
@@ -313,13 +315,13 @@ class W2P_AI_Content_Queue {
 		// Mark as completed
 		$wpdb->update(
 			$this->table_name,
-			[
-				'status'      => 'completed',
-				'post_id'     => $post_id,
-				'result'      => wp_json_encode( $result ),
+			array(
+				'status'       => 'completed',
+				'post_id'      => $post_id,
+				'result'       => wp_json_encode( $result ),
 				'processed_at' => current_time( 'mysql' ),
-			],
-			[ 'id' => $item['id'] ]
+			),
+			array( 'id' => $item['id'] )
 		);
 
 		return true;
@@ -364,20 +366,20 @@ class W2P_AI_Content_Queue {
 				ARRAY_A
 			);
 			if ( $row ) {
-				$schedule = [
+				$schedule = array(
 					'status'     => $row['status'],
 					'categories' => json_decode( $row['categories'] ?: '[]', true ),
 					'tags'       => json_decode( $row['tags'] ?: '[]', true ),
-				];
+				);
 			}
 		}
 
-		$post_data = [
+		$post_data = array(
 			'post_title'   => $title,
 			'post_content' => wpautop( $body ),
 			'post_status'  => $schedule['status'] ?? 'draft',
 			'post_type'    => 'post',
-		];
+		);
 
 		// Add categories
 		if ( ! empty( $schedule['categories'] ) ) {

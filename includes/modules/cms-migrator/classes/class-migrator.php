@@ -202,7 +202,7 @@ class CMS_Migrator {
 	 * @return void
 	 */
 	private function init_type_progress( array $types ) {
-		$progress = get_option( 'w2p_cms_migration_progress', array() );
+		$progress          = get_option( 'w2p_cms_migration_progress', array() );
 		$progress['types'] = array();
 		foreach ( $types as $type ) {
 			$progress['types'][ $type ] = array(
@@ -287,8 +287,8 @@ class CMS_Migrator {
 	 * @return void
 	 */
 	private function set_status( $status ) {
-		$this->status = $status;
-		$progress     = get_option( 'w2p_cms_migration_progress', array() );
+		$this->status       = $status;
+		$progress           = get_option( 'w2p_cms_migration_progress', array() );
 		$progress['status'] = $status;
 		update_option( 'w2p_cms_migration_progress', $progress );
 	}
@@ -336,37 +336,37 @@ class CMS_Migrator {
 	private function register_post_types() {
 		$post_types = array(
 			'book'    => array(
-				'label'   => __( 'Books', 'wp-genius' ),
-				'labels'  => array(
+				'label'    => __( 'Books', 'wp-genius' ),
+				'labels'   => array(
 					'singular_name' => __( 'Book', 'wp-genius' ),
 				),
 				'supports' => array( 'title', 'editor', 'thumbnail', 'custom-fields' ),
 			),
 			'chapter' => array(
-				'label'   => __( 'Chapters', 'wp-genius' ),
-				'labels'  => array(
+				'label'        => __( 'Chapters', 'wp-genius' ),
+				'labels'       => array(
 					'singular_name' => __( 'Chapter', 'wp-genius' ),
 				),
-				'supports' => array( 'title', 'editor', 'custom-fields' ),
+				'supports'     => array( 'title', 'editor', 'custom-fields' ),
 				'hierarchical' => true,
 			),
 			'album'   => array(
-				'label'   => __( 'Albums', 'wp-genius' ),
-				'labels'  => array(
+				'label'    => __( 'Albums', 'wp-genius' ),
+				'labels'   => array(
 					'singular_name' => __( 'Album', 'wp-genius' ),
 				),
 				'supports' => array( 'title', 'editor', 'thumbnail', 'custom-fields' ),
 			),
 			'model'   => array(
-				'label'   => __( 'Models', 'wp-genius' ),
-				'labels'  => array(
+				'label'    => __( 'Models', 'wp-genius' ),
+				'labels'   => array(
 					'singular_name' => __( 'Model', 'wp-genius' ),
 				),
 				'supports' => array( 'title', 'editor', 'thumbnail', 'custom-fields' ),
 			),
 			'studio'  => array(
-				'label'   => __( 'Studios', 'wp-genius' ),
-				'labels'  => array(
+				'label'    => __( 'Studios', 'wp-genius' ),
+				'labels'   => array(
 					'singular_name' => __( 'Studio', 'wp-genius' ),
 				),
 				'supports' => array( 'title', 'editor', 'thumbnail', 'custom-fields' ),
@@ -376,12 +376,12 @@ class CMS_Migrator {
 		foreach ( $post_types as $post_type => $args ) {
 			if ( ! post_type_exists( $post_type ) ) {
 				$defaults = array(
-					'public'       => true,
-					'show_ui'      => true,
-					'menu_icon'    => 'dashicons-book',
-					'has_archive'  => true,
-					'rewrite'      => array( 'slug' => $post_type ),
-					'supports'     => array( 'title', 'editor', 'thumbnail', 'custom-fields' ),
+					'public'      => true,
+					'show_ui'     => true,
+					'menu_icon'   => 'dashicons-book',
+					'has_archive' => true,
+					'rewrite'     => array( 'slug' => $post_type ),
+					'supports'    => array( 'title', 'editor', 'thumbnail', 'custom-fields' ),
 				);
 				register_post_type( $post_type, wp_parse_args( $args, $defaults ) );
 			}
@@ -403,9 +403,9 @@ class CMS_Migrator {
 			return;
 		}
 
-		$total    = count( $books );
-		$books    = $this->apply_batch_limit( $books );
-		$count    = count( $books );
+		$total     = count( $books );
+		$books     = $this->apply_batch_limit( $books );
+		$count     = count( $books );
 		$post_type = $this->get_post_type( 'books' );
 		$taxonomy  = $this->get_taxonomy( 'books' );
 
@@ -505,7 +505,7 @@ class CMS_Migrator {
 			return;
 		}
 
-		$this->logger->log( "Migrating " . count( $chapters ) . " chapters for book ID {$cms_book_id}...", 'info' );
+		$this->logger->log( 'Migrating ' . count( $chapters ) . " chapters for book ID {$cms_book_id}...", 'info' );
 
 		foreach ( $chapters as $chapter ) {
 			if ( 'stopped' === $this->status ) {
@@ -517,12 +517,12 @@ class CMS_Migrator {
 			$chapter_content = $chapter['content'] ?? $chapter['chapter_content'] ?? '';
 
 			$post_data = array(
-				'post_title'    => $chapter_title,
-				'post_content'  => $chapter_content,
-				'post_status'   => 'publish',
-				'post_type'     => 'chapter',
-				'post_parent'   => $wp_book_id,
-				'menu_order'    => $chapter_number,
+				'post_title'   => $chapter_title,
+				'post_content' => $chapter_content,
+				'post_status'  => 'publish',
+				'post_type'    => 'chapter',
+				'post_parent'  => $wp_book_id,
+				'menu_order'   => $chapter_number,
 			);
 
 			$post_id = wp_insert_post( $post_data );
@@ -820,9 +820,9 @@ class CMS_Migrator {
 	 * @return void
 	 */
 	private function save_migration_log() {
-		$log_entries       = $this->logger->get_entries();
-		$progress          = get_option( 'w2p_cms_migration_progress', array() );
-		$progress['log']   = $log_entries;
+		$log_entries     = $this->logger->get_entries();
+		$progress        = get_option( 'w2p_cms_migration_progress', array() );
+		$progress['log'] = $log_entries;
 		update_option( 'w2p_cms_migration_progress', $progress );
 	}
 }

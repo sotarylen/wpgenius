@@ -221,8 +221,8 @@ class AutoPublishModule extends W2P_Abstract_Module {
 			// Schedule using Task Queue wrapper
 			// Note: The wrapper handles the check for existing schedule internally
 			W2P_Task_Queue::schedule_recurring( 'w2p_auto_publish_cron', array(), $interval );
-		//
-		// 	error_log( 'Auto Publish Cron Scheduled via Task Queue' );
+			//
+			//  error_log( 'Auto Publish Cron Scheduled via Task Queue' );
 		}
 	}
 

@@ -18,10 +18,10 @@ class MediaEngineScannerService {
 		global $wpdb;
 		$mime_types = $this->get_supported_mime_types();
 		if ( empty( $mime_types ) ) {
-			return [];
+			return array();
 		}
-		$mime_types[] = 'image/webp';
-		$mime_types = array_unique( $mime_types );
+		$mime_types[]      = 'image/webp';
+		$mime_types        = array_unique( $mime_types );
 		$mime_placeholders = implode( ',', array_fill( 0, count( $mime_types ), '%s' ) );
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- IN 占位符仅由 %s 组成（array_fill 生成），参数经 prepare 绑定，无注入面。
 		$query = $wpdb->prepare(
@@ -29,7 +29,7 @@ class MediaEngineScannerService {
 			LEFT JOIN {$wpdb->postmeta} pm ON (p.ID = pm.post_id AND pm.meta_key = 'advmo_offloaded' AND pm.meta_value = '1')
 			WHERE p.post_type = 'attachment' AND p.post_mime_type IN ($mime_placeholders) AND pm.post_id IS NULL
 			ORDER BY p.ID DESC LIMIT %d OFFSET %d",
-			array_merge( $mime_types, [ $limit, $offset ] )
+			array_merge( $mime_types, array( $limit, $offset ) )
 		);
 		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $query 为上方 $wpdb->prepare() 返回值（LIMIT/OFFSET 以 %d 绑定）。
@@ -42,6 +42,6 @@ class MediaEngineScannerService {
 
 	private function get_supported_mime_types() {
 		// Hardcoded support for all target types
-		return [ 'image/jpeg', 'image/png', 'image/gif' ];
+		return array( 'image/jpeg', 'image/png', 'image/gif' );
 	}
 }

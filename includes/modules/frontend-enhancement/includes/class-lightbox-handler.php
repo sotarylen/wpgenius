@@ -1,7 +1,7 @@
 <?php
 /**
  * Lightbox Handler Class
- * 
+ *
  * Backend handler for Lightbox image viewer functionality.
  *
  * @package WP_Genius
@@ -27,17 +27,17 @@ class WPG_Lightbox_Handler {
 
 	/**
 	 * Get images from post content
-	 * 
+	 *
 	 * @param int $post_id Post ID
 	 * @return array Array of image data
 	 */
 	public static function get_post_images( $post_id ) {
 		$post = get_post( $post_id );
 		if ( ! $post ) {
-			return [];
+			return array();
 		}
 
-		$images = [];
+		$images  = array();
 		$content = $post->post_content;
 
 		// Parse HTML to extract images
@@ -46,21 +46,21 @@ class WPG_Lightbox_Handler {
 				// Extract src
 				if ( preg_match( '/src=["\']([^"\']+)["\']/i', $img_tag, $src_match ) ) {
 					$src = $src_match[1];
-					
+
 					// Extract alt text
 					$alt = '';
 					if ( preg_match( '/alt=["\']([^"\']+)["\']/i', $img_tag, $alt_match ) ) {
 						$alt = $alt_match[1];
 					}
-					
+
 					// Get attachment ID if it's a WordPress media
 					$attachment_id = self::get_attachment_id_by_url( $src );
-					
-					$images[] = [
+
+					$images[] = array(
 						'src'           => $src,
 						'alt'           => $alt,
 						'attachment_id' => $attachment_id,
-					];
+					);
 				}
 			}
 		}
@@ -70,7 +70,7 @@ class WPG_Lightbox_Handler {
 
 	/**
 	 * Get attachment ID by URL
-	 * 
+	 *
 	 * @param string $url Image URL
 	 * @return int|false Attachment ID or false
 	 */

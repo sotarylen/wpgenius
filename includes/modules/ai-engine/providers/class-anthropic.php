@@ -36,39 +36,39 @@ class W2P_AI_Provider_Anthropic implements W2P_AI_Provider_Interface {
 	 *
 	 * @var array
 	 */
-	private $last_usage = [];
+	private $last_usage = array();
 
 	/**
 	 * Available models
 	 *
 	 * @var array
 	 */
-	private $models = [
-		[
-			'id'          => 'claude-sonnet-4-20250514',
-			'name'        => 'Claude Sonnet 4',
-			'desc'        => 'Best balance of intelligence and speed',
-			'max_tokens'  => 200000,
-		],
-		[
-			'id'          => 'claude-3-5-sonnet-20241022',
-			'name'        => 'Claude 3.5 Sonnet',
-			'desc'        => 'High capability, previous generation',
-			'max_tokens'  => 200000,
-		],
-		[
-			'id'          => 'claude-3-5-haiku-20241022',
-			'name'        => 'Claude 3.5 Haiku',
-			'desc'        => 'Fast and cost-effective',
-			'max_tokens'  => 200000,
-		],
-		[
-			'id'          => 'claude-3-opus-20240229',
-			'name'        => 'Claude 3 Opus',
-			'desc'        => 'Most capable, for complex tasks',
-			'max_tokens'  => 200000,
-		],
-	];
+	private $models = array(
+		array(
+			'id'         => 'claude-sonnet-4-20250514',
+			'name'       => 'Claude Sonnet 4',
+			'desc'       => 'Best balance of intelligence and speed',
+			'max_tokens' => 200000,
+		),
+		array(
+			'id'         => 'claude-3-5-sonnet-20241022',
+			'name'       => 'Claude 3.5 Sonnet',
+			'desc'       => 'High capability, previous generation',
+			'max_tokens' => 200000,
+		),
+		array(
+			'id'         => 'claude-3-5-haiku-20241022',
+			'name'       => 'Claude 3.5 Haiku',
+			'desc'       => 'Fast and cost-effective',
+			'max_tokens' => 200000,
+		),
+		array(
+			'id'         => 'claude-3-opus-20240229',
+			'name'       => 'Claude 3 Opus',
+			'desc'       => 'Most capable, for complex tasks',
+			'max_tokens' => 200000,
+		),
+	);
 
 	/**
 	 * Constructor
@@ -151,21 +151,29 @@ class W2P_AI_Provider_Anthropic implements W2P_AI_Provider_Interface {
 		}
 
 		// Anthropic doesn't have a simple validation endpoint, so we try a minimal request
-		$response = wp_remote_post( $this->api_base . '/messages', [
-			'headers' => [
-				'x-api-key'         => $this->api_key,
-				'anthropic-version' => '2023-06-01',
-				'content-type'      => 'application/json',
-			],
-			'body'    => wp_json_encode( [
-				'model'      => 'claude-3-5-haiku-20241022',
-				'max_tokens' => 10,
-				'messages'   => [
-					[ 'role' => 'user', 'content' => 'Hi' ],
-				],
-			] ),
-			'timeout' => 15,
-		] );
+		$response = wp_remote_post(
+			$this->api_base . '/messages',
+			array(
+				'headers' => array(
+					'x-api-key'         => $this->api_key,
+					'anthropic-version' => '2023-06-01',
+					'content-type'      => 'application/json',
+				),
+				'body'    => wp_json_encode(
+					array(
+						'model'      => 'claude-3-5-haiku-20241022',
+						'max_tokens' => 10,
+						'messages'   => array(
+							array(
+								'role'    => 'user',
+								'content' => 'Hi',
+							),
+						),
+					)
+				),
+				'timeout' => 15,
+			)
+		);
 
 		if ( is_wp_error( $response ) ) {
 			return false;
@@ -197,28 +205,31 @@ class W2P_AI_Provider_Anthropic implements W2P_AI_Provider_Interface {
 		$temperature = $params['temperature'] ?? 0.7;
 		$max_tokens  = $params['max_tokens'] ?? 2000;
 
-		$body = [
-			'model'      => $model,
-			'max_tokens' => $max_tokens,
-			'system'     => 'You are a professional content writer. Write high-quality, engaging content in the requested format.',
-			'messages'   => [
-				[
+		$body = array(
+			'model'       => $model,
+			'max_tokens'  => $max_tokens,
+			'system'      => 'You are a professional content writer. Write high-quality, engaging content in the requested format.',
+			'messages'    => array(
+				array(
 					'role'    => 'user',
 					'content' => $prompt,
-				],
-			],
+				),
+			),
 			'temperature' => $temperature,
-		];
+		);
 
-		$response = wp_remote_post( $this->api_base . '/messages', [
-			'headers' => [
-				'x-api-key'         => $this->api_key,
-				'anthropic-version' => '2023-06-01',
-				'content-type'      => 'application/json',
-			],
-			'body'    => wp_json_encode( $body ),
-			'timeout' => 120,
-		] );
+		$response = wp_remote_post(
+			$this->api_base . '/messages',
+			array(
+				'headers' => array(
+					'x-api-key'         => $this->api_key,
+					'anthropic-version' => '2023-06-01',
+					'content-type'      => 'application/json',
+				),
+				'body'    => wp_json_encode( $body ),
+				'timeout' => 120,
+			)
+		);
 
 		if ( is_wp_error( $response ) ) {
 			return $response;
@@ -233,14 +244,14 @@ class W2P_AI_Provider_Anthropic implements W2P_AI_Provider_Interface {
 		}
 
 		// Track usage
-		$this->last_usage = $response_body['usage'] ?? [];
+		$this->last_usage = $response_body['usage'] ?? array();
 		$this->track_usage( $model, $this->last_usage );
 
-		return [
+		return array(
 			'content' => $response_body['content'][0]['text'] ?? '',
 			'model'   => $model,
 			'usage'   => $this->last_usage,
-		];
+		);
 	}
 
 	/**
@@ -258,11 +269,14 @@ class W2P_AI_Provider_Anthropic implements W2P_AI_Provider_Interface {
 	 * @return array
 	 */
 	public function get_total_usage(): array {
-		return get_option( 'w2p_ai_anthropic_usage', [
-			'total_input_tokens'  => 0,
-			'total_output_tokens' => 0,
-			'total_requests'      => 0,
-		] );
+		return get_option(
+			'w2p_ai_anthropic_usage',
+			array(
+				'total_input_tokens'  => 0,
+				'total_output_tokens' => 0,
+				'total_requests'      => 0,
+			)
+		);
 	}
 
 	/**
@@ -281,11 +295,11 @@ class W2P_AI_Provider_Anthropic implements W2P_AI_Provider_Interface {
 
 		// Track per-model usage
 		if ( ! isset( $totals['models'][ $model ] ) ) {
-			$totals['models'][ $model ] = [
+			$totals['models'][ $model ] = array(
 				'input_tokens'  => 0,
 				'output_tokens' => 0,
 				'requests'      => 0,
-			];
+			);
 		}
 
 		$totals['models'][ $model ]['input_tokens']  += $usage['input_tokens'] ?? 0;

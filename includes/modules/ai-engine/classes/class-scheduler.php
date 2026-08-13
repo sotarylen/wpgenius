@@ -73,7 +73,7 @@ class W2P_AI_Scheduler {
 		$this->maybe_migrate_legacy();
 
 		// Initialize cron schedules
-		add_filter( 'cron_schedules', [ $this, 'add_cron_schedules' ] );
+		add_filter( 'cron_schedules', array( $this, 'add_cron_schedules' ) );
 	}
 
 	/**
@@ -83,15 +83,15 @@ class W2P_AI_Scheduler {
 	 * @return array
 	 */
 	public function add_cron_schedules( array $schedules ): array {
-		$schedules['ai_generation_hourly'] = [
+		$schedules['ai_generation_hourly'] = array(
 			'interval' => HOUR_IN_SECONDS,
 			'display'  => __( 'Every Hour (AI Generation)', 'wp-genius' ),
-		];
+		);
 
-		$schedules['ai_generation_half_day'] = [
+		$schedules['ai_generation_half_day'] = array(
 			'interval' => 12 * HOUR_IN_SECONDS,
 			'display'  => __( 'Twice Daily (AI Generation)', 'wp-genius' ),
-		];
+		);
 
 		return $schedules;
 	}
@@ -192,7 +192,7 @@ class W2P_AI_Scheduler {
 
 		$wpdb->replace(
 			$this->table_name,
-			[
+			array(
 				'id'          => $data['id'],
 				'name'        => isset( $data['name'] ) ? sanitize_text_field( $data['name'] ) : '',
 				'provider'    => isset( $data['provider'] ) ? sanitize_text_field( $data['provider'] ) : '',
@@ -208,7 +208,7 @@ class W2P_AI_Scheduler {
 				'variables'   => isset( $data['variables'] ) ? wp_json_encode( (array) $data['variables'] ) : '{}',
 				'enabled'     => ! empty( $data['enabled'] ) ? 1 : 0,
 				'last_run_at' => ! empty( $data['last_run_at'] ) ? $data['last_run_at'] : null,
-			]
+			)
 		);
 	}
 
@@ -219,7 +219,7 @@ class W2P_AI_Scheduler {
 	 * @return string|false Schedule ID or false on failure.
 	 */
 	public function save_schedule( array $data ) {
-		$defaults = [
+		$defaults = array(
 			'name'       => '',
 			'provider'   => '',
 			'model'      => '',
@@ -228,12 +228,12 @@ class W2P_AI_Scheduler {
 			'time'       => '09:00',
 			'quantity'   => 1,
 			'status'     => 'draft',
-			'categories' => [],
-			'tags'       => [],
+			'categories' => array(),
+			'tags'       => array(),
 			'featured'   => false,
-			'variables'  => [],
+			'variables'  => array(),
 			'enabled'    => true,
-		];
+		);
 
 		$data = wp_parse_args( $data, $defaults );
 
@@ -290,7 +290,7 @@ class W2P_AI_Scheduler {
 			ARRAY_A
 		);
 
-		$schedules = [];
+		$schedules = array();
 		foreach ( $results as $row ) {
 			$schedules[] = $this->hydrate( $row );
 		}
@@ -309,7 +309,7 @@ class W2P_AI_Scheduler {
 
 		$deleted = $wpdb->delete(
 			$this->table_name,
-			[ 'id' => $schedule_id ]
+			array( 'id' => $schedule_id )
 		);
 
 		if ( $deleted ) {
@@ -337,8 +337,8 @@ class W2P_AI_Scheduler {
 		global $wpdb;
 		$wpdb->update(
 			$this->table_name,
-			[ 'enabled' => $new_state ? 1 : 0 ],
-			[ 'id' => $schedule_id ]
+			array( 'enabled' => $new_state ? 1 : 0 ),
+			array( 'id' => $schedule_id )
 		);
 
 		$this->update_cron_schedule();
@@ -355,7 +355,7 @@ class W2P_AI_Scheduler {
 		// Clear existing schedule
 		wp_clear_scheduled_hook( $this->cron_hook );
 
-		$schedules = $this->get_all_schedules();
+		$schedules   = $this->get_all_schedules();
 		$has_enabled = false;
 
 		foreach ( $schedules as $schedule ) {
@@ -379,7 +379,7 @@ class W2P_AI_Scheduler {
 	 * @return void
 	 */
 	public function run_scheduled_tasks(): void {
-		$schedules = $this->get_all_schedules();
+		$schedules    = $this->get_all_schedules();
 		$current_time = current_time( 'H:i' );
 
 		foreach ( $schedules as $schedule ) {
@@ -413,7 +413,7 @@ class W2P_AI_Scheduler {
 		$last_run      = $schedule['last_run_at'] ?? '';
 
 		// Check if already ran today for daily/weekly schedules
-		if ( in_array( $frequency, [ 'daily', 'weekly' ], true ) ) {
+		if ( in_array( $frequency, array( 'daily', 'weekly' ), true ) ) {
 			$today = current_time( 'Y-m-d' );
 			if ( $last_run && strpos( $last_run, $today ) === 0 ) {
 				return false;
@@ -468,8 +468,8 @@ class W2P_AI_Scheduler {
 		global $wpdb;
 		$wpdb->update(
 			$this->table_name,
-			[ 'last_run_at' => current_time( 'mysql' ) ],
-			[ 'id' => $schedule['id'] ]
+			array( 'last_run_at' => current_time( 'mysql' ) ),
+			array( 'id' => $schedule['id'] )
 		);
 
 		return true;
@@ -485,15 +485,17 @@ class W2P_AI_Scheduler {
 		$quantity = $schedule['quantity'] ?? 1;
 
 		for ( $i = 0; $i < $quantity; $i++ ) {
-			$this->content_queue->add_to_queue( [
-				'schedule_id' => $schedule['id'],
-				'provider'    => $schedule['provider'],
-				'model'       => $schedule['model'],
-				'prompt_id'   => $schedule['prompt_id'],
-				'variables'   => $schedule['variables'] ?? [],
-				'status'      => 'pending',
-				'max_attempts'=> 3,
-			] );
+			$this->content_queue->add_to_queue(
+				array(
+					'schedule_id'  => $schedule['id'],
+					'provider'     => $schedule['provider'],
+					'model'        => $schedule['model'],
+					'prompt_id'    => $schedule['prompt_id'],
+					'variables'    => $schedule['variables'] ?? array(),
+					'status'       => 'pending',
+					'max_attempts' => 3,
+				)
+			);
 		}
 	}
 
@@ -505,15 +507,15 @@ class W2P_AI_Scheduler {
 	public function get_stats(): array {
 		global $wpdb;
 
-		$schedules = $this->get_all_schedules();
+		$schedules      = $this->get_all_schedules();
 		$enabled_count  = 0;
 		$disabled_count = 0;
 
 		foreach ( $schedules as $schedule ) {
 			if ( ! empty( $schedule['enabled'] ) ) {
-				$enabled_count++;
+				++$enabled_count;
 			} else {
-				$disabled_count++;
+				++$disabled_count;
 			}
 		}
 
@@ -535,14 +537,14 @@ class W2P_AI_Scheduler {
 			)
 		);
 
-		return [
+		return array(
 			'total_schedules'    => count( $schedules ),
 			'enabled_schedules'  => $enabled_count,
 			'disabled_schedules' => $disabled_count,
 			'queue_pending'      => (int) $pending,
 			'queue_processing'   => (int) $processing,
 			'completed_today'    => (int) $completed_today,
-		];
+		);
 	}
 
 	/**
@@ -552,7 +554,7 @@ class W2P_AI_Scheduler {
 	 * @return array
 	 */
 	private function hydrate( array $row ): array {
-		return [
+		return array(
 			'id'          => $row['id'],
 			'name'        => $row['name'],
 			'provider'    => $row['provider'],
@@ -570,7 +572,7 @@ class W2P_AI_Scheduler {
 			'created_at'  => $row['created_at'] ?? '',
 			'updated_at'  => $row['updated_at'] ?? '',
 			'last_run_at' => $row['last_run_at'] ?? '',
-		];
+		);
 	}
 }
 

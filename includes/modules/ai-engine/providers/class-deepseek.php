@@ -36,27 +36,27 @@ class W2P_AI_Provider_DeepSeek implements W2P_AI_Provider_Interface {
 	 *
 	 * @var array
 	 */
-	private $last_usage = [];
+	private $last_usage = array();
 
 	/**
 	 * Available models
 	 *
 	 * @var array
 	 */
-	private $models = [
-		[
-			'id'          => 'deepseek-chat',
-			'name'        => 'DeepSeek V3',
-			'desc'        => 'General-purpose chat model',
-			'max_tokens'  => 64000,
-		],
-		[
-			'id'          => 'deepseek-reasoner',
-			'name'        => 'DeepSeek R1',
-			'desc'        => 'Reasoning model for complex tasks',
-			'max_tokens'  => 64000,
-		],
-	];
+	private $models = array(
+		array(
+			'id'         => 'deepseek-chat',
+			'name'       => 'DeepSeek V3',
+			'desc'       => 'General-purpose chat model',
+			'max_tokens' => 64000,
+		),
+		array(
+			'id'         => 'deepseek-reasoner',
+			'name'       => 'DeepSeek R1',
+			'desc'       => 'Reasoning model for complex tasks',
+			'max_tokens' => 64000,
+		),
+	);
 
 	/**
 	 * Constructor
@@ -139,12 +139,15 @@ class W2P_AI_Provider_DeepSeek implements W2P_AI_Provider_Interface {
 		}
 
 		// DeepSeek uses OpenAI-compatible API
-		$response = wp_remote_get( $this->api_base . '/models', [
-			'headers' => [
-				'Authorization' => 'Bearer ' . $this->api_key,
-			],
-			'timeout' => 15,
-		] );
+		$response = wp_remote_get(
+			$this->api_base . '/models',
+			array(
+				'headers' => array(
+					'Authorization' => 'Bearer ' . $this->api_key,
+				),
+				'timeout' => 15,
+			)
+		);
 
 		return ! is_wp_error( $response ) && 200 === wp_remote_retrieve_response_code( $response );
 	}
@@ -170,30 +173,33 @@ class W2P_AI_Provider_DeepSeek implements W2P_AI_Provider_Interface {
 		$temperature = $params['temperature'] ?? 0.7;
 		$max_tokens  = $params['max_tokens'] ?? 2000;
 
-		$body = [
+		$body = array(
 			'model'       => $model,
-			'messages'    => [
-				[
+			'messages'    => array(
+				array(
 					'role'    => 'system',
 					'content' => 'You are a professional content writer. Write high-quality, engaging content in the requested format.',
-				],
-				[
+				),
+				array(
 					'role'    => 'user',
 					'content' => $prompt,
-				],
-			],
+				),
+			),
 			'temperature' => $temperature,
 			'max_tokens'  => $max_tokens,
-		];
+		);
 
-		$response = wp_remote_post( $this->api_base . '/chat/completions', [
-			'headers' => [
-				'Authorization' => 'Bearer ' . $this->api_key,
-				'Content-Type'  => 'application/json',
-			],
-			'body'    => wp_json_encode( $body ),
-			'timeout' => 120,
-		] );
+		$response = wp_remote_post(
+			$this->api_base . '/chat/completions',
+			array(
+				'headers' => array(
+					'Authorization' => 'Bearer ' . $this->api_key,
+					'Content-Type'  => 'application/json',
+				),
+				'body'    => wp_json_encode( $body ),
+				'timeout' => 120,
+			)
+		);
 
 		if ( is_wp_error( $response ) ) {
 			return $response;
@@ -208,14 +214,14 @@ class W2P_AI_Provider_DeepSeek implements W2P_AI_Provider_Interface {
 		}
 
 		// Track usage
-		$this->last_usage = $response_body['usage'] ?? [];
+		$this->last_usage = $response_body['usage'] ?? array();
 		$this->track_usage( $model, $this->last_usage );
 
-		return [
+		return array(
 			'content' => $response_body['choices'][0]['message']['content'] ?? '',
 			'model'   => $model,
 			'usage'   => $this->last_usage,
-		];
+		);
 	}
 
 	/**
@@ -233,11 +239,14 @@ class W2P_AI_Provider_DeepSeek implements W2P_AI_Provider_Interface {
 	 * @return array
 	 */
 	public function get_total_usage(): array {
-		return get_option( 'w2p_ai_deepseek_usage', [
-			'total_prompt_tokens'     => 0,
-			'total_completion_tokens' => 0,
-			'total_requests'          => 0,
-		] );
+		return get_option(
+			'w2p_ai_deepseek_usage',
+			array(
+				'total_prompt_tokens'     => 0,
+				'total_completion_tokens' => 0,
+				'total_requests'          => 0,
+			)
+		);
 	}
 
 	/**
@@ -256,11 +265,11 @@ class W2P_AI_Provider_DeepSeek implements W2P_AI_Provider_Interface {
 
 		// Track per-model usage
 		if ( ! isset( $totals['models'][ $model ] ) ) {
-			$totals['models'][ $model ] = [
+			$totals['models'][ $model ] = array(
 				'prompt_tokens'     => 0,
 				'completion_tokens' => 0,
 				'requests'          => 0,
-			];
+			);
 		}
 
 		$totals['models'][ $model ]['prompt_tokens']     += $usage['prompt_tokens'] ?? 0;

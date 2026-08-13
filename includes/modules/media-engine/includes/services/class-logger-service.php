@@ -99,7 +99,7 @@ class MediaEngineConversionLogger {
 	public function log_conversion_start( $attachment_id, $file_path, $file_size ) {
 		$size_mb  = round( $file_size / 1024 / 1024, 2 );
 		$filename = basename( $file_path );
-		
+
 		$message = sprintf(
 			'[%s] >>> Starting conversion for ID: %d | File: %s | Size: %.2fMB (%d bytes)',
 			$this->get_timestamp(),
@@ -181,7 +181,7 @@ class MediaEngineConversionLogger {
 	 * @param bool   $success       是否成功
 	 */
 	public function log_conversion_result( $engine, $attachment_id, $original_file, $original_size, $new_file, $new_size, $success ) {
-		$status = $success ? 'OK' : 'NG';
+		$status  = $success ? 'OK' : 'NG';
 		$message = sprintf(
 			'[%s] %s | %d | %s | %s | %s | %s | %s',
 			$this->get_timestamp(),
@@ -266,12 +266,14 @@ class MediaEngineConversionLogger {
 		$separator = str_repeat( '=', 80 );
 		$this->write_log( '' );
 		$this->write_log( $separator );
-		$this->write_log( sprintf(
-			'[%s] >>> Batch Processing Started | Total Items: %d | Batch Size: %d',
-			$this->get_timestamp(),
-			$total,
-			$limit
-		) );
+		$this->write_log(
+			sprintf(
+				'[%s] >>> Batch Processing Started | Total Items: %d | Batch Size: %d',
+				$this->get_timestamp(),
+				$total,
+				$limit
+			)
+		);
 		$this->write_log( $separator );
 	}
 
@@ -286,14 +288,16 @@ class MediaEngineConversionLogger {
 	public function log_batch_complete( $processed, $success, $failed, $duration ) {
 		$separator = str_repeat( '=', 80 );
 		$this->write_log( $separator );
-		$this->write_log( sprintf(
-			'[%s] <<< Batch Processing Completed | Processed: %d | Success: %d | Failed: %d | Duration: %.2fs',
-			$this->get_timestamp(),
-			$processed,
-			$success,
-			$failed,
-			$duration
-		) );
+		$this->write_log(
+			sprintf(
+				'[%s] <<< Batch Processing Completed | Processed: %d | Success: %d | Failed: %d | Duration: %.2fs',
+				$this->get_timestamp(),
+				$processed,
+				$success,
+				$failed,
+				$duration
+			)
+		);
 		$this->write_log( $separator );
 		$this->write_log( '' );
 	}
@@ -314,16 +318,25 @@ class MediaEngineConversionLogger {
 	public function log_thumbnail_result( $attachment_ids, $success, $skip, $failed ) {
 		$total = count( $attachment_ids );
 		$this->write_log( '===== STEP2: WP Media Regenerate =====' );
-		$this->write_log( sprintf(
-			'[%s] WP Media Regenerate %s',
-			$this->get_timestamp(),
-			implode( ' ', $attachment_ids )
-		) );
-		$this->write_log( sprintf(
-			'[%s] Success: %d/%d | Skip: %d/%d | Failed: %d/%d',
-			$this->get_timestamp(),
-			$success, $total, $skip, $total, $failed, $total
-		) );
+		$this->write_log(
+			sprintf(
+				'[%s] WP Media Regenerate %s',
+				$this->get_timestamp(),
+				implode( ' ', $attachment_ids )
+			)
+		);
+		$this->write_log(
+			sprintf(
+				'[%s] Success: %d/%d | Skip: %d/%d | Failed: %d/%d',
+				$this->get_timestamp(),
+				$success,
+				$total,
+				$skip,
+				$total,
+				$failed,
+				$total
+			)
+		);
 	}
 
 	/**
@@ -342,16 +355,25 @@ class MediaEngineConversionLogger {
 	public function log_offload_result( $attachment_ids, $success, $skip, $failed ) {
 		$total = count( $attachment_ids );
 		$this->write_log( '===== STEP3: WP Offload to Minio =====' );
-		$this->write_log( sprintf(
-			'[%s] WP Offload to Minio %s',
-			$this->get_timestamp(),
-			implode( ' ', $attachment_ids )
-		) );
-		$this->write_log( sprintf(
-			'[%s] Success: %d/%d | Skip: %d/%d | Failed: %d/%d',
-			$this->get_timestamp(),
-			$success, $total, $skip, $total, $failed, $total
-		) );
+		$this->write_log(
+			sprintf(
+				'[%s] WP Offload to Minio %s',
+				$this->get_timestamp(),
+				implode( ' ', $attachment_ids )
+			)
+		);
+		$this->write_log(
+			sprintf(
+				'[%s] Success: %d/%d | Skip: %d/%d | Failed: %d/%d',
+				$this->get_timestamp(),
+				$success,
+				$total,
+				$skip,
+				$total,
+				$failed,
+				$total
+			)
+		);
 	}
 
 	/**
@@ -377,14 +399,16 @@ class MediaEngineConversionLogger {
 	 */
 	public function log_rewrite_result( $attachment_id, $post_parent, $new_url, $success ) {
 		$status = $success ? 'OK' : 'NG';
-		$this->write_log( sprintf(
-			'[%s] WP Rewrite Content URL | %d | %d | %s | %s',
-			$this->get_timestamp(),
-			(int) $attachment_id,
-			(int) $post_parent,
-			$new_url,
-			$status
-		) );
+		$this->write_log(
+			sprintf(
+				'[%s] WP Rewrite Content URL | %d | %d | %s | %s',
+				$this->get_timestamp(),
+				(int) $attachment_id,
+				(int) $post_parent,
+				$new_url,
+				$status
+			)
+		);
 	}
 
 	/**
@@ -402,11 +426,18 @@ class MediaEngineConversionLogger {
 	public function log_cleanup_result( $attachment_ids, $success, $skip, $failed ) {
 		$total = count( $attachment_ids );
 		$this->write_log( '===== STEP5: Clean Origin Media =====' );
-		$this->write_log( sprintf(
-			'[%s] Success: %d/%d | Skip: %d/%d | Failed: %d/%d',
-			$this->get_timestamp(),
-			$success, $total, $skip, $total, $failed, $total
-		) );
+		$this->write_log(
+			sprintf(
+				'[%s] Success: %d/%d | Skip: %d/%d | Failed: %d/%d',
+				$this->get_timestamp(),
+				$success,
+				$total,
+				$skip,
+				$total,
+				$failed,
+				$total
+			)
+		);
 	}
 
 	/**
@@ -521,10 +552,12 @@ class MediaEngineConversionLogger {
 	 */
 	public function clear_log() {
 		file_put_contents( $this->log_file, '' );
-		$this->write_log( sprintf(
-			'[%s] Log file cleared',
-			$this->get_timestamp()
-		) );
+		$this->write_log(
+			sprintf(
+				'[%s] Log file cleared',
+				$this->get_timestamp()
+			)
+		);
 	}
 
 	/**
@@ -535,7 +568,7 @@ class MediaEngineConversionLogger {
 	 */
 	public function get_recent_logs( $lines = 100 ) {
 		if ( ! file_exists( $this->log_file ) ) {
-			return [];
+			return array();
 		}
 
 		$file  = file( $this->log_file );
@@ -607,9 +640,9 @@ class MediaEngineConversionLogger {
 			}
 		}
 
-		return [
+		return array(
 			'size_bytes'     => $size,
 			'size_formatted' => size_format( $size, 2 ),
-		];
+		);
 	}
 }

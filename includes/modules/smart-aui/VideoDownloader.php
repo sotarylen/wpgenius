@@ -22,14 +22,14 @@ class W2P_Video_Downloader {
 	 *
 	 * @var array
 	 */
-	private $allowed_mime_types = [
-		'video/mp4' => 'mp4',
-		'video/webm' => 'webm',
-		'video/ogg' => 'ogv',
+	private $allowed_mime_types = array(
+		'video/mp4'       => 'mp4',
+		'video/webm'      => 'webm',
+		'video/ogg'       => 'ogv',
 		'video/quicktime' => 'mov',
 		'video/x-msvideo' => 'avi',
-		'video/x-ms-wmv' => 'wmv',
-	];
+		'video/x-ms-wmv'  => 'wmv',
+	);
 
 	/**
 	 * Download video from URL and add to media library
@@ -38,7 +38,7 @@ class W2P_Video_Downloader {
 	 * @param array  $post_data Post data context.
 	 * @return array|WP_Error Result array with video info or WP_Error on failure.
 	 */
-	public function download_video( $video_url, $post_data = [] ) {
+	public function download_video( $video_url, $post_data = array() ) {
 		// Validate URL
 		if ( empty( $video_url ) ) {
 			return new WP_Error( 'invalid_url', __( 'Video URL is empty.', 'wp-genius' ) );
@@ -67,7 +67,7 @@ class W2P_Video_Downloader {
 		}
 
 		// Get MIME type
-		$finfo = finfo_open( FILEINFO_MIME_TYPE );
+		$finfo     = finfo_open( FILEINFO_MIME_TYPE );
 		$mime_type = finfo_file( $finfo, $file_path );
 		finfo_close( $finfo );
 
@@ -78,7 +78,7 @@ class W2P_Video_Downloader {
 
 		// Generate filename
 		$extension = $this->allowed_mime_types[ $mime_type ];
-		$filename = $this->generate_filename( $video_url, $post_data, $extension );
+		$filename  = $this->generate_filename( $video_url, $post_data, $extension );
 
 		// Prepare upload directory
 		$upload = wp_upload_bits( $filename, null, file_get_contents( $file_path ) );
@@ -89,12 +89,12 @@ class W2P_Video_Downloader {
 		}
 
 		// Create attachment
-		$attachment = [
+		$attachment = array(
 			'post_mime_type' => $mime_type,
 			'post_title'     => sanitize_file_name( $filename ),
 			'post_content'   => '',
 			'post_status'    => 'inherit',
-		];
+		);
 
 		$attach_id = wp_insert_attachment( $attachment, $upload['file'] );
 
@@ -110,13 +110,13 @@ class W2P_Video_Downloader {
 		// Get video URL
 		$video_url_local = wp_get_attachment_url( $attach_id );
 
-		return [
+		return array(
 			'attachment_id' => $attach_id,
 			'url'           => $video_url_local,
 			'file'          => $upload['file'],
 			'mime_type'     => $mime_type,
 			'filename'      => $filename,
-		];
+		);
 	}
 
 	/**
@@ -131,10 +131,10 @@ class W2P_Video_Downloader {
 
 		$response = wp_remote_get(
 			$url,
-			[
-				'timeout'  => $timeout,
+			array(
+				'timeout'   => $timeout,
 				'sslverify' => false,
-			]
+			)
 		);
 
 		if ( is_wp_error( $response ) ) {
@@ -156,7 +156,7 @@ class W2P_Video_Downloader {
 			return new WP_Error( 'write_failed', __( 'Failed to write video file.', 'wp-genius' ) );
 		}
 
-		return [ 'file' => $temp_file ];
+		return array( 'file' => $temp_file );
 	}
 
 	/**
@@ -166,9 +166,9 @@ class W2P_Video_Downloader {
 	 * @return bool True if external, false if internal.
 	 */
 	private function is_external_url( $url ) {
-		$site_url = site_url();
+		$site_url  = site_url();
 		$site_host = wp_parse_url( $site_url, PHP_URL_HOST );
-		$url_host = wp_parse_url( $url, PHP_URL_HOST );
+		$url_host  = wp_parse_url( $url, PHP_URL_HOST );
 
 		// Relative URLs are considered internal
 		if ( empty( $url_host ) ) {
@@ -192,21 +192,21 @@ class W2P_Video_Downloader {
 	 * @return string Generated filename.
 	 */
 	private function generate_filename( $video_url, $post_data, $extension ) {
-		$settings = get_option( 'smart_aui_settings', [] );
-		$pattern = isset( $settings['image_name_pattern'] ) ? $settings['image_name_pattern'] : '%filename%';
+		$settings = get_option( 'smart_aui_settings', array() );
+		$pattern  = isset( $settings['image_name_pattern'] ) ? $settings['image_name_pattern'] : '%filename%';
 
 		// Get original filename
 		$original_filename = basename( parse_url( $video_url, PHP_URL_PATH ) );
-		$filename = pathinfo( $original_filename, PATHINFO_FILENAME );
-		$filename = sanitize_file_name( $filename );
+		$filename          = pathinfo( $original_filename, PATHINFO_FILENAME );
+		$filename          = sanitize_file_name( $filename );
 
 		// Apply pattern
-		$replacements = [
-			'%filename%'  => $filename,
+		$replacements = array(
+			'%filename%'   => $filename,
 			'%post_title%' => isset( $post_data['post_title'] ) ? sanitize_file_name( $post_data['post_title'] ) : '',
-			'%post_date%' => isset( $post_data['post_date'] ) ? date( 'Y-m-d', strtotime( $post_data['post_date'] ) ) : date( 'Y-m-d' ),
-			'%random%'    => substr( md5( uniqid() ), 0, 8 ),
-		];
+			'%post_date%'  => isset( $post_data['post_date'] ) ? date( 'Y-m-d', strtotime( $post_data['post_date'] ) ) : date( 'Y-m-d' ),
+			'%random%'     => substr( md5( uniqid() ), 0, 8 ),
+		);
 
 		$filename = str_replace( array_keys( $replacements ), $replacements, $pattern );
 		$filename = sanitize_file_name( $filename );

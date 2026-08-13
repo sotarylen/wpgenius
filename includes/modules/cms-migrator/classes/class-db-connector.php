@@ -35,16 +35,16 @@ class CMS_DB_Connector {
 	 * @var array
 	 */
 	private $tables = array(
-		'books'      => 'n8n_book_list',
-		'chapters'   => 'n8n_book_chapters_content',
-		'chapter_list' => 'n8n_book_chapters_list',
-		'summaries'  => 'n8n_book_summary',
-		'plot_stages' => 'n8n_book_plot_stages',
+		'books'            => 'n8n_book_list',
+		'chapters'         => 'n8n_book_chapters_content',
+		'chapter_list'     => 'n8n_book_chapters_list',
+		'summaries'        => 'n8n_book_summary',
+		'plot_stages'      => 'n8n_book_plot_stages',
 		'phased_summaries' => 'n8n_book_phased_summaries',
-		'scripts'    => 'n8n_book_tran2script',
-		'albums'     => 'n8n_albums',
-		'models'     => 'n8n_album_models',
-		'studios'    => 'n8n_album_studios',
+		'scripts'          => 'n8n_book_tran2script',
+		'albums'           => 'n8n_albums',
+		'models'           => 'n8n_album_models',
+		'studios'          => 'n8n_album_studios',
 	);
 
 	/**
@@ -125,28 +125,28 @@ class CMS_DB_Connector {
 		$stats = array();
 
 		// Books count.
-		$result = $conn->query( 'SELECT COUNT(*) as count FROM ' . $this->tables['books'] );
-		$row = $result->fetch_assoc();
+		$result         = $conn->query( 'SELECT COUNT(*) as count FROM ' . $this->tables['books'] );
+		$row            = $result->fetch_assoc();
 		$stats['books'] = (int) $row['count'];
 
 		// Chapters count.
-		$result = $conn->query( 'SELECT COUNT(*) as count FROM ' . $this->tables['chapters'] );
-		$row = $result->fetch_assoc();
+		$result            = $conn->query( 'SELECT COUNT(*) as count FROM ' . $this->tables['chapters'] );
+		$row               = $result->fetch_assoc();
 		$stats['chapters'] = (int) $row['count'];
 
 		// Albums count.
-		$result = $conn->query( 'SELECT COUNT(*) as count FROM ' . $this->tables['albums'] );
-		$row = $result->fetch_assoc();
+		$result          = $conn->query( 'SELECT COUNT(*) as count FROM ' . $this->tables['albums'] );
+		$row             = $result->fetch_assoc();
 		$stats['albums'] = (int) $row['count'];
 
 		// Models count.
-		$result = $conn->query( 'SELECT COUNT(*) as count FROM ' . $this->tables['models'] );
-		$row = $result->fetch_assoc();
+		$result          = $conn->query( 'SELECT COUNT(*) as count FROM ' . $this->tables['models'] );
+		$row             = $result->fetch_assoc();
 		$stats['models'] = (int) $row['count'];
 
 		// Studios count.
-		$result = $conn->query( 'SELECT COUNT(*) as count FROM ' . $this->tables['studios'] );
-		$row = $result->fetch_assoc();
+		$result           = $conn->query( 'SELECT COUNT(*) as count FROM ' . $this->tables['studios'] );
+		$row              = $result->fetch_assoc();
 		$stats['studios'] = (int) $row['count'];
 
 		// Images count (from albums table, assuming image field).

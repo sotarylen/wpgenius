@@ -52,9 +52,9 @@ class W2P_Crypto {
 
 		// Fallback: OpenSSL AES-256-GCM.
 		if ( function_exists( 'openssl_encrypt' ) ) {
-			$iv      = random_bytes( 12 );
-			$tag     = '';
-			$cipher  = openssl_encrypt( (string) $plain, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag );
+			$iv     = random_bytes( 12 );
+			$tag    = '';
+			$cipher = openssl_encrypt( (string) $plain, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag );
 			if ( false !== $cipher ) {
 				return self::PREFIX . 'o:' . base64_encode( $iv . $tag . $cipher );
 			}
@@ -101,7 +101,7 @@ class W2P_Crypto {
 				return sodium_crypto_secretbox_open( $cipher, $nonce, $key );
 
 			case 'o': // OpenSSL AES-256-GCM
-				$iv_len = 12;
+				$iv_len  = 12;
 				$tag_len = 16;
 				if ( strlen( $raw ) < $iv_len + $tag_len ) {
 					return false;

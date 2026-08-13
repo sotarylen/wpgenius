@@ -36,33 +36,33 @@ class W2P_AI_Provider_Gemini implements W2P_AI_Provider_Interface {
 	 *
 	 * @var array
 	 */
-	private $last_usage = [];
+	private $last_usage = array();
 
 	/**
 	 * Available models
 	 *
 	 * @var array
 	 */
-	private $models = [
-		[
-			'id'          => 'gemini-1.5-pro',
-			'name'        => 'Gemini 1.5 Pro',
-			'desc'        => 'Best for complex reasoning and long context',
-			'max_tokens'  => 2097152,
-		],
-		[
-			'id'          => 'gemini-1.5-flash',
-			'name'        => 'Gemini 1.5 Flash',
-			'desc'        => 'Fast and cost-effective',
-			'max_tokens'  => 1048576,
-		],
-		[
-			'id'          => 'gemini-1.0-pro',
-			'name'        => 'Gemini 1.0 Pro',
-			'desc'        => 'Previous generation',
-			'max_tokens'  => 32768,
-		],
-	];
+	private $models = array(
+		array(
+			'id'         => 'gemini-1.5-pro',
+			'name'       => 'Gemini 1.5 Pro',
+			'desc'       => 'Best for complex reasoning and long context',
+			'max_tokens' => 2097152,
+		),
+		array(
+			'id'         => 'gemini-1.5-flash',
+			'name'       => 'Gemini 1.5 Flash',
+			'desc'       => 'Fast and cost-effective',
+			'max_tokens' => 1048576,
+		),
+		array(
+			'id'         => 'gemini-1.0-pro',
+			'name'       => 'Gemini 1.0 Pro',
+			'desc'       => 'Previous generation',
+			'max_tokens' => 32768,
+		),
+	);
 
 	/**
 	 * Constructor
@@ -146,7 +146,7 @@ class W2P_AI_Provider_Gemini implements W2P_AI_Provider_Interface {
 
 		$response = wp_remote_get(
 			$this->api_base . '/models?key=' . $this->api_key,
-			[ 'timeout' => 15 ]
+			array( 'timeout' => 15 )
 		);
 
 		return ! is_wp_error( $response ) && 200 === wp_remote_retrieve_response_code( $response );
@@ -173,38 +173,38 @@ class W2P_AI_Provider_Gemini implements W2P_AI_Provider_Interface {
 		$temperature = $params['temperature'] ?? 0.7;
 		$max_tokens  = $params['max_tokens'] ?? 2000;
 
-		$body = [
-			'contents' => [
-				[
-					'parts' => [
-						[
+		$body = array(
+			'contents'          => array(
+				array(
+					'parts' => array(
+						array(
 							'text' => $prompt,
-						],
-					],
-				],
-			],
-			'generationConfig' => [
+						),
+					),
+				),
+			),
+			'generationConfig'  => array(
 				'temperature'     => $temperature,
 				'maxOutputTokens' => $max_tokens,
-			],
-			'systemInstruction' => [
-				'parts' => [
-					[
+			),
+			'systemInstruction' => array(
+				'parts' => array(
+					array(
 						'text' => 'You are a professional content writer. Write high-quality, engaging content in the requested format.',
-					],
-				],
-			],
-		];
+					),
+				),
+			),
+		);
 
 		$response = wp_remote_post(
 			$this->api_base . '/models/' . $model . ':generateContent?key=' . $this->api_key,
-			[
-				'headers' => [
+			array(
+				'headers' => array(
 					'Content-Type' => 'application/json',
-				],
+				),
 				'body'    => wp_json_encode( $body ),
 				'timeout' => 120,
-			]
+			)
 		);
 
 		if ( is_wp_error( $response ) ) {
@@ -220,14 +220,14 @@ class W2P_AI_Provider_Gemini implements W2P_AI_Provider_Interface {
 		}
 
 		// Track usage
-		$this->last_usage = $response_body['usageMetadata'] ?? [];
+		$this->last_usage = $response_body['usageMetadata'] ?? array();
 		$this->track_usage( $model, $this->last_usage );
 
-		return [
+		return array(
 			'content' => $response_body['candidates'][0]['content']['parts'][0]['text'] ?? '',
 			'model'   => $model,
 			'usage'   => $this->last_usage,
-		];
+		);
 	}
 
 	/**
@@ -245,11 +245,14 @@ class W2P_AI_Provider_Gemini implements W2P_AI_Provider_Interface {
 	 * @return array
 	 */
 	public function get_total_usage(): array {
-		return get_option( 'w2p_ai_gemini_usage', [
-			'total_prompt_tokens'     => 0,
-			'total_completion_tokens' => 0,
-			'total_requests'          => 0,
-		] );
+		return get_option(
+			'w2p_ai_gemini_usage',
+			array(
+				'total_prompt_tokens'     => 0,
+				'total_completion_tokens' => 0,
+				'total_requests'          => 0,
+			)
+		);
 	}
 
 	/**
@@ -268,11 +271,11 @@ class W2P_AI_Provider_Gemini implements W2P_AI_Provider_Interface {
 
 		// Track per-model usage
 		if ( ! isset( $totals['models'][ $model ] ) ) {
-			$totals['models'][ $model ] = [
+			$totals['models'][ $model ] = array(
 				'prompt_tokens'     => 0,
 				'completion_tokens' => 0,
 				'requests'          => 0,
-			];
+			);
 		}
 
 		$totals['models'][ $model ]['prompt_tokens']     += $usage['promptTokenCount'] ?? 0;

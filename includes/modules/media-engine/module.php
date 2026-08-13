@@ -1,7 +1,7 @@
 <?php
 /**
  * Media Engine Module
- * 
+ *
  * Unified media processing module combining Image Watermark, Media Turbo, and Clipboard Upload.
  *
  * @package WP_Genius
@@ -54,28 +54,28 @@ class MediaEngineModule extends W2P_Abstract_Module {
 	public function init() {
 		// Perform one-time migration from old modules
 		$this->migrate_from_old_modules();
-		
+
 		// Load dependencies
 		$this->load_dependencies();
-		
+
 		// Register settings
 		$this->register_settings();
-		
+
 		// Hook into upload process
 		// Auto-conversion removed per user request
 		// add_filter( 'wp_handle_upload', [ $this, 'process_uploaded_image' ] );
-		
+
 		// AJAX Handlers
-		add_action( 'wp_ajax_w2p_scan_attachments', [ $this, 'ajax_scan_attachments' ] );
-		add_action( 'wp_ajax_w2p_process_batch', [ $this, 'ajax_process_batch' ] );
-		add_action( 'wp_ajax_w2p_media_engine_reset', [ $this, 'ajax_reset_processed' ] );
-		add_action( 'wp_ajax_w2p_get_conversion_log', [ $this, 'ajax_get_conversion_log' ] );
-		add_action( 'wp_ajax_w2p_clear_conversion_log', [ $this, 'ajax_clear_conversion_log' ] );
-		add_action( 'wp_ajax_w2p_media_audit_scan', [ $this, 'ajax_audit_scan' ] );
-		add_action( 'wp_ajax_w2p_media_audit_clean', [ $this, 'ajax_audit_clean' ] );
-		
+		add_action( 'wp_ajax_w2p_scan_attachments', array( $this, 'ajax_scan_attachments' ) );
+		add_action( 'wp_ajax_w2p_process_batch', array( $this, 'ajax_process_batch' ) );
+		add_action( 'wp_ajax_w2p_media_engine_reset', array( $this, 'ajax_reset_processed' ) );
+		add_action( 'wp_ajax_w2p_get_conversion_log', array( $this, 'ajax_get_conversion_log' ) );
+		add_action( 'wp_ajax_w2p_clear_conversion_log', array( $this, 'ajax_clear_conversion_log' ) );
+		add_action( 'wp_ajax_w2p_media_audit_scan', array( $this, 'ajax_audit_scan' ) );
+		add_action( 'wp_ajax_w2p_media_audit_clean', array( $this, 'ajax_audit_clean' ) );
+
 		// Enqueue admin scripts
-		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_scripts' ] );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 	}
 
 	/**
@@ -86,22 +86,22 @@ class MediaEngineModule extends W2P_Abstract_Module {
 			return;
 		}
 
-		$enabled_modules = get_option( 'word2posts_modules', [] );
-		$old_modules = [ 'image-watermark', 'media-turbo', 'clipboard-image-upload' ];
-		$should_enable = false;
-		
+		$enabled_modules = get_option( 'word2posts_modules', array() );
+		$old_modules     = array( 'image-watermark', 'media-turbo', 'clipboard-image-upload' );
+		$should_enable   = false;
+
 		foreach ( $old_modules as $old_module_id ) {
 			if ( ! empty( $enabled_modules[ $old_module_id ] ) ) {
-				$should_enable = true;
+				$should_enable                     = true;
 				$enabled_modules[ $old_module_id ] = false;
 			}
 		}
-		
+
 		if ( $should_enable ) {
 			$enabled_modules['media-engine'] = true;
 			update_option( 'word2posts_modules', $enabled_modules );
 		}
-		
+
 		update_option( 'w2p_media_engine_migrated', true );
 	}
 
@@ -133,25 +133,29 @@ class MediaEngineModule extends W2P_Abstract_Module {
 	 * Register default settings
 	 */
 	public function register_settings() {
-		register_setting( 'w2p_media_turbo_settings', 'w2p_media_turbo_settings', [
-			'type'              => 'array',
-			'sanitize_callback' => [ $this, 'sanitize_settings' ],
-			'default'           => [
-				'keep_original'         => true,
-				'scan_limit'            => 100,
-				'batch_size'            => 10,
-			]
-		] );
+		register_setting(
+			'w2p_media_turbo_settings',
+			'w2p_media_turbo_settings',
+			array(
+				'type'              => 'array',
+				'sanitize_callback' => array( $this, 'sanitize_settings' ),
+				'default'           => array(
+					'keep_original' => true,
+					'scan_limit'    => 100,
+					'batch_size'    => 10,
+				),
+			)
+		);
 	}
-	
+
 	/**
 	 * Sanitize settings
 	 */
 	public function sanitize_settings( $input ) {
-		$output = [];
-		$output['keep_original']         = ! empty( $input['keep_original'] );
-		$output['scan_limit']            = isset( $input['scan_limit'] ) ? absint( $input['scan_limit'] ) : 100;
-		$output['batch_size']            = isset( $input['batch_size'] ) ? absint( $input['batch_size'] ) : 10;
+		$output                  = array();
+		$output['keep_original'] = ! empty( $input['keep_original'] );
+		$output['scan_limit']    = isset( $input['scan_limit'] ) ? absint( $input['scan_limit'] ) : 100;
+		$output['batch_size']    = isset( $input['batch_size'] ) ? absint( $input['batch_size'] ) : 10;
 		return $output;
 	}
 
@@ -160,43 +164,50 @@ class MediaEngineModule extends W2P_Abstract_Module {
 	 */
 	public function ajax_scan_attachments() {
 		check_ajax_referer( 'w2p_media_engine_nonce', 'nonce' );
-		if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Permission denied' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
 
 		$processor = new MediaEngineProcessor();
 		$settings  = W2P_Settings::tab_with_legacy( 'media_engine_tabs', 'w2p_media_turbo_settings', array() );
-		
+
 		$limit = isset( $settings['scan_limit'] ) ? absint( $settings['scan_limit'] ) : 100;
-		
+
 		$attachments = $processor->scan( $limit, 0 );
-		$data = [];
+		$data        = array();
 
 		foreach ( $attachments as $id ) {
-			$path = get_attached_file( $id );
+			$path  = get_attached_file( $id );
 			$thumb = wp_get_attachment_image_src( $id, 'thumbnail' );
-			
+
 			// Get file size
 			$size = file_exists( $path ) ? size_format( filesize( $path ), 2 ) : '';
-			
+
 			// Get parent post info
 			$parent_title = '';
-			$parent_url = '';
-			$parent_id = wp_get_post_parent_id( $id );
+			$parent_url   = '';
+			$parent_id    = wp_get_post_parent_id( $id );
 			if ( $parent_id ) {
 				$parent_title = get_the_title( $parent_id );
-				$parent_url = get_edit_post_link( $parent_id );
+				$parent_url   = get_edit_post_link( $parent_id );
 			}
 
-			$data[] = [
-				'id' => $id,
-				'file_name' => basename( $path ),
-				'thumb_url' => $thumb ? $thumb[0] : '',
-				'file_size' => $size,
+			$data[] = array(
+				'id'          => $id,
+				'file_name'   => basename( $path ),
+				'thumb_url'   => $thumb ? $thumb[0] : '',
+				'file_size'   => $size,
 				'parent_post' => $parent_title,
-				'parent_url' => $parent_url,
-			];
+				'parent_url'  => $parent_url,
+			);
 		}
 
-		wp_send_json_success( [ 'attachments' => $data, 'count' => count( $data ) ] );
+		wp_send_json_success(
+			array(
+				'attachments' => $data,
+				'count'       => count( $data ),
+			)
+		);
 	}
 
 	/**
@@ -204,13 +215,17 @@ class MediaEngineModule extends W2P_Abstract_Module {
 	 */
 	public function ajax_process_batch() {
 		check_ajax_referer( 'w2p_media_engine_nonce', 'nonce' );
-		if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Permission denied' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
 
-		$ids = isset( $_POST['attachment_ids'] ) ? array_map( 'absint', $_POST['attachment_ids'] ) : [];
-		if ( empty( $ids ) ) wp_send_json_error( 'No IDs' );
+		$ids = isset( $_POST['attachment_ids'] ) ? array_map( 'absint', $_POST['attachment_ids'] ) : array();
+		if ( empty( $ids ) ) {
+			wp_send_json_error( 'No IDs' );
+		}
 
 		$processor = new MediaEngineProcessor();
-		$result = $processor->process_batch( $ids );
+		$result    = $processor->process_batch( $ids );
 		wp_send_json_success( $result );
 	}
 
@@ -219,8 +234,10 @@ class MediaEngineModule extends W2P_Abstract_Module {
 	 */
 	public function ajax_reset_processed() {
 		check_ajax_referer( 'w2p_media_engine_nonce', 'nonce' );
-		if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Permission denied' );
-		
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
+
 		delete_option( 'w2p_media_turbo_processed_posts' );
 		wp_send_json_success( 'Reset successful' );
 	}
@@ -230,7 +247,9 @@ class MediaEngineModule extends W2P_Abstract_Module {
 	 */
 	public function ajax_get_conversion_log() {
 		check_ajax_referer( 'w2p_media_engine_nonce', 'nonce' );
-		if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Permission denied' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
 
 		$services_dir = plugin_dir_path( __FILE__ ) . 'includes/services/';
 		if ( ! class_exists( 'MediaEngineConversionLogger' ) ) {
@@ -241,12 +260,14 @@ class MediaEngineModule extends W2P_Abstract_Module {
 		$tail      = $logger->get_log_tail( 65536 );
 		$size_info = $logger->get_log_size();
 
-		wp_send_json_success( [
-			'lines'        => $tail,
-			'size_bytes'   => $size_info['size_bytes'],
-			'size_display' => $size_info['size_formatted'],
-			'max_bytes'    => MediaEngineConversionLogger::MAX_LOG_SIZE,
-		] );
+		wp_send_json_success(
+			array(
+				'lines'        => $tail,
+				'size_bytes'   => $size_info['size_bytes'],
+				'size_display' => $size_info['size_formatted'],
+				'max_bytes'    => MediaEngineConversionLogger::MAX_LOG_SIZE,
+			)
+		);
 	}
 
 	/**
@@ -254,21 +275,25 @@ class MediaEngineModule extends W2P_Abstract_Module {
 	 */
 	public function ajax_clear_conversion_log() {
 		check_ajax_referer( 'w2p_media_engine_nonce', 'nonce' );
-		if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Permission denied' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
 
 		$services_dir = plugin_dir_path( __FILE__ ) . 'includes/services/';
 		if ( ! class_exists( 'MediaEngineConversionLogger' ) ) {
 			require_once $services_dir . 'class-logger-service.php';
 		}
 
-		$logger    = new MediaEngineConversionLogger();
+		$logger = new MediaEngineConversionLogger();
 		$logger->clear_log();
 		$size_info = $logger->get_log_size();
 
-		wp_send_json_success( [
-			'size_bytes'   => $size_info['size_bytes'],
-			'size_display' => $size_info['size_formatted'],
-		] );
+		wp_send_json_success(
+			array(
+				'size_bytes'   => $size_info['size_bytes'],
+				'size_display' => $size_info['size_formatted'],
+			)
+		);
 	}
 
 	/**
@@ -276,15 +301,17 @@ class MediaEngineModule extends W2P_Abstract_Module {
 	 */
 	public function ajax_audit_scan() {
 		check_ajax_referer( 'w2p_media_engine_nonce', 'nonce' );
-		if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Permission denied' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
 
 		$subdir = isset( $_POST['subdir'] ) ? sanitize_text_field( wp_unslash( $_POST['subdir'] ) ) : '';
 		$offset = isset( $_POST['offset'] ) ? absint( $_POST['offset'] ) : 0;
 		$limit  = isset( $_POST['limit'] ) ? absint( $_POST['limit'] ) : 50;
 		$limit  = max( 1, min( 200, $limit ) );
 
-		$audit   = new MediaEngineAuditService();
-		$result  = $audit->scan_batch( $subdir, $offset, $limit );
+		$audit  = new MediaEngineAuditService();
+		$result = $audit->scan_batch( $subdir, $offset, $limit );
 
 		wp_send_json_success( $result );
 	}
@@ -294,11 +321,15 @@ class MediaEngineModule extends W2P_Abstract_Module {
 	 */
 	public function ajax_audit_clean() {
 		check_ajax_referer( 'w2p_media_engine_nonce', 'nonce' );
-		if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Permission denied' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
 
-		$files = isset( $_POST['files'] ) ? (array) json_decode( wp_unslash( $_POST['files'] ), true ) : [];
+		$files = isset( $_POST['files'] ) ? (array) json_decode( wp_unslash( $_POST['files'] ), true ) : array();
 		$files = array_map( 'sanitize_text_field', $files );
-		if ( empty( $files ) ) wp_send_json_error( 'No files' );
+		if ( empty( $files ) ) {
+			wp_send_json_error( 'No files' );
+		}
 
 		$audit  = new MediaEngineAuditService();
 		$result = $audit->clean_files( $files );
@@ -319,7 +350,7 @@ class MediaEngineModule extends W2P_Abstract_Module {
 		wp_enqueue_script(
 			'w2p-media-engine',
 			plugin_dir_url( __FILE__ ) . 'assets/js/media-engine.js',
-			[ 'jquery' ],
+			array( 'jquery' ),
 			'1.0.0',
 			true
 		);
@@ -328,25 +359,29 @@ class MediaEngineModule extends W2P_Abstract_Module {
 		wp_enqueue_script(
 			'w2p-media-audit',
 			plugin_dir_url( __FILE__ ) . 'assets/js/media-audit.js',
-			[ 'jquery' ],
+			array( 'jquery' ),
 			'1.0.0',
 			true
 		);
 
-        // Register sub-module assets for on-demand use
-        wp_register_script( 'w2p-clipboard-upload', plugin_dir_url( WP_GENIUS_FILE ) . "assets/js/modules/clipboard-upload.js", array( 'w2p-core-js' ), '1.0.0', true );
+		// Register sub-module assets for on-demand use
+		wp_register_script( 'w2p-clipboard-upload', plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/modules/clipboard-upload.js', array( 'w2p-core-js' ), '1.0.0', true );
 
 		// Localize script for AJAX
-		wp_localize_script( 'w2p-media-engine', 'w2pMediaEngine', [
-			'ajax_url'              => admin_url( 'admin-ajax.php' ),
-			'nonce'                 => wp_create_nonce( 'w2p_media_engine_nonce' ),
-			'max_no_progress_rounds'=> 3, // 全自动处理防死循环阈值（连续 N 轮无进展即停止）
-			'i18n'                  => [
-				'log_empty'     => __( 'Log is empty', 'wp-genius' ),
-				'log_cleared'   => __( 'Log cleared', 'wp-genius' ),
-				'clear_confirm' => __( 'Are you sure you want to clear all logs? This cannot be undone.', 'wp-genius' ),
-			],
-		] );
+		wp_localize_script(
+			'w2p-media-engine',
+			'w2pMediaEngine',
+			array(
+				'ajax_url'               => admin_url( 'admin-ajax.php' ),
+				'nonce'                  => wp_create_nonce( 'w2p_media_engine_nonce' ),
+				'max_no_progress_rounds' => 3, // 全自动处理防死循环阈值（连续 N 轮无进展即停止）
+				'i18n'                   => array(
+					'log_empty'     => __( 'Log is empty', 'wp-genius' ),
+					'log_cleared'   => __( 'Log cleared', 'wp-genius' ),
+					'clear_confirm' => __( 'Are you sure you want to clear all logs? This cannot be undone.', 'wp-genius' ),
+				),
+			)
+		);
 	}
 
 	/**
@@ -355,5 +390,4 @@ class MediaEngineModule extends W2P_Abstract_Module {
 	public function render_settings() {
 		$this->render_view( 'settings' );
 	}
-
 }

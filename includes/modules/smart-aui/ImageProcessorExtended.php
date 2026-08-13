@@ -1,7 +1,7 @@
 <?php
 /**
  * Enhanced Image Processor Wrapper with Better Error Handling
- * 
+ *
  * Fixes:
  * 1. Better URL replacement with encoding handling
  * 2. Proper status for existing images
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Enhanced Image Processor Class
  */
 class ImageProcessorExtended {
-	
+
 	/**
 	 * Original ImageProcessor instance
 	 *
@@ -43,13 +43,13 @@ class ImageProcessorExtended {
 	 */
 	public function __construct() {
 		$this->processor = new ImageProcessor();
-		
+
 		@ini_set( 'max_execution_time', '300' ); // 5分钟
 		@ini_set( 'memory_limit', '512M' );
 
 		$this->validator = new ImageValidator();
 	}
-	
+
 	/**
 	 * Process post content for images with progress tracking
 	 *
@@ -69,17 +69,22 @@ class ImageProcessorExtended {
 		}
 
 		// 使用反射来访问私有方法
-		$reflection = new \ReflectionClass( $this->processor );
+		$reflection         = new \ReflectionClass( $this->processor );
 		$find_images_method = $reflection->getMethod( 'find_images_in_content' );
 		$find_images_method->setAccessible( true );
-		
+
 		$images = $find_images_method->invoke( $this->processor, $content );
 
 		// [FIX 6] Single Image Processing Support
 		if ( ! empty( $target_url ) ) {
-			$images = array_values( array_filter( $images, function( $img ) use ( $target_url ) {
-				return $img['url'] === $target_url;
-			} ) );
+			$images = array_values(
+				array_filter(
+					$images,
+					function ( $img ) use ( $target_url ) {
+						return $img['url'] === $target_url;
+					}
+				)
+			);
 		}
 
 		if ( empty( $images ) ) {
@@ -93,7 +98,7 @@ class ImageProcessorExtended {
 		$downloader_property = $reflection->getProperty( 'downloader' );
 		$downloader_property->setAccessible( true );
 		$downloader = $downloader_property->getValue( $this->processor );
-		
+
 		$logger_property = $reflection->getProperty( 'logger' );
 		$logger_property->setAccessible( true );
 		$logger = $logger_property->getValue( $this->processor );
@@ -103,48 +108,62 @@ class ImageProcessorExtended {
 		$success_count     = 0;
 		$failed_count      = 0;
 		$max_retries       = 3; // 最大重试次数
-		$url_to_id_mapping = []; // [NEW] 用于最终 pass 注入 class
-		
+		$url_to_id_mapping = array(); // [NEW] 用于最终 pass 注入 class
+
 		// 获取本地域名配置
 		$smart_aui_settings = \SmartAutoUploadImages\Plugin::get_settings();
-		$base_url = !empty($smart_aui_settings['base_url']) ? $smart_aui_settings['base_url'] : site_url();
-		$site_domain = parse_url($base_url, PHP_URL_HOST);
-		$site_url = site_url();
+		$base_url           = ! empty( $smart_aui_settings['base_url'] ) ? $smart_aui_settings['base_url'] : site_url();
+		$site_domain        = parse_url( $base_url, PHP_URL_HOST );
+		$site_url           = site_url();
 
 		foreach ( $images as $index => $image ) {
 			// [FIX 3] 检查是否已经是本地图片，如果是则跳过
 			if ( strpos( $image['url'], $base_url ) === 0 || strpos( $image['url'], $site_url ) === 0 ) {
-				$logger->info( 'Skipped local image', [ 'url' => $image['url'] ] );
+				$logger->info( 'Skipped local image', array( 'url' => $image['url'] ) );
 				// 标记为成功（跳过），触发事件以便进度条更新
-				do_action( 'smart_aui_image_processed', $image, [ 'skipped' => true ], $index );
-				$success_count++; // 计入成功
-				$processed_count++; // 计入处理总数
+				do_action( 'smart_aui_image_processed', $image, array( 'skipped' => true ), $index );
+				++$success_count; // 计入成功
+				++$processed_count; // 计入处理总数
 				continue;
 			}
-			
+
 			// [FIX 7] 检查域名是否被排除或为内部链接
 			$validation = $this->validator->validate_image_url( $image['url'], $post_data );
 			if ( is_wp_error( $validation ) ) {
 				$error_code = $validation->get_error_code();
 				if ( 'excluded_domain' === $error_code || 'internal_url' === $error_code || 'invalid_url' === $error_code ) {
-					$logger->info( 'Skipped image validation', [ 'url' => $image['url'], 'reason' => $error_code ] );
-					do_action( 'smart_aui_image_processed', $image, [ 'skipped' => true, 'reason' => $error_code ], $index );
-					$success_count++;
-					$processed_count++;
+					$logger->info(
+						'Skipped image validation',
+						array(
+							'url'    => $image['url'],
+							'reason' => $error_code,
+						)
+					);
+					do_action(
+						'smart_aui_image_processed',
+						$image,
+						array(
+							'skipped' => true,
+							'reason'  => $error_code,
+						),
+						$index
+					);
+					++$success_count;
+					++$processed_count;
 					continue;
 				}
 			}
 
 			// 检查域名是否匹配
-			$image_host = parse_url($image['url'], PHP_URL_HOST);
+			$image_host = parse_url( $image['url'], PHP_URL_HOST );
 			if ( $image_host === $site_domain ) {
-				$logger->info( 'Skipped image with local domain', [ 'url' => $image['url'] ] );
-				do_action( 'smart_aui_image_processed', $image, [ 'skipped' => true ], $index );
-				$success_count++;
-				$processed_count++;
+				$logger->info( 'Skipped image with local domain', array( 'url' => $image['url'] ) );
+				do_action( 'smart_aui_image_processed', $image, array( 'skipped' => true ), $index );
+				++$success_count;
+				++$processed_count;
 				continue;
 			}
-			
+
 			// 每处理5张图片，刷新一次输出缓冲，防止超时
 			if ( $index % 5 === 0 ) {
 				if ( function_exists( 'wp_ob_end_flush_all' ) ) {
@@ -152,14 +171,14 @@ class ImageProcessorExtended {
 				}
 				flush();
 			}
-			
+
 			// [FIX 2] 内置重试机制
 			$retry_count = 0;
-			$result = null;
-			
+			$result      = null;
+
 			while ( $retry_count < $max_retries ) {
 				$result = $downloader->download_image( $image, $post_data );
-				
+
 				if ( ! is_wp_error( $result ) ) {
 					// 成功，跳出重试循环
 					break;
@@ -169,9 +188,9 @@ class ImageProcessorExtended {
 				if ( $result->get_error_code() === 'previously_failed' ) {
 					break;
 				}
-				
+
 				// 失败，增加重试计数并等待
-				$retry_count++;
+				++$retry_count;
 				if ( $retry_count < $max_retries ) {
 					// 简单的指数退避：1s, 2s
 					sleep( $retry_count );
@@ -180,43 +199,51 @@ class ImageProcessorExtended {
 
 			if ( is_wp_error( $result ) ) {
 				if ( $result->get_error_code() === 'previously_failed' ) {
-					$logger->info( 'Skipped previously failed image', [ 'url' => $image['url'] ] );
-					do_action( 'smart_aui_image_processed', $image, [ 'skipped' => true ], $index );
-					$success_count++;
-					$processed_count++;
+					$logger->info( 'Skipped previously failed image', array( 'url' => $image['url'] ) );
+					do_action( 'smart_aui_image_processed', $image, array( 'skipped' => true ), $index );
+					++$success_count;
+					++$processed_count;
 					continue;
 				}
 
 				$logger->error(
 					'Failed to process image after retries',
-					[
+					array(
 						'url'     => $image['url'],
 						'error'   => $result->get_error_message(),
 						'retries' => $retry_count,
-					]
+					)
 				);
-				
+
 				// 失败的图片也计为成功，保留原始URL，不需要替换
-				$success_count++;
-				$processed_count++;
-				
+				++$success_count;
+				++$processed_count;
+
 				// Fire action for failed image (but marked as skipped)
-				do_action( 'smart_aui_image_processed', $image, [ 'skipped' => true, 'error' => $result->get_error_message() ], $index );
+				do_action(
+					'smart_aui_image_processed',
+					$image,
+					array(
+						'skipped' => true,
+						'error'   => $result->get_error_message(),
+					),
+					$index
+				);
 				continue;
 			}
 
 			// 使用改进的URL替换方法
 			$processed_content = $this->replace_image_url_enhanced( $processed_content, $image, $result );
 			++$processed_count;
-			$success_count++;
-			
+			++$success_count;
+
 			// Fire action for successful image (包括已存在的图片)
 			do_action( 'smart_aui_image_processed', $image, $result, $index );
 
 			// [NEW] 记录 ID 映射
 			if ( ! empty( $result['attachment_id'] ) ) {
-				$new_url_parts = wp_parse_url( $result['url'] );
-				$final_new_url = $base_url . $new_url_parts['path'];
+				$new_url_parts                       = wp_parse_url( $result['url'] );
+				$final_new_url                       = $base_url . $new_url_parts['path'];
 				$url_to_id_mapping[ $final_new_url ] = $result['attachment_id'];
 			}
 		}
@@ -233,10 +260,10 @@ class ImageProcessorExtended {
 
 				// [NEW] 注入 WordPress 标准 ID 类名
 				if ( ! empty( $url_to_id_mapping[ $img_src ] ) ) {
-					$attachment_id = $url_to_id_mapping[ $img_src ];
+					$attachment_id    = $url_to_id_mapping[ $img_src ];
 					$existing_classes = $final_processor->get_attribute( 'class' ) ?? '';
-					$new_classes = 'wp-image-' . $attachment_id . ' size-full';
-					
+					$new_classes      = 'wp-image-' . $attachment_id . ' size-full';
+
 					if ( ! empty( $existing_classes ) ) {
 						if ( strpos( $existing_classes, 'wp-image-' ) === false ) {
 							$new_classes = trim( $existing_classes ) . ' ' . $new_classes;
@@ -256,19 +283,19 @@ class ImageProcessorExtended {
 		if ( $processed_count > 0 ) {
 			$logger->info(
 				'Processed images for post',
-				[
+				array(
 					'post_id'         => $post_data['ID'] ?? 0,
 					'processed_count' => $processed_count,
 					'success_count'   => $success_count,
 					'failed_count'    => $failed_count,
-				]
+				)
 			);
 			return $processed_content;
 		}
 
 		return false;
 	}
-	
+
 	/**
 	 * Enhanced URL replacement with better encoding handling
 	 *
@@ -283,21 +310,21 @@ class ImageProcessorExtended {
 
 		$new_url_parts = wp_parse_url( $result['url'] );
 		$new_url       = $base_url . $new_url_parts['path'];
-		
+
 		$old_url = $image['url'];
 
 		// 尝试多种URL变体进行替换，处理编码问题
-		$url_variants = [
+		$url_variants = array(
 			$old_url,
 			html_entity_decode( $old_url ),
 			urldecode( $old_url ),
 			str_replace( '&amp;', '&', $old_url ),
 			str_replace( '&', '&amp;', $old_url ),
-		];
-		
+		);
+
 		// 去重
 		$url_variants = array_unique( $url_variants );
-		
+
 		// 替换所有变体
 		foreach ( $url_variants as $variant ) {
 			if ( strpos( $content, $variant ) !== false ) {

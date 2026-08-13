@@ -9,13 +9,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$tabs = [
-	'generate'   => __( 'Generate', 'wp-genius' ),
-	'prompts'    => __( 'Prompts', 'wp-genius' ),
-	'schedules'  => __( 'Schedules', 'wp-genius' ),
-	'queue'      => __( 'Queue', 'wp-genius' ),
-	'settings'   => __( 'Settings', 'wp-genius' ),
-];
+$tabs = array(
+	'generate'  => __( 'Generate', 'wp-genius' ),
+	'prompts'   => __( 'Prompts', 'wp-genius' ),
+	'schedules' => __( 'Schedules', 'wp-genius' ),
+	'queue'     => __( 'Queue', 'wp-genius' ),
+	'settings'  => __( 'Settings', 'wp-genius' ),
+);
 
 $active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'generate';
 ?>
@@ -26,7 +26,7 @@ $active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'gen
 	<nav class="nav-tab-wrapper">
 		<?php foreach ( $tabs as $tab_id => $tab_label ) : ?>
 			<a href="<?php echo esc_url( admin_url( 'admin.php?page=wp-genius-ai-engine&tab=' . $tab_id ) ); ?>"
-			   class="nav-tab <?php echo $active_tab === $tab_id ? 'nav-tab-active' : ''; ?>">
+				class="nav-tab <?php echo $active_tab === $tab_id ? 'nav-tab-active' : ''; ?>">
 				<?php echo esc_html( $tab_label ); ?>
 			</a>
 		<?php endforeach; ?>
@@ -36,19 +36,19 @@ $active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'gen
 		<?php
 		switch ( $active_tab ) {
 			case 'generate':
-				include dirname( __FILE__ ) . '/tab-generate.php';
+				include __DIR__ . '/tab-generate.php';
 				break;
 			case 'prompts':
-				include dirname( __FILE__ ) . '/tab-prompts.php';
+				include __DIR__ . '/tab-prompts.php';
 				break;
 			case 'schedules':
-				include dirname( __FILE__ ) . '/tab-schedules.php';
+				include __DIR__ . '/tab-schedules.php';
 				break;
 			case 'queue':
-				include dirname( __FILE__ ) . '/tab-queue.php';
+				include __DIR__ . '/tab-queue.php';
 				break;
 			case 'settings':
-				include dirname( __FILE__ ) . '/tab-settings.php';
+				include __DIR__ . '/tab-settings.php';
 				break;
 		}
 		?>

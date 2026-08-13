@@ -18,12 +18,12 @@ class MediaEngineAuditService {
 	/**
 	 * 扫描的图片扩展名（含不支持转换的 bmp/svg 等，用于报告残留）
 	 */
-	const SCAN_EXTS = [ 'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'tiff', 'ico', 'avif' ];
+	const SCAN_EXTS = array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'tiff', 'ico', 'avif' );
 
 	/**
 	 * 转换支持的 MIME（对应 scanner 的 get_supported_mime_types + webp）
 	 */
-	const SUPPORTED_MIMES = [ 'image/jpeg', 'image/png', 'image/gif', 'image/webp' ];
+	const SUPPORTED_MIMES = array( 'image/jpeg', 'image/png', 'image/gif', 'image/webp' );
 
 	/**
 	 * 每批扫描数量（AJAX 分批用）
@@ -73,37 +73,37 @@ class MediaEngineAuditService {
 
 		// 防目录穿越：只允许相对路径且不能包含 ..
 		if ( $subdir === '' || strpos( $subdir, '..' ) !== false ) {
-			return [ 'error' => __( 'Invalid directory', 'wp-genius' ) ];
+			return array( 'error' => __( 'Invalid directory', 'wp-genius' ) );
 		}
 
 		$base_dir = wp_upload_dir()['basedir'];
 		$dir_abs  = $base_dir . '/' . $subdir;
 		if ( ! is_dir( $dir_abs ) ) {
-			return [ 'error' => __( 'Directory not found', 'wp-genius' ) ];
+			return array( 'error' => __( 'Directory not found', 'wp-genius' ) );
 		}
 
 		$files = $this->get_image_files( $dir_abs, $subdir );
 		$total = count( $files );
 
 		// 构建/读取目录索引（首次构建可能耗时 ~25s，之后走文件缓存）
-		$index      = $this->get_directory_index( $subdir );
+		$index       = $this->get_directory_index( $subdir );
 		$index_built = ! empty( $index['fresh'] );
-		$att_map    = $index['attached'] ?? [];   // rel_path => att_id
-		$stem_map   = $index['stems'] ?? [];      // stem => att_id
+		$att_map     = $index['attached'] ?? array();   // rel_path => att_id
+		$stem_map    = $index['stems'] ?? array();      // stem => att_id
 
 		$slice = array_slice( $files, $offset, $limit );
 
-		$items = [];
+		$items = array();
 		foreach ( $slice as $rel_path => $abs_path ) {
 			$items[] = $this->classify_file( $rel_path, $abs_path, $att_map, $stem_map );
 		}
 
-		return [
+		return array(
 			'total'       => $total,
 			'scanned'     => count( $slice ),
 			'index_built' => $index_built,
 			'files'       => $items,
-		];
+		);
 	}
 
 	/**
@@ -118,7 +118,7 @@ class MediaEngineAuditService {
 			return $this->file_list_cache;
 		}
 
-		$files = [];
+		$files = array();
 		$dh    = @opendir( $dir_abs );
 		if ( ! $dh ) {
 			$this->file_list_cache = $files;
@@ -171,26 +171,34 @@ class MediaEngineAuditService {
 		global $wpdb;
 
 		// 1. 按上传月份从 posts 表取附件 ID（走 post_date 索引，~1.8s）
-		$att_ids = [];
+		$att_ids = array();
 		if ( preg_match( '#^(\d{4})/(\d{2})$#', $subdir, $m ) ) {
-			$start = $m[1] . '-' . $m[2] . '-01';
-			$end   = gmdate( 'Y-m-d', strtotime( $start . ' +1 month' ) );
-			$att_ids = array_map( 'intval', $wpdb->get_col(
-				$wpdb->prepare(
-					"SELECT ID FROM {$wpdb->posts}
+			$start   = $m[1] . '-' . $m[2] . '-01';
+			$end     = gmdate( 'Y-m-d', strtotime( $start . ' +1 month' ) );
+			$att_ids = array_map(
+				'intval',
+				$wpdb->get_col(
+					$wpdb->prepare(
+						"SELECT ID FROM {$wpdb->posts}
 					WHERE post_type = 'attachment' AND post_date >= %s AND post_date < %s",
-					$start, $end
+						$start,
+						$end
+					)
 				)
-			) );
+			);
 		}
 
 		if ( empty( $att_ids ) ) {
-			return [ 'attached' => [], 'stems' => [], 'fresh' => true ];
+			return array(
+				'attached' => array(),
+				'stems'    => array(),
+				'fresh'    => true,
+			);
 		}
 
 		// 2. 按 post_id 索引批量查 _wp_attached_file（覆盖裸文件名形态，走 post_id 索引）
-		$attached = [];
-		$stems    = [];
+		$attached   = array();
+		$stems      = array();
 		$dir_prefix = rtrim( $subdir, '/' ) . '/';
 
 		foreach ( array_chunk( $att_ids, 500 ) as $chunk ) {
@@ -224,16 +232,22 @@ class MediaEngineAuditService {
 		if ( ! is_dir( $this->index_dir ) ) {
 			wp_mkdir_p( $this->index_dir );
 		}
-		file_put_contents( $cache_file, wp_json_encode( [
-			'attached' => $attached,
-			'stems'    => $stems,
-		] ), LOCK_EX );
+		file_put_contents(
+			$cache_file,
+			wp_json_encode(
+				array(
+					'attached' => $attached,
+					'stems'    => $stems,
+				)
+			),
+			LOCK_EX
+		);
 
-		return [
+		return array(
 			'attached' => $attached,
 			'stems'    => $stems,
 			'fresh'    => true,
-		];
+		);
 	}
 
 	/**
@@ -245,7 +259,7 @@ class MediaEngineAuditService {
 	 * @param array  $stem_map   stem => attachment_id 索引
 	 * @return array
 	 */
-	private function classify_file( $rel_path, $abs_path, $att_map = [], $stem_map = [] ) {
+	private function classify_file( $rel_path, $abs_path, $att_map = array(), $stem_map = array() ) {
 		$dir_rel  = dirname( $rel_path );
 		$basename = basename( $rel_path );
 		$ext      = strtolower( pathinfo( $basename, PATHINFO_EXTENSION ) );
@@ -260,8 +274,8 @@ class MediaEngineAuditService {
 		$attachment_id = (int) $attachment_id;
 
 		// 2. HEAD 探测存储桶：先试同名 .webp，再试 -static.webp（GIF 冲突变体）
-		$stem = pathinfo( $basename, PATHINFO_FILENAME );
-		$webp_urls = [];
+		$stem      = pathinfo( $basename, PATHINFO_FILENAME );
+		$webp_urls = array();
 		if ( 'webp' !== $ext ) {
 			$webp_urls[] = $this->build_webp_url( $dir_rel, $stem . '.webp' );
 			$webp_urls[] = $this->build_webp_url( $dir_rel, $stem . '-static.webp' );
@@ -271,7 +285,7 @@ class MediaEngineAuditService {
 		}
 		$in_bucket = $this->head_exists_any( $webp_urls );
 
-		$item = [
+		$item = array(
 			'file'          => $rel_path,
 			'basename'      => $basename,
 			'ext'           => $ext,
@@ -280,7 +294,7 @@ class MediaEngineAuditService {
 			'attachment_id' => $attachment_id ? (int) $attachment_id : 0,
 			'in_bucket'     => $in_bucket,
 			'checked_url'   => $in_bucket ? $webp_urls[0] : '',
-		];
+		);
 
 		// 3. 分类
 		if ( $in_bucket ) {
@@ -328,21 +342,24 @@ class MediaEngineAuditService {
 			return false;
 		}
 
-		$mh     = curl_multi_init();
-		$chans  = [];
+		$mh    = curl_multi_init();
+		$chans = array();
 
 		foreach ( $urls as $url ) {
 			$ch = curl_init( $url );
-			curl_setopt_array( $ch, [
-				CURLOPT_NOBODY          => true,
-				CURLOPT_RETURNTRANSFER  => true,
-				CURLOPT_TIMEOUT         => 5,
-				CURLOPT_CONNECTTIMEOUT  => 5,
-				CURLOPT_FOLLOWLOCATION  => true,
-				CURLOPT_SSL_VERIFYPEER  => false,
-				CURLOPT_SSL_VERIFYHOST  => 0,
-				CURLOPT_USERAGENT       => 'WPGenius-MediaAudit/1.0',
-			] );
+			curl_setopt_array(
+				$ch,
+				array(
+					CURLOPT_NOBODY         => true,
+					CURLOPT_RETURNTRANSFER => true,
+					CURLOPT_TIMEOUT        => 5,
+					CURLOPT_CONNECTTIMEOUT => 5,
+					CURLOPT_FOLLOWLOCATION => true,
+					CURLOPT_SSL_VERIFYPEER => false,
+					CURLOPT_SSL_VERIFYHOST => 0,
+					CURLOPT_USERAGENT      => 'WPGenius-MediaAudit/1.0',
+				)
+			);
 			curl_multi_add_handle( $mh, $ch );
 			$chans[] = $ch;
 		}
@@ -432,13 +449,17 @@ class MediaEngineAuditService {
 	private function get_parent_info( $attachment_id ) {
 		$parent_id = wp_get_post_parent_id( $attachment_id );
 		if ( ! $parent_id ) {
-			return [ 'id' => 0, 'title' => __( '无父级文章（Unattached）', 'wp-genius' ), 'url' => '' ];
+			return array(
+				'id'    => 0,
+				'title' => __( '无父级文章（Unattached）', 'wp-genius' ),
+				'url'   => '',
+			);
 		}
-		return [
+		return array(
 			'id'    => (int) $parent_id,
 			'title' => get_the_title( $parent_id ),
 			'url'   => get_edit_post_link( $parent_id ),
-		];
+		);
 	}
 
 	/**
@@ -452,7 +473,7 @@ class MediaEngineAuditService {
 	public function clean_files( $rel_paths ) {
 		$base_dir = wp_upload_dir()['basedir'];
 		$cleaned  = 0;
-		$skipped  = [];
+		$skipped  = array();
 
 		if ( ! class_exists( 'MediaEngineConversionLogger' ) ) {
 			require_once plugin_dir_path( __FILE__ ) . 'class-logger-service.php';
@@ -462,12 +483,18 @@ class MediaEngineAuditService {
 		foreach ( $rel_paths as $rel_path ) {
 			$rel_path = trim( $rel_path, '/\\' );
 			if ( $rel_path === '' || strpos( $rel_path, '..' ) !== false ) {
-				$skipped[] = [ 'file' => $rel_path, 'reason' => 'invalid_path' ];
+				$skipped[] = array(
+					'file'   => $rel_path,
+					'reason' => 'invalid_path',
+				);
 				continue;
 			}
 			$abs_path = $base_dir . '/' . $rel_path;
 			if ( ! file_exists( $abs_path ) || ! is_file( $abs_path ) ) {
-				$skipped[] = [ 'file' => $rel_path, 'reason' => 'not_exists' ];
+				$skipped[] = array(
+					'file'   => $rel_path,
+					'reason' => 'not_exists',
+				);
 				continue;
 			}
 
@@ -477,7 +504,7 @@ class MediaEngineAuditService {
 			$ext      = strtolower( pathinfo( $basename, PATHINFO_EXTENSION ) );
 			$stem     = pathinfo( $basename, PATHINFO_FILENAME );
 
-			$urls = [];
+			$urls = array();
 			if ( 'webp' !== $ext ) {
 				$urls[] = $this->build_webp_url( $dir_rel, $stem . '.webp' );
 				$urls[] = $this->build_webp_url( $dir_rel, $stem . '-static.webp' );
@@ -486,18 +513,27 @@ class MediaEngineAuditService {
 			}
 
 			if ( ! $this->head_exists_any( $urls ) ) {
-				$skipped[] = [ 'file' => $rel_path, 'reason' => 'not_in_bucket' ];
+				$skipped[] = array(
+					'file'   => $rel_path,
+					'reason' => 'not_in_bucket',
+				);
 				continue;
 			}
 
 			if ( @unlink( $abs_path ) ) {
-				$cleaned++;
+				++$cleaned;
 				$logger->log_debug( sprintf( 'Audit Clean: 已清理本地文件 %s (桶中存在 %s)', $rel_path, $urls[0] ) );
 			} else {
-				$skipped[] = [ 'file' => $rel_path, 'reason' => 'unlink_failed' ];
+				$skipped[] = array(
+					'file'   => $rel_path,
+					'reason' => 'unlink_failed',
+				);
 			}
 		}
 
-		return [ 'cleaned' => $cleaned, 'skipped' => $skipped ];
+		return array(
+			'cleaned' => $cleaned,
+			'skipped' => $skipped,
+		);
 	}
 }

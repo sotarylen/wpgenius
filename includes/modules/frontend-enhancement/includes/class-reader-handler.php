@@ -1,7 +1,7 @@
 <?php
 /**
  * Reader Handler Class
- * 
+ *
  * Backend handler for Book Chapter Reader functionality.
  * Handles server-side configuration and container rendering.
  *
@@ -28,7 +28,7 @@ class WPG_Reader_Handler {
 	/**
 	 * Constructor
 	 */
-	public function __construct( $settings = [] ) {
+	public function __construct( $settings = array() ) {
 		$this->settings = $settings;
 		$this->init();
 	}
@@ -43,7 +43,7 @@ class WPG_Reader_Handler {
 		}
 
 		// Hook into footer to render configuration
-		add_action( 'wp_footer', [ $this, 'render_reader_config' ] );
+		add_action( 'wp_footer', array( $this, 'render_reader_config' ) );
 	}
 
 	/**
@@ -57,19 +57,19 @@ class WPG_Reader_Handler {
 		}
 
 		// Defaults
-		$font_size = isset( $this->settings['reader_font_size'] ) ? intval( $this->settings['reader_font_size'] ) : 18;
+		$font_size   = isset( $this->settings['reader_font_size'] ) ? intval( $this->settings['reader_font_size'] ) : 18;
 		$font_family = isset( $this->settings['reader_font_family'] ) ? $this->settings['reader_font_family'] : 'sans';
-		$theme = isset( $this->settings['reader_theme'] ) ? $this->settings['reader_theme'] : 'light';
+		$theme       = isset( $this->settings['reader_theme'] ) ? $this->settings['reader_theme'] : 'light';
 
 		// Navigation Links Calculation
-		$nav_links = [
+		$nav_links = array(
 			'prev' => '',
 			'next' => '',
-			'toc'  => ''
-		];
+			'toc'  => '',
+		);
 
-		$post_id = get_the_ID();
-		$novel_id = get_post_meta( $post_id, 'related_novel_id', true );
+		$post_id       = get_the_ID();
+		$novel_id      = get_post_meta( $post_id, 'related_novel_id', true );
 		$current_index = get_post_meta( $post_id, 'chapter_index', true );
 
 		if ( $novel_id ) {
@@ -78,51 +78,55 @@ class WPG_Reader_Handler {
 
 			// 2. Previous Chapter
 			if ( $current_index !== '' ) {
-				$prev_chapters = get_posts( [
-					'post_type'      => 'chapter',
-					'posts_per_page' => 1,
-					'meta_query'     => [
-						'relation' => 'AND',
-						[
-							'key'   => 'related_novel_id',
-							'value' => $novel_id
-						],
-						[
-							'key'     => 'chapter_index',
-							'value'   => $current_index,
-							'compare' => '<',
-							// 'type' => 'CHAR' // Default string comparison works for "01-00001" format
-						]
-					],
-					'orderby'  => 'meta_value', // String order
-					'meta_key' => 'chapter_index',
-					'order'    => 'DESC'
-				] );
-				
+				$prev_chapters = get_posts(
+					array(
+						'post_type'      => 'chapter',
+						'posts_per_page' => 1,
+						'meta_query'     => array(
+							'relation' => 'AND',
+							array(
+								'key'   => 'related_novel_id',
+								'value' => $novel_id,
+							),
+							array(
+								'key'     => 'chapter_index',
+								'value'   => $current_index,
+								'compare' => '<',
+								// 'type' => 'CHAR' // Default string comparison works for "01-00001" format
+							),
+						),
+						'orderby'        => 'meta_value', // String order
+						'meta_key'       => 'chapter_index',
+						'order'          => 'DESC',
+					)
+				);
+
 				if ( ! empty( $prev_chapters ) ) {
 					$nav_links['prev'] = get_permalink( $prev_chapters[0]->ID );
 				}
 
 				// 3. Next Chapter
-				$next_chapters = get_posts( [
-					'post_type'      => 'chapter',
-					'posts_per_page' => 1,
-					'meta_query'     => [
-						'relation' => 'AND',
-						[
-							'key'   => 'related_novel_id',
-							'value' => $novel_id
-						],
-						[
-							'key'     => 'chapter_index',
-							'value'   => $current_index,
-							'compare' => '>',
-						]
-					],
-					'orderby'  => 'meta_value', // String order
-					'meta_key' => 'chapter_index',
-					'order'    => 'ASC'
-				] );
+				$next_chapters = get_posts(
+					array(
+						'post_type'      => 'chapter',
+						'posts_per_page' => 1,
+						'meta_query'     => array(
+							'relation' => 'AND',
+							array(
+								'key'   => 'related_novel_id',
+								'value' => $novel_id,
+							),
+							array(
+								'key'     => 'chapter_index',
+								'value'   => $current_index,
+								'compare' => '>',
+							),
+						),
+						'orderby'        => 'meta_value', // String order
+						'meta_key'       => 'chapter_index',
+						'order'          => 'ASC',
+					)
+				);
 
 				if ( ! empty( $next_chapters ) ) {
 					$nav_links['next'] = get_permalink( $next_chapters[0]->ID );

@@ -301,8 +301,8 @@ class CmsMigratorModule extends W2P_Abstract_Module {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'wp-genius' ) ) );
 		}
 
-		$types = isset( $_POST['types'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['types'] ) ) : array();
-		$mappings = isset( $_POST['mappings'] ) ? map_deep( wp_unslash( $_POST['mappings'] ), 'sanitize_text_field' ) : array();
+		$types       = isset( $_POST['types'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['types'] ) ) : array();
+		$mappings    = isset( $_POST['mappings'] ) ? map_deep( wp_unslash( $_POST['mappings'] ), 'sanitize_text_field' ) : array();
 		$batch_limit = isset( $_POST['batch_limit'] ) ? absint( $_POST['batch_limit'] ) : 0;
 
 		if ( empty( $types ) ) {

@@ -36,39 +36,39 @@ class W2P_AI_Provider_OpenAI implements W2P_AI_Provider_Interface {
 	 *
 	 * @var array
 	 */
-	private $last_usage = [];
+	private $last_usage = array();
 
 	/**
 	 * Available models
 	 *
 	 * @var array
 	 */
-	private $models = [
-		[
-			'id'    => 'gpt-4o',
-			'name'  => 'GPT-4o',
-			'desc'  => 'Most capable model, best for complex tasks',
+	private $models = array(
+		array(
+			'id'         => 'gpt-4o',
+			'name'       => 'GPT-4o',
+			'desc'       => 'Most capable model, best for complex tasks',
 			'max_tokens' => 128000,
-		],
-		[
-			'id'    => 'gpt-4o-mini',
-			'name'  => 'GPT-4o Mini',
-			'desc'  => 'Fast and cost-effective',
+		),
+		array(
+			'id'         => 'gpt-4o-mini',
+			'name'       => 'GPT-4o Mini',
+			'desc'       => 'Fast and cost-effective',
 			'max_tokens' => 128000,
-		],
-		[
-			'id'    => 'gpt-4-turbo',
-			'name'  => 'GPT-4 Turbo',
-			'desc'  => 'Previous generation, high capability',
+		),
+		array(
+			'id'         => 'gpt-4-turbo',
+			'name'       => 'GPT-4 Turbo',
+			'desc'       => 'Previous generation, high capability',
 			'max_tokens' => 128000,
-		],
-		[
-			'id'    => 'gpt-3.5-turbo',
-			'name'  => 'GPT-3.5 Turbo',
-			'desc'  => 'Fastest and cheapest',
+		),
+		array(
+			'id'         => 'gpt-3.5-turbo',
+			'name'       => 'GPT-3.5 Turbo',
+			'desc'       => 'Fastest and cheapest',
 			'max_tokens' => 16384,
-		],
-	];
+		),
+	);
 
 	/**
 	 * Constructor
@@ -150,12 +150,15 @@ class W2P_AI_Provider_OpenAI implements W2P_AI_Provider_Interface {
 			return false;
 		}
 
-		$response = wp_remote_get( $this->api_base . '/models', [
-			'headers' => [
-				'Authorization' => 'Bearer ' . $this->api_key,
-			],
-			'timeout' => 15,
-		] );
+		$response = wp_remote_get(
+			$this->api_base . '/models',
+			array(
+				'headers' => array(
+					'Authorization' => 'Bearer ' . $this->api_key,
+				),
+				'timeout' => 15,
+			)
+		);
 
 		return ! is_wp_error( $response ) && 200 === wp_remote_retrieve_response_code( $response );
 	}
@@ -181,30 +184,33 @@ class W2P_AI_Provider_OpenAI implements W2P_AI_Provider_Interface {
 		$temperature = $params['temperature'] ?? 0.7;
 		$max_tokens  = $params['max_tokens'] ?? 2000;
 
-		$body = [
+		$body = array(
 			'model'       => $model,
-			'messages'    => [
-				[
+			'messages'    => array(
+				array(
 					'role'    => 'system',
 					'content' => 'You are a professional content writer. Write high-quality, engaging content in the requested format.',
-				],
-				[
+				),
+				array(
 					'role'    => 'user',
 					'content' => $prompt,
-				],
-			],
+				),
+			),
 			'temperature' => $temperature,
 			'max_tokens'  => $max_tokens,
-		];
+		);
 
-		$response = wp_remote_post( $this->api_base . '/chat/completions', [
-			'headers' => [
-				'Authorization' => 'Bearer ' . $this->api_key,
-				'Content-Type'  => 'application/json',
-			],
-			'body'    => wp_json_encode( $body ),
-			'timeout' => 120,
-		] );
+		$response = wp_remote_post(
+			$this->api_base . '/chat/completions',
+			array(
+				'headers' => array(
+					'Authorization' => 'Bearer ' . $this->api_key,
+					'Content-Type'  => 'application/json',
+				),
+				'body'    => wp_json_encode( $body ),
+				'timeout' => 120,
+			)
+		);
 
 		if ( is_wp_error( $response ) ) {
 			return $response;
@@ -219,14 +225,14 @@ class W2P_AI_Provider_OpenAI implements W2P_AI_Provider_Interface {
 		}
 
 		// Track usage
-		$this->last_usage = $response_body['usage'] ?? [];
+		$this->last_usage = $response_body['usage'] ?? array();
 		$this->track_usage( $model, $this->last_usage );
 
-		return [
+		return array(
 			'content' => $response_body['choices'][0]['message']['content'] ?? '',
 			'model'   => $model,
 			'usage'   => $this->last_usage,
-		];
+		);
 	}
 
 	/**
@@ -244,11 +250,14 @@ class W2P_AI_Provider_OpenAI implements W2P_AI_Provider_Interface {
 	 * @return array
 	 */
 	public function get_total_usage(): array {
-		$usage = get_option( 'w2p_ai_openai_usage', [
-			'total_prompt_tokens'     => 0,
-			'total_completion_tokens' => 0,
-			'total_requests'          => 0,
-		] );
+		$usage = get_option(
+			'w2p_ai_openai_usage',
+			array(
+				'total_prompt_tokens'     => 0,
+				'total_completion_tokens' => 0,
+				'total_requests'          => 0,
+			)
+		);
 
 		return $usage;
 	}
@@ -269,11 +278,11 @@ class W2P_AI_Provider_OpenAI implements W2P_AI_Provider_Interface {
 
 		// Track per-model usage
 		if ( ! isset( $totals['models'][ $model ] ) ) {
-			$totals['models'][ $model ] = [
+			$totals['models'][ $model ] = array(
 				'prompt_tokens'     => 0,
 				'completion_tokens' => 0,
 				'requests'          => 0,
-			];
+			);
 		}
 
 		$totals['models'][ $model ]['prompt_tokens']     += $usage['prompt_tokens'] ?? 0;

@@ -110,13 +110,15 @@ class MediaEngineCLI {
 			$result = $this->processor->batch_process( $limit, $offset );
 		}
 
-		WP_CLI::line( sprintf(
-			__( 'Processed: %d | Succeeded: %d | Failed: %d | Duration: %.2fs', 'wp-genius' ),
-			$result['processed'],
-			$result['succeeded'],
-			$result['failed'],
-			$result['duration']
-		) );
+		WP_CLI::line(
+			sprintf(
+				__( 'Processed: %1$d | Succeeded: %2$d | Failed: %3$d | Duration: %4$.2fs', 'wp-genius' ),
+				$result['processed'],
+				$result['succeeded'],
+				$result['failed'],
+				$result['duration']
+			)
+		);
 
 		if ( $result['succeeded'] > 0 ) {
 			WP_CLI::success( sprintf( __( 'Successfully converted %d images', 'wp-genius' ), $result['succeeded'] ) );
@@ -147,7 +149,7 @@ class MediaEngineCLI {
 		WP_CLI::line( sprintf( __( 'Offloading up to %d files to Minio...', 'wp-genius' ), $limit ) );
 
 		$command = sprintf( 'wp advmo offload --limit=%d --yes 2>&1', $limit );
-		$output  = [];
+		$output  = array();
 		exec( $command, $output, $return_code );
 
 		if ( $return_code === 0 ) {
@@ -236,10 +238,12 @@ class MediaEngineCLI {
 		WP_CLI::line( sprintf( __( 'Pending attachments: %d', 'wp-genius' ), $total ) );
 
 		if ( $total > 0 ) {
-			WP_CLI::line( sprintf(
-				__( 'Estimated batches (100/batch): %d', 'wp-genius' ),
-				ceil( $total / 100 )
-			) );
+			WP_CLI::line(
+				sprintf(
+					__( 'Estimated batches (100/batch): %d', 'wp-genius' ),
+					ceil( $total / 100 )
+				)
+			);
 		}
 	}
 }
