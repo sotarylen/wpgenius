@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Genius
  * Description: A comprehensive toolkit for WordPress content management, optimization, and automation (Auto-Publish, Media Engine, System Health, and more).
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: Sotary
  * Text Domain: wp-genius
  */
@@ -88,7 +88,7 @@ function w2p_core_enqueue_scripts() {
 		}
 
 			// Register Assets Globally
-			wp_register_style( 'w2p-core-css', plugin_dir_url( __FILE__ ) . 'assets/css/core.css', array(), '1.1.0' );
+			wp_register_style( 'w2p-core-css', plugin_dir_url( __FILE__ ) . 'assets/css/core.css', array(), '1.2.0' );
 			wp_register_script( 'w2p-admin-ui', plugin_dir_url( __FILE__ ) . 'assets/js/w2p-admin-ui.js', array( 'jquery' ), '1.0.0', true );
 			wp_localize_script(
 				'w2p-admin-ui',

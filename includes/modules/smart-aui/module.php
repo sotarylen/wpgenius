@@ -253,7 +253,7 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 
 		// If on settings page, load the settings manager JS
 		if ( $is_settings_page ) {
-			wp_enqueue_script( 'w2p-smart-aui-settings', $plugin_url . 'includes/modules/smart-aui/assets/js/smart-aui-settings.js', array( 'jquery', 'w2p-admin-ui' ), '1.0.0', true );
+			wp_enqueue_script( 'w2p-smart-aui-settings', $plugin_url . 'includes/modules/smart-aui/assets/js/smart-aui-settings.js', array( 'jquery', 'w2p-admin-ui' ), '1.2.0', true );
 
 			wp_localize_script(
 				'w2p-smart-aui-settings',
@@ -300,7 +300,7 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 			'alt_text_pattern'   => ! empty( $global_settings['smart_aui_alt_text_pattern'] ) ? $global_settings['smart_aui_alt_text_pattern'] : '%image_alt%',
 		);
 
-		wp_register_script( 'w2p-smart-auto-upload', $plugin_url . 'includes/modules/smart-aui/assets/js/smart-aui-ui.js', array( 'w2p-core-js' ), '1.0.0', true );
+		wp_register_script( 'w2p-smart-auto-upload', $plugin_url . 'includes/modules/smart-aui/assets/js/smart-aui-ui.js', array( 'w2p-core-js' ), '1.2.0', true );
 
 		wp_enqueue_script( 'w2p-smart-auto-upload' );
 

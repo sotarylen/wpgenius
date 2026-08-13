@@ -304,7 +304,7 @@ class W2P_WordToPostModule extends W2P_Abstract_Module {
 			'word-to-posts-js',
 			$module_url . 'assets/js/word-to-posts.js',
 			array( 'jquery' ),
-			'1.0.0',
+			'1.2.0',
 			true
 		);
 
@@ -313,7 +313,7 @@ class W2P_WordToPostModule extends W2P_Abstract_Module {
 			'fix-chapter-index-js',
 			$module_url . 'assets/js/fix-chapter-index.js',
 			array( 'jquery' ),
-			'1.0.0',
+			'1.2.0',
 			true
 		);
 

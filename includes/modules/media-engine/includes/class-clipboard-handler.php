@@ -79,7 +79,7 @@ class W2P_Clipboard_Handler {
 			'w2p-clipboard-upload',
 			plugins_url( '../assets/js/clipboard-upload.js', __FILE__ ),
 			array( 'jquery', 'w2p-core-js' ),
-			'1.0.0',
+			'1.2.0',
 			true
 		);
 

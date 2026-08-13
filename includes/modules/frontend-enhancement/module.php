@@ -287,7 +287,7 @@ class W2P_FrontendEnhancementModule extends W2P_Abstract_Module {
 				'wpg-video-player',
 				plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/css/video-player.css',
 				array( 'plyr-css' ),
-				'1.0.0'
+				'1.2.0'
 			);
 
 			wp_enqueue_script(
@@ -303,7 +303,7 @@ class W2P_FrontendEnhancementModule extends W2P_Abstract_Module {
 				'wpg-video-optimizer',
 				plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/js/video-optimizer.js',
 				array( 'jquery', 'plyr-js' ),
-				'1.0.0',
+				'1.2.0',
 				true
 			);
 
@@ -325,14 +325,14 @@ class W2P_FrontendEnhancementModule extends W2P_Abstract_Module {
 				'wpg-reader-css',
 				plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/css/reader.css',
 				array(),
-				'1.0.1'
+				'1.2.0'
 			);
 
 			wp_enqueue_script(
 				'wpg-reader-js',
 				plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/js/reader.js',
 				array( 'jquery' ),
-				'1.0.1',
+				'1.2.0',
 				true
 			);
 
@@ -355,7 +355,7 @@ class W2P_FrontendEnhancementModule extends W2P_Abstract_Module {
 				'w2p-admin-ui',
 				plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/w2p-admin-ui.js',
 				array( 'jquery' ),
-				'1.0.0',
+				'1.2.0',
 				true
 			);
 			wp_localize_script(

@@ -90,7 +90,7 @@ class W2P_SMTPMailerModule extends W2P_Abstract_Module {
 			'w2p-smtp-settings',
 			$module_url . 'assets/js/smtp-settings.js',
 			array( 'jquery', 'w2p-admin-ui' ), // Depend on core admin UI if available
-			'1.0.0',
+			'1.2.0',
 			true
 		);
 
