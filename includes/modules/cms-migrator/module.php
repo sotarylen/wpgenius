@@ -241,7 +241,7 @@ class CmsMigratorModule extends W2P_Abstract_Module {
 		$port = sanitize_text_field( wp_unslash( $_POST['db_port'] ?? $settings['db_port'] ?? '3306' ) );
 		$name = sanitize_text_field( wp_unslash( $_POST['db_name'] ?? $settings['db_name'] ?? '' ) );
 		$user = sanitize_text_field( wp_unslash( $_POST['db_user'] ?? $settings['db_user'] ?? '' ) );
-		$pass = sanitize_text_field( wp_unslash( $_POST['db_pass'] ?? $settings['db_pass'] ?? '' ) );
+		$pass = $this->get_db_pass( $_POST['db_pass'] ?? null );
 
 		$connector = new CMS_DB_Connector();
 		$result    = $connector->test_connection( $host, $port, $name, $user, $pass );
@@ -273,7 +273,7 @@ class CmsMigratorModule extends W2P_Abstract_Module {
 			sanitize_text_field( wp_unslash( $_POST['db_port'] ?? $settings['db_port'] ?? '3306' ) ),
 			sanitize_text_field( wp_unslash( $_POST['db_name'] ?? $settings['db_name'] ?? '' ) ),
 			sanitize_text_field( wp_unslash( $_POST['db_user'] ?? $settings['db_user'] ?? '' ) ),
-			sanitize_text_field( wp_unslash( $_POST['db_pass'] ?? $settings['db_pass'] ?? '' ) )
+			$this->get_db_pass( $_POST['db_pass'] ?? null )
 		);
 
 		if ( is_wp_error( $result ) ) {
@@ -317,7 +317,7 @@ class CmsMigratorModule extends W2P_Abstract_Module {
 			sanitize_text_field( wp_unslash( $settings['db_port'] ?? '3306' ) ),
 			sanitize_text_field( wp_unslash( $settings['db_name'] ?? '' ) ),
 			sanitize_text_field( wp_unslash( $settings['db_user'] ?? '' ) ),
-			sanitize_text_field( wp_unslash( $settings['db_pass'] ?? '' ) )
+			$this->get_db_pass()
 		);
 
 		if ( is_wp_error( $result ) ) {
@@ -402,13 +402,17 @@ class CmsMigratorModule extends W2P_Abstract_Module {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'wp-genius' ) ) );
 		}
 
-		$settings = array(
-			'db_host' => sanitize_text_field( wp_unslash( $_POST['db_host'] ?? '' ) ),
-			'db_port' => sanitize_text_field( wp_unslash( $_POST['db_port'] ?? '3306' ) ),
-			'db_name' => sanitize_text_field( wp_unslash( $_POST['db_name'] ?? '' ) ),
-			'db_user' => sanitize_text_field( wp_unslash( $_POST['db_user'] ?? '' ) ),
-			'db_pass' => sanitize_text_field( wp_unslash( $_POST['db_pass'] ?? '' ) ),
-		);
+		$settings = get_option( 'w2p_cms_migrator_settings', array() );
+
+		$settings['db_host'] = sanitize_text_field( wp_unslash( $_POST['db_host'] ?? '' ) );
+		$settings['db_port'] = sanitize_text_field( wp_unslash( $_POST['db_port'] ?? '3306' ) );
+		$settings['db_name'] = sanitize_text_field( wp_unslash( $_POST['db_name'] ?? '' ) );
+		$settings['db_user'] = sanitize_text_field( wp_unslash( $_POST['db_user'] ?? '' ) );
+
+		// Only update the password when a new one is provided (keeps it out of the DOM).
+		if ( ! empty( $_POST['db_pass'] ) ) {
+			$settings['db_pass'] = W2P_Crypto::encrypt( sanitize_text_field( wp_unslash( $_POST['db_pass'] ) ) );
+		}
 
 		update_option( 'w2p_cms_migrator_settings', $settings );
 		wp_send_json_success( array( 'message' => __( 'Settings saved.', 'wp-genius' ) ) );
@@ -437,7 +441,7 @@ class CmsMigratorModule extends W2P_Abstract_Module {
 			sanitize_text_field( wp_unslash( $_POST['db_port'] ?? $settings['db_port'] ?? '3306' ) ),
 			sanitize_text_field( wp_unslash( $_POST['db_name'] ?? $settings['db_name'] ?? '' ) ),
 			sanitize_text_field( wp_unslash( $_POST['db_user'] ?? $settings['db_user'] ?? '' ) ),
-			sanitize_text_field( wp_unslash( $_POST['db_pass'] ?? $settings['db_pass'] ?? '' ) )
+			$this->get_db_pass( $_POST['db_pass'] ?? null )
 		);
 
 		if ( is_wp_error( $result ) ) {
@@ -451,5 +455,37 @@ class CmsMigratorModule extends W2P_Abstract_Module {
 		}
 
 		wp_send_json_success( array( 'data' => $data ) );
+	}
+
+	/**
+	 * Resolve the database password from a posted value or stored (encrypted) settings.
+	 *
+	 * Legacy plaintext values stored in options are re-encrypted lazily on first read.
+	 *
+	 * @param string|null $posted Raw posted password value (may be null/empty).
+	 * @return string
+	 */
+	private function get_db_pass( $posted = null ) {
+		if ( null !== $posted && '' !== (string) $posted ) {
+			return sanitize_text_field( wp_unslash( $posted ) );
+		}
+
+		$settings = get_option( 'w2p_cms_migrator_settings', array() );
+		$stored   = isset( $settings['db_pass'] ) ? $settings['db_pass'] : '';
+
+		if ( '' === $stored ) {
+			return '';
+		}
+
+		$pass = W2P_Crypto::decrypt( $stored );
+
+		if ( null === $pass ) {
+			// Legacy plaintext value: re-encrypt on read (lazy migration).
+			$pass                = $stored;
+			$settings['db_pass'] = W2P_Crypto::encrypt( $stored );
+			update_option( 'w2p_cms_migrator_settings', $settings );
+		}
+
+		return is_string( $pass ) ? $pass : '';
 	}
 }

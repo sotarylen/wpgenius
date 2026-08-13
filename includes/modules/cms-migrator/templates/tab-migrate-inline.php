@@ -82,7 +82,7 @@ $taxonomies = get_taxonomies( array( 'public' => true ), 'objects' );
 					</div>
 					<div class="w2p-cms-migrator-form-group">
 						<label for="w2p-cms-db-pass"><?php esc_html_e( 'Password', 'wp-genius' ); ?></label>
-						<input type="password" id="w2p-cms-db-pass" value="<?php echo esc_attr( $settings['db_pass'] ?? '' ); ?>" placeholder="••••••••">
+						<input type="password" id="w2p-cms-db-pass" value="" placeholder="••••••••" autocomplete="new-password">
 					</div>
 				</div>
 				<div class="w2p-cms-migrator-actions">
