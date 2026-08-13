@@ -3,7 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class WordToPostModule extends W2P_Abstract_Module {
+class W2P_WordToPostModule extends W2P_Abstract_Module {
 	public static function id() {
 		return 'word-to-post';
 	}
@@ -331,3 +331,9 @@ class WordToPostModule extends W2P_Abstract_Module {
 }
 
 ?>
+<?php
+
+// Legacy alias for backward compatibility (pre-2.0.0 class name).
+if ( ! class_exists( 'WordToPostModule', false ) ) {
+	class_alias( 'W2P_WordToPostModule', 'WordToPostModule' );
+}

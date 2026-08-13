@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Smart AUI Module Class (Memory-Optimized)
  */
-class SmartAUIModule extends W2P_Abstract_Module {
+class W2P_SmartAUIModule extends W2P_Abstract_Module {
 
 	/**
 	 * Module ID
@@ -1304,4 +1304,9 @@ class SmartAUIModule extends W2P_Abstract_Module {
 			wp_send_json_error( array( 'message' => 'Attachment not found' ) );
 		}
 	}
+}
+
+// Legacy alias for backward compatibility (pre-2.0.0 class name).
+if ( ! class_exists( 'SmartAUIModule', false ) ) {
+	class_alias( 'W2P_SmartAUIModule', 'SmartAUIModule' );
 }

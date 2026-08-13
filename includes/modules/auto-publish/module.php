@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class AutoPublishModule extends W2P_Abstract_Module {
+class W2P_AutoPublishModule extends W2P_Abstract_Module {
 
 	/**
 	 * Get Module ID
@@ -592,4 +592,9 @@ class AutoPublishModule extends W2P_Abstract_Module {
 		</div>
 		<?php
 	}
+}
+
+// Legacy alias for backward compatibility (pre-2.0.0 class name).
+if ( ! class_exists( 'AutoPublishModule', false ) ) {
+	class_alias( 'W2P_AutoPublishModule', 'AutoPublishModule' );
 }

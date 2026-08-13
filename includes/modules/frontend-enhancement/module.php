@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Frontend Enhancement Module Class
  */
-class FrontendEnhancementModule extends W2P_Abstract_Module {
+class W2P_FrontendEnhancementModule extends W2P_Abstract_Module {
 
 	/**
 	 * Module ID
@@ -520,4 +520,9 @@ class FrontendEnhancementModule extends W2P_Abstract_Module {
 			wp_send_json_error( array( 'message' => __( 'Internal Server Error: ', 'wp-genius' ) . $e->getMessage() ) );
 		}
 	}
+}
+
+// Legacy alias for backward compatibility (pre-2.0.0 class name).
+if ( ! class_exists( 'FrontendEnhancementModule', false ) ) {
+	class_alias( 'W2P_FrontendEnhancementModule', 'FrontendEnhancementModule' );
 }

@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * AI Content Engine Module Class
  */
-class AiEngineModule extends W2P_Abstract_Module {
+class W2P_AiEngineModule extends W2P_Abstract_Module {
 
 	/**
 	 * Module ID
@@ -762,4 +762,9 @@ class AiEngineModule extends W2P_Abstract_Module {
 		// Update cron schedule based on settings.
 		$this->scheduler->update_cron_schedule();
 	}
+}
+
+// Legacy alias for backward compatibility (pre-2.0.0 class name).
+if ( ! class_exists( 'AiEngineModule', false ) ) {
+	class_alias( 'W2P_AiEngineModule', 'AiEngineModule' );
 }

@@ -22,7 +22,7 @@ if ( ! defined( 'MTPHR_POST_DUPLICATOR_BASENAME' ) ) {
 	define( 'MTPHR_POST_DUPLICATOR_BASENAME', plugin_basename( __FILE__ ) );
 }
 
-class PostDuplicatorModule extends W2P_Abstract_Module {
+class W2P_PostDuplicatorModule extends W2P_Abstract_Module {
 
 	/**
 	 * Get Module ID
@@ -77,4 +77,9 @@ class PostDuplicatorModule extends W2P_Abstract_Module {
 	public function render_settings() {
 		$this->render_view( 'settings' );
 	}
+}
+
+// Legacy alias for backward compatibility (pre-2.0.0 class name).
+if ( ! class_exists( 'PostDuplicatorModule', false ) ) {
+	class_alias( 'W2P_PostDuplicatorModule', 'PostDuplicatorModule' );
 }

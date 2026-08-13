@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * CMS Migrator Module Class
  */
-class CmsMigratorModule extends W2P_Abstract_Module {
+class W2P_CmsMigratorModule extends W2P_Abstract_Module {
 
 	/**
 	 * Module ID
@@ -488,4 +488,9 @@ class CmsMigratorModule extends W2P_Abstract_Module {
 
 		return is_string( $pass ) ? $pass : '';
 	}
+}
+
+// Legacy alias for backward compatibility (pre-2.0.0 class name).
+if ( ! class_exists( 'CmsMigratorModule', false ) ) {
+	class_alias( 'W2P_CmsMigratorModule', 'CmsMigratorModule' );
 }

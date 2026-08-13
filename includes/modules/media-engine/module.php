@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Media Engine Module Class
  */
-class MediaEngineModule extends W2P_Abstract_Module {
+class W2P_MediaEngineModule extends W2P_Abstract_Module {
 
 	/**
 	 * Handler instances
@@ -390,4 +390,9 @@ class MediaEngineModule extends W2P_Abstract_Module {
 	public function render_settings() {
 		$this->render_view( 'settings' );
 	}
+}
+
+// Legacy alias for backward compatibility (pre-2.0.0 class name).
+if ( ! class_exists( 'MediaEngineModule', false ) ) {
+	class_alias( 'W2P_MediaEngineModule', 'MediaEngineModule' );
 }

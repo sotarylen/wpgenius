@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * SMTP Mailer Module Class
  */
-class SMTPMailerModule extends W2P_Abstract_Module {
+class W2P_SMTPMailerModule extends W2P_Abstract_Module {
 
 	/**
 	 * Module ID
@@ -249,4 +249,9 @@ class SMTPMailerModule extends W2P_Abstract_Module {
 	public function deactivate() {
 		do_action( 'w2p_smtp_deactivated' );
 	}
+}
+
+// Legacy alias for backward compatibility (pre-2.0.0 class name).
+if ( ! class_exists( 'SMTPMailerModule', false ) ) {
+	class_alias( 'W2P_SMTPMailerModule', 'SMTPMailerModule' );
 }

@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class SystemHealthModule extends W2P_Abstract_Module {
+class W2P_SystemHealthModule extends W2P_Abstract_Module {
 
 	public static function id() {
 		return 'system-health';
@@ -293,4 +293,9 @@ class SystemHealthModule extends W2P_Abstract_Module {
 	public function deactivate() {
 		// Optional cleanup on deactivation
 	}
+}
+
+// Legacy alias for backward compatibility (pre-2.0.0 class name).
+if ( ! class_exists( 'SystemHealthModule', false ) ) {
+	class_alias( 'W2P_SystemHealthModule', 'SystemHealthModule' );
 }

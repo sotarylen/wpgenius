@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class AccelerateModule extends W2P_Abstract_Module {
+class W2P_AccelerateModule extends W2P_Abstract_Module {
 
 	protected static $original_titles = array();
 
@@ -981,4 +981,9 @@ class AccelerateModule extends W2P_Abstract_Module {
 
 		return $valid_ids;
 	}
+}
+
+// Legacy alias for backward compatibility (pre-2.0.0 class name).
+if ( ! class_exists( 'AccelerateModule', false ) ) {
+	class_alias( 'W2P_AccelerateModule', 'AccelerateModule' );
 }

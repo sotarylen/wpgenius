@@ -86,7 +86,7 @@ class W2P_Module_Loader {
 	protected function class_name_from_dir( $dir ) {
 		$parts = preg_split( '/[-_]/', $dir );
 		$parts = array_map( 'ucfirst', $parts );
-		return implode( '', $parts ) . 'Module';
+		return 'W2P_' . implode( '', $parts ) . 'Module';
 	}
 
 	// 初始化已启用的模块
