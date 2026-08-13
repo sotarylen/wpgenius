@@ -91,6 +91,3 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<div id="w2p-health-message" class="w2p-notice w2p-hidden"></div>
 			</div>
 		</div>
-	</div>
-
-	<!-- Image Link Remover Tab -->

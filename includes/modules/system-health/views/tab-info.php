@@ -18,5 +18,3 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</div>
 			<p class="w2p-text-center w2p-mt-md"><?php esc_html_e( 'Loading system information...', 'wp-genius' ); ?></p>
 		</div>
-	</div>
-</div>

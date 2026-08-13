@@ -73,7 +73,3 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</div>
 			</div>
 		</div>
-	</div>
-
-	
-	<!-- Duplicate Post Cleaner Tab -->
