@@ -9,6 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable Universal.Files.SeparateFunctionsFromOO -- 历史工具文件同时含辅助函数与 OO 类。
 class W2P_Smart_AUI_Progress_Tracker {
 
 	private static $instance = null;

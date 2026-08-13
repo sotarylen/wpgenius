@@ -33,7 +33,7 @@ $ai_api_keys_stored = array(
 						<span style="color: #00a32a;"><?php esc_html_e( 'Key saved', 'wp-genius' ); ?></span>
 					<?php endif; ?>
 				</span>
-				<p class="description"><?php printf( esc_html__( 'Get your API key from %s', 'wp-genius' ), '<a href="https://platform.openai.com/api-keys" target="_blank">OpenAI</a>' ); ?></p>
+				<p class="description"><?php /* translators: %s: provider API key page URL. */ printf( esc_html__( 'Get your API key from %s', 'wp-genius' ), '<a href="https://platform.openai.com/api-keys" target="_blank">OpenAI</a>' ); ?></p>
 			</td>
 		</tr>
 		<tr>
@@ -46,7 +46,7 @@ $ai_api_keys_stored = array(
 						<span style="color: #00a32a;"><?php esc_html_e( 'Key saved', 'wp-genius' ); ?></span>
 					<?php endif; ?>
 				</span>
-				<p class="description"><?php printf( esc_html__( 'Get your API key from %s', 'wp-genius' ), '<a href="https://console.anthropic.com/settings/keys" target="_blank">Anthropic</a>' ); ?></p>
+				<p class="description"><?php /* translators: %s: provider API key page URL. */ printf( esc_html__( 'Get your API key from %s', 'wp-genius' ), '<a href="https://console.anthropic.com/settings/keys" target="_blank">Anthropic</a>' ); ?></p>
 			</td>
 		</tr>
 		<tr>
@@ -59,7 +59,7 @@ $ai_api_keys_stored = array(
 						<span style="color: #00a32a;"><?php esc_html_e( 'Key saved', 'wp-genius' ); ?></span>
 					<?php endif; ?>
 				</span>
-				<p class="description"><?php printf( esc_html__( 'Get your API key from %s', 'wp-genius' ), '<a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a>' ); ?></p>
+				<p class="description"><?php /* translators: %s: provider API key page URL. */ printf( esc_html__( 'Get your API key from %s', 'wp-genius' ), '<a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a>' ); ?></p>
 			</td>
 		</tr>
 		<tr>
@@ -72,7 +72,7 @@ $ai_api_keys_stored = array(
 						<span style="color: #00a32a;"><?php esc_html_e( 'Key saved', 'wp-genius' ); ?></span>
 					<?php endif; ?>
 				</span>
-				<p class="description"><?php printf( esc_html__( 'Get your API key from %s', 'wp-genius' ), '<a href="https://platform.deepseek.com/api_keys" target="_blank">DeepSeek</a>' ); ?></p>
+				<p class="description"><?php /* translators: %s: provider API key page URL. */ printf( esc_html__( 'Get your API key from %s', 'wp-genius' ), '<a href="https://platform.deepseek.com/api_keys" target="_blank">DeepSeek</a>' ); ?></p>
 			</td>
 		</tr>
 	</table>

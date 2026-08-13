@@ -233,13 +233,13 @@ class WPG_Highlight_Handler {
 		if ( preg_match_all( '/<pre[^>]*class="[^"]*language-([a-z0-9-]+)[^>]*>.*?<\/pre>/is', $content, $matches ) ) {
 			foreach ( $matches[1] as $lang ) {
 				$lang = str_replace( array( 'lang-', 'language-' ), '', $lang );
-				if ( ! in_array( $lang, $languages , true ) ) {
+				if ( ! in_array( $lang, $languages, true ) ) {
 					$languages[] = $lang;
 				}
 			}
 		}
 		$detected_lang = $this->detect_language_from_content( $content );
-		if ( $detected_lang && ! in_array( $detected_lang, $languages , true ) ) {
+		if ( $detected_lang && ! in_array( $detected_lang, $languages, true ) ) {
 			$languages[] = $detected_lang;
 		}
 		return $languages;

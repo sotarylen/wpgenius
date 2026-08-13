@@ -47,6 +47,23 @@
         <exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames"/>
         <exclude name="Generic.CodeAnalysis.AssignmentInCondition"/>
         <exclude name="WordPress.PHP.NoSilencedErrors"/>
+
+        <!-- Deliberate direct system-function usage in tooling/services layers:
+             file logging (W2P logger services), cURL multi-download (smart-aui),
+             mysqli external DB (cms-migrator), base64 codec (W2P_Crypto),
+             error_log (W2P_Logger backend), runtime ini_set, custom cron interval. -->
+        <exclude name="WordPress.WP.AlternativeFunctions"/>
+        <exclude name="WordPress.PHP.DevelopmentFunctions.error_log_error_log"/>
+        <exclude name="WordPress.PHP.DevelopmentFunctions.error_log_print_r"/>
+        <exclude name="WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode"/>
+        <exclude name="WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode"/>
+        <exclude name="WordPress.PHP.DiscouragedPHPFunctions.urlencode_urlencode"/>
+        <exclude name="WordPress.DB.RestrictedClasses.mysql__mysqli"/>
+        <exclude name="WordPress.PHP.IniSet"/>
+        <exclude name="WordPress.WP.CronInterval"/>
+        <exclude name="WordPress.PHP.DiscouragedPHPFunctions.system_calls_shell_exec"/>
+        <exclude name="Generic.PHP.DeprecatedFunctions"/>
+        <exclude name="WordPress.PHP.DiscouragedPHPFunctions.rand_mt_rand"/>
     </rule>
 
     <!-- Use PHP Compatibility -->

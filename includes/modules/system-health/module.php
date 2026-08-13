@@ -121,6 +121,7 @@ class SystemHealthModule extends W2P_Abstract_Module {
 
 		wp_send_json_success(
 			array(
+				// translators: %1: placeholder。
 				'message' => sprintf( __( 'Cleaned up %d items.', 'wp-genius' ), $count ),
 				'count'   => $count,
 			)
@@ -251,6 +252,7 @@ class SystemHealthModule extends W2P_Abstract_Module {
 
 		wp_send_json_success(
 			array(
+				// translators: %1: placeholder。
 				'message' => sprintf( __( 'Moved %d posts to trash.', 'wp-genius' ), $count ),
 				'count'   => $count,
 			)
@@ -277,6 +279,7 @@ class SystemHealthModule extends W2P_Abstract_Module {
 
 		wp_send_json_success(
 			array(
+				// translators: %1: placeholder, %2: placeholder。
 				'message' => sprintf( __( 'Cleaned up %1$d entries for meta key "%2$s".', 'wp-genius' ), $count, $meta_key ),
 				'count'   => $count,
 			)

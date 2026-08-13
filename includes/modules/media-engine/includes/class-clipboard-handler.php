@@ -71,7 +71,7 @@ class W2P_Clipboard_Handler {
 	public function enqueue_assets( $hook ) {
 		// Only load on Post Edit and Media Library pages
 		$relevant_pages = array( 'post.php', 'post-new.php', 'upload.php' );
-		if ( ! in_array( $hook, $relevant_pages , true ) ) {
+		if ( ! in_array( $hook, $relevant_pages, true ) ) {
 			return;
 		}
 

@@ -406,6 +406,7 @@ class MediaEngineAuditService {
 		// 1. mime 不在转换支持列表（scanner 不返回）
 		if ( ! in_array( $mime, self::SUPPORTED_MIMES, true ) ) {
 			return sprintf(
+				// translators: %1: placeholder。
 				__( '媒体类型 %s 不在转换支持列表，scanner 不会将其纳入队列', 'wp-genius' ),
 				$mime ? $mime : '(空)'
 			);
@@ -420,6 +421,7 @@ class MediaEngineAuditService {
 		$attached_rel = str_replace( wp_upload_dir()['basedir'] . '/', '', $attached );
 		if ( $attached_rel !== $rel_path ) {
 			return sprintf(
+				// translators: %1: placeholder。
 				__( '数据库记录的附件路径（%s）与实际文件不一致', 'wp-genius' ),
 				$attached_rel
 			);

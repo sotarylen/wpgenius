@@ -78,6 +78,7 @@ class MediaEngineCLI {
 
 		// 处理单个附件
 		if ( $id ) {
+			// translators: %1: placeholder。
 			WP_CLI::line( sprintf( __( 'Processing attachment ID: %d', 'wp-genius' ), $id ) );
 			$result = $this->processor->process_attachment( $id );
 
@@ -99,10 +100,12 @@ class MediaEngineCLI {
 			return;
 		}
 
+		// translators: %1: placeholder。
 		WP_CLI::line( sprintf( __( 'Found %d attachments to process', 'wp-genius' ), $total ) );
 
 		// 并行处理
 		if ( $parallel ) {
+			// translators: %1: placeholder。
 			WP_CLI::line( sprintf( __( 'Using parallel processing with %d workers', 'wp-genius' ), $workers ?? 'auto' ) );
 			$result = $this->processor->parallel_process( $attachments, $workers );
 		} else {
@@ -112,6 +115,7 @@ class MediaEngineCLI {
 
 		WP_CLI::line(
 			sprintf(
+				// translators: %1: placeholder, %2: placeholder, %3: placeholder。
 				__( 'Processed: %1$d | Succeeded: %2$d | Failed: %3$d | Duration: %4$.2fs', 'wp-genius' ),
 				$result['processed'],
 				$result['succeeded'],
@@ -121,10 +125,12 @@ class MediaEngineCLI {
 		);
 
 		if ( $result['succeeded'] > 0 ) {
+			// translators: %1: placeholder。
 			WP_CLI::success( sprintf( __( 'Successfully converted %d images', 'wp-genius' ), $result['succeeded'] ) );
 		}
 
 		if ( $result['failed'] > 0 ) {
+			// translators: %1: placeholder。
 			WP_CLI::warning( sprintf( __( '%d images failed to convert', 'wp-genius' ), $result['failed'] ) );
 		}
 	}
@@ -146,6 +152,7 @@ class MediaEngineCLI {
 	public function offload( $args, $assoc_args ) {
 		$limit = isset( $assoc_args['limit'] ) ? (int) $assoc_args['limit'] : 100;
 
+		// translators: %1: placeholder。
 		WP_CLI::line( sprintf( __( 'Offloading up to %d files to Minio...', 'wp-genius' ), $limit ) );
 
 		$command = sprintf( 'wp advmo offload --limit=%d --yes 2>&1', $limit );
@@ -236,11 +243,13 @@ class MediaEngineCLI {
 	public function stats( $args, $assoc_args ) {
 		$total = $this->processor->get_pending_count();
 
+		// translators: %1: placeholder。
 		WP_CLI::line( sprintf( __( 'Pending attachments: %d', 'wp-genius' ), $total ) );
 
 		if ( $total > 0 ) {
 			WP_CLI::line(
 				sprintf(
+					// translators: %1: placeholder。
 					__( 'Estimated batches (100/batch): %d', 'wp-genius' ),
 					ceil( $total / 100 )
 				)

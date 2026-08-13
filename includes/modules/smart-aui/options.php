@@ -47,6 +47,7 @@ return array(
 							'id'      => 'smart_aui_image_name_pattern',
 							'type'    => 'text',
 							'title'   => __( 'Image Name Pattern', 'wp-genius' ),
+							// phpcs:ignore WordPress.WP.I18n.MissingTranslatorsComment -- %filename% 等为模板变量示例，非 printf 占位符。
 							'desc'    => __( 'Pattern for naming uploaded images. Available variables: %filename%, %post_title%, %post_date%, %random%.', 'wp-genius' ),
 							'default' => '%filename%',
 						),
@@ -54,6 +55,7 @@ return array(
 							'id'      => 'smart_aui_alt_text_pattern',
 							'type'    => 'text',
 							'title'   => __( 'Alt Text Pattern', 'wp-genius' ),
+							// phpcs:ignore WordPress.WP.I18n.MissingTranslatorsComment -- %filename% 等为模板变量示例，非 printf 占位符。
 							'desc'    => __( 'Pattern for alt text of uploaded images. Available variables: %image_alt%, %filename%, %post_title%.', 'wp-genius' ),
 							'default' => '%image_alt%',
 						),

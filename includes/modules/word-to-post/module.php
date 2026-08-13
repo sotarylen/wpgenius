@@ -100,7 +100,7 @@ class WordToPostModule extends W2P_Abstract_Module {
 			$word_to_posts->handleFileUpload();
 		}
 
-		wp_redirect( admin_url( 'tools.php?page=wp-genius-settings#w2p-tab-word-to-post' ) );
+		wp_safe_redirect( admin_url( 'tools.php?page=wp-genius-settings#w2p-tab-word-to-post' ) );
 		exit;
 	}
 
@@ -122,7 +122,7 @@ class WordToPostModule extends W2P_Abstract_Module {
 			$word_to_posts->scanUploads();
 		}
 
-		wp_redirect( admin_url( 'tools.php?page=wp-genius-settings#w2p-tab-word-to-post' ) );
+		wp_safe_redirect( admin_url( 'tools.php?page=wp-genius-settings#w2p-tab-word-to-post' ) );
 		exit;
 	}
 
@@ -144,7 +144,7 @@ class WordToPostModule extends W2P_Abstract_Module {
 			$word_to_posts->cleanUploads();
 		}
 
-		wp_redirect( admin_url( 'tools.php?page=wp-genius-settings#w2p-tab-word-to-post' ) );
+		wp_safe_redirect( admin_url( 'tools.php?page=wp-genius-settings#w2p-tab-word-to-post' ) );
 		exit;
 	}
 
@@ -304,7 +304,7 @@ class WordToPostModule extends W2P_Abstract_Module {
 			'word-to-posts-js',
 			$module_url . 'assets/js/word-to-posts.js',
 			array( 'jquery' ),
-			null,
+			'1.0.0',
 			true
 		);
 
@@ -313,7 +313,7 @@ class WordToPostModule extends W2P_Abstract_Module {
 			'fix-chapter-index-js',
 			$module_url . 'assets/js/fix-chapter-index.js',
 			array( 'jquery' ),
-			null,
+			'1.0.0',
 			true
 		);
 

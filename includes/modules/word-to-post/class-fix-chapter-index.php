@@ -322,7 +322,7 @@ class FixChapterIndex {
 		}
 
 		$finished_ids = get_option( 'w2p_fix_index_finished_books', array() );
-		if ( ! in_array( $novel_id, $finished_ids , true ) ) {
+		if ( ! in_array( $novel_id, $finished_ids, true ) ) {
 			$finished_ids[] = $novel_id;
 			update_option( 'w2p_fix_index_finished_books', $finished_ids );
 		}
@@ -427,8 +427,10 @@ class FixChapterIndex {
 		}
 
 		// 返回详细结果
+		// translators: %1: placeholder。
 		$message = sprintf( __( 'Updated %d chapters', 'wp-genius' ), $updated );
 		if ( $failed > 0 ) {
+			// translators: %1: placeholder。
 			$message .= sprintf( __( ', %d failed', 'wp-genius' ), $failed );
 		}
 

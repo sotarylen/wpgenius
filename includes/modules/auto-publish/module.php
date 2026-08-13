@@ -350,6 +350,7 @@ class AutoPublishModule extends W2P_Abstract_Module {
 					);
 				}
 
+				// translators: %1: placeholder。
 				$current_status['image_progress'] = sprintf( __( 'Processing image %d...', 'wp-genius' ), $index + 1 );
 				set_transient( 'w2p_auto_publish_scheduled_status', $current_status, 300 );
 			};

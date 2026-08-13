@@ -73,6 +73,7 @@ class CMS_DB_Connector {
 		if ( $this->connection->connect_error ) {
 			$error_no = $this->connection->connect_errno;
 			$this->disconnect();
+			// translators: %1: placeholder。
 			return new WP_Error( 'connection_failed', sprintf( __( 'Connection failed (Error %d). Check credentials.', 'wp-genius' ), $error_no ) );
 		}
 

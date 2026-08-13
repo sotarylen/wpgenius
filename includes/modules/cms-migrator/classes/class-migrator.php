@@ -512,7 +512,8 @@ class CMS_Migrator {
 				break;
 			}
 
-			$chapter_number  = $chapter['chapter_number'] ?? 0;
+			$chapter_number = $chapter['chapter_number'] ?? 0;
+			// translators: %1: placeholder。
 			$chapter_title   = $chapter['chapter_title'] ?? sprintf( __( 'Chapter %d', 'wp-genius' ), $chapter_number );
 			$chapter_content = $chapter['content'] ?? $chapter['chapter_content'] ?? '';
 

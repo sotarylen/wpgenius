@@ -878,7 +878,7 @@ class AccelerateModule extends W2P_Abstract_Module {
 			);
 		}
 
-		wp_redirect( $redirect_url );
+		wp_safe_redirect( $redirect_url );
 		exit;
 	}
 

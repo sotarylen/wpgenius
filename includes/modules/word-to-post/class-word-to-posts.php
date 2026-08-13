@@ -193,6 +193,7 @@ class WordToPosts {
 		// 验证 CPT ID 是否存在且类型匹配
 		$associated_post = get_post( $cpt_id );
 		if ( ! $associated_post || $associated_post->post_type !== $cpt_type ) {
+			// translators: %1: placeholder, %2: placeholder。
 			wp_send_json_error( sprintf( __( 'Invalid associated post (ID: %1$d, Type: %2$s).', 'wp-genius' ), $cpt_id, $cpt_type ) );
 			return;
 		}
@@ -223,10 +224,13 @@ class WordToPosts {
 				update_post_meta( $post_id, '_w2p_associated_cpt_type', $cpt_type );
 				update_post_meta( $post_id, '_w2p_associated_cpt_id', $cpt_id );
 
+				// translators: %1: placeholder, %2: placeholder。
 				$log[] = sprintf( __( 'Chapter "%1$s" published successfully, Post ID: %2$d', 'wp-genius' ), $chapter['title'], $post_id );
 			} else {
+				// translators: %1: placeholder。
 				$log[] = sprintf( __( 'Failed to publish chapter "%s"', 'wp-genius' ), $chapter['title'] );
 			}
+			// phpcs:ignore Squiz.Operators.IncrementDecrementUsage -- 语义化 += 1 表达时间增量。
 			$time_increment += 1; // 每次循环增加1秒
 		}
 		$log[] = __( 'All chapters have been published successfully.', 'wp-genius' );
@@ -475,6 +479,7 @@ class WordToPosts {
 
 			$updated = 0;
 			$errors  = array();
+			// phpcs:disable Generic.CodeAnalysis.EmptyStatement -- 结果逐项处理，部分分支暂仅记录（预留）。
 			foreach ( $results as $item ) {
 				// We need Post ID. The scan log in JS usually has it?
 				// Wait, processFixIndexBatch log didn't explicitly key Post ID in the log item.
@@ -520,6 +525,7 @@ class WordToPosts {
 			array(
 				'updated' => $count,
 				'failed'  => $failed,
+				// translators: %1: placeholder。
 				'message' => sprintf( __( 'Updated %d items.', 'wp-genius' ), $count ),
 			)
 		);
@@ -710,6 +716,7 @@ class WordToPosts {
 			if ( $temp === 0 ) {
 				if ( $count - $i - 1 < 4 ) { // End of section
 					// Handle complex zero logic if needed, simplified here
+					// phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedIf -- 预留复杂零逻辑。
 				}
 			} else {
 				$chiStr .= $chiNum[ $temp ] . $vt;

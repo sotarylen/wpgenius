@@ -140,10 +140,10 @@ class WPG_Reader_Handler {
 			// Store default configuration for reader
 			if (typeof window.wpgReaderDefaults === 'undefined') {
 				window.wpgReaderDefaults = {
-					fontSize: <?php echo json_encode( $font_size ); ?>,
-					fontFamily: <?php echo json_encode( $font_family ); ?>,
-					theme: <?php echo json_encode( $theme ); ?>,
-					links: <?php echo json_encode( $nav_links ); ?>
+					fontSize: <?php echo wp_json_encode( $font_size ); ?>,
+					fontFamily: <?php echo wp_json_encode( $font_family ); ?>,
+					theme: <?php echo wp_json_encode( $theme ); ?>,
+					links: <?php echo wp_json_encode( $nav_links ); ?>
 				};
 			}
 		</script>
