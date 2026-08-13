@@ -17,16 +17,16 @@ $ai_queue_table = $wpdb->prefix . 'w2p_ai_queue';
 $ai_queue_items = array();
 $ai_queue_total = 0;
 
-if ( $wpdb->get_var( "SHOW TABLES LIKE '{$ai_queue_table}'" ) === $ai_queue_table ) {
+if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $ai_queue_table ) ) === $ai_queue_table ) {
 	$ai_queue_items = $wpdb->get_results(
 		"SELECT q.*, p.name as prompt_name
-		 FROM {$ai_queue_table} q
+		 FROM {$wpdb->prefix}w2p_ai_queue q
 		 LEFT JOIN {$wpdb->prefix}w2p_ai_prompts p ON q.prompt_id = p.id
 		 ORDER BY q.created_at DESC
 		 LIMIT 20",
 		ARRAY_A
 	) ?: array();
-	$ai_queue_total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$ai_queue_table}" );
+	$ai_queue_total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}w2p_ai_queue" );
 }
 ?>
 <div class="w2p-ai-engine-wrap">

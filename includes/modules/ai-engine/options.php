@@ -45,8 +45,8 @@ $ai_providers = array(
 global $wpdb;
 $ai_prompts_table = $wpdb->prefix . 'w2p_ai_prompts';
 $ai_prompts       = array();
-if ( $wpdb->get_var( "SHOW TABLES LIKE '{$ai_prompts_table}'" ) === $ai_prompts_table ) {
-	$ai_prompts = $wpdb->get_results( "SELECT id, name FROM {$ai_prompts_table} ORDER BY name ASC", ARRAY_A ) ?: array();
+if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $ai_prompts_table ) ) === $ai_prompts_table ) {
+	$ai_prompts = $wpdb->get_results( "SELECT id, name FROM {$wpdb->prefix}w2p_ai_prompts ORDER BY name ASC", ARRAY_A ) ?: array();
 }
 
 // Helper to get generate tab content.

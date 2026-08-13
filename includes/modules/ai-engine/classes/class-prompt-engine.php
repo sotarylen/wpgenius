@@ -43,7 +43,7 @@ class AI_Prompt_Engine {
 
 		$result = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM {$this->table_name} WHERE id = %d",
+				"SELECT * FROM {$wpdb->prefix}w2p_ai_prompts WHERE id = %d",
 				$prompt_id
 			),
 			ARRAY_A
@@ -65,13 +65,20 @@ class AI_Prompt_Engine {
 	public function get_prompts( string $type = '' ): array {
 		global $wpdb;
 
-		$where = '';
+		$where      = '';
+		$query_args = array();
 		if ( ! empty( $type ) ) {
-			$where = $wpdb->prepare( " WHERE type = %s", $type );
+			$where       = ' WHERE type = %s';
+			$query_args[] = $type;
 		}
 
 		$results = $wpdb->get_results(
-			"SELECT * FROM {$this->table_name} {$where} ORDER BY name ASC",
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- 动态 WHERE 片段值经 prepare 占位符传递。
+			$wpdb->prepare(
+				"SELECT * FROM {$wpdb->prefix}w2p_ai_prompts {$where} ORDER BY name ASC",
+				$query_args
+			),
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			ARRAY_A
 		);
 

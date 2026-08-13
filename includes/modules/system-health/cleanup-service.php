@@ -201,6 +201,7 @@ class SystemHealthCleanupService {
         // First filter with strict LIKE to find candidates (much faster than PHP loop)
         // LIMIT 500 to prevent browser crash rendering too many rows
         $like_pattern = '%<a%<img%</a>%';
+        // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- 动态片段全部来自安全源：$post_types_sql 经 esc_sql、$post_statuses 硬编码、$where_category 为 $wpdb->prepare 结果。
         $sql = "
             SELECT ID, post_title, post_content 
             FROM $wpdb->posts 
@@ -214,6 +215,7 @@ class SystemHealthCleanupService {
 
         // Query expecting one string arg for LIKE pattern
         $posts = $wpdb->get_results( $wpdb->prepare( $sql, $like_pattern ) );
+        // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
         $results = [];
 
         if ( ! empty( $posts ) ) {
@@ -270,6 +272,7 @@ class SystemHealthCleanupService {
             
             $post_statuses = "'publish', 'draft', 'pending', 'private', 'future'";
             
+            // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- 动态片段来自 esc_sql/硬编码状态/prepare 结果，与上文 216 块同理。
             if ( $category_id > 0 ) {
                 $sql_find_duplicates = "
                     SELECT p.post_title, COUNT(*) as count
@@ -297,6 +300,7 @@ class SystemHealthCleanupService {
             }
 
             $duplicate_titles_rows = $wpdb->get_results( $sql_find_duplicates );
+            // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 
             if ( empty( $duplicate_titles_rows ) ) {
                 return [];
@@ -323,6 +327,7 @@ class SystemHealthCleanupService {
             foreach ( $chunks as $title_chunk ) {
                 $in_clause = implode( ',', $title_chunk );
                 
+                // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- $in_clause 由 $wpdb->prepare('%s') 转义后的标题拼接，$post_statuses 硬编码。
                 $sql_get_posts = "
                     SELECT ID, post_title, post_name, post_date
                     FROM $wpdb->posts
@@ -333,6 +338,7 @@ class SystemHealthCleanupService {
                 ";
                 
                 $posts = $wpdb->get_results( $sql_get_posts );
+                // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 
                 if ( ! empty( $posts ) ) {
                     // Group by title

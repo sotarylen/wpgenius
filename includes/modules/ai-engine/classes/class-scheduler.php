@@ -143,10 +143,13 @@ class AI_Scheduler {
 		global $wpdb;
 
 		$results = $wpdb->get_results(
-			"SELECT option_name, option_value
-			 FROM {$wpdb->options}
-			 WHERE option_name LIKE '{$this->option_prefix}%'
-			 ORDER BY option_name ASC",
+			$wpdb->prepare(
+				"SELECT option_name, option_value
+				 FROM {$wpdb->options}
+				 WHERE option_name LIKE %s
+				 ORDER BY option_name ASC",
+				$this->option_prefix . '%'
+			),
 			ARRAY_A
 		);
 

@@ -195,6 +195,7 @@ class MediaEngineAuditService {
 
 		foreach ( array_chunk( $att_ids, 500 ) as $chunk ) {
 			$placeholders = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- IN 占位符仅由 %d 组成（array_fill 生成），参数经 prepare 绑定，无注入面。
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT post_id, meta_value FROM {$wpdb->postmeta}
@@ -202,6 +203,7 @@ class MediaEngineAuditService {
 					$chunk
 				)
 			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			foreach ( $rows as $row ) {
 				$att_id = (int) $row->post_id;
 				$val    = $row->meta_value;

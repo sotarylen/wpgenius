@@ -67,8 +67,10 @@ class FixChapterIndex {
             $where[] = "(pm_finished.meta_value IS NULL OR pm_finished.meta_value NOT IN ($ids_str))";
         }
 
+        // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- 动态 SQL 拼装，各片段均来自安全源：$sql/$join 仅含 $wpdb->prefix 表名，$where 元素为硬编码字面量 / intval 强转列表 / $wpdb->prepare 结果。
         $query_sql = $sql . $join . " WHERE " . implode(" AND ", $where);
         $total = intval($wpdb->get_var($query_sql));
+        // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 
         wp_send_json_success([
             'total' => $total,
@@ -350,6 +352,7 @@ class FixChapterIndex {
             LIMIT %d
         ", $limit);
         
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $query 为上方 $wpdb->prepare() 返回值（LIMIT 以 %d 绑定）。
         $results = $wpdb->get_col($query);
         return array_map('intval', $results);
     }

@@ -64,7 +64,7 @@ class AI_Content_Queue {
 
 		$charset_collate = $wpdb->get_charset_collate();
 
-		$sql = "CREATE TABLE IF NOT EXISTS {$this->table_name} (
+		$sql = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}w2p_ai_queue (
 			id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
 			schedule_id BIGINT(20) UNSIGNED DEFAULT NULL,
 			provider VARCHAR(50) NOT NULL,
@@ -135,26 +135,36 @@ class AI_Content_Queue {
 	public function get_queue( int $page = 1, int $per_page = 20, string $status = '' ): array {
 		global $wpdb;
 
-		$where = '';
+		$where      = '';
+		$query_args = array();
 		if ( ! empty( $status ) ) {
-			$where = $wpdb->prepare( " WHERE q.status = %s", $status );
+			$where       = ' WHERE q.status = %s';
+			$query_args[] = $status;
 		}
 
 		$offset = ( $page - 1 ) * $per_page;
 
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- 动态 WHERE 片段值经 prepare 占位符传递；LIMIT/OFFSET 在 prepare 内以 %d 绑定。
 		$results = $wpdb->get_results(
-			"SELECT q.*, p.name as prompt_name
-			 FROM {$this->table_name} q
-			 LEFT JOIN {$wpdb->prefix}w2p_ai_prompts p ON q.prompt_id = p.id
-			 {$where}
-			 ORDER BY q.created_at DESC
-			 LIMIT {$per_page} OFFSET {$offset}",
+			$wpdb->prepare(
+				"SELECT q.*, p.name as prompt_name
+				 FROM {$wpdb->prefix}w2p_ai_queue q
+				 LEFT JOIN {$wpdb->prefix}w2p_ai_prompts p ON q.prompt_id = p.id
+				 {$where}
+				 ORDER BY q.created_at DESC
+				 LIMIT %d OFFSET %d",
+				array_merge( $query_args, array( $per_page, $offset ) )
+			),
 			ARRAY_A
 		);
 
 		$total = $wpdb->get_var(
-			"SELECT COUNT(*) FROM {$this->table_name} q {$where}"
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->prefix}w2p_ai_queue q {$where}",
+				$query_args
+			)
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return [
 			'items'     => $results ?? [],
@@ -176,7 +186,7 @@ class AI_Content_Queue {
 		// Get pending items
 		$items = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$this->table_name}
+				"SELECT * FROM {$wpdb->prefix}w2p_ai_queue
 				 WHERE status = 'pending'
 				 AND attempts < max_attempts
 				 ORDER BY created_at ASC
@@ -345,7 +355,7 @@ class AI_Content_Queue {
 
 		$wpdb->query(
 			$wpdb->prepare(
-				"UPDATE {$this->table_name}
+				"UPDATE {$wpdb->prefix}w2p_ai_queue
 				 SET status = IF(attempts + 1 >= max_attempts, 'failed', 'pending'),
 				     attempts = attempts + 1,
 				     error = %s,
@@ -368,7 +378,7 @@ class AI_Content_Queue {
 
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$this->table_name}
+				"DELETE FROM {$wpdb->prefix}w2p_ai_queue
 				 WHERE status IN ('completed', 'failed')
 				 AND processed_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
 				$days

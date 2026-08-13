@@ -23,6 +23,7 @@ class MediaEngineScannerService {
 		$mime_types[] = 'image/webp';
 		$mime_types = array_unique( $mime_types );
 		$mime_placeholders = implode( ',', array_fill( 0, count( $mime_types ), '%s' ) );
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- IN 占位符仅由 %s 组成（array_fill 生成），参数经 prepare 绑定，无注入面。
 		$query = $wpdb->prepare(
 			"SELECT p.ID FROM {$wpdb->posts} p
 			LEFT JOIN {$wpdb->postmeta} pm ON (p.ID = pm.post_id AND pm.meta_key = 'advmo_offloaded' AND pm.meta_value = '1')
@@ -30,6 +31,8 @@ class MediaEngineScannerService {
 			ORDER BY p.ID DESC LIMIT %d OFFSET %d",
 			array_merge( $mime_types, [ $limit, $offset ] )
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $query 为上方 $wpdb->prepare() 返回值（LIMIT/OFFSET 以 %d 绑定）。
 		return array_map( 'intval', $wpdb->get_col( $query ) );
 	}
 
