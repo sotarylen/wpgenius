@@ -69,6 +69,10 @@ class MediaEngineModule extends W2P_Abstract_Module {
 		add_action( 'wp_ajax_w2p_scan_attachments', [ $this, 'ajax_scan_attachments' ] );
 		add_action( 'wp_ajax_w2p_process_batch', [ $this, 'ajax_process_batch' ] );
 		add_action( 'wp_ajax_w2p_media_engine_reset', [ $this, 'ajax_reset_processed' ] );
+		add_action( 'wp_ajax_w2p_get_conversion_log', [ $this, 'ajax_get_conversion_log' ] );
+		add_action( 'wp_ajax_w2p_clear_conversion_log', [ $this, 'ajax_clear_conversion_log' ] );
+		add_action( 'wp_ajax_w2p_media_audit_scan', [ $this, 'ajax_audit_scan' ] );
+		add_action( 'wp_ajax_w2p_media_audit_clean', [ $this, 'ajax_audit_clean' ] );
 		
 		// Enqueue admin scripts
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_scripts' ] );
@@ -116,6 +120,12 @@ class MediaEngineModule extends W2P_Abstract_Module {
 		if ( file_exists( $clipboard_handler_path ) ) {
 			require_once $clipboard_handler_path;
 			$this->clipboard_handler = new W2P_Clipboard_Handler();
+		}
+
+		// Load Audit Service（残留媒体审计）
+		$audit_service_path = plugin_dir_path( __FILE__ ) . 'includes/services/class-audit-service.php';
+		if ( file_exists( $audit_service_path ) ) {
+			require_once $audit_service_path;
 		}
 	}
 
@@ -217,6 +227,87 @@ class MediaEngineModule extends W2P_Abstract_Module {
 	}
 
 	/**
+	 * AJAX: Get conversion log tail
+	 */
+	public function ajax_get_conversion_log() {
+		check_ajax_referer( 'w2p_media_engine_nonce', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Permission denied' );
+
+		$services_dir = plugin_dir_path( __FILE__ ) . 'includes/services/';
+		if ( ! class_exists( 'MediaEngineConversionLogger' ) ) {
+			require_once $services_dir . 'class-logger-service.php';
+		}
+
+		$logger    = new MediaEngineConversionLogger();
+		$tail      = $logger->get_log_tail( 65536 );
+		$size_info = $logger->get_log_size();
+
+		wp_send_json_success( [
+			'lines'        => $tail,
+			'size_bytes'   => $size_info['size_bytes'],
+			'size_display' => $size_info['size_formatted'],
+			'max_bytes'    => MediaEngineConversionLogger::MAX_LOG_SIZE,
+		] );
+	}
+
+	/**
+	 * AJAX: Clear conversion log
+	 */
+	public function ajax_clear_conversion_log() {
+		check_ajax_referer( 'w2p_media_engine_nonce', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Permission denied' );
+
+		$services_dir = plugin_dir_path( __FILE__ ) . 'includes/services/';
+		if ( ! class_exists( 'MediaEngineConversionLogger' ) ) {
+			require_once $services_dir . 'class-logger-service.php';
+		}
+
+		$logger    = new MediaEngineConversionLogger();
+		$logger->clear_log();
+		$size_info = $logger->get_log_size();
+
+		wp_send_json_success( [
+			'size_bytes'   => $size_info['size_bytes'],
+			'size_display' => $size_info['size_formatted'],
+		] );
+	}
+
+	/**
+	 * AJAX: 扫描 uploads 目录残留媒体（分批）
+	 */
+	public function ajax_audit_scan() {
+		check_ajax_referer( 'w2p_media_engine_nonce', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Permission denied' );
+
+		$subdir = isset( $_POST['subdir'] ) ? sanitize_text_field( wp_unslash( $_POST['subdir'] ) ) : '';
+		$offset = isset( $_POST['offset'] ) ? absint( $_POST['offset'] ) : 0;
+		$limit  = isset( $_POST['limit'] ) ? absint( $_POST['limit'] ) : 50;
+		$limit  = max( 1, min( 200, $limit ) );
+
+		$audit   = new MediaEngineAuditService();
+		$result  = $audit->scan_batch( $subdir, $offset, $limit );
+
+		wp_send_json_success( $result );
+	}
+
+	/**
+	 * AJAX: 清理已确认在桶中的本地文件（A 类）
+	 */
+	public function ajax_audit_clean() {
+		check_ajax_referer( 'w2p_media_engine_nonce', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Permission denied' );
+
+		$files = isset( $_POST['files'] ) ? (array) json_decode( wp_unslash( $_POST['files'] ), true ) : [];
+		$files = array_map( 'sanitize_text_field', $files );
+		if ( empty( $files ) ) wp_send_json_error( 'No files' );
+
+		$audit  = new MediaEngineAuditService();
+		$result = $audit->clean_files( $files );
+
+		wp_send_json_success( $result );
+	}
+
+	/**
 	 * Enqueue admin scripts
 	 */
 	public function enqueue_admin_scripts( $hook ) {
@@ -234,6 +325,15 @@ class MediaEngineModule extends W2P_Abstract_Module {
 			true
 		);
 
+		// Enqueue audit script (残留媒体审计)
+		wp_enqueue_script(
+			'w2p-media-audit',
+			plugin_dir_url( __FILE__ ) . 'assets/js/media-audit.js',
+			[ 'jquery' ],
+			'1.0.0',
+			true
+		);
+
         // Register sub-module assets for on-demand use
         wp_register_script( 'w2p-clipboard-upload', plugin_dir_url( WP_GENIUS_FILE ) . "assets/js/modules/clipboard-upload.js", array( 'w2p-core-js' ), '1.0.0', true );
 
@@ -242,6 +342,11 @@ class MediaEngineModule extends W2P_Abstract_Module {
 			'ajax_url'              => admin_url( 'admin-ajax.php' ),
 			'nonce'                 => wp_create_nonce( 'w2p_media_engine_nonce' ),
 			'max_no_progress_rounds'=> 3, // 全自动处理防死循环阈值（连续 N 轮无进展即停止）
+			'i18n'                  => [
+				'log_empty'     => __( 'Log is empty', 'wp-genius' ),
+				'log_cleared'   => __( 'Log cleared', 'wp-genius' ),
+				'clear_confirm' => __( 'Are you sure you want to clear all logs? This cannot be undone.', 'wp-genius' ),
+			],
 		] );
 	}
 

@@ -37,7 +37,7 @@ return [
                             'id'         => 'keep_original',
                             'type'       => 'switcher',
                             'title'      => __('Keep Original', 'wp-genius'),
-                            'desc'       => __('If disabled, original JPG/PNG/GIF files will be deleted after conversion.', 'wp-genius'),
+                            'label'       => __('If disabled, original JPG/PNG/GIF files will be deleted after conversion.', 'wp-genius'),
                             'default'    => false,
                         ],
                         [
@@ -47,21 +47,25 @@ return [
                         ],
                         [
                             'id'      => 'scan_limit',
-                            'type'    => 'number',
+                            'type'    => 'slider',
                             'title'   => __('Scan Limit', 'wp-genius'),
-                            'desc'    => __('Maximum number of media items to scan (1-10000).', 'wp-genius'),
-                            'default' => 1000,
-                            'min'     => 1,
-                            'max'     => 10000,
+                            'label'    => __('Maximum number of media items to scan (1-5000).', 'wp-genius'),
+                            'subtitle' => __( 'Number of media items to scan in each execution.', 'wp-genius' ),
+                            'min'     => 100,
+                            'max'     => 5000,
+                            'step'    => 100,
+                            'default' => 100,
                         ],
                         [
                             'id'      => 'batch_size',
-                            'type'    => 'number',
+                            'type'    => 'slider',
                             'title'   => __('Batch Size', 'wp-genius'),
-                            'desc'    => __('Items per batch (1-50).', 'wp-genius'),
+                            'label'    => __('Items per batch (1-50).', 'wp-genius'),
+                            'subtitle' => __( 'Number of media items to process in each execution.', 'wp-genius' ),
                             'default' => 10,
-                            'min'     => 1,
+                            'min'     => 5,
                             'max'     => 50,
+                            'step'    => 5,
                         ],
                     ],
                 ],
@@ -117,17 +121,37 @@ return [
 							'id'      => 'clipboard_enabled',
 							'type'    => 'switcher',
 							'title'   => __('Enable Module', 'wp-genius'),
-							'desc'    => __('Allow pasting images directly into the editor and media library.', 'wp-genius'),
+							'label'    => __('Allow pasting images directly into the editor and media library.', 'wp-genius'),
 							'default' => true,
 						],
 						[
 							'id'      => 'clipboard_prefix',
 							'type'    => 'text',
 							'title'   => __('Image Paste Prefix', 'wp-genius'),
-							'desc'    => __('Prefix added to the filename of images uploaded via clipboard (e.g., prefix_uniqueid.png).', 'wp-genius'),
+							'label'    => __('Prefix added to the filename of images uploaded via clipboard (e.g., prefix_uniqueid.png).', 'wp-genius'),
 							'default' => 'clipboard_',
 							'dependency' => ['clipboard_enabled', '==', 'true'],
 						],
+                    ],
+                ],
+
+                // Tab 5: Residual Media Audit (Content Field)
+                [
+                    'title'  => __('残留媒体审计', 'wp-genius'),
+                    'icon'   => 'fa fa-search',
+                    'fields' => [
+                        [
+                            'type'    => 'content',
+                            'content' => (function() use ($module_dir) {
+                                $audit_path = $module_dir . 'views/audit-settings.php';
+                                if (file_exists($audit_path)) {
+                                    ob_start();
+                                    include $audit_path;
+                                    return ob_get_clean();
+                                }
+                                return '<p>' . __('Residual media audit not available.', 'wp-genius') . '</p>';
+                            })(),
+                        ],
                     ],
                 ],
             ],
