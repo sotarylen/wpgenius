@@ -97,7 +97,7 @@ class AI_Provider_Gemini implements AI_Provider_Interface {
 	 */
 	public function set_api_key( string $api_key ): void {
 		$this->api_key = $api_key;
-		update_option( 'w2p_ai_gemini_key', base64_encode( $api_key ) );
+		update_option( 'w2p_ai_gemini_key', W2P_Crypto::encrypt( $api_key ) );
 	}
 
 	/**
@@ -116,7 +116,22 @@ class AI_Provider_Gemini implements AI_Provider_Interface {
 	 */
 	private function get_stored_api_key(): string {
 		$stored = get_option( 'w2p_ai_gemini_key', '' );
-		return $stored ? base64_decode( $stored ) : '';
+		if ( empty( $stored ) ) {
+			return '';
+		}
+
+		$key = W2P_Crypto::decrypt( $stored );
+
+		// Legacy base64-encoded value: decode and re-encrypt on read (lazy migration).
+		if ( null === $key ) {
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- Required to migrate legacy plaintext-key storage.
+			$key = base64_decode( $stored );
+			if ( is_string( $key ) && '' !== $key ) {
+				update_option( 'w2p_ai_gemini_key', W2P_Crypto::encrypt( $key ) );
+			}
+		}
+
+		return is_string( $key ) ? $key : '';
 	}
 
 	/**
