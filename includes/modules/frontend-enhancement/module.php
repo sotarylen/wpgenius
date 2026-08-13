@@ -226,150 +226,175 @@ class W2P_FrontendEnhancementModule extends W2P_Abstract_Module {
 
 		$settings = $this->get_settings();
 
-		// Styles are now loaded globally via w2p_core_enqueue_scripts
-		// Only load Admin UI JS if we are actually going to use Lightbox or potentially other interactive features
-		$load_admin_ui = false;
-
 		// Lightbox assets
 		if ( ! empty( $settings['lightbox_enabled'] ) && $this->has_image_content() ) {
-			$load_admin_ui = true;
-
-			wp_enqueue_script(
-				'wpg-lightbox',
-				plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/js/lightbox.js',
-				array( 'jquery', 'w2p-admin-ui' ),
-				W2P_VERSION, // Feature: support 3 animation types (fade, slide, zoom)
-				true
-			);
-
-			wp_localize_script(
-				'wpg-lightbox',
-				'wpgLightboxConfig',
-				array(
-					'postId'         => get_the_ID(),
-					'ajaxUrl'        => admin_url( 'admin-ajax.php' ),
-					'nonce'          => wp_create_nonce( 'wpg_lightbox_action' ),
-					'canSetFeatured' => current_user_can( 'edit_posts' ),
-					'canDelete'      => current_user_can( 'manage_options' ), // Only admins can delete
-					'settings'       => $settings,
-					'i18n'           => array(
-						'close'         => __( 'Close', 'wp-genius' ),
-						'prev'          => __( 'Previous', 'wp-genius' ),
-						'next'          => __( 'Next', 'wp-genius' ),
-						'zoomIn'        => __( 'Zoom In', 'wp-genius' ),
-						'zoomOut'       => __( 'Zoom Out', 'wp-genius' ),
-						'setFeatured'   => __( 'Set as Featured', 'wp-genius' ),
-						'deleteImage'   => __( 'Delete Image', 'wp-genius' ),
-						'confirmDelete' => __( 'Are you sure you want to permanently delete this image from media library?', 'wp-genius' ),
-						'autoplay'      => __( 'Autoplay', 'wp-genius' ),
-						'downloading'   => __( 'Downloading...', 'wp-genius' ),
-						'success'       => __( 'Featured image updated!', 'wp-genius' ),
-						'error'         => __( 'An error occurred.', 'wp-genius' ), // [FIX] Generic error message (was misleadingly "Failed to update featured image")
-						'deleteSuccess' => __( 'Image deleted successfully!', 'wp-genius' ),
-						'deleteError'   => __( 'Failed to delete image.', 'wp-genius' ),
-					),
-				)
-			);
+			$this->enqueue_lightbox_assets();
 		}
 
 		// Plyr video player assets
 		if ( ! empty( $settings['video_enabled'] ) && $this->has_video_content() ) {
-			// Enqueue Plyr from CDN
-			wp_enqueue_style(
-				'plyr-css',
-				'https://cdn.plyr.io/3.7.8/plyr.css',
-				array(),
-				'3.7.8'
-			);
-
-			// Enqueue custom video player styles
-			wp_enqueue_style(
-				'wpg-video-player',
-				plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/css/video-player.css',
-				array( 'plyr-css' ),
-				W2P_VERSION
-			);
-
-			wp_enqueue_script(
-				'plyr-js',
-				'https://cdn.plyr.io/3.7.8/plyr.polyfilled.js',
-				array(),
-				'3.7.8',
-				true
-			);
-
-			// Custom video optimizer script
-			wp_enqueue_script(
-				'wpg-video-optimizer',
-				plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/js/video-optimizer.js',
-				array( 'jquery', 'plyr-js' ),
-				W2P_VERSION,
-				true
-			);
-
-			wp_localize_script(
-				'wpg-video-optimizer',
-				'wpgVideoConfig',
-				array(
-					'settings' => $settings,
-					'i18n'     => array(
-						'openInLightbox' => __( 'Play in Lightbox', 'wp-genius' ),
-					),
-				)
-			);
+			$this->enqueue_video_assets();
 		}
 
 		// Reader enhancement assets (Strict Check: Only if container ID exists)
 		if ( ! empty( $settings['reader_enabled'] ) && $this->has_reader_container() ) {
-			wp_enqueue_style(
-				'wpg-reader-css',
-				plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/css/reader.css',
-				array(),
-				W2P_VERSION
-			);
-
-			wp_enqueue_script(
-				'wpg-reader-js',
-				plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/js/reader.js',
-				array( 'jquery' ),
-				W2P_VERSION,
-				true
-			);
-
-			wp_localize_script(
-				'wpg-reader-js',
-				'wpgReaderConfig',
-				array(
-					'postId'   => get_the_ID(),
-					'settings' => $settings,
-				)
-			);
-		}
-
-		// Load Admin UI only if needed
-		if ( $load_admin_ui ) {
-			// [Fix] Enqueue Core CSS for Lightbox/UI styles (registered globally in wp-genius.php)
-			wp_enqueue_style( 'w2p-core-css' );
-
-			wp_enqueue_script(
-				'w2p-admin-ui',
-				plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/w2p-admin-ui.js',
-				array( 'jquery' ),
-				W2P_VERSION,
-				true
-			);
-			wp_localize_script(
-				'w2p-admin-ui',
-				'w2p_ui_i18n',
-				array(
-					'confirm'        => __( 'Confirm', 'wp-genius' ),
-					'cancel'         => __( 'Cancel', 'wp-genius' ),
-					'confirm_title'  => __( 'Confirmation', 'wp-genius' ),
-					'settings_saved' => __( 'Settings saved successfully!', 'wp-genius' ),
-				)
-			);
+			$this->enqueue_reader_assets();
 		}
 	}
+
+
+
+	/**
+	 * Enqueue Lightbox assets (singular content with images).
+	 *
+	 * @return void
+	 */
+	private function enqueue_lightbox_assets() {
+// Lightbox assets
+if ( ! empty( $settings['lightbox_enabled'] ) && $this->has_image_content() ) {
+	$load_admin_ui = true;
+	wp_enqueue_script(
+		'wpg-lightbox',
+		plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/js/lightbox.js',
+		array( 'jquery', 'w2p-admin-ui' ),
+		W2P_VERSION, // Feature: support 3 animation types (fade, slide, zoom)
+		true
+	);
+	wp_localize_script(
+		'wpg-lightbox',
+		'wpgLightboxConfig',
+		array(
+			'postId'         => get_the_ID(),
+			'ajaxUrl'        => admin_url( 'admin-ajax.php' ),
+			'nonce'          => wp_create_nonce( 'wpg_lightbox_action' ),
+			'canSetFeatured' => current_user_can( 'edit_posts' ),
+			'canDelete'      => current_user_can( 'manage_options' ), // Only admins can delete
+			'settings'       => $settings,
+			'i18n'           => array(
+				'close'         => __( 'Close', 'wp-genius' ),
+				'prev'          => __( 'Previous', 'wp-genius' ),
+				'next'          => __( 'Next', 'wp-genius' ),
+				'zoomIn'        => __( 'Zoom In', 'wp-genius' ),
+				'zoomOut'       => __( 'Zoom Out', 'wp-genius' ),
+				'setFeatured'   => __( 'Set as Featured', 'wp-genius' ),
+				'deleteImage'   => __( 'Delete Image', 'wp-genius' ),
+				'confirmDelete' => __( 'Are you sure you want to permanently delete this image from media library?', 'wp-genius' ),
+				'autoplay'      => __( 'Autoplay', 'wp-genius' ),
+				'downloading'   => __( 'Downloading...', 'wp-genius' ),
+				'success'       => __( 'Featured image updated!', 'wp-genius' ),
+				'error'         => __( 'An error occurred.', 'wp-genius' ), // [FIX] Generic error message (was misleadingly "Failed to update featured image")
+				'deleteSuccess' => __( 'Image deleted successfully!', 'wp-genius' ),
+				'deleteError'   => __( 'Failed to delete image.', 'wp-genius' ),
+			),
+		)
+	);
+}
+	}
+
+	/**
+	 * Enqueue Plyr video player assets (singular content with videos).
+	 *
+	 * @return void
+	 */
+	private function enqueue_video_assets() {
+// Plyr video player assets
+if ( ! empty( $settings['video_enabled'] ) && $this->has_video_content() ) {
+	// Enqueue Plyr from CDN
+	wp_enqueue_style(
+		'plyr-css',
+		'https://cdn.plyr.io/3.7.8/plyr.css',
+		array(),
+		'3.7.8'
+	);
+	// Enqueue custom video player styles
+	wp_enqueue_style(
+		'wpg-video-player',
+		plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/css/video-player.css',
+		array( 'plyr-css' ),
+		W2P_VERSION
+	);
+	wp_enqueue_script(
+		'plyr-js',
+		'https://cdn.plyr.io/3.7.8/plyr.polyfilled.js',
+		array(),
+		'3.7.8',
+		true
+	);
+	// Custom video optimizer script
+	wp_enqueue_script(
+		'wpg-video-optimizer',
+		plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/js/video-optimizer.js',
+		array( 'jquery', 'plyr-js' ),
+		W2P_VERSION,
+		true
+	);
+	wp_localize_script(
+		'wpg-video-optimizer',
+		'wpgVideoConfig',
+		array(
+			'settings' => $settings,
+			'i18n'     => array(
+				'openInLightbox' => __( 'Play in Lightbox', 'wp-genius' ),
+			),
+		)
+	);
+}
+	}
+
+	/**
+	 * Enqueue reader enhancement assets (container present).
+	 *
+	 * @return void
+	 */
+	private function enqueue_reader_assets() {
+// Reader enhancement assets (Strict Check: Only if container ID exists)
+if ( ! empty( $settings['reader_enabled'] ) && $this->has_reader_container() ) {
+	wp_enqueue_style(
+		'wpg-reader-css',
+		plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/css/reader.css',
+		array(),
+		W2P_VERSION
+	);
+	wp_enqueue_script(
+		'wpg-reader-js',
+		plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/js/reader.js',
+		array( 'jquery' ),
+		W2P_VERSION,
+		true
+	);
+	wp_localize_script(
+		'wpg-reader-js',
+		'wpgReaderConfig',
+		array(
+			'postId'   => get_the_ID(),
+			'settings' => $settings,
+		)
+	);
+}
+// Load Admin UI only if needed
+if ( $load_admin_ui ) {
+	// [Fix] Enqueue Core CSS for Lightbox/UI styles (registered globally in wp-genius.php)
+	wp_enqueue_style( 'w2p-core-css' );
+	wp_enqueue_script(
+		'w2p-admin-ui',
+		plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/w2p-admin-ui.js',
+		array( 'jquery' ),
+		W2P_VERSION,
+		true
+	);
+	wp_localize_script(
+		'w2p-admin-ui',
+		'w2p_ui_i18n',
+		array(
+			'confirm'        => __( 'Confirm', 'wp-genius' ),
+			'cancel'         => __( 'Cancel', 'wp-genius' ),
+			'confirm_title'  => __( 'Confirmation', 'wp-genius' ),
+			'settings_saved' => __( 'Settings saved successfully!', 'wp-genius' ),
+		)
+	);
+}
+	}
+
 
 	/**
 	 * Initialize Lightbox functionality
