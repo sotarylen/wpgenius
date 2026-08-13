@@ -84,8 +84,18 @@ class W2P_SystemHealthModule extends W2P_Abstract_Module {
 		);
 	}
 
+	/**
+	 * 遗留渲染入口（已由 CSF tabbed 替代，保留仅为兼容旧调用）。
+	 *
+	 * @return void
+	 */
 	public function render_settings() {
-		$this->render_view( 'settings' );
+		// 视图已拆分为 CSF tabbed 片段（views/tab-*.php），此方法不再渲染独立页面。
+		$section = array(
+			'title' => __( 'System Health', 'wp-genius' ),
+			'body'  => __( 'Use the System Health tab inside WP Genius Settings.', 'wp-genius' ),
+		);
+		echo '<h2>' . esc_html( $section['title'] ) . '</h2><p>' . esc_html( $section['body'] ) . '</p>';
 	}
 
 	/**
