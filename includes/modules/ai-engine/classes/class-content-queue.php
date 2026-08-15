@@ -2,7 +2,7 @@
 /**
  * Content Queue
  *
- * 内容生成队列
+ * Content generation queue
  *
  * @package WP_Genius
  * @subpackage Modules/AIEngine/Classes
@@ -144,7 +144,7 @@ class W2P_AI_Content_Queue {
 
 		$offset = ( $page - 1 ) * $per_page;
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders -- 动态 WHERE 片段值经 prepare 占位符传递（运行时占位符与参数严格匹配）；LIMIT/OFFSET 以 %d 绑定。
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders -- Dynamic WHERE fragment values are passed through prepare placeholders (runtime placeholders strictly match arguments); LIMIT/OFFSET bound with %d.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT q.*, p.name as prompt_name
@@ -176,14 +176,14 @@ class W2P_AI_Content_Queue {
 	}
 
 	/**
-	 * 单条任务处理超时阈值（秒）。超过该时长仍处于 processing 的任务视为卡死，回收重试。
+	 * Per-task processing timeout threshold (seconds). Tasks still in processing beyond this duration are considered stuck and are recycled for retry.
 	 *
 	 * @var int
 	 */
 	const PROCESSING_TIMEOUT = 900; // 15 minutes
 
 	/**
-	 * 默认每 tick 处理条数（平衡 cron 单次执行时长与吞吐）。
+	 * Default number of items processed per tick (balancing cron single-run duration and throughput).
 	 *
 	 * @var int
 	 */
@@ -192,17 +192,17 @@ class W2P_AI_Content_Queue {
 	/**
 	 * Process queue
 	 *
-	 * 每次处理一小批（默认 3 条）并自动链式派发下一轮，避免单次 Cron 长时间阻塞；
-	 * 对超时未完成的 processing 任务做回收重试，保证断点续跑。
+	 * Processes a small batch at a time (default 3 items) and automatically chain-dispatches the next round, avoiding a long Cron blocking run;
+	 * Recycles and retries processing tasks that timed out without completing, ensuring resumable runs.
 	 *
-	 * @param int $limit 本次处理的条数上限。
+	 * @param int $limit Maximum number of items to process in this run.
 	 * @return bool
 	 */
 	public function process_queue( int $limit = self::DEFAULT_BATCH_SIZE ): bool {
 		global $wpdb;
 
-		// 1. 回收卡死任务：processing 超过阈值（进程崩溃/超时）且未超最大重试次数 → 回到 pending 重试；
-		//    已超重试上限的标记为 failed，避免无限滞留 pending。
+		// 1. Recycle stuck tasks: processing beyond the threshold (process crash/timeout) and not past max retries -> back to pending for retry;
+		//    Those past the retry limit are marked failed to avoid lingering in pending forever.
 		$wpdb->query(
 			$wpdb->prepare(
 				"UPDATE {$wpdb->prefix}w2p_ai_queue
@@ -219,7 +219,7 @@ class W2P_AI_Content_Queue {
 			)
 		);
 
-		// 2. 取一批 pending 任务。
+		// 2. Fetch a batch of pending tasks.
 		$limit = max( 1, min( 10, $limit ) );
 		$items = $wpdb->get_results(
 			$wpdb->prepare(
@@ -241,7 +241,7 @@ class W2P_AI_Content_Queue {
 			$this->process_item( $item );
 		}
 
-		// 3. 若仍有余量任务，链式派发下一轮（WP-Cron 单次事件），批量生成的任务无需等待下一个 hourly tick。
+		// 3. If tasks remain, chain-dispatch the next round (a WP-Cron single event) so batch-generated tasks do not wait for the next hourly tick.
 		$remaining = (int) $wpdb->get_var(
 			"SELECT COUNT(*) FROM {$wpdb->prefix}w2p_ai_queue WHERE status = 'pending' AND attempts < max_attempts"
 		);

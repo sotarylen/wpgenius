@@ -19,7 +19,7 @@ class MediaEngineThumbnailService {
 
 	public function regenerate( $attachment_id ) {
 		$cmd = sprintf( 'wp media regenerate %d --only-missing --yes 2>&1', $attachment_id );
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI 调用，附件 ID 经 absint 强转。
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI invocation; attachment ID is cast via absint.
 		exec( $cmd, $output, $return_code );
 		$stats = $this->parse_thumbnail_stats( $output, 1 );
 		$this->logger->log_thumbnail_result( array( $attachment_id ), $stats['success'], $stats['skip'], $stats['failed'] );
@@ -38,7 +38,7 @@ class MediaEngineThumbnailService {
 		}
 		$ids_str = implode( ' ', $attachment_ids );
 		$cmd     = sprintf( 'wp media regenerate %s --only-missing --yes 2>&1', $ids_str );
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI 调用，附件 ID 经 absint 强转。
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI invocation; attachment ID is cast via absint.
 		exec( $cmd, $output, $return_code );
 		$stats = $this->parse_thumbnail_stats( $output, count( $attachment_ids ) );
 		$this->logger->log_thumbnail_result( $attachment_ids, $stats['success'], $stats['skip'], $stats['failed'] );
@@ -49,13 +49,13 @@ class MediaEngineThumbnailService {
 	}
 
 	/**
-	 * 解析 wp media regenerate 输出中的统计信息
+	 * Parse statistics from the wp media regenerate output
 	 *
-	 * 支持格式：Success: Regenerated 20 of 20 images. / Skipped: N
-	 * 无法解析时降级：success=0、skip=0、failed=总数（fallback_total）
+	 * Supported format: Success: Regenerated 20 of 20 images. / Skipped: N
+	 * Falls back when parsing fails: success=0, skip=0, failed=total (fallback_total)
 	 *
-	 * @param array $output         命令输出行
-	 * @param int   $fallback_total 无法解析时使用的总数（附件数）
+	 * @param array $output         Command output lines
+	 * @param int   $fallback_total Total used when parsing fails (attachment count)
 	 * @return array { success:int, skip:int, failed:int }
 	 */
 	private function parse_thumbnail_stats( $output, $fallback_total = 0 ) {

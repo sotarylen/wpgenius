@@ -1,8 +1,8 @@
 <?php
 /**
- * WP Genius Accelerate — 删除文章及图片
+ * WP Genius Accelerate — Delete Posts with Images
  *
- * 从 module.php 拆分（God class 重构）。
+ * Split from module.php (refactored from the God class).
  *
  * @package WP_Genius
  * @subpackage Modules/Accelerate
@@ -65,12 +65,39 @@ class W2P_Accelerate_ImageCleanup {
 		add_action( 'wp_enqueue_scripts', array( $this, 'cleanup_images_enqueue_frontend_scripts' ) );
 		add_action( 'wp_footer', array( $this, 'cleanup_images_print_footer_scripts' ) );
 
-		// Bulk Actions
+		// Bulk Actions — scoped to the post and albums post types only (bulk actions are per-screen hooks).
 		add_filter( 'bulk_actions-edit-post', array( $this, 'cleanup_images_register_bulk_actions' ) );
-		add_filter( 'bulk_actions-edit-page', array( $this, 'cleanup_images_register_bulk_actions' ) );
-		// Note: 'handle_bulk_actions-{screen}' hooks need precise screen IDs.
+		add_filter( 'bulk_actions-edit-albums', array( $this, 'cleanup_images_register_bulk_actions' ) );
 		add_filter( 'handle_bulk_actions-edit-post', array( $this, 'cleanup_images_handle_bulk_actions' ), 10, 3 );
-		add_filter( 'handle_bulk_actions-edit-page', array( $this, 'cleanup_images_handle_bulk_actions' ), 10, 3 );
+		add_filter( 'handle_bulk_actions-edit-albums', array( $this, 'cleanup_images_handle_bulk_actions' ), 10, 3 );
+	}
+
+	/**
+	 * Whether the Delete w/ Images feature applies to the given post type.
+	 *
+	 * Reads the user-configurable post type list (accelerate_delete_with_images_post_types);
+	 * falls back to posts + albums when the option has not been saved yet.
+	 *
+	 * @param string $post_type Post type slug.
+	 * @return bool
+	 */
+	private function cleanup_images_allowed_post_type( $post_type ) {
+		$settings = $this->module->get_settings();
+		$raw      = isset( $settings['accelerate_delete_with_images_post_types'] )
+			? (array) $settings['accelerate_delete_with_images_post_types']
+			: array( 'post', 'albums' );
+
+		$valid    = W2P_AccelerateModule::get_months_dropdown_post_type_slugs();
+		$selected = array();
+
+		foreach ( $raw as $slug ) {
+			$slug = sanitize_key( (string) $slug );
+			if ( '' !== $slug && in_array( $slug, $valid, true ) ) {
+				$selected[] = $slug;
+			}
+		}
+
+		return in_array( $post_type, $selected, true );
 	}
 	/**
 	 * Register Bulk Action
@@ -92,6 +119,11 @@ class W2P_Accelerate_ImageCleanup {
 
 		foreach ( $post_ids as $post_id ) {
 			if ( ! current_user_can( 'delete_post', $post_id ) ) {
+				continue;
+			}
+
+			// Only the scoped post types may use this bulk action.
+			if ( ! $this->cleanup_images_allowed_post_type( get_post_type( $post_id ) ) ) {
 				continue;
 			}
 
@@ -117,6 +149,11 @@ class W2P_Accelerate_ImageCleanup {
 	 * Add "Delete w/ Images" link to row actions
 	 */
 	public function cleanup_images_add_row_action( $actions, $post ) {
+		// Only for the scoped post types (post / albums).
+		if ( ! $this->cleanup_images_allowed_post_type( $post->post_type ) ) {
+			return $actions;
+		}
+
 		// Only for posts with permission
 		if ( ! current_user_can( 'delete_post', $post->ID ) ) {
 			return $actions;
@@ -150,13 +187,13 @@ class W2P_Accelerate_ImageCleanup {
 	 */
 	public function cleanup_images_add_admin_bar_action( $wp_admin_bar ) {
 		if ( ! is_admin() && is_singular() ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- admin bar 链接构造只读；实际删除在带 check_admin_referer 的 admin-post handler。
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 同上（重定向 URL 读取）。
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- admin bar link construction is read-only; the actual deletion happens in the admin-post handler with check_admin_referer.
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- Same as above (redirect URL read).
 			$post_id = get_the_ID();
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- admin bar 链接构造只读；实际删除在带 check_admin_referer 的 admin-post handler。
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 同上。
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- admin bar link construction is read-only; the actual deletion happens in the admin-post handler with check_admin_referer.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- Same as above.
 		} elseif ( is_admin() && isset( $_GET['post'] ) && $_GET['action'] === 'edit' ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 上层方法已验 nonce（见方法开头）。
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- The calling method has already verified the nonce (see the top of the method).
 			$post_id = (int) $_GET['post'];
 		} else {
 			return;
@@ -167,7 +204,7 @@ class W2P_Accelerate_ImageCleanup {
 		}
 
 		$post = get_post( $post_id );
-		if ( ! $post || 'trash' === $post->post_status ) {
+		if ( ! $post || ! $this->cleanup_images_allowed_post_type( $post->post_type ) || 'trash' === $post->post_status ) {
 			return;
 		}
 
@@ -212,6 +249,10 @@ class W2P_Accelerate_ImageCleanup {
 		global $post;
 
 		if ( ! $post || ! current_user_can( 'delete_post', $post->ID ) ) {
+			return;
+		}
+
+		if ( ! $this->cleanup_images_allowed_post_type( $post->post_type ) ) {
 			return;
 		}
 
@@ -343,6 +384,11 @@ class W2P_Accelerate_ImageCleanup {
 
 		if ( ! current_user_can( 'delete_post', $post_id ) ) {
 			wp_die( esc_html__( 'You do not have permission to delete this post.', 'wp-genius' ) );
+		}
+
+		// Defense in depth: only the scoped post types may use this action.
+		if ( ! $this->cleanup_images_allowed_post_type( get_post_type( $post_id ) ) ) {
+			wp_die( esc_html__( 'This action is not available for this post type.', 'wp-genius' ) );
 		}
 
 		$result = $this->cleanup_images_process_single_post_deletion( $post_id );

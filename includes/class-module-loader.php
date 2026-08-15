@@ -5,10 +5,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 
 /**
- * 模组加载器
+ * Module loader
  *
- * 核心负责自动扫描、发现并实例化 modules/ 目录下的所有模组。
- * 管理模组的生命周期，包括根据配置启用/禁用模组，以及触发相应的钩子函数，是插件模块化架构的核心驱动。
+ * The core automatically scans, discovers, and instantiates all modules in the modules/ directory.
+ * It manages the module lifecycle, including enabling/disabling modules per configuration and triggering the corresponding hooks; it is the core driver of the plugin's modular architecture.
  *
  * @package WP_Genius
  */
@@ -20,16 +20,16 @@ class W2P_Module_Loader {
 		$this->modules_dir = $modules_dir ? $modules_dir : plugin_dir_path( __FILE__ ) . 'modules/';
 	}
 
-	// 发现并包含 modules 目录下每个模块的 main 文件（约定为 module.php）
-	// 按需加载：默认仅加载已启用模块；设置页需展示全部模块开关，传 $include_all=true。
+	// Discover and include each module's main file in the modules directory (conventionally module.php)
+	// Lazy loading: by default only enabled modules are loaded; the settings page needs to show all module toggles, pass $include_all=true.
 	public function discover( $include_all = false ) {
-		// 从 includes/modules 目录加载模块
+		// Load modules from the includes/modules directory
 		if ( is_dir( $this->modules_dir ) ) {
 			$this->load_modules_from_directory( $this->modules_dir, $include_all );
 		}
 	}
 
-	// 从指定目录加载模块
+	// Load modules from the specified directory
 	protected function load_modules_from_directory( $directory, $include_all = false ) {
 		// Use simpler glob which is faster than scandir + custom filtering often
 		$dirs = glob( $directory . '*', GLOB_ONLYDIR );
@@ -42,12 +42,12 @@ class W2P_Module_Loader {
 		foreach ( $dirs as $path ) {
 			$dirname = basename( $path );
 
-			// 已实例化（如 init() 已加载启用模块，设置页再次 discover(true) 时跳过）。
+			// Already instantiated (e.g. init() already loaded enabled modules; skip when the settings page calls discover(true) again).
 			if ( isset( $this->modules[ $dirname ] ) ) {
 				continue;
 			}
 
-			// 按需加载：非管理场景（前台/Cron/REST）只加载启用模块，避免解析未启用模块代码。
+			// Lazy loading: non-admin contexts (front-end/Cron/REST) only load enabled modules to avoid parsing disabled module code.
 			if ( ! $include_all ) {
 				$module_key = 'module_' . $dirname;
 				$is_enabled = ! empty( $settings[ $module_key ] );
@@ -89,7 +89,7 @@ class W2P_Module_Loader {
 		return 'W2P_' . implode( '', $parts ) . 'Module';
 	}
 
-	// 初始化已启用的模块
+	// Initialize enabled modules
 	public function init() {
 		$this->discover();
 		$settings = get_option( 'w2p_settings', array() );

@@ -50,7 +50,7 @@
 
         <!-- Deliberate direct system-function usage in tooling/services layers:
              file logging (W2P logger services), cURL multi-download (smart-aui),
-             mysqli external DB (cms-migrator), base64 codec (W2P_Crypto),
+             base64 codec (W2P_Crypto),
              error_log (W2P_Logger backend), runtime ini_set, custom cron interval. -->
         <exclude name="WordPress.WP.AlternativeFunctions"/>
         <exclude name="WordPress.PHP.DevelopmentFunctions.error_log_error_log"/>

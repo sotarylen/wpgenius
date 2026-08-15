@@ -103,7 +103,7 @@ jQuery(document).ready(function($) {
 		}
 		$.post(ajaxurl, {
 			action: 'w2p_ai_get_models',
-			nonce: '<?php echo $nonce; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- 内部值/自转义输出嵌入 JS/模板，非用户输入。 ?>',
+			nonce: '<?php echo $nonce; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Internal value / self-escaped output embedded in JS/templates, not user input. ?>',
 			provider: provider
 		}, function(res) {
 			if (res.success) {
@@ -130,7 +130,7 @@ jQuery(document).ready(function($) {
 		$('#ai-generating').show();
 		$.post(ajaxurl, {
 			action: 'w2p_ai_generate',
-			nonce: '<?php echo $nonce; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- 内部值/自转义输出嵌入 JS/模板，非用户输入。 ?>',
+			nonce: '<?php echo $nonce; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Internal value / self-escaped output embedded in JS/templates, not user input. ?>',
 			provider: provider,
 			model: model,
 			prompt_id: promptId,
@@ -174,7 +174,7 @@ jQuery(document).ready(function($) {
 		if (!title) title = window._aiGeneratedContent.substring(0, 100);
 		$.post(ajaxurl, {
 			action: 'w2p_ai_create_draft',
-			nonce: '<?php echo $nonce; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- 内部值/自转义输出嵌入 JS/模板，非用户输入。 ?>',
+			nonce: '<?php echo $nonce; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Internal value / self-escaped output embedded in JS/templates, not user input. ?>',
 			title: title,
 			content: body
 		}, function(res) {

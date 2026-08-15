@@ -2,8 +2,8 @@
 /**
  * Smart AUI — Settings Handler
  *
- * 负责 CSF 设置与 legacy smart_aui_settings 选项之间的同步、读取与注册。
- * 从 module.php 拆分（原 God class 重构）。
+ * Handles syncing, reading, and registering between the CSF settings and the legacy smart_aui_settings option.
+ * Split from module.php (refactored from the original God class).
  *
  * @package WP_Genius
  * @subpackage Modules/SmartAUI
@@ -37,10 +37,10 @@ class W2P_SmartAUI_Settings {
 	/**
 	 * Sync CSF Settings to Legacy Option
 	 *
-	 * 该模块集成的 smart-auto-upload-images 库依赖 `smart_aui_settings` 选项。
-	 * 此方法将 WP Genius 的 CSF 设置同步到该选项，确保库能正常工作。
+	 * The smart-auto-upload-images library integrated by this module depends on the `smart_aui_settings` option.
+	 * This method syncs WP Genius's CSF settings into that option so the library works correctly.
 	 *
-	 * @param array $w2p_settings 全局设置数组。
+	 * @param array $w2p_settings Global settings array.
 	 * @return void
 	 */
 	public function sync_settings( $w2p_settings ) {
@@ -56,7 +56,7 @@ class W2P_SmartAUI_Settings {
 		$legacy_settings = get_option( 'smart_aui_settings', array() );
 		$has_changes     = false;
 
-		// 映射 CSF 字段 ID 到 Legacy 字段 ID
+		// Map CSF field IDs to Legacy field IDs
 		$map = array(
 			'smart_aui_base_url'                   => 'base_url',
 			'smart_aui_image_name_pattern'         => 'image_name_pattern',
@@ -76,10 +76,10 @@ class W2P_SmartAUI_Settings {
 
 		foreach ( $map as $csf_key => $legacy_key ) {
 			if ( isset( $w2p_settings[ $csf_key ] ) ) {
-				// CSF 返回 true/false 或 1/0，确保格式一致
+				// CSF returns true/false or 1/0; ensure a consistent format
 				$value = $w2p_settings[ $csf_key ];
 
-				// 针对 exclude_post_types 特殊处理，确保是数组
+				// Special-case exclude_post_types to ensure it is an array
 				if ( 'exclude_post_types' === $legacy_key && ! is_array( $value ) ) {
 					$value = array();
 				}

@@ -5,10 +5,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 
 /**
- * 管理后台设置类
+ * Admin settings class
  *
- * 负责初始化基于 CSF 框架的插件设置页面，加载全局配置选项。
- * 特别处理了隐藏/禁用模组的设置数据保护逻辑，防止在模组禁用时丢失原有的配置数据。
+ * Responsible for initializing the plugin settings page built on the CSF framework and loading global configuration options.
+ * Specifically handles settings-data protection for hidden/disabled modules, preventing loss of existing configuration data when a module is disabled.
  *
  * @package WP_Genius
  */
@@ -22,16 +22,16 @@ class W2P_Admin_Settings {
 	}
 
 	/**
-	 * 注册全局设置 (原 includes/admin/options.php 逻辑合并至此)
+	 * Register global settings (logic from the former includes/admin/options.php merged here)
 	 */
 	public function register_settings() {
 		// Global Settings Prefix
 		$prefix = 'w2p_settings';
 
 		// 1. Initialize Framework
-		// CSF 已在插件文件加载阶段（is_admin 守卫）require，此处仅防御性检查。
-		// 注意：不能在此时才 require —— CSF 在文件加载时注册 init 钩子（setup），
-		// 延迟 require 会让 setup 错过 init 而无法注册设置菜单。
+		// CSF is already required during plugin file loading (is_admin guard); this is only a defensive check.
+		// Note: do not defer require to this point - CSF registers its init hook (setup) when the file is loaded,
+		// a deferred require would make setup miss init and fail to register the settings menu.
 		if ( ! class_exists( 'CSF' ) ) {
 			$csf_path = plugin_dir_path( WP_GENIUS_FILE ) . 'includes/csf/codestar-framework.php';
 			if ( file_exists( $csf_path ) ) {
@@ -43,11 +43,11 @@ class W2P_Admin_Settings {
 			CSF::createOptions(
 				$prefix,
 				array(
-					'menu_title'      => 'WP Genius Settings',
+					'menu_title'      => 'WP Genius',
 					'menu_slug'       => 'wp-genius-settings',
 					'menu_type'       => 'submenu',
 					'menu_parent'     => 'tools.php',
-					'framework_title' => 'WP Genius Settings',
+					'framework_title' => 'WP Genius',
 					'show_sub_menu'   => false,
 					'theme'           => 'light',
 				)

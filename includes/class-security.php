@@ -2,14 +2,14 @@
 /**
  * Security utilities
  *
- * 提供敏感数据（API 密钥、数据库密码等）的对称加密/解密工具。
+ * Provides symmetric encryption/decryption utilities for sensitive data (API keys, database passwords, etc.).
  *
- * 设计要点：
- * - 密钥派生自 wp_salt('auth')，每站唯一，无需额外存储密钥；
- * - 首选 libsodium (sodium_crypto_secretbox, PHP 7.2+)，OpenSSL AES-256-GCM 兜底；
- * - 密文带版本前缀 "w2p_enc:v1:"，decrypt() 对非加密格式（旧 base64/明文）返回 null，
- *   调用方可据此做惰性迁移；
- * - 每个密文使用独立随机 nonce/IV。
+ * Design notes:
+ * - The key is derived from wp_salt('auth'), unique per site, with no extra key storage needed;
+ * - libsodium is preferred (sodium_crypto_secretbox, PHP 7.2+), with OpenSSL AES-256-GCM as fallback;
+ * - Ciphertext carries the version prefix "w2p_enc:v1:"; decrypt() returns null for non-encrypted formats (legacy base64/plaintext),
+ *   allowing callers to perform lazy migration;
+ * - Each ciphertext uses its own random nonce/IV.
  *
  * @package WP_Genius
  */

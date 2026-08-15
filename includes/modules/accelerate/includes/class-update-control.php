@@ -1,8 +1,8 @@
 <?php
 /**
- * WP Genius Accelerate — 更新控制
+ * WP Genius Accelerate — Update Control
  *
- * 从 module.php 拆分（God class 重构）。
+ * Split from module.php (refactored from the God class).
  *
  * @package WP_Genius
  * @subpackage Modules/Accelerate

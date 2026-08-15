@@ -2,8 +2,8 @@
 /**
  * AI Engine — AJAX Handlers
  *
- * 全部 AJAX 端点处理（生成/验证/模型/提示词/队列/调度/用量/草稿）。
- * 从 module.php 拆分（God class 重构）。
+ * Handles all AJAX endpoints (generate/validate/models/prompts/queue/schedules/usage/drafts).
+ * Split out of module.php (God class refactor).
  *
  * @package WP_Genius
  * @subpackage Modules/AIEngine
@@ -256,7 +256,7 @@ class W2P_AI_Engine_Ajax {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-genius' ) ) );
 		}
 
-		// 手动触发可处理更大批量（浏览器端 AJAX 生命周期内）。
+		// Manual triggering can process a larger batch (within the browser-side AJAX lifecycle).
 		$result = $this->module->get_content_queue()->process_queue( 5 );
 
 		if ( $result ) {

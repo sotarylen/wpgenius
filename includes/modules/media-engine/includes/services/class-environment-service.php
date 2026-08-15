@@ -2,7 +2,7 @@
 /**
  * Media Engine Environment Checker
  *
- * 检查所有外部命令和依赖是否可用
+ * Checks whether all external commands and dependencies are available
  *
  * @package WP_Genius
  * @subpackage Modules/MediaEngine
@@ -15,9 +15,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 class MediaEngineEnvironmentChecker {
 
 	/**
-	 * 获取必需的外部命令配置
+	 * Get the required external command configuration
 	 *
-	 * @return array 命令配置数组
+	 * @return array Command configuration array
 	 */
 	private static function get_required_commands() {
 		return array(
@@ -49,9 +49,9 @@ class MediaEngineEnvironmentChecker {
 	}
 
 	/**
-	 * 检查所有环境依赖
+	 * Check all environment dependencies
 	 *
-	 * @return array 检查结果
+	 * @return array Check result
 	 */
 	public static function check_all() {
 		$results = array(
@@ -73,7 +73,7 @@ class MediaEngineEnvironmentChecker {
 			}
 		}
 
-		// 判断是否可以处理图片 (至少需要一个静态图引擎 + gif2webp)
+		// Determine whether images can be processed (needs at least one static image engine + gif2webp)
 		$has_static_engine = $results['commands']['vips']['available'] || $results['commands']['cwebp']['available'];
 		$has_gif_engine    = $results['commands']['gif2webp']['available'];
 		$has_wpcli         = $results['commands']['wp-cli']['available'];
@@ -84,11 +84,11 @@ class MediaEngineEnvironmentChecker {
 	}
 
 	/**
-	 * 检查单个命令是否可用
+	 * Check whether a single command is available
 	 *
-	 * @param string $key    命令键名
-	 * @param array  $config 配置信息
-	 * @return array 检查结果
+	 * @param string $key    Command key name
+	 * @param array  $config Configuration info
+	 * @return array Check result
 	 */
 	private static function check_command( $key, $config ) {
 		$result = array(
@@ -101,19 +101,19 @@ class MediaEngineEnvironmentChecker {
 			'error'       => '',
 		);
 
-		// 执行检查命令
+		// Run the check command
 		$output      = array();
 		$return_code = 0;
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- 静态检测命令（vips --version 等），非用户输入。
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Static detection command (vips --version etc.), not user input.
 		exec( $config['check_cmd'], $output, $return_code );
 
 		if ( $return_code === 0 && ! empty( $output ) ) {
 			$result['available'] = true;
 			$result['version']   = implode( ' ', $output );
 
-			// 获取命令路径
+			// Get the command path
 			$which_output = array();
-			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- 静态检测命令（vips --version 等），非用户输入。
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Static detection command (vips --version etc.), not user input.
 			exec( "which $key 2>&1", $which_output );
 			if ( ! empty( $which_output[0] ) ) {
 				$result['path'] = $which_output[0];
@@ -126,9 +126,9 @@ class MediaEngineEnvironmentChecker {
 	}
 
 	/**
-	 * 检查 PHP 要求
+	 * Check PHP requirements
 	 *
-	 * @return array PHP 检查结果
+	 * @return array PHP check result
 	 */
 	private static function check_php_requirements() {
 		return array(
@@ -142,14 +142,14 @@ class MediaEngineEnvironmentChecker {
 	}
 
 	/**
-	 * 获取系统信息
+	 * Get system information
 	 *
-	 * @return array 系统信息
+	 * @return array System information
 	 */
 	private static function check_system_info() {
 		$cpu_cores = 1;
 
-		// 尝试获取 CPU 核心数
+		// Try to get the number of CPU cores
 		if ( function_exists( 'shell_exec' ) ) {
 			$cores_output = shell_exec( 'getconf _NPROCESSORS_ONLN 2>&1' );
 			if ( is_numeric( trim( $cores_output ) ) ) {
@@ -165,23 +165,23 @@ class MediaEngineEnvironmentChecker {
 	}
 
 	/**
-	 * 获取推荐的并发数
+	 * Get the recommended number of concurrent workers
 	 *
-	 * @return int 推荐的并发数
+	 * @return int Recommended number of concurrent workers
 	 */
 	public static function get_recommended_workers() {
 		$system_info = self::check_system_info();
 		$cpu_cores   = $system_info['cpu_cores'];
 
-		// 推荐使用 CPU 核心数的 75%
+		// Recommended: 75% of the CPU core count
 		return max( 1, (int) floor( $cpu_cores * 0.75 ) );
 	}
 
 	/**
-	 * 渲染环境检测结果 HTML
+	 * Render environment check result HTML
 	 *
-	 * @param array $results 检查结果
-	 * @return string HTML 输出
+	 * @param array $results Check result
+	 * @return string HTML output
 	 */
 	public static function render_status_html( $results = null ) {
 		if ( $results === null ) {
@@ -205,7 +205,7 @@ class MediaEngineEnvironmentChecker {
 				</div>
 			<?php endif; ?>
 
-			<!-- 系统信息 -->
+			<!-- System Information -->
 			<div class="w2p-env-section">
 				<h5><i class="fa-solid fa-server"></i> <?php esc_html_e( 'System Information', 'wp-genius' ); ?></h5>
 				<table class="w2p-env-table">
@@ -224,7 +224,7 @@ class MediaEngineEnvironmentChecker {
 				</table>
 			</div>
 
-			<!-- PHP 环境 -->
+			<!-- PHP Environment -->
 			<div class="w2p-env-section">
 				<h5><i class="fa-brands fa-php"></i> <?php esc_html_e( 'PHP Environment', 'wp-genius' ); ?></h5>
 				<table class="w2p-env-table">
@@ -266,7 +266,7 @@ class MediaEngineEnvironmentChecker {
 				</table>
 			</div>
 
-			<!-- 外部命令 -->
+			<!-- External Commands -->
 			<div class="w2p-env-section">
 				<h5><i class="fa-solid fa-terminal"></i> <?php esc_html_e( 'External Commands', 'wp-genius' ); ?></h5>
 				<table class="w2p-env-table">

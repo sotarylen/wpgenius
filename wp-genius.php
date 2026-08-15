@@ -28,10 +28,10 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-settings.php';
 // ---------- Activation / Deactivation lifecycle (G2/G3) ----------
 
 /**
- * 创建/升级自定义表（schema 版本控制）。
+ * Create/upgrade custom tables (schema version control).
  *
- * 由激活钩子与 w2p_core_init 调用：当记录的 w2p_db_version 落后于当前版本时，
- * 重新触发各表 dbDelta（幂等），保证升级迁移。
+ * Called by the activation hook and w2p_core_init: when the stored w2p_db_version is behind the current version,
+ * re-runs dbDelta for each table (idempotent), guaranteeing upgrade migrations.
  *
  * @return void
  */
@@ -40,7 +40,7 @@ function w2p_maybe_create_tables() {
 		return;
 	}
 
-	// 触发 AI 引擎表创建（类构造时执行 dbDelta，幂等）。
+	// Trigger AI engine table creation (dbDelta runs at class construction, idempotent).
 	$ai_base = plugin_dir_path( WP_GENIUS_FILE ) . 'includes/modules/ai-engine/';
 	if ( file_exists( $ai_base . 'providers/class-provider-interface.php' ) ) {
 		require_once $ai_base . 'providers/class-provider-interface.php';
@@ -53,7 +53,7 @@ function w2p_maybe_create_tables() {
 		require_once $ai_base . 'classes/class-content-queue.php';
 		require_once $ai_base . 'classes/class-scheduler.php';
 
-		// 构造即触发 prompts/queue/schedules 三张表创建。
+		// Constructing triggers creation of the prompts/queue/schedules tables.
 		new W2P_AI_Prompt_Engine();
 		$provider_manager = new W2P_AI_Provider_Manager();
 		new W2P_AI_Content_Queue( $provider_manager, new W2P_AI_Prompt_Engine() );
@@ -64,7 +64,7 @@ function w2p_maybe_create_tables() {
 }
 
 /**
- * 插件激活：建表 + 触发各模块 activate()。
+ * Plugin activation: create tables + trigger each module's activate().
  *
  * @return void
  */
@@ -81,12 +81,12 @@ function w2p_activate() {
 }
 
 /**
- * 插件停用：清除 cron，触发各模块 deactivate()。不删除任何用户数据。
+ * Plugin deactivation: clear cron, trigger each module's deactivate(). Does not delete any user data.
  *
  * @return void
  */
 function w2p_deactivate() {
-	// 清除插件注册的定时任务。
+	// Clear scheduled tasks registered by the plugin.
 	$hooks = array(
 		'w2p_ai_content_generation',
 		'w2p_ai_queue_processor',
@@ -110,9 +110,9 @@ function w2p_deactivate() {
 register_activation_hook( WP_GENIUS_FILE, 'w2p_activate' );
 register_deactivation_hook( WP_GENIUS_FILE, 'w2p_deactivate' );
 
-// CSF (codestar-framework) 仅在 admin 请求加载，且必须在 init 钩子触发前完成 require：
-// CSF 在文件加载时注册 init 钩子（setup），setup 于 init priority 10 执行时才实例化 CSF_Options
-// 并注册 admin_menu 菜单。若延迟到 admin_init 才加载，init 已错过，设置菜单将永不注册。
+// CSF (codestar-framework) is only loaded on admin requests, and must be required before the init hook fires:
+// CSF registers an init hook (setup) when the file is loaded; setup only instantiates CSF_Options when it runs at init priority 10
+// and registers the admin_menu. If loading is deferred to admin_init, init is already missed and the settings menu will never be registered.
 if ( is_admin() ) {
 	require_once plugin_dir_path( __FILE__ ) . 'includes/csf/codestar-framework.php';
 }
@@ -120,21 +120,59 @@ if ( is_admin() ) {
 /**
  * Initialize the plugin (runs on init hook after translations are loaded)
  */
+/**
+ * Migrate legacy settings keys from the pre-rename module id ("word-to-post").
+ *
+ * Runs before the module loader so the module_novel-manager toggle and the
+ * novel_manager_tabs config are in place regardless of whether the module is enabled.
+ *
+ * @return void
+ */
+function w2p_migrate_legacy_module_keys() {
+	$settings = get_option( 'w2p_settings', array() );
+	if ( ! is_array( $settings ) ) {
+		return;
+	}
+
+	$changed = false;
+
+	// Module toggle key: module_word-to-post → module_novel-manager.
+	if ( isset( $settings['module_word-to-post'] ) && ! isset( $settings['module_novel-manager'] ) ) {
+		$settings['module_novel-manager'] = $settings['module_word-to-post'];
+		unset( $settings['module_word-to-post'] );
+		$changed = true;
+	}
+
+	// CSF tabbed config key: word_to_post_tabs → novel_manager_tabs.
+	if ( isset( $settings['word_to_post_tabs'] ) && ! isset( $settings['novel_manager_tabs'] ) ) {
+		$settings['novel_manager_tabs'] = $settings['word_to_post_tabs'];
+		unset( $settings['word_to_post_tabs'] );
+		$changed = true;
+	}
+
+	if ( $changed ) {
+		update_option( 'w2p_settings', $settings );
+	}
+}
+
 function w2p_core_init() {
 	// Load plugin textdomain first
 	load_plugin_textdomain( 'wp-genius', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 
 	try {
-		// 升级时（w2p_db_version 落后）触发自定义表创建/迁移（幂等）。
+		// On upgrade (w2p_db_version behind), trigger custom table creation/migration (idempotent).
 		w2p_maybe_create_tables();
+
+		// Migrate legacy module keys (module_word-to-post → module_novel-manager) before the loader reads them.
+		w2p_migrate_legacy_module_keys();
 
 		// Initialize module loader
 		$module_loader = new W2P_Module_Loader( plugin_dir_path( __FILE__ ) . 'includes/modules/' );
 
-		// 注册设置页（仅 admin）。必须在 init priority 5 执行（早于 CSF setup 的 priority 10）：
-		// CSF::createOptions 收集配置，CSF::setup 在 init 10 时读取配置并实例化 CSF_Options，
-		// 进而注册 admin_menu 菜单。延迟到 admin_init 会导致配置收集晚于 setup 而菜单不出现。
-		// 前台/Cron/REST 因 is_admin() 守卫不执行，仍然保持轻量。
+		// Register the settings page (admin only). Must run at init priority 5 (earlier than CSF setup's priority 10):
+		// CSF::createOptions collects the configuration, CSF::setup reads it at init 10 and instantiates CSF_Options,
+		// which then registers the admin_menu. Deferring to admin_init means configuration collection happens after setup and the menu never appears.
+		// Front-end/Cron/REST skip this via the is_admin() guard, keeping them lightweight.
 		if ( is_admin() ) {
 			new W2P_Admin_Settings( $module_loader );
 		}

@@ -2,7 +2,7 @@
 /**
  * AI Content Engine Module
  *
- * 基于多模型接入的 WordPress 内容自动创作系统
+ * WordPress automatic content creation system with multi-model integration
  *
  * @package WP_Genius
  * @subpackage Modules/AIEngine
@@ -71,7 +71,7 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 		$this->content_queue    = new W2P_AI_Content_Queue();
 		$this->scheduler        = new W2P_AI_Scheduler();
 
-		// 装配 AJAX 职责类（God class 拆分）。
+		// Assemble the AJAX responsibility class (split from the God class).
 		require_once __DIR__ . '/includes/class-ajax.php';
 		$this->ajax = new W2P_AI_Engine_Ajax( $this );
 
@@ -281,7 +281,7 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 		$this->scheduler->update_cron_schedule();
 	}
 	/**
-	 * AJAX: ajax_generate_content（委托至 W2P_AI_Engine_Ajax）。
+	 * AJAX: ajax_generate_content (delegated to W2P_AI_Engine_Ajax).
 	 *
 	 * @return void
 	 */
@@ -289,7 +289,7 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 		$this->ajax->ajax_generate_content();
 	}
 	/**
-	 * AJAX: ajax_validate_api_key（委托至 W2P_AI_Engine_Ajax）。
+	 * AJAX: ajax_validate_api_key (delegated to W2P_AI_Engine_Ajax).
 	 *
 	 * @return void
 	 */
@@ -297,7 +297,7 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 		$this->ajax->ajax_validate_api_key();
 	}
 	/**
-	 * AJAX: ajax_get_models（委托至 W2P_AI_Engine_Ajax）。
+	 * AJAX: ajax_get_models (delegated to W2P_AI_Engine_Ajax).
 	 *
 	 * @return void
 	 */
@@ -305,7 +305,7 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 		$this->ajax->ajax_get_models();
 	}
 	/**
-	 * AJAX: ajax_save_prompt（委托至 W2P_AI_Engine_Ajax）。
+	 * AJAX: ajax_save_prompt (delegated to W2P_AI_Engine_Ajax).
 	 *
 	 * @return void
 	 */
@@ -313,7 +313,7 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 		$this->ajax->ajax_save_prompt();
 	}
 	/**
-	 * AJAX: ajax_delete_prompt（委托至 W2P_AI_Engine_Ajax）。
+	 * AJAX: ajax_delete_prompt (delegated to W2P_AI_Engine_Ajax).
 	 *
 	 * @return void
 	 */
@@ -321,7 +321,7 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 		$this->ajax->ajax_delete_prompt();
 	}
 	/**
-	 * AJAX: ajax_get_queue（委托至 W2P_AI_Engine_Ajax）。
+	 * AJAX: ajax_get_queue (delegated to W2P_AI_Engine_Ajax).
 	 *
 	 * @return void
 	 */
@@ -329,7 +329,7 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 		$this->ajax->ajax_get_queue();
 	}
 	/**
-	 * AJAX: ajax_process_queue（委托至 W2P_AI_Engine_Ajax）。
+	 * AJAX: ajax_process_queue (delegated to W2P_AI_Engine_Ajax).
 	 *
 	 * @return void
 	 */
@@ -337,7 +337,7 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 		$this->ajax->ajax_process_queue();
 	}
 	/**
-	 * AJAX: ajax_save_schedule（委托至 W2P_AI_Engine_Ajax）。
+	 * AJAX: ajax_save_schedule (delegated to W2P_AI_Engine_Ajax).
 	 *
 	 * @return void
 	 */
@@ -345,7 +345,7 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 		$this->ajax->ajax_save_schedule();
 	}
 	/**
-	 * AJAX: ajax_delete_schedule（委托至 W2P_AI_Engine_Ajax）。
+	 * AJAX: ajax_delete_schedule (delegated to W2P_AI_Engine_Ajax).
 	 *
 	 * @return void
 	 */
@@ -353,7 +353,7 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 		$this->ajax->ajax_delete_schedule();
 	}
 	/**
-	 * AJAX: ajax_toggle_schedule（委托至 W2P_AI_Engine_Ajax）。
+	 * AJAX: ajax_toggle_schedule (delegated to W2P_AI_Engine_Ajax).
 	 *
 	 * @return void
 	 */
@@ -361,7 +361,7 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 		$this->ajax->ajax_toggle_schedule();
 	}
 	/**
-	 * AJAX: ajax_get_usage（委托至 W2P_AI_Engine_Ajax）。
+	 * AJAX: ajax_get_usage (delegated to W2P_AI_Engine_Ajax).
 	 *
 	 * @return void
 	 */
@@ -369,7 +369,7 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 		$this->ajax->ajax_get_usage();
 	}
 	/**
-	 * AJAX: ajax_get_prompt（委托至 W2P_AI_Engine_Ajax）。
+	 * AJAX: ajax_get_prompt (delegated to W2P_AI_Engine_Ajax).
 	 *
 	 * @return void
 	 */
@@ -377,7 +377,7 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 		$this->ajax->ajax_get_prompt();
 	}
 	/**
-	 * AJAX: ajax_save_settings（委托至 W2P_AI_Engine_Ajax）。
+	 * AJAX: ajax_save_settings (delegated to W2P_AI_Engine_Ajax).
 	 *
 	 * @return void
 	 */
@@ -385,7 +385,7 @@ class W2P_AiEngineModule extends W2P_Abstract_Module {
 		$this->ajax->ajax_save_settings();
 	}
 	/**
-	 * AJAX: ajax_create_draft（委托至 W2P_AI_Engine_Ajax）。
+	 * AJAX: ajax_create_draft (delegated to W2P_AI_Engine_Ajax).
 	 *
 	 * @return void
 	 */

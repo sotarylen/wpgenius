@@ -5,16 +5,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 
 /**
- * 模组抽象基类
+ * Abstract base class for modules
  *
- * 定义了所有模组必须继承的标准结构和通用方法，包括初始化、设置注册、视图渲染和配置获取等功能。
- * 强制子类实现特定接口，保证了模组架构的一致性。
+ * Defines the standard structure and common methods all modules must inherit, including initialization, settings registration, view rendering, and configuration retrieval.
+ * Subclasses are required to implement specific interfaces, ensuring consistency of the module architecture.
  *
  * @package WP_Genius
  */
 
 abstract class W2P_Abstract_Module {
-	// 模块唯一 ID（目录名为默认）
+	// Unique module ID (defaults to the directory name)
 	public static function id() {
 		return '';
 	}
@@ -31,10 +31,10 @@ abstract class W2P_Abstract_Module {
 		return 'fa-solid fa-puzzle-piece'; // Default icon
 	}
 
-	// 在插件初始化时调用
+	// Called during plugin initialization
 	public function init() {}
 
-	// 在设置页中注册模块设置片段（可选）
+	// Register module settings section on the settings page (optional)
 	public function register_settings() {}
 
 	/**
@@ -93,7 +93,7 @@ abstract class W2P_Abstract_Module {
 		return 'w2p_settings';
 	}
 
-	// 激活/停用钩子（可选）
+	// Activation/deactivation hooks (optional)
 	public function activate() {}
 	public function deactivate() {}
 }

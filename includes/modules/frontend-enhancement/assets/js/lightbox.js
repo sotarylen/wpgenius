@@ -937,13 +937,9 @@
 
 })(jQuery);
 
-// Initialize Lightbox on document ready
-jQuery(document).ready(function ($) {
-    // Only initialize if config is present
-    if (typeof wpgLightboxConfig !== 'undefined') {
-        window.wpgLightbox = new WPGeniusLightbox(wpgLightboxConfig);
-    }
-});
+// NOTE: The single initialization point is the document.ready handler above.
+// A second duplicate ready-handler that referenced WPGeniusLightbox outside its
+// IIFE scope was removed (it threw a ReferenceError and broke other ready callbacks).
 
 // Disable Magnific Popup on article images immediately
 (function ($) {

@@ -2,10 +2,10 @@
 /**
  * Smart Auto Upload Images Module
  *
- * 集成 Smart Auto Upload Images 插件作为 WP Genius 模块
+ * Integrates the Smart Auto Upload Images plugin as a WP Genius module
  *
- * 本文件为模块门面：负责元数据、库加载与钩子装配，
- * 具体逻辑委托给 includes/ 下的职责类（Settings/ContentProcessor/Ajax/UI）。
+ * This file is the module facade: it handles metadata, library loading, and hook wiring,
+ * delegating the actual logic to the responsibility classes under includes/ (Settings/ContentProcessor/Ajax/UI).
  *
  * @package WP_Genius
  * @subpackage Modules
@@ -101,40 +101,40 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 		require_once __DIR__ . '/includes/class-ajax.php';
 		require_once __DIR__ . '/includes/class-ui.php';
 
-		// 加载 Smart Auto Upload Images 插件（库容器等）。
+		// Load the Smart Auto Upload Images plugin (library container, etc.).
 		$this->load_smart_aui_plugin();
 
-		// 职责类装配。
+		// Wire up the responsibility classes.
 		$this->settings  = new W2P_SmartAUI_Settings( $this );
 		$this->processor = new W2P_SmartAUI_Content_Processor( $this );
 		$this->ajax      = new W2P_SmartAUI_Ajax( $this );
 		$this->ui        = new W2P_SmartAUI_UI( $this );
 
-		// 同步设置 (CSF -> Legacy Option)
+		// Sync settings (CSF -> Legacy Option)
 		add_action( 'csf_w2p_settings_saved', array( $this->settings, 'sync_settings' ) );
 
-		// 添加进度可视化
+		// Add progress visualization
 		add_action( 'admin_enqueue_scripts', array( $this->ui, 'enqueue_progress_ui_scripts' ) );
 		add_action( 'admin_footer', array( $this->ui, 'render_progress_ui_template' ) );
 
-		// 移除原生菜单
+		// Remove the native menu
 		add_action( 'admin_menu', array( $this->ui, 'remove_native_admin_menu' ), 999 );
 
-		// 添加自动设置封面功能
+		// Add automatic featured image setting
 		add_action( 'save_post', array( $this->processor, 'auto_set_featured_image' ), 20, 2 );
 
-		// 添加AJAX处理
+		// Add AJAX handling
 		add_action( 'wp_ajax_w2p_smart_aui_get_progress', array( $this->ajax, 'ajax_get_progress' ) );
 		add_action( 'wp_ajax_w2p_smart_aui_process_content', array( $this->ajax, 'ajax_process_content' ) );
 		add_action( 'wp_ajax_w2p_smart_aui_process_all', array( $this->ajax, 'ajax_process_all' ) );
 		add_action( 'wp_ajax_w2p_smart_aui_get_settings', array( $this->ajax, 'ajax_get_settings' ) );
 		add_action( 'wp_ajax_w2p_smart_aui_bulk_process', array( $this->ajax, 'ajax_bulk_process' ) );
-		// 单图多线程抓取接口（仅负责下载与附件创建，不直接修改文章内容）
+		// Single-image threaded download endpoint (only downloads and creates attachments; does not modify post content directly)
 		add_action( 'wp_ajax_w2p_smart_aui_download_image', array( $this->ajax, 'ajax_download_image' ) );
-		// 视频下载接口
+		// Video download endpoint
 		add_action( 'wp_ajax_w2p_smart_aui_download_video', array( $this->ajax, 'ajax_download_video' ) );
 
-		// 批量处理辅助接口
+		// Bulk processing helper endpoints
 		add_action( 'wp_ajax_w2p_smart_aui_get_post_details', array( $this->ajax, 'ajax_get_post_details' ) );
 		add_action( 'wp_ajax_w2p_smart_aui_save_post_content', array( $this->ajax, 'ajax_save_post_content' ) );
 		add_action( 'wp_ajax_w2p_smart_aui_clear_failed_logs', array( $this->ajax, 'ajax_clear_failed_logs' ) );
@@ -143,7 +143,7 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 	}
 
 	/**
-	 * 加载 Smart Auto Upload Images 插件
+	 * Load the Smart Auto Upload Images plugin
 	 *
 	 * @return void
 	 */
@@ -151,10 +151,10 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 		$plugin_file = __DIR__ . '/library/smart-auto-upload-images.php';
 
 		if ( ! file_exists( $plugin_file ) ) {
-			return; // 插件文件不存在，跳过加载
+			return; // Plugin file does not exist, skip loading
 		}
 
-		// 定义常量（如果还没定义）
+		// Define constants (if not already defined)
 		if ( ! defined( 'SMART_AUI_VERSION' ) ) {
 			define( 'SMART_AUI_VERSION', '1.2.1' );
 			define( 'SMART_AUI_PLUGIN_FILE', $plugin_file );
@@ -163,14 +163,14 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 			define( 'SMART_AUI_PLUGIN_BASENAME', plugin_basename( $plugin_file ) );
 		}
 
-		// 加载插件
+		// Load the plugin
 		$autoload_file = SMART_AUI_PLUGIN_DIR . 'vendor/autoload.php';
 		if ( ! file_exists( $autoload_file ) ) {
 			add_action(
 				'admin_notices',
 				function () {
 					echo '<div class="notice notice-error"><p>';
-					echo esc_html__( 'Smart Auto Upload Images: 请在 smart-auto-upload-images 目录运行 composer install', 'wp-genius' );
+					echo esc_html__( 'Smart Auto Upload Images: please run composer install in the smart-auto-upload-images directory', 'wp-genius' );
 					echo '</p></div>';
 				}
 			);
@@ -181,22 +181,22 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 		require_once SMART_AUI_PLUGIN_DIR . 'vendor/autoload.php';
 		require_once SMART_AUI_PLUGIN_DIR . 'src/utils.php';
 
-		// 加载容器辅助函数
+		// Load the container helper functions
 		require_once __DIR__ . '/container-helper.php';
 
-		// 加载配置钩子
+		// Load the config hooks
 		require_once __DIR__ . '/config-hooks.php';
 
-		// 加载进度跟踪器
+		// Load the progress tracker
 		require_once __DIR__ . '/progress-tracker.php';
 
-		// 加载扩展的 ImageProcessor
+		// Load the extended ImageProcessor
 		require_once __DIR__ . '/ImageProcessorExtended.php';
 
-		// 加载视频下载器
+		// Load the video downloader
 		require_once __DIR__ . '/VideoDownloader.php';
 
-		// 初始化插件组件
+		// Initialize plugin components
 		$container = \SmartAutoUploadImages\get_container();
 		$container->set( 'plugin', new \SmartAutoUploadImages\Plugin() );
 		$container->set( 'logger', new \SmartAutoUploadImages\Utils\Logger() );
@@ -204,7 +204,7 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 
 		$container->set( 'failed_images_manager', new \SmartAutoUploadImages\Utils\FailedImagesManager() );
 
-		// 使用扩展的 ImageProcessor 替代原版
+		// Replace the original ImageProcessor with the extended one
 		$container->set( 'image_processor', new \SmartAutoUploadImages\Services\ImageProcessorExtended() );
 
 		$container->set( 'image_downloader', new \SmartAutoUploadImages\Services\ImageDownloader() );
@@ -216,7 +216,7 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 	 * @return void
 	 */
 	public function activate() {
-		// 禁用旧的auto-upload-images-module
+		// Disable the old auto-upload-images-module
 		$modules = get_option( 'word2posts_modules', array() );
 		if ( isset( $modules['auto-upload-images-module'] ) ) {
 			$modules['auto-upload-images-module'] = false;
@@ -236,7 +236,7 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 	}
 
 	// ---------------------------------------------------------------------
-	// 兼容委托：保持公共 API 签名，逻辑转发到职责类。
+	// Compatibility delegation: keeps the public API signatures, forwards logic to the responsibility classes.
 	// ---------------------------------------------------------------------
 
 	/**

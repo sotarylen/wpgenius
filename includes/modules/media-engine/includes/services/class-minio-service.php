@@ -19,7 +19,7 @@ class MediaEngineMinioService {
 
 	public function upload( $attachment_id ) {
 		$cmd = sprintf( 'wp advmo offload %d 2>&1', $attachment_id );
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI 调用，附件 ID 经 absint/%d 绑定。
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI invocation; attachment IDs are bound via absint/%d.
 		exec( $cmd, $output, $return_code );
 		$stats = $this->parse_offload_stats( $output, 1 );
 		$this->logger->log_offload_result( array( $attachment_id ), $stats['success'], $stats['skip'], $stats['failed'] );
@@ -45,7 +45,7 @@ class MediaEngineMinioService {
 		}
 		$ids_str = implode( ',', $attachment_ids );
 		$cmd     = sprintf( 'wp advmo offload %s 2>&1', $ids_str );
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI 调用，附件 ID 经 absint/%d 绑定。
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI invocation; attachment IDs are bound via absint/%d.
 		exec( $cmd, $output, $return_code );
 		$stats = $this->parse_offload_stats( $output, count( $attachment_ids ) );
 		$this->logger->log_offload_result( $attachment_ids, $stats['success'], $stats['skip'], $stats['failed'] );
@@ -61,13 +61,13 @@ class MediaEngineMinioService {
 	}
 
 	/**
-	 * 解析 wp advmo offload 输出中的统计信息
+	 * Parse statistics from the wp advmo offload output
 	 *
-	 * 支持格式：Summary: 0 successful, 0 failed, 20 skipped out of 20 total.
-	 * 无法解析时降级：success=0、skip=0、failed=总数（fallback_total）
+	 * Supported format: Summary: 0 successful, 0 failed, 20 skipped out of 20 total.
+	 * Falls back when parsing fails: success=0, skip=0, failed=total (fallback_total)
 	 *
-	 * @param array $output         命令输出行
-	 * @param int   $fallback_total 无法解析时使用的总数（附件数）
+	 * @param array $output         Command output lines
+	 * @param int   $fallback_total Total used when parsing fails (attachment count)
 	 * @return array { success:int, skip:int, failed:int }
 	 */
 	private function parse_offload_stats( $output, $fallback_total = 0 ) {
@@ -90,7 +90,7 @@ class MediaEngineMinioService {
 	}
 
 	public function is_available() {
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI 调用，附件 ID 经 absint/%d 绑定。
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI invocation; attachment IDs are bound via absint/%d.
 		exec( 'wp advmo --help 2>&1', $output, $return_code );
 		return $return_code === 0;
 	}

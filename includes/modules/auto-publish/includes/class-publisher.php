@@ -1,8 +1,8 @@
 <?php
 /**
- * Auto Publish — 发布服务
+ * Auto Publish — Publishing Service
  *
- * 从 module.php 拆分（God class 重构）。
+ * Split from module.php (refactored from the God class).
  *
  * @package WP_Genius
  * @subpackage Modules/AutoPublish
@@ -48,7 +48,7 @@ class W2P_AutoPublish_Publisher {
 
 		// Allow image processing even during AJAX/Cron for auto-publish
 		// Unless explicitly skipped by frontend
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- publish_post 被 AJAX（上层已验 nonce）与 Cron 调用；此处仅读取标志。
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- publish_post is called by AJAX (nonce verified upstream) and Cron; here we only read the flag.
 		$skip_processing = isset( $_POST['skip_image_processing'] ) && $_POST['skip_image_processing'] === '1';
 
 		if ( ! $skip_processing && class_exists( 'SmartAutoUploadImages\Services\ImageProcessorExtended' ) ) {
@@ -64,7 +64,7 @@ class W2P_AutoPublish_Publisher {
 					);
 				}
 
-				// translators: %1: placeholder。
+				// translators: %1: placeholder.
 				$current_status['image_progress'] = sprintf( __( 'Processing image %d...', 'wp-genius' ), $index + 1 );
 				set_transient( 'w2p_auto_publish_scheduled_status', $current_status, 300 );
 			};
@@ -99,10 +99,10 @@ class W2P_AutoPublish_Publisher {
 			'edit_date'     => true,
 		);
 
-		// 设置文章级别的标记，告诉 wp_insert_post_data 钩子不要再次处理图片
+		// Set a post-level flag to tell the wp_insert_post_data hook not to process images again
 		$_POST['w2p_smart_aui_processed'] = true;
 
-		// 监控 wp_insert_post_data 钩子的返回值
+		// Monitor the return value of the wp_insert_post_data hook
 		$monitor_hook = function ( $data ) use ( $post_id ) {
 			return $data;
 		};
@@ -110,10 +110,10 @@ class W2P_AutoPublish_Publisher {
 
 		$result = wp_update_post( $args, true );
 
-		// 移除监控钩子
+		// Remove the monitoring hook
 		remove_filter( 'wp_insert_post_data', $monitor_hook, 999 );
 
-		// 清除标记，以便下一篇文章可以正常处理
+		// Clear the flag so the next post can be processed normally
 		unset( $_POST['w2p_smart_aui_processed'] );
 
 		if ( is_wp_error( $result ) ) {
@@ -121,7 +121,7 @@ class W2P_AutoPublish_Publisher {
 			return false;
 		}
 
-		// 验证状态是否真的更新了
+		// Verify the status was actually updated
 		$updated_post = get_post( $post_id );
 
 		if ( $updated_post->post_status !== 'publish' ) {

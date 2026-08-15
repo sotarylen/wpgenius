@@ -15,7 +15,7 @@ A comprehensive toolkit for WordPress content management, optimization, and auto
 WP Genius combines multiple WordPress utilities into a single plugin platform for content creation, media management, and system optimization.
 
 * **AI Content Engine** - AI-powered content creation with multi-model support (OpenAI, Anthropic, Gemini, DeepSeek), scheduled generation, and queue processing.
-* **Word to Post** - Import Word (.docx) documents and convert them into posts with automatic chapter splitting.
+* **Novel Manager** - Manage the novel and chapter content types: import content, fix chapter indexes, and keep related chapters organized.
 * **Media Engine** - Unified media processing: WebP conversion, MinIO offload, thumbnail regeneration, and orphaned-media auditing.
 * **Smart AUI Lite** - Memory-optimized remote image downloader for large files, with MinIO/S3 compatibility.
 * **Auto Publish** - Schedule and batch-publish drafts.
@@ -53,6 +53,7 @@ Yes. API keys and database passwords are encrypted with a key derived from your 
 == Changelog ==
 
 = 1.2.0 =
+* Accelerate: "Disable Months Dropdown" is now a per-post-type multi-select (e.g. Posts / Albums / Novels / Chapters), no longer a global switch — the Media Library (attachment) keeps its date filter unless explicitly selected. Legacy `true` values migrate to "all content post types except attachment".
 * Security: encrypt API keys and DB passwords (W2P_Crypto), eliminate SQL injection surface, remove CSRF-prone async API, unify W2P_ class prefixes.
 * Performance: on-demand module loading, CSF framework loaded on admin only.
 * Data layer: AI schedules moved to a custom table, unified settings facade, resilient queue processing with stuck-task recovery.

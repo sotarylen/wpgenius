@@ -2,10 +2,10 @@
 /**
  * Scheduler
  *
- * 定时任务调度器
+ * Scheduled task scheduler
  *
- * 调度数据存储于自定义表 {$wpdb->prefix}w2p_ai_schedules（替代早期每调度一条 option 的存储方式，
- * 消除 options 表 LIKE 扫描）。
+ * Schedule data is stored in the custom table {$wpdb->prefix}w2p_ai_schedules (replacing the earlier one-option-per-schedule storage,
+ * eliminating LIKE scans on the options table).
  *
  * @package WP_Genius
  * @subpackage Modules/AIEngine/Classes

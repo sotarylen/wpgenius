@@ -1,9 +1,9 @@
 <?php
 /**
- * 统一日志记录器
+ * Unified logger
  *
- * 提供标准化的静态方法（error, warning, info, debug）用于全插件范围内的日志记录。
- * 支持上下文标记和时间戳自动添加，目前通过 error_log 输出，便于开发者调试和追踪错误。
+ * Provides standardized static methods (error, warning, info, debug) for logging across the entire plugin.
+ * Supports automatic context markers and timestamps; currently outputs via error_log for developer debugging and error tracking.
  *
  * @package WP_Genius
  * @author WPGenius Team

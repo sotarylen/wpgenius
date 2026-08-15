@@ -16,7 +16,7 @@ $ai_prompts   = $ai_prompts ?? array();
 $nonce = wp_create_nonce( 'w2p_ai_engine_nonce' );
 
 // Get schedules from the schedules table (P1-3: migrated off options storage).
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- 表名由 $wpdb->prefix 常量拼接。
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name built from the $wpdb->prefix constant.
 global $wpdb;
 $ai_schedules = $wpdb->get_results(
 	"SELECT * FROM {$wpdb->prefix}w2p_ai_schedules ORDER BY created_at ASC, name ASC",
@@ -91,7 +91,7 @@ unset( $schedule );
 
 <script type="text/javascript">
 jQuery(document).ready(function($) {
-	var nonce = '<?php echo $nonce; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- 内部值/自转义输出嵌入 JS/模板，非用户输入。 ?>';
+	var nonce = '<?php echo $nonce; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Internal value / self-escaped output embedded in JS/templates, not user input. ?>';
 	var prompts = <?php echo wp_json_encode( $ai_prompts ); ?>;
 
 	$('#ai-add-schedule-btn').on('click', function() {

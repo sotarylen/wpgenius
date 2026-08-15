@@ -2,7 +2,7 @@
 /**
  * AI Provider Interface
  *
- * 所有 AI 供应商必须实现此接口
+ * All AI providers must implement this interface
  *
  * @package WP_Genius
  * @subpackage Modules/AIEngine/Providers

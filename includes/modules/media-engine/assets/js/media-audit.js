@@ -4,6 +4,8 @@
 (function ($) {
     'use strict';
 
+    const { sprintf } = wp.i18n;
+
     const AuditUI = {
         scanning: false,
         stopRequested: false,
@@ -26,7 +28,7 @@
                 self.subdir = $('#w2p-audit-subdir').val().trim().replace(/^\/+|\/+$/g, '');
                 if (!self.subdir) {
                     if (typeof w2p !== 'undefined' && w2p.toast) {
-                        w2p.toast('请输入扫描目录', 'warning');
+                        w2p.toast(w2pMediaEngine.i18n.enterScanDir, 'warning');
                     }
                     return;
                 }
@@ -35,6 +37,17 @@
 
             $('#w2p-audit-stop').on('click', function () {
                 self.stopRequested = true;
+            });
+
+            // Stat cards act as filters: clicking selects the matching rows.
+            $('#w2p-audit-summary .w2p-audit-stat-card').on('click', function () {
+                self.toggleStatus($(this).data('filter'));
+            });
+            $('#w2p-audit-summary .w2p-audit-stat-card').on('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    self.toggleStatus($(this).data('filter'));
+                }
             });
 
             $('#w2p-audit-check-all').on('change', function () {
@@ -88,9 +101,9 @@
                 return;
             }
 
-            $('#w2p-audit-progress-text').text('扫描中... 已处理 ' + self.offset + ' 个文件' +
+            $('#w2p-audit-progress-text').text(sprintf(w2pMediaEngine.i18n.scanning, self.offset) +
                 (self.total ? ' / ' + self.total : '') +
-                (self.offset === 0 ? '（首次扫描需构建索引，约 30 秒）' : ''));
+                (self.offset === 0 ? ' ' + w2pMediaEngine.i18n.firstScanIndex : ''));
 
             $.ajax({
                 url: w2pMediaEngine.ajax_url,
@@ -104,7 +117,7 @@
                 },
                 success: function (response) {
                     if (!response.success) {
-                        self.finishScan(false, response.data || '扫描失败');
+                        self.finishScan(false, response.data || w2pMediaEngine.i18n.scanFailedMsg);
                         return;
                     }
 
@@ -138,7 +151,7 @@
                     }
                 },
                 error: function () {
-                    self.finishScan(false, 'AJAX 请求失败');
+                    self.finishScan(false, w2pMediaEngine.i18n.ajaxFailed);
                 }
             });
         },
@@ -158,29 +171,28 @@
                 return;
             }
 
-            // Summary
+            // Summary: populate the 4 clickable stat cards.
             const summary = {
+                total: self.results.length,
                 cleanable: self.cleanableFiles.length,
-                notOffloaded: self.results.filter(function (i) { return i.status === 'not_offloaded'; }).length,
-                orphan: self.results.filter(function (i) { return i.status === 'orphan'; }).length,
-                total: self.results.length
+                'not_offloaded': self.results.filter(function (i) { return i.status === 'not_offloaded'; }).length,
+                orphan: self.results.filter(function (i) { return i.status === 'orphan'; }).length
             };
 
-            $('#w2p-audit-summary').removeClass('w2p-hidden').show().html(
-                '<div class="w2p-smart-aui-stats-row">' +
-                '<span class="stat-item total"><span class="label">扫描文件</span><span class="value">' + summary.total + '</span></span>' +
-                '<span class="stat-item success"><span class="label">可清理(A)</span><span class="value">' + summary.cleanable + '</span></span>' +
-                '<span class="stat-item threads"><span class="label">未offload(B)</span><span class="value">' + summary.notOffloaded + '</span></span>' +
-                '<span class="stat-item failed"><span class="label">孤儿(C)</span><span class="value">' + summary.orphan + '</span></span>' +
-                '</div>' +
-                (stopped ? '<div style="margin-top:8px;color:#f59e0b;">已停止扫描</div>' : '')
-            );
+            $('#w2p-audit-summary .w2p-audit-stat-card').removeClass('w2p-is-selected');
+            $('#w2p-audit-summary [data-stat]').each(function () {
+                const key = $(this).data('stat');
+                if (typeof summary[key] !== 'undefined') {
+                    $(this).text(summary[key]);
+                }
+            });
 
+            $('#w2p-audit-summary').removeClass('w2p-hidden').show();
             $('#w2p-audit-results').removeClass('w2p-hidden').show();
             self.updateActionButtons();
 
             if (typeof w2p !== 'undefined' && w2p.toast) {
-                w2p.toast('扫描完成：' + summary.total + ' 个文件', 'success');
+                w2p.toast(sprintf(w2pMediaEngine.i18n.scanComplete, summary.total), 'success');
             }
         },
 
@@ -190,9 +202,9 @@
 
             items.forEach(function (item) {
                 const statusMap = {
-                    'cleanable': { label: '可清理', cls: 'success' },
-                    'not_offloaded': { label: '未offload', cls: 'warning' },
-                    'orphan': { label: '孤儿', cls: 'error' }
+                    'cleanable': { label: w2pMediaEngine.i18n.cleanableLabel, cls: 'success' },
+                    'not_offloaded': { label: w2pMediaEngine.i18n.notOffloadedLabel, cls: 'warning' },
+                    'orphan': { label: w2pMediaEngine.i18n.orphanLabel, cls: 'error' }
                 };
                 const st = statusMap[item.status] || { label: item.status, cls: '' };
 
@@ -201,17 +213,18 @@
                     const parentHtml = item.parent.url ?
                         '<a href="' + item.parent.url + '" target="_blank">' + item.parent.title + '</a>' :
                         item.parent.title;
-                    desc += '<div class="w2p-parent-info">父级: ' + parentHtml + '</div>';
+                    desc += '<div class="w2p-parent-info">' + w2pMediaEngine.i18n.parentLabel + parentHtml + '</div>';
                 }
 
                 $tbody.append(
                     '<tr data-status="' + item.status + '">' +
                     '<td><input type="checkbox" class="w2p-audit-row-check" ' +
+                    'data-file="' + $('<div>').text(item.file).html() + '" ' +
                     (item.status === 'cleanable' ? 'data-clean="1"' : '') +
+                    (item.status === 'orphan' ? 'data-orphan="1"' : '') +
                     (item.status === 'not_offloaded' && item.attachment_id ? 'data-enqueue="' + item.attachment_id + '"' : '') +
                     ' /></td>' +
-                    '<td>' + $('<div>').text(item.basename).html() +
-                    '<div class="w2p-file-meta">' + $('<div>').text(item.file).html() + '</div></td>' +
+                    '<td class="w2p-audit-file-cell"><span class="w2p-audit-filename">' + $('<div>').text(item.file).html() + '</span></td>' +
                     '<td>' + item.ext + '</td>' +
                     '<td><span class="w2p-status-badge w2p-status-' + st.cls + '">' + st.label + '</span></td>' +
                     '<td>' + (item.size ? self.formatSize(item.size) : '-') + '</td>' +
@@ -223,59 +236,98 @@
 
         updateActionButtons: function () {
             const self = this;
-            const hasClean = $('.w2p-audit-row-check:checked[data-clean]').length > 0;
+            // Clean button appears when either cleanable (Class A) or orphan (Class C) files are selected.
+            const hasClean = $('.w2p-audit-row-check:checked[data-clean], .w2p-audit-row-check:checked[data-orphan]').length > 0;
             const hasEnqueue = $('.w2p-audit-row-check:checked[data-enqueue]').length > 0;
 
             $('#w2p-audit-clean-all').toggleClass('w2p-hidden', !hasClean).toggle(hasClean);
             $('#w2p-audit-enqueue-all').toggleClass('w2p-hidden', !hasEnqueue).toggle(hasEnqueue);
         },
 
-        cleanSelected: function () {
+        // Toggle selection of rows matching a status filter ('total' selects all). Returning true if any were selected.
+        toggleStatus: function (filter) {
             const self = this;
-            const files = $('.w2p-audit-row-check:checked[data-clean]').closest('tr')
-                .find('.w2p-file-meta').text().trim();
+            let $rows;
 
-            if (!confirm('确认删除 ' + $('.w2p-audit-row-check:checked[data-clean]').length +
-                ' 个本地文件？\n\n这些文件已在存储桶中存在对应 webp，删除后不可恢复。\n\n' +
-                '示例：' + files)) {
+            if (filter === 'total') {
+                $rows = $('#w2p-audit-tbody tr');
+            } else {
+                $rows = $('#w2p-audit-tbody tr[data-status="' + filter + '"]');
+            }
+
+            if (!$rows.length) {
                 return;
             }
 
-            const fileList = [];
-            $('.w2p-audit-row-check:checked[data-clean]').closest('tr').each(function () {
-                fileList.push($(this).find('.w2p-file-meta').text().trim());
-            });
+            const $checks = $rows.find('.w2p-audit-row-check');
+            const allChecked = $checks.length > 0 && $checks.filter(':checked').length === $checks.length;
+            $checks.prop('checked', !allChecked);
 
-            if (!fileList.length) return;
+            // Reflect the selection state on the clicked card.
+            const $card = $('#w2p-audit-summary .w2p-audit-stat-card[data-filter="' + filter + '"]');
+            $card.toggleClass('w2p-is-selected', !allChecked);
 
-            $.ajax({
-                url: w2pMediaEngine.ajax_url,
-                type: 'POST',
-                data: {
-                    action: 'w2p_media_audit_clean',
-                    nonce: w2pMediaEngine.nonce,
-                    files: JSON.stringify(fileList)
-                },
-                success: function (response) {
-                    if (response.success && response.data) {
-                        const d = response.data;
-                        let msg = '清理完成：成功 ' + d.cleaned + ' 个';
-                        if (d.skipped && d.skipped.length) {
-                            msg += '，跳过 ' + d.skipped.length + ' 个';
+            self.updateActionButtons();
+        },
+
+        cleanSelected: function () {
+            const self = this;
+
+            const $cleanable = $('.w2p-audit-row-check:checked[data-clean]');
+            const $orphans = $('.w2p-audit-row-check:checked[data-orphan]');
+            const total = $cleanable.length + $orphans.length;
+            if (!total) return;
+
+            const example = ($cleanable.first().data('file') || $orphans.first().data('file') || '');
+
+            const doClean = function () {
+                const fileList = [];
+                const orphanList = [];
+                $cleanable.each(function () { const p = $(this).data('file'); if (p) fileList.push(p); });
+                $orphans.each(function () { const p = $(this).data('file'); if (p) orphanList.push(p); });
+
+                if (!fileList.length && !orphanList.length) return;
+
+                $.ajax({
+                    url: w2pMediaEngine.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'w2p_media_audit_clean',
+                        nonce: w2pMediaEngine.nonce,
+                        files: JSON.stringify(fileList),
+                        orphans: JSON.stringify(orphanList)
+                    },
+                    success: function (response) {
+                        const cleaned = response && response.success && response.data ? (response.data.cleaned || 0) : 0;
+                        const skipped = response && response.data ? (response.data.skipped || []) : [];
+                        let msg = sprintf(w2pMediaEngine.i18n.cleanupComplete, cleaned);
+                        if (skipped.length) {
+                            msg += ' ' + sprintf(w2pMediaEngine.i18n.skippedCount, skipped.length);
                         }
                         if (typeof w2p !== 'undefined' && w2p.toast) {
-                            w2p.toast(msg, d.skipped && d.skipped.length ? 'warning' : 'success');
+                            w2p.toast(msg, skipped.length ? 'warning' : 'success');
                         }
-                        alert(msg);
+                        // Reload so the table reflects the files that were actually removed.
                         location.reload();
-                    } else {
-                        alert('清理失败：' + (response.data || '未知错误'));
+                    },
+                    error: function (xhr, status, error) {
+                        // Files may still have been deleted server-side even if the response was malformed.
+                        // Refresh so the table reflects reality; surface a soft notice rather than a hard failure.
+                        if (typeof w2p !== 'undefined' && w2p.toast) {
+                            w2p.toast(w2pMediaEngine.i18n.unknownError, 'warning');
+                        }
+                        location.reload();
                     }
-                },
-                error: function () {
-                    alert('AJAX 请求失败');
+                });
+            };
+
+            if (typeof w2p !== 'undefined' && w2p.confirm) {
+                w2p.confirm(sprintf(w2pMediaEngine.i18n.deleteConfirm, total, example), doClean);
+            } else {
+                if (confirm(sprintf(w2pMediaEngine.i18n.deleteConfirm, total, example))) {
+                    doClean();
                 }
-            });
+            }
         },
 
         enqueueSelected: function () {
@@ -287,12 +339,9 @@
 
             if (!ids.length) return;
 
-            if (!confirm('将 ' + ids.length + ' 个附件加入批量处理队列？\n\n这些文件将被重新转换/offload。')) {
-                return;
-            }
-
-            // 复用现有批量处理：直接调用 process_batch 并跳转到批量处理 Tab
-            if (typeof w2pMediaEngine !== 'undefined' && w2pMediaEngine.nonce) {
+            const doEnqueue = function () {
+                // Reuse the existing batch processing: call process_batch directly and jump to the Batch Processing tab
+                if (typeof w2pMediaEngine === 'undefined' || !w2pMediaEngine.nonce) return;
                 $.ajax({
                     url: w2pMediaEngine.ajax_url,
                     type: 'POST',
@@ -302,16 +351,24 @@
                         attachment_ids: ids
                     },
                     success: function (response) {
-                        if (response.success) {
-                            alert('已加入处理队列并开始处理，请前往「批量处理」Tab 查看进度');
-                        } else {
-                            alert('处理失败：' + (response.data || '未知错误'));
+                        const ok = response && response.success;
+                        const msg = ok ? w2pMediaEngine.i18n.addedToQueue : (w2pMediaEngine.i18n.processingFailed + (response && response.data || w2pMediaEngine.i18n.unknownError));
+                        if (typeof w2p !== 'undefined' && w2p.toast) {
+                            w2p.toast(msg, ok ? 'success' : 'error');
                         }
                     },
                     error: function () {
-                        alert('AJAX 请求失败');
+                        if (typeof w2p !== 'undefined' && w2p.toast) {
+                            w2p.toast(w2pMediaEngine.i18n.ajaxFailed, 'error');
+                        }
                     }
                 });
+            };
+
+            if (typeof w2p !== 'undefined' && w2p.confirm) {
+                w2p.confirm(sprintf(w2pMediaEngine.i18n.enqueueConfirm, ids.length), doEnqueue);
+            } else if (confirm(sprintf(w2pMediaEngine.i18n.enqueueConfirm, ids.length))) {
+                doEnqueue();
             }
         },
 

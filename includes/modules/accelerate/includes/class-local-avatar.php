@@ -1,8 +1,8 @@
 <?php
 /**
- * WP Genius Accelerate — 本地头像
+ * WP Genius Accelerate — Local Avatar
  *
- * 从 module.php 拆分（God class 重构）。
+ * Split from module.php (refactored from the God class).
  *
  * @package WP_Genius
  * @subpackage Modules/Accelerate
@@ -132,7 +132,7 @@ class W2P_Accelerate_LocalAvatar {
 			$('#st-remove-avatar').on('click', function(e) {
 				e.preventDefault();
 				$('#st_local_avatar').val('');
-				$('#st-avatar-preview').html('<img src="<?php echo $blank_img; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- 行 382 已 esc_url 处理。 ?>" width="96" height="96" style="background:#f1f1f1;border-radius:50%;" />');
+				$('#st-avatar-preview').html('<img src="<?php echo $blank_img; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Line 382 has already been handled with esc_url. ?>" width="96" height="96" style="background:#f1f1f1;border-radius:50%;" />');
 			});
 		})(jQuery);
 		</script>
@@ -143,7 +143,7 @@ class W2P_Accelerate_LocalAvatar {
 			return;
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- profile_update 钩子：WP 用户表单核心已验 nonce。
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- profile_update hook: WP core user form has already verified the nonce.
 		$avatar_id = isset( $_POST['st_local_avatar'] ) ? absint( $_POST['st_local_avatar'] ) : 0;
 		update_user_meta( $user_id, 'st_local_avatar', $avatar_id );
 	}

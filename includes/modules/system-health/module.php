@@ -85,12 +85,12 @@ class W2P_SystemHealthModule extends W2P_Abstract_Module {
 	}
 
 	/**
-	 * 遗留渲染入口（已由 CSF tabbed 替代，保留仅为兼容旧调用）。
+	 * Legacy render entry point (already replaced by CSF tabbed; kept only for compatibility with old calls).
 	 *
 	 * @return void
 	 */
 	public function render_settings() {
-		// 视图已拆分为 CSF tabbed 片段（views/tab-*.php），此方法不再渲染独立页面。
+		// The view has been split into CSF tabbed fragments (views/tab-*.php); this method no longer renders a standalone page.
 		$section = array(
 			'title' => __( 'System Health', 'wp-genius' ),
 			'body'  => __( 'Use the System Health tab inside WP Genius Settings.', 'wp-genius' ),
@@ -131,7 +131,7 @@ class W2P_SystemHealthModule extends W2P_Abstract_Module {
 
 		wp_send_json_success(
 			array(
-				// translators: %1: placeholder。
+				// translators: %1: placeholder.
 				'message' => sprintf( __( 'Cleaned up %d items.', 'wp-genius' ), $count ),
 				'count'   => $count,
 			)
@@ -262,7 +262,7 @@ class W2P_SystemHealthModule extends W2P_Abstract_Module {
 
 		wp_send_json_success(
 			array(
-				// translators: %1: placeholder。
+				// translators: %1: placeholder.
 				'message' => sprintf( __( 'Moved %d posts to trash.', 'wp-genius' ), $count ),
 				'count'   => $count,
 			)
@@ -289,7 +289,7 @@ class W2P_SystemHealthModule extends W2P_Abstract_Module {
 
 		wp_send_json_success(
 			array(
-				// translators: %1: placeholder, %2: placeholder。
+				// translators: %1: placeholder, %2: placeholder.
 				'message' => sprintf( __( 'Cleaned up %1$d entries for meta key "%2$s".', 'wp-genius' ), $count, $meta_key ),
 				'count'   => $count,
 			)

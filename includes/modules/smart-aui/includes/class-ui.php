@@ -2,8 +2,8 @@
 /**
  * Smart AUI — UI Handler
  *
- * 管理后台资源加载、进度 UI 模板渲染与原生菜单移除。
- * 从 module.php 拆分（原 God class 重构）。
+ * Manages admin resource loading, progress UI template rendering, and native menu removal.
+ * Split from module.php (refactored from the original God class).
  *
  * @package WP_Genius
  * @subpackage Modules/SmartAUI
@@ -42,7 +42,7 @@ class W2P_SmartAUI_UI {
 	 */
 	public function enqueue_progress_ui_scripts( $hook ) {
 		// Monitor hook for specific pages
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- enqueue 钩子只读页面参数。
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- enqueue hook only reads page parameters.
 		$page             = isset( $_GET['page'] ) ? $_GET['page'] : '';
 		$is_settings_page = ( $page === 'wp-genius-settings' || strpos( $page, 'wp-genius' ) !== false );
 
@@ -50,7 +50,7 @@ class W2P_SmartAUI_UI {
 			return;
 		}
 
-		// 使用WP_GENIUS_FILE常量计算插件根目录URL
+		// Use the WP_GENIUS_FILE constant to compute the plugin root URL
 		$plugin_url = plugin_dir_url( WP_GENIUS_FILE );
 
 		// If on settings page, load the settings manager JS
@@ -126,6 +126,7 @@ class W2P_SmartAUI_UI {
 					'processingImages'        => __( 'Processing external images in parallel...', 'wp-genius' ),
 					'processingMedia'         => __( 'Processing external media (images + videos) in parallel...', 'wp-genius' ),
 					'allComplete'             => __( '✅ Image processing complete! Saving...', 'wp-genius' ),
+					'failedGetPostId'         => __( 'Unable to get post ID', 'wp-genius' ),
 				),
 			)
 		);
@@ -151,7 +152,7 @@ class W2P_SmartAUI_UI {
 			return;
 		}
 
-		// 允许在文章编辑页面、文章列表页面以及插件设置页面加载
+		// Allow loading on the post editor, post list, and plugin settings pages
 		$allowed_bases = array( 'post', 'edit', 'toplevel_page_wp-genius', 'wp-genius_page_wp-genius-settings' );
 		if ( ! in_array( $screen->base, $allowed_bases, true ) && strpos( $screen->id, 'wp-genius' ) === false ) {
 			return;

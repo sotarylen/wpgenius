@@ -2,7 +2,7 @@
 /**
  * Prompt Engine
  *
- * 提示词模板引擎
+ * Prompt template engine
  *
  * @package WP_Genius
  * @subpackage Modules/AIEngine/Classes
@@ -73,7 +73,7 @@ class W2P_AI_Prompt_Engine {
 		}
 
 		$results = $wpdb->get_results(
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders -- 动态 WHERE 片段值经 prepare 占位符传递（运行时占位符与参数匹配）。
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders -- Dynamic WHERE fragment values are passed through prepare placeholders (runtime placeholders match arguments).
 			$wpdb->prepare(
 				"SELECT * FROM {$wpdb->prefix}w2p_ai_prompts {$where} ORDER BY name ASC",
 				$query_args

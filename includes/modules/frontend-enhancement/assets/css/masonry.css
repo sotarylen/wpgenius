@@ -1,0 +1,35 @@
+/**
+ * WP Genius - Image masonry (waterfall) layout
+ *
+ * Runs of 2+ consecutive <img> tags in post content are wrapped in
+ * .w2p-masonry by WPG_Masonry_Handler. Single images are left as-is.
+ *
+ * TRUE waterfall: CSS multi-columns make every column stack its images
+ * independently, so mixed landscape/portrait images never leave large blank
+ * gaps (a row-aligned grid would). The column count comes from the
+ * "Images Per Row" setting and is applied inline on each container.
+ *
+ * @package WP_Genius
+ * @subpackage Frontend_Enhancement
+ */
+
+.w2p-masonry {
+	columns: 3; /* fallback; the inline style carries the setting value */
+	column-gap: 12px;
+	margin: 1.5em 0;
+}
+
+.w2p-masonry > a,
+.w2p-masonry > img {
+	display: block;
+	width: 100%;
+	height: auto;
+	margin: 0 0 12px !important;
+	break-inside: avoid;
+	-webkit-column-break-inside: avoid;
+	page-break-inside: avoid;
+}
+
+.w2p-masonry img {
+	border-radius: 4px;
+}

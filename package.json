@@ -1,7 +1,7 @@
 {
   "name": "wpgenius",
   "version": "1.2.0",
-  "description": "一个功能强大的 WordPress 内容管理与网站优化工具集合插件。",
+  "description": "A powerful WordPress content management and site optimization toolkit plugin.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

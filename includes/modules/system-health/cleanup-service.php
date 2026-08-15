@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable Universal.Files.SeparateFunctionsFromOO -- 历史工具文件同时含辅助函数与 OO 类。
+// phpcs:disable Universal.Files.SeparateFunctionsFromOO -- Legacy utility file contains both helper functions and an OO class.
 class SystemHealthCleanupService {
 
 	/**
@@ -209,7 +209,7 @@ class SystemHealthCleanupService {
 		// First filter with strict LIKE to find candidates (much faster than PHP loop)
 		// LIMIT 500 to prevent browser crash rendering too many rows
 		$like_pattern = '%<a%<img%</a>%';
-        // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- 动态片段全部来自安全源：$post_types_sql 经 esc_sql、$post_statuses 硬编码、$where_category 为 $wpdb->prepare 结果。
+        // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- All dynamic fragments come from safe sources: $post_types_sql goes through esc_sql, $post_statuses is hardcoded, and $where_category is the result of $wpdb->prepare.
 		$sql = "
             SELECT ID, post_title, post_content 
             FROM $wpdb->posts 
@@ -284,7 +284,7 @@ class SystemHealthCleanupService {
 
 			$post_statuses = "'publish', 'draft', 'pending', 'private', 'future'";
 
-            // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- 动态片段来自 esc_sql/硬编码状态/prepare 结果，与上文 216 块同理。
+            // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Dynamic fragments come from esc_sql / hardcoded statuses / prepare results, same rationale as the block above at line 216.
 			if ( $category_id > 0 ) {
 				$sql_find_duplicates = "
                     SELECT p.post_title, COUNT(*) as count
@@ -339,7 +339,7 @@ class SystemHealthCleanupService {
 			foreach ( $chunks as $title_chunk ) {
 				$in_clause = implode( ',', $title_chunk );
 
-                // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- $in_clause 由 $wpdb->prepare('%s') 转义后的标题拼接，$post_statuses 硬编码。
+                // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- $in_clause is built from titles escaped via $wpdb->prepare('%s'), and $post_statuses is hardcoded.
 				$sql_get_posts = "
                     SELECT ID, post_title, post_name, post_date
                     FROM $wpdb->posts

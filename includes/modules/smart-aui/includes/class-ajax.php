@@ -2,8 +2,8 @@
 /**
  * Smart AUI — AJAX Handlers
  *
- * 全部 AJAX 端点处理（进度/内容处理/下载/批量/日志/视频）。
- * 从 module.php 拆分（原 God class 重构）。
+ * Handles all AJAX endpoints (progress/content processing/download/bulk/logs/video).
+ * Split from module.php (refactored from the original God class).
  *
  * @package WP_Genius
  * @subpackage Modules/SmartAUI
@@ -54,7 +54,7 @@ class W2P_SmartAUI_Ajax {
 
 		$process_id = isset( $_POST['process_id'] ) ? sanitize_text_field( $_POST['process_id'] ) : '';
 
-		// 获取进度信息
+		// Get progress information
 		$progress = W2P_Smart_AUI_Progress_Tracker::get_progress( null, $process_id );
 
 		if ( ! $progress ) {
@@ -74,7 +74,7 @@ class W2P_SmartAUI_Ajax {
 	 * AJAX Process Content (Async)
 	 */
 	public function ajax_process_content() {
-		// 关闭 session 写入，允许并发请求（解决进度条卡死问题）
+		// Close session write to allow concurrent requests (fixes progress bar freezing)
 		if ( session_status() === PHP_SESSION_ACTIVE ) {
 			session_write_close();
 		}
@@ -129,8 +129,8 @@ class W2P_SmartAUI_Ajax {
 	/**
 	 * AJAX Download Single Image (Multi-thread friendly)
 	 *
-	 * 仅负责下载远程图片并创建媒体库附件，不直接修改文章内容。
-	 * 前端在收到返回数据后负责在编辑器内容中替换 URL，从而避免并发修改文章内容带来的竞态问题。
+	 * Only downloads remote images and creates media library attachments; does not modify post content directly.
+	 * The frontend replaces the URL in the editor content after receiving the response, avoiding race conditions from concurrent content modification.
 	 */
 	public function ajax_download_image() {
 		if ( session_status() === PHP_SESSION_ACTIVE ) {
@@ -193,30 +193,30 @@ class W2P_SmartAUI_Ajax {
 			'post_status'  => $post->post_status,
 		);
 
-		// 本地图片直接跳过
+		// Skip local images directly
 		$settings = \SmartAutoUploadImages\Plugin::get_settings();
 		$base_url = ! empty( $settings['base_url'] ) ? $settings['base_url'] : site_url();
 		$site_url = site_url();
 
 		if ( strpos( $image_url, $base_url ) === 0 || strpos( $image_url, $site_url ) === 0 ) {
-			// 如果是本地图片，尝试查找 ID
+			// If it is a local image, try to find its ID
 			$attachment_id = $this->processor->get_attachment_id_from_url( $image_url );
 
 			if ( $attachment_id ) {
-				// 找到了 ID，返回成功状态，以便前端补全 class
+				// Found the ID, return success status so the frontend can fill in the class
 				wp_send_json_success(
 					array(
 						'source_url'     => $image_url,
 						'downloaded_url' => $image_url,
 						'attachment_id'  => $attachment_id,
-						'skipped'        => false, // 改为 false，以便前端进入 success 分支处理
+						'skipped'        => false, // Set to false so the frontend enters the success branch
 						'process_id'     => $process_id,
 						'message'        => 'Local image ID resolved',
 					)
 				);
 			}
 
-			// 找不到 ID，且是本地图片，跳过
+			// No ID found and it is a local image, skip
 			wp_send_json_success(
 				array(
 					'source_url'     => $image_url,
@@ -228,7 +228,7 @@ class W2P_SmartAUI_Ajax {
 			);
 		}
 
-		// [FIX 8] 检查域名是否被排除或为内部链接
+		// [FIX 8] Check whether the domain is excluded or the URL is an internal link
 		$container  = \SmartAutoUploadImages\get_container();
 		$validator  = new \SmartAutoUploadImages\Services\ImageValidator();
 		$validation = $validator->validate_image_url( $image_url, $post_data );
@@ -251,7 +251,7 @@ class W2P_SmartAUI_Ajax {
 
 		$downloader = $container->get( 'image_downloader' );
 
-		// 读取重试次数配置并进行限制，避免死循环
+		// Read the retry count setting and clamp it to avoid an infinite loop
 		$settings    = \SmartAutoUploadImages\Plugin::get_settings();
 		$max_retries = isset( $settings['max_retries'] ) ? max( 0, min( 10, (int) $settings['max_retries'] ) ) : 3;
 		$attempt     = 0;
@@ -311,7 +311,7 @@ class W2P_SmartAUI_Ajax {
 				$failed_manager->add_failed_url( $image_url );
 			}
 
-			// 返回失败状态（不使用 wp_send_json_error，以免前端认为是 AJAX 错误）
+			// Return a failed status (not using wp_send_json_error, so the frontend does not treat it as an AJAX error)
 			wp_send_json_success(
 				array(
 					'source_url'     => $image_url,
@@ -323,7 +323,7 @@ class W2P_SmartAUI_Ajax {
 			);
 		}
 
-		// 使用与主处理流程一致的域名映射规则
+		// Use the same domain mapping rules as the main processing flow
 		$settings = \SmartAutoUploadImages\Plugin::get_settings();
 		$base_url = trim( $settings['base_url'], '/' );
 		$new_url  = $result['url'];
@@ -343,7 +343,7 @@ class W2P_SmartAUI_Ajax {
 			'process_id'     => $process_id,
 		);
 
-		// 尝试自动设置封面
+		// Try to auto-set the featured image
 		if ( ! empty( $response['attachment_id'] ) ) {
 			$this->processor->auto_set_featured_image( $post_id );
 		}
@@ -410,7 +410,7 @@ class W2P_SmartAUI_Ajax {
 			// Clean post cache
 			clean_post_cache( $post_id );
 
-			// 尝试自动设置封面
+			// Try to auto-set the featured image
 			$this->processor->auto_set_featured_image( $post_id );
 		}
 
@@ -477,7 +477,7 @@ class W2P_SmartAUI_Ajax {
 
 		$settings = get_option( 'smart_aui_settings', array() );
 
-		// 返回设置但不包含敏感信息
+		// Return settings but without sensitive information
 		$safe_settings = array(
 			'auto_set_featured_image'    => isset( $settings['auto_set_featured_image'] ) ? (bool) $settings['auto_set_featured_image'] : true,
 			'show_progress_ui'           => isset( $settings['show_progress_ui'] ) ? (bool) $settings['show_progress_ui'] : true,
@@ -546,39 +546,39 @@ class W2P_SmartAUI_Ajax {
 			wp_send_json_error( 'Invalid Post ID' );
 		}
 
-		// 准备更新数据
+		// Prepare the update data
 		$update_data = array(
 			'ID'           => $post_id,
 			'post_content' => $content,
 		);
 
-		// 如果指定了状态，同时更新状态
+		// If a status is specified, update the status too
 		if ( $post_status && in_array( $post_status, array( 'publish', 'draft', 'pending', 'private' ), true ) ) {
 			$update_data['post_status'] = $post_status;
 
-			// 如果是发布，需要更新发布时间
+			// If publishing, need to update the publication time
 			if ( $post_status === 'publish' ) {
 				$post = get_post( $post_id );
 				if ( $post && in_array( $post->post_status, array( 'draft', 'pending', 'auto-draft' ), true ) ) {
-					// 原来是草稿，现在发布，需要设置发布时间
+					// It was a draft and is now being published, so set the publication time
 					$update_data['post_date']     = current_time( 'mysql' );
 					$update_data['post_date_gmt'] = current_time( 'mysql', 1 );
 				}
 			}
 		}
 
-		// 设置标记，告诉 wp_insert_post_data 钩子不要再次处理图片
-		// 因为图片已经在前端处理完毕
+		// Set a flag to tell the wp_insert_post_data hook not to process images again,
+		// because the images have already been processed on the frontend.
 		$_POST['w2p_smart_aui_processed'] = true;
 
-		// 使用 wp_update_post() 以触发所有相关钩子（包括 auto_set_featured_image）
-		// 这比直接用 $wpdb->update() 更符合 WordPress 规范
+		// Use wp_update_post() to trigger all related hooks (including auto_set_featured_image),
+		// which is more compliant with WordPress conventions than calling $wpdb->update() directly.
 		$result = wp_update_post( $update_data, true );
 
-		// 清除标记
+		// Clear the flag
 		unset( $_POST['w2p_smart_aui_processed'] );
 
-		// 检查错误
+		// Check for errors
 		if ( is_wp_error( $result ) ) {
 			wp_send_json_error(
 				array(
@@ -588,10 +588,10 @@ class W2P_SmartAUI_Ajax {
 			);
 		}
 
-		// 验证状态是否真的更新了
+		// Verify the status was actually updated
 		$updated_post = get_post( $post_id );
 
-		// 尝试设置封面
+		// Try to set the featured image
 		$this->processor->auto_set_featured_image( $post_id );
 
 		wp_send_json_success(

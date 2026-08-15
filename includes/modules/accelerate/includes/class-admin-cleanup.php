@@ -1,8 +1,8 @@
 <?php
 /**
- * WP Genius Accelerate — 后台清理
+ * WP Genius Accelerate — Admin Cleanup
  *
- * 从 module.php 拆分（God class 重构）。
+ * Split from module.php (refactored from the God class).
  *
  * @package WP_Genius
  * @subpackage Modules/Accelerate
@@ -104,26 +104,44 @@ class W2P_Accelerate_AdminCleanup {
 	}
 	/**
 	 * Should Disable Months Dropdown (Post List)
+	 *
+	 * Only returns true when the current post type is within the disabled scope (applies per post type).
+	 *
+	 * @param bool   $disable   Current value.
+	 * @param string $post_type Post type.
+	 * @return bool
 	 */
 	public function should_disable_months_dropdown( $disable, $post_type ) {
-		$settings = $this->module->get_settings();
-		if ( ! empty( $settings['accelerate_disable_months_dropdown'] ) ) {
+		if ( in_array( $post_type, $this->get_disabled_post_types(), true ) ) {
 			return true;
 		}
 		return $disable;
 	}
+
 	/**
 	 * Disable Media Months UI
+	 *
+	 * Only returns an empty array when "attachment" (media library) is within the disabled scope;
+	 * otherwise it is left as-is and the media library's months filter works normally.
+	 *
+	 * @param array $months Months.
+	 * @return array
 	 */
 	public function disable_media_months( $months ) {
-		$settings = $this->module->get_settings();
-		if ( ! empty( $settings['accelerate_disable_months_dropdown'] ) ) {
+		if ( in_array( 'attachment', $this->get_disabled_post_types(), true ) ) {
 			return array();
 		}
 		return $months;
 	}
+
 	/**
 	 * Intercept and block date-based SELECT DISTINCT queries
+	 *
+	 * Parses the target post type from the SQL and only short-circuits queries that hit the disabled scope;
+	 * no longer affects the same months queries for other post types (e.g. the media library attachment).
+	 *
+	 * @param string $query Query.
+	 * @return string
 	 */
 	public function intercept_date_query( $query ) {
 		if ( ! is_admin() ) {
@@ -131,13 +149,53 @@ class W2P_Accelerate_AdminCleanup {
 		}
 
 		// Target the specific slow queries for years/months
-		if ( strpos( $query, 'SELECT DISTINCT YEAR( post_date ) AS year, MONTH( post_date ) AS month' ) !== false ) {
-			$settings = $this->module->get_settings();
-			if ( ! empty( $settings['accelerate_disable_months_dropdown'] ) ) {
-				return 'SELECT 1 FROM wp_posts WHERE 1=0';
+		if ( strpos( $query, 'SELECT DISTINCT YEAR( post_date ) AS year, MONTH( post_date ) AS month' ) === false ) {
+			return $query;
+		}
+
+		// Parse the query's target post type; only short-circuit if it is within the selected scope.
+		if ( preg_match( "/post_type\s*=\s*'([^']+)'/", $query, $matches ) ) {
+			if ( in_array( $matches[1], $this->get_disabled_post_types(), true ) ) {
+				global $wpdb;
+				return "SELECT 1 FROM {$wpdb->posts} WHERE 1=0";
 			}
 		}
 
 		return $query;
+	}
+
+	/**
+	 * Normalizes the "Disable Months Dropdown" setting value into an array of post type slugs.
+	 *
+	 * Compatible with both storage formats:
+	 * - New format: an array of post type slugs (checkbox multi-select);
+	 * - Old format: switcher true/'1' (applied globally) — migrated to "all selectable post
+	 *   types except the media library", consistent with the result of migrate_months_dropdown_setting().
+	 *
+	 * @return array
+	 */
+	private function get_disabled_post_types() {
+		$settings = $this->module->get_settings();
+		$raw      = isset( $settings['accelerate_disable_months_dropdown'] ) ? $settings['accelerate_disable_months_dropdown'] : array();
+
+		$valid = W2P_AccelerateModule::get_months_dropdown_post_type_slugs();
+
+		if ( is_array( $raw ) ) {
+			$selected = array();
+			foreach ( $raw as $slug ) {
+				$slug = sanitize_key( (string) $slug );
+				if ( '' !== $slug && in_array( $slug, $valid, true ) ) {
+					$selected[ $slug ] = true;
+				}
+			}
+			return array_keys( $selected );
+		}
+
+		// Legacy global switch: all post types except the media library.
+		if ( ! empty( $raw ) ) {
+			return array_values( array_diff( $valid, array( 'attachment' ) ) );
+		}
+
+		return array();
 	}
 }

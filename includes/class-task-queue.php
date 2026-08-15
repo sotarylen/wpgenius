@@ -1,9 +1,9 @@
 <?php
 /**
- * 轻量级任务队列封装
+ * Lightweight task queue wrapper
  *
- * 基于 WP Cron 提供简化的单次和周期性后台任务调度接口。
- * 额外包含了异步请求分发（Non-blocking HTTP request）功能，用于触发无需等待的后台处理流程。
+ * Provides a simplified interface for scheduling one-time and recurring background tasks based on WP Cron.
+ * Additionally includes async request dispatch (non-blocking HTTP request) for triggering background processes that need not be awaited.
  *
  * @package WP_Genius
  */

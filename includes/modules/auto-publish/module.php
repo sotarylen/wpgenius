@@ -13,6 +13,42 @@ if ( ! defined( 'ABSPATH' ) ) {
 class W2P_AutoPublishModule extends W2P_Abstract_Module {
 
 	/**
+	 * Get Module ID
+	 *
+	 * @return string
+	 */
+	public static function id() {
+		return 'auto-publish';
+	}
+
+	/**
+	 * Get Module Name
+	 *
+	 * @return string
+	 */
+	public static function name() {
+		return __( 'Auto Publish', 'wp-genius' );
+	}
+
+	/**
+	 * Get Module Description
+	 *
+	 * @return string
+	 */
+	public static function description() {
+		return __( 'Automatically publish drafts at scheduled intervals or manually in bulk.', 'wp-genius' );
+	}
+
+	/**
+	 * Get Module Icon
+	 *
+	 * @return string
+	 */
+	public static function icon() {
+		return 'fa-solid fa-clock';
+	}
+
+	/**
 	 * Publisher instance.
 	 *
 	 * @var W2P_AutoPublish_Publisher|null
@@ -58,7 +94,7 @@ class W2P_AutoPublishModule extends W2P_Abstract_Module {
 	 * @return void
 	 */
 	public function init() {
-		// 装配职责类（God class 拆分）。
+		// Wire up the responsibility classes (God class split).
 		require_once __DIR__ . '/includes/class-publisher.php';
 		require_once __DIR__ . '/includes/class-cron.php';
 		require_once __DIR__ . '/includes/class-ajax.php';
@@ -201,7 +237,7 @@ class W2P_AutoPublishModule extends W2P_Abstract_Module {
 		wp_clear_scheduled_hook( 'w2p_auto_publish_cron' );
 	}
 	// ---------------------------------------------------------------------
-	// 兼容委托：保持公共 API 签名，逻辑转发到职责类。
+	// Compatibility delegation: keeps the public API signatures, forwards logic to the responsibility classes.
 	// ---------------------------------------------------------------------
 
 	/**

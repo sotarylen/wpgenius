@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable Universal.Files.SeparateFunctionsFromOO -- 历史工具文件同时含辅助函数与 OO 类。
+// phpcs:disable Universal.Files.SeparateFunctionsFromOO -- Legacy utility file contains both helper functions and an OO class.
 class W2P_Smart_AUI_Progress_Tracker {
 
 	private static $instance = null;
@@ -133,10 +133,10 @@ class W2P_Smart_AUI_Progress_Tracker {
 W2P_Smart_AUI_Progress_Tracker::get_instance();
 
 /**
- * 获取当前用户的图片处理进度（公共函数，供其他模块调用）
+ * Gets the image processing progress for the current user (public function, callable from other modules)
  *
- * @param string   $process_id 进程ID，可选。
- * @param int|null $user_id    用户ID，默认当前用户。
+ * @param string   $process_id Process ID, optional.
+ * @param int|null $user_id    User ID, defaults to the current user.
  * @return array|false
  */
 if ( ! function_exists( 'w2p_smart_aui_get_progress' ) ) {
@@ -146,10 +146,10 @@ if ( ! function_exists( 'w2p_smart_aui_get_progress' ) ) {
 }
 
 /**
- * 清理指定进程的进度数据
+ * Clears the progress data of the specified process
  *
- * @param string   $process_id 进程ID，可选。
- * @param int|null $user_id    用户ID，默认当前用户。
+ * @param string   $process_id Process ID, optional.
+ * @param int|null $user_id    User ID, defaults to the current user.
  * @return void
  */
 if ( ! function_exists( 'w2p_smart_aui_clear_progress' ) ) {
@@ -159,10 +159,10 @@ if ( ! function_exists( 'w2p_smart_aui_clear_progress' ) ) {
 }
 
 /**
- * 判断指定进程是否仍在处理
+ * Checks whether the specified process is still running
  *
- * @param string   $process_id 进程ID，可选。
- * @param int|null $user_id    用户ID，默认当前用户。
+ * @param string   $process_id Process ID, optional.
+ * @param int|null $user_id    User ID, defaults to the current user.
  * @return bool
  */
 if ( ! function_exists( 'w2p_smart_aui_is_processing' ) ) {

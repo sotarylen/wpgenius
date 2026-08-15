@@ -2,7 +2,7 @@
 /**
  * Google Gemini Provider
  *
- * Google Gemini API 适配器
+ * Google Gemini API adapter
  *
  * @package WP_Genius
  * @subpackage Modules/AIEngine/Providers

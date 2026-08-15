@@ -2,7 +2,7 @@
 /**
  * DeepSeek Provider
  *
- * DeepSeek API 适配器
+ * DeepSeek API adapter
  *
  * @package WP_Genius
  * @subpackage Modules/AIEngine/Providers

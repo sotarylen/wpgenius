@@ -37,7 +37,7 @@ if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $ai_queue_table ) ) 
 		printf(
 			/* translators: %d: total queue items */
 			esc_html__( 'Total items in queue: %d', 'wp-genius' ),
-			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- absint 数字嵌入 JS，非用户输入。
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- absint number embedded in JS, not user input.
 			$ai_queue_total
 		);
 		?>
@@ -113,7 +113,7 @@ jQuery(document).ready(function($) {
 		$btn.prop('disabled', true).text('Processing...');
 		$.post(ajaxurl, {
 			action: 'w2p_ai_process_queue',
-			nonce: '<?php echo $nonce; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- 内部值/自转义输出嵌入 JS/模板，非用户输入。 ?>'
+			nonce: '<?php echo $nonce; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Internal value / self-escaped output embedded in JS/templates, not user input. ?>'
 		}, function(res) {
 			$btn.prop('disabled', false).text('<?php echo esc_js( __( 'Process Queue Now', 'wp-genius' ) ); ?>');
 			location.reload();

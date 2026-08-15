@@ -34,8 +34,8 @@ $options = array(
 	'w2p_ai_deepseek_usage',
 	'w2p_ai_schedules_migrated',
 	'w2p_db_version',
-	// CMS Migrator（模块已废弃移除）
-	// w2p_cms_migrator_settings / w2p_cms_migration_progress 于 v1.3.0 移除。
+	// CMS Migrator (module deprecated and removed):
+	// w2p_cms_migrator_settings / w2p_cms_migration_progress were already cleaned from the site when the module was removed.
 	// Word to Post.
 	'w2p_fix_index_finished_books',
 	'w2p_word_publish_settings',
@@ -94,7 +94,7 @@ $tables = array(
 );
 
 foreach ( $tables as $table ) {
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Uninstall-time table cleanup; 表名由 $wpdb->prefix 常量拼接。
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Uninstall-time table cleanup; table names are built by concatenating the $wpdb->prefix constant.
 	$wpdb->query( "DROP TABLE IF EXISTS {$table}" );
 }
 

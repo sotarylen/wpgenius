@@ -37,7 +37,7 @@
     };
 
     // ==============================
-    // 全局功能和工具
+    // Global functions and utilities
     // ==============================
     WPGenius.initGlobalEvents = function () {
         // Global Sub-tab switching logic
@@ -76,21 +76,21 @@
             $btn.closest('.w2p-tabs').find('[data-pane="' + tab + '"]').addClass('active');
         });
 
-        // 处理所有AJAX错误
+        // Handle all AJAX errors
         $(document).ajaxError(function (event, xhr, settings, thrownError) {
             console.error('WP Genius AJAX Error:', thrownError);
         });
 
-        // 工具提示
+        // Tooltips
         $('[title]').on('mouseenter', function () {
             var $this = $(this);
             var title = $this.attr('title');
             if (title) {
-                // 这里可以添加自定义工具提示逻辑
+                // Custom tooltip logic can be added here
             }
         });
 
-        // 危险级开关确认对话框
+        // Danger-level toggle confirmation dialog
         $(document).on('change', 'input[data-confirm]', function (e) {
             var $input = $(this);
 

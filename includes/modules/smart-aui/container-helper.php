@@ -2,7 +2,7 @@
 /**
  * Smart Auto Upload Images Container Helper
  *
- * 在正确的命名空间中定义 get_container 函数
+ * Defines the get_container function in the correct namespace
  */
 
 namespace SmartAutoUploadImages;

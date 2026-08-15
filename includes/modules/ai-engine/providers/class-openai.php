@@ -2,7 +2,7 @@
 /**
  * OpenAI Provider
  *
- * OpenAI API 适配器
+ * OpenAI API adapter
  *
  * @package WP_Genius
  * @subpackage Modules/AIEngine/Providers

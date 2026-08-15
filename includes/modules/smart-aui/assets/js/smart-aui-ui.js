@@ -1,6 +1,6 @@
 /**
  * Smart Auto Upload Images Progress UI
- * 智能自动上传图片进度UI
+ * Smart Auto Upload Images progress UI
  */
 (function ($) {
     'use strict';
@@ -44,7 +44,7 @@
                 progressUI.cancel();
             });
 
-            // 新增：跳过直接发布按钮
+            // New: skip-and-publish button
             $('#w2p-smart-aui-skip-publish-btn').on('click', function () {
                 self.skipAndPublish();
             });
@@ -61,7 +61,7 @@
         bindEventHandlers: function () {
             var self = this;
 
-            // 1. 拦截文章发布/更新按钮 (Post Edit Screen)
+            // 1. Intercept the post publish/update button (Post Edit Screen)
             $(document).on('click', '#publish, .editor-post-publish-button, .editor-post-publish-panel__toggle', function (e) {
                 if (progressUI.isProcessing || $(this).data('smart-aui-processed')) {
                     return;
@@ -78,7 +78,7 @@
                     e.stopImmediatePropagation();
                     progressUI.originalButton = $(this);
 
-                    // 检查是否显示进度UI（默认为true）
+                    // Check whether to show the progress UI (default true)
                     var showProgressUI = true;
                     if (self.settings && typeof self.settings.show_progress_ui !== 'undefined') {
                         showProgressUI = self.settings.show_progress_ui;
@@ -93,11 +93,11 @@
                 }
             });
 
-            // 2. 拦截批量编辑应用按钮 (Post List Screen)
+            // 2. Intercept the bulk-edit Apply button (Post List Screen)
             document.addEventListener('click', function (e) {
                 var target = e.target;
                 var bulkBtn = null;
-                // 向上查找是否点击了 bulk_edit
+                // Walk up to check whether bulk_edit was clicked
                 while (target && target !== document) {
                     if (target.id === 'bulk_edit') {
                         bulkBtn = target;
@@ -108,14 +108,14 @@
 
                 if (!bulkBtn) return;
 
-                // 检查是否有选中的文章
+                // Check whether any posts are selected
                 var checkedPosts = jQuery('input[name="post[]"]:checked');
                 if (checkedPosts.length === 0) return;
 
-                // 已处理过则放行
+                // Already processed - allow through
                 if (jQuery(bulkBtn).data('smart-aui-processed')) return;
 
-                // 阻止默认提交
+                // Prevent the default submit
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation();
@@ -127,7 +127,7 @@
                     postIds.push(jQuery(this).val());
                 });
 
-                // 检查是否显示进度UI（默认为true）
+                // Check whether to show the progress UI (default true)
                 var showProgressUI = true;
                 if (self.settings && typeof self.settings.show_progress_ui !== 'undefined') {
                     showProgressUI = self.settings.show_progress_ui;
@@ -154,7 +154,7 @@
 
         hide: function () {
             this.isProcessing = false;
-            this.currentProcessingContent = null; // 重置当前处理的内容
+            this.currentProcessingContent = null; // Reset the currently processed content
             $('#w2p-smart-aui-backdrop').fadeOut(200, function () {
                 $(this).addClass('w2p-hidden');
             });
@@ -168,7 +168,7 @@
         },
 
         /**
-         * 跳过当前抓取进程，直接发布文章
+         * Skip the current capture process and publish the post directly
          */
         skipAndPublish: function () {
             var self = this;
@@ -177,24 +177,24 @@
                 return;
             }
 
-            // 停止处理
+            // Stop processing
             this.isProcessing = false;
 
-            // 更新状态
+            // Update status
             this.updateStatus(w2pSmartAuiParams.i18n.statusStopped, false);
 
-            // 延迟一下，让用户看到反馈
+            // Small delay so the user sees the feedback
             setTimeout(function () {
-                // 使用已经部分替换过的内容
+                // Use the already partially replaced content
                 var processedContent = self.currentProcessingContent || self.getEditorContent();
 
                 self.setEditorContent(processedContent);
 
-                // 等待编辑器更新完成
+                // Wait for the editor update to finish
                 setTimeout(function () {
                     self.hide();
 
-                    // 执行发布
+                    // Perform the publish
                     self.submitForm(processedContent);
                 }, 500);
             }, 300);
@@ -219,14 +219,14 @@
             if (active !== undefined) $('#w2p-smart-aui-active-threads').text(active);
             if (max !== undefined) $('#w2p-smart-aui-threads').text(max);
 
-            // 进度条
+            // Progress bar
             var processed = success + failed + (skipped || 0);
             if (total > 0) {
                 var percentage = (processed / total) * 100;
                 $('.w2p-smart-aui-progress-fill').css('width', percentage + '%');
             }
 
-            // 如果有失败的图片，显示“跳过，直接发布”按钮
+            // If there are failed images, show the \u201cSkip, publish directly\u201d button
             if (failed > 0 && this.isProcessing) {
                 $('#w2p-smart-aui-skip-publish-btn').show();
             } else {
@@ -333,11 +333,11 @@
             var self = this;
 
 
-            // 确保线程数有效
+            // Ensure the thread count is valid
             var maxConcurrent = parseInt(self.maxConcurrent, 10);
             if (isNaN(maxConcurrent) || maxConcurrent < 1) maxConcurrent = 4;
 
-            // 初始化 UI
+            // Initialize UI
             self.initPreviewGrid(maxConcurrent);
             self.updateStats(mediaItems.length, 0, 0, 0, maxConcurrent, 0);
 
@@ -350,7 +350,7 @@
             var active = 0;
             var currentContent = content || '';
 
-            // 将当前内容保存到对象属性，以便 skipAndPublish 可以访问
+            // Save the current content to an object property so skipAndPublish can access it
             self.currentProcessingContent = currentContent;
 
             // Slot Management
@@ -416,15 +416,15 @@
                                     var isFailed = response.data.failed || false;
 
                                     if (isSkipped) {
-                                        // 跳过（已存在于媒体库或被排除）
+                                        // Skipped (already in the media library or excluded)
                                         skipped++;
                                         self.updateThreadPreview(slot, url, 'success');
                                     } else if (isFailed || (!response.data.downloaded_url && type !== 'local-image')) {
-                                        // 失败（下载失败）- 但本地图片不需要 downloaded_url
+                                        // Failed (download failed) - local images do not need downloaded_url
                                         failed++;
                                         self.updateThreadPreview(slot, url, 'error');
                                     } else {
-                                        // 成功
+                                        // Success
                                         success++;
                                         self.updateThreadPreview(slot, newUrl, 'success');
 
@@ -496,14 +496,14 @@
                                         }
                                     }
                                 } else {
-                                    // AJAX请求失败
+                                    // AJAX request failed
                                     failed++;
                                     self.updateThreadPreview(slot, url, 'error');
                                 }
                                 onWorkerDone(slot);
                             },
                             error: function () {
-                                // AJAX错误
+                                // AJAX error
                                 failed++;
                                 self.updateThreadPreview(slot, url, 'error');
                                 onWorkerDone(slot);
@@ -574,7 +574,7 @@
             }
 
             if (!postId) {
-                this.updateStatus('❌ 无法获取文章ID', false);
+                this.updateStatus('❌ ' + w2pSmartAuiParams.i18n.failedGetPostId, false);
                 return;
             }
 
@@ -612,12 +612,12 @@
                 self.isProcessing = false;
                 self.updateStatus(w2pSmartAuiParams.i18n.allComplete, false);
 
-                // 立即更新编辑器内容
+                // Update the editor content immediately
                 self.setEditorContent(processedContent);
 
                 setTimeout(function () {
                     self.hide();
-                    // 执行发布
+                    // Perform the publish
                     self.submitForm(processedContent);
                 }, 800);
             });
@@ -631,19 +631,19 @@
             var totalPosts = postIds.length;
             var processedPosts = 0;
 
-            // 检测批量编辑表单中的状态字段
-            // WordPress 批量编辑表单中，状态字段名为 "_status"
+            // Detect the status field in the bulk-edit form
+            // In the WordPress bulk-edit form, the status field is named \"_status\"
             var newStatus = jQuery('select[name="_status"]').val();
             var shouldPublish = false;
             var targetStatus = null;
 
 
             if (newStatus && newStatus !== '-1') {
-                // 用户在批量编辑中选择了状态
+                // The user selected a status in bulk edit
                 targetStatus = newStatus;
                 shouldPublish = (newStatus === 'publish');
             } else {
-                // 检测直接批量操作（不打开编辑面板）
+                // Detect direct bulk actions (without opening the edit panel)
                 var bulkAction = jQuery('select[name="action"]').val();
                 if (bulkAction === '-1' || !bulkAction) {
                     bulkAction = jQuery('select[name="action2"]').val();
@@ -655,7 +655,7 @@
             }
 
 
-            // 根据操作类型显示不同的初始信息
+            // Show different initial messages depending on the action type
             var initialMessage = shouldPublish ? w2pSmartAuiParams.i18n.statusPreparingPublish : w2pSmartAuiParams.i18n.statusPreparing;
             this.updateStatus(initialMessage, true);
             this.updateStats(postIds.length, 0, 0, 0); // Temporary initial UI
@@ -667,10 +667,10 @@
                 }
 
                 if (queue.length === 0) {
-                    // 所有文章处理完成
+                    // All posts processed
                     self.isProcessing = false;
 
-                    // 根据实际状态显示不同消息
+                    // Show different messages depending on the actual status
                     var message = w2pSmartAuiParams.i18n.completeAll;
                     if (targetStatus === 'publish') {
                         message = w2pSmartAuiParams.i18n.completePublished;
@@ -686,7 +686,7 @@
 
                     setTimeout(function () {
                         self.hide();
-                        // 不再点击原始按钮，直接刷新页面
+                        // Do not click the original button again; refresh the page directly
                         location.reload();
                     }, 1500);
                     return;
@@ -714,7 +714,7 @@
                             var postData = response.data;
                             var title = postData.post_title || ('Post #' + postId);
 
-                            // 根据目标状态显示不同的前缀
+                            // Show a different prefix depending on the target status
                             var statusPrefix = w2pSmartAuiParams.i18n.statusProcessing;
                             if (targetStatus === 'publish') {
                                 statusPrefix = w2pSmartAuiParams.i18n.statusProcessAndPublish;
@@ -758,7 +758,7 @@
                                 // Reset stats display to show 0/0
                                 self.updateStats(0, 0, 0, 0, 0, 0);
 
-                                // 但如果用户选择了状态，仍然需要保存
+                                // But if the user selected a status, it still needs to be saved
                                 if (targetStatus) {
 
                                     var saveData = {
@@ -783,7 +783,7 @@
                                         }
                                     });
                                 } else {
-                                    // 没有图片也没有状态变更，直接跳过
+                                    // No images and no status change - skip directly
                                     processNextPost();
                                 }
                                 return;
@@ -807,7 +807,7 @@
                                     content: processedContent
                                 };
 
-                                // 如果用户选择了状态，同时更新状态
+                                // If the user selected a status, update it too
                                 if (targetStatus) {
                                     saveData.post_status = targetStatus;
                                 }
@@ -874,15 +874,15 @@
         },
         submitForm: function (processedContent) {
 
-            // 更新编辑器内容（确保内容已更新）
+            // Update the editor content (ensure it is refreshed)
             if (processedContent) {
                 this.setEditorContent(processedContent);
             }
 
-            // 设置全局标记，告诉后端不要再次处理图片
+            // Set a global flag telling the backend not to process images again
             window.W2P_SMART_AUI_PROCESSED = true;
 
-            // 对于 Gutenberg，添加自定义元数据
+            // For Gutenberg, add custom metadata
             if (window.wp && window.wp.data && window.wp.data.dispatch) {
                 try {
                     window.wp.data.dispatch('core/editor').editPost({
@@ -894,11 +894,11 @@
 
             if (this.originalButton && this.originalButton.length > 0) {
 
-                // 设置标记，防止再次拦截
+                // Set the flag to prevent further interception
                 this.originalButton.attr('data-smart-aui-processed', 'true');
                 this.originalButton.data('smart-aui-processed', true);
 
-                // 对于经典编辑器，添加隐藏字段
+                // For the classic editor, add a hidden field
                 var $form = this.originalButton.closest('form');
                 if ($form.length > 0) {
                     var $hidden = $('<input>').attr({
@@ -909,31 +909,31 @@
                     $form.append($hidden);
                 }
 
-                // 检测是否是 Gutenberg 编辑器
+                // Detect whether this is a Gutenberg editor
                 if (window.wp && window.wp.data && window.wp.data.dispatch && window.wp.data.select) {
                     try {
-                        // 尝试获取 editor store
+                        // Try to get the editor store
                         var editorStore = window.wp.data.dispatch('core/editor');
                         if (editorStore && typeof editorStore.savePost === 'function') {
                             editorStore.savePost();
                         } else {
-                            // 尝试使用 core 或点击按钮
+                            // Try to use core or click the button
                             console.warn('[Smart AUI] core/editor store not available, trying button click');
                             this.originalButton[0].click();
                         }
                     } catch (error) {
-                        // 如果失败，尝试点击按钮
+                        // If that fails, try clicking the button
                         this.originalButton[0].click();
                     }
                 } else {
-                    // 经典编辑器，点击按钮
+                    // Classic editor - click the button
                     this.originalButton[0].click();
                 }
             } else {
-                // 如果没有按钮，直接提交表单
+                // If there is no button, submit the form directly
                 var $form = $('#post');
                 if ($form.length > 0) {
-                    // 添加隐藏字段
+                    // Add a hidden field
                     var $hidden = $('<input>').attr({
                         type: 'hidden',
                         name: 'w2p_smart_aui_processed',
@@ -952,7 +952,7 @@
         },
         setEditorContent: function (content) {
 
-            // Gutenberg 编辑器
+            // Gutenberg editor
             if (typeof wp !== 'undefined' && wp.data && wp.data.dispatch && wp.data.select) {
                 try {
                     var editor = wp.data.select('core/editor');
@@ -964,13 +964,13 @@
                 }
             }
 
-            // TinyMCE 编辑器
+            // TinyMCE editor
             if (typeof tinyMCE !== 'undefined' && tinyMCE.activeEditor && !tinyMCE.activeEditor.isHidden()) {
                 tinyMCE.activeEditor.setContent(content);
                 return;
             }
 
-            // 经典文本域
+            // Classic textarea
             var $content = $('#content');
             if ($content.length > 0) {
                 $content.val(content);

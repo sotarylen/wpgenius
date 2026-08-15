@@ -28,7 +28,12 @@ wp-config.php
 
 # Agent workspace / tooling
 .workbuddy/
-# .agent/ is tracked (agent rules & skills)
+# .agent/ is tracked (agent rules & skills); only SKILL.md files are committed —
+# auxiliary skill content (evals / references / scripts) is local dev material.
+.agent/skills/*/evals/
+.agent/skills/*/references/
+.agent/skills/*/scripts/
 
 # Backup files
 *.bak*
+wpgenius-backup*.zip

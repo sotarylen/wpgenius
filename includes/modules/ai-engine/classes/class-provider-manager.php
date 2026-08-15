@@ -2,7 +2,7 @@
 /**
  * Provider Manager
  *
- * AI 供应商管理器
+ * AI provider manager
  *
  * @package WP_Genius
  * @subpackage Modules/AIEngine/Classes

@@ -2,8 +2,8 @@
 /**
  * System Health Module - CSF Options
  *
- * 使用 CSF 原生 tabbed 字段组织工具面板（Cleanup / Image Remover / Duplicate / Info），
- * 替代旧的自绘 w2p-sub-tabs 导航。
+ * Organizes the tool panels using CSF's native tabbed field (Cleanup / Image Remover / Duplicate / Info),
+ * replacing the old custom-drawn w2p-sub-tabs navigation.
  *
  * @package WP_Genius
  * @subpackage Modules
@@ -30,16 +30,16 @@ $stats      = array(
 $categories = $service->get_categories();
 
 /**
- * 渲染指定 tab 视图片段。
+ * Renders the view fragment of the specified tab.
  *
- * @param string $tab 视图文件名（不含 .php）。
+ * @param string $tab View file name (without .php).
  * @return string
  */
 $render_tab = function ( $tab ) use ( $module_dir, $stats, $categories ) {
 	ob_start();
 	$file = $module_dir . 'views/tab-' . $tab . '.php';
 	if ( file_exists( $file ) ) {
-		// 视图片段使用变量：$stats / $w2p_categories。
+		// View fragments use these variables: $stats / $w2p_categories.
 		$w2p_categories = $categories;
 		include $file;
 	} else {
@@ -100,7 +100,7 @@ return array(
 				),
 			),
 		),
-		// JS 动态渲染模板（System Info 等 AJAX 填充使用）。
+		// JS dynamically rendered templates (used by AJAX filling such as System Info).
 		array(
 			'type'    => 'content',
 			'content' => ( function () use ( $module_dir ) {

@@ -9,12 +9,12 @@
     window.WPGenius = window.WPGenius || {};
 
     // ==============================
-    // CSF tabbed 初始化修复
+    // CSF tabbed initialization fix
     //
-    // 问题：System Health 的 tabbed 字段依赖 CSF 的 csf_reload_script 在
-    // section 切换时初始化（csf_field_tabbed）。若未初始化，点击 tab 链接
-    // （href="#"）会触发 hashchange，CSF 左侧导航误切回第一个 section。
-    // 修复：主动初始化 + 阻止默认跳转双保险。
+    // Problem: System Health's tabbed field depends on CSF's csf_reload_script to
+    // initialize (csf_field_tabbed) on section switch. If not initialized, clicking a tab link
+    // (href="#") triggers hashchange, and the CSF left navigation wrongly switches back to the first section.
+    // Fix: proactive initialization + blocking the default jump as a double safeguard.
     // ==============================
     var initCsfTabbed = function () {
         if (typeof $.fn.csf_field_tabbed === 'function') {
@@ -26,18 +26,18 @@
             });
         }
 
-        // 兜底：阻止 tabbed 链接默认行为，避免 hash 变化导致 CSF 左侧导航切换 section。
+        // Fallback: prevent the default behavior of tabbed links to avoid hash changes causing the CSF left navigation to switch sections.
         $(document).off('click.w2p-tabbed').on('click.w2p-tabbed', '.csf-tabbed-nav a', function (e) {
             e.preventDefault();
         });
     };
 
     $(document).ready(initCsfTabbed);
-    // section 动态切换/渲染后再次尝试初始化（幂等）。
+    // Retry initialization (idempotent) after sections are dynamically switched/rendered.
     $(document).on('csf-reload-script', initCsfTabbed);
 
     // ==============================
-    // 系统健康模块 (System Health)
+    // System Health Module (System Health)
     // ==============================
     WPGenius.SystemHealth = {
         init: function () {
@@ -224,7 +224,7 @@
     };
 
     // ==============================
-    // 图片链接移除模块 (Image Link Remover)
+    // Image Link Remover Module (Image Link Remover)
     // ==============================
     WPGenius.ImageLinkRemover = {
         allPosts: [],
@@ -408,7 +408,7 @@
     };
 
     // ==============================
-    // 重复文章清理模块 (Duplicate Post Cleaner)
+    // Duplicate Post Cleaner Module (Duplicate Post Cleaner)
     // ==============================
     WPGenius.DuplicateCleaner = {
         duplicateGroups: [],

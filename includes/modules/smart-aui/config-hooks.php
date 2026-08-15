@@ -9,13 +9,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// 增加HTTP请求超时时间
+// Increase HTTP request timeout
 add_filter(
 	'http_request_timeout',
 	function ( $timeout, $url ) {
-		// 只对图片请求增加超时
+		// Only increase the timeout for image requests
 		if ( preg_match( '/\.(jpg|jpeg|png|gif|webp|svg)$/i', $url ) ) {
-			return 30; // 30秒
+			return 30; // 30 seconds
 		}
 		return $timeout;
 	},
@@ -23,11 +23,11 @@ add_filter(
 	2
 );
 
-// 修改wp_remote_get的参数
+// Modify wp_remote_get parameters
 add_filter(
 	'http_request_args',
 	function ( $args, $url ) {
-		// 只对图片请求修改
+		// Only modify image requests
 		if ( preg_match( '/\.(jpg|jpeg|png|gif|webp|svg)$/i', $url ) ) {
 			$args['timeout']   = 30;
 			$args['sslverify'] = false;
@@ -36,7 +36,7 @@ add_filter(
 				$args['headers'] = array();
 			}
 
-			// 添加User-Agent避免被拒绝
+			// Add a User-Agent to avoid being rejected
 			if ( ! isset( $args['headers']['User-Agent'] ) ) {
 				$args['headers']['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 			}
@@ -48,30 +48,30 @@ add_filter(
 	2
 );
 
-// 增加WordPress的最大执行时间
+// Increase WordPress max execution time
 add_filter(
 	'wp_php_timeout',
 	function ( $timeout ) {
-		// 在保存文章时增加超时时间
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- 仅读取 action 名调整超时，不改状态。
+		// Increase the timeout when saving posts
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- only reads the action name to adjust timeouts, never changes status.
 		if ( isset( $_POST['action'] ) && in_array( $_POST['action'], array( 'editpost', 'inline-save' ), true ) ) {
-			return 300; // 5分钟
+			return 300; // 5 minutes
 		}
 		return $timeout;
 	}
 );
 
-// 禁用WordPress的心跳检测，避免在处理图片时被中断
+// Disable the WordPress heartbeat to avoid interruption while processing images
 add_action(
 	'admin_enqueue_scripts',
 	function () {
 		global $pagenow;
 		if ( in_array( $pagenow, array( 'post.php', 'post-new.php' ), true ) ) {
-			// 延长心跳间隔
+			// Extend the heartbeat interval
 			add_filter(
 				'heartbeat_settings',
 				function ( $settings ) {
-					$settings['interval'] = 60; // 60秒
+					$settings['interval'] = 60; // 60 seconds
 					return $settings;
 				}
 			);

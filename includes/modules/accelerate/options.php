@@ -36,7 +36,8 @@ $defaults = array(
 	'accelerate_remove_dashboard_quick_draft'    => true,
 
 	// General
-	'accelerate_disable_months_dropdown'         => true,
+	// Note: this $defaults array is a legacy leftover (unreferenced), kept only for semantic consistency.
+	'accelerate_disable_months_dropdown'         => array(),
 	'accelerate_enable_local_avatar'             => true,
 	'accelerate_enable_upload_rename'            => true,
 	'accelerate_upload_rename_pattern'           => '{timestamp}_{sanitized}',
@@ -210,11 +211,14 @@ return array(
 			'content' => __( 'General Interface', 'wp-genius' ),
 		),
 		array(
-			'id'      => 'accelerate_disable_months_dropdown',
-			'type'    => 'switcher',
-			'title'   => __( 'Disable Months Dropdown', 'wp-genius' ),
-			'label'   => __( 'Block slow "All dates" queries in post list.', 'wp-genius' ),
-			'default' => false,
+			'id'        => 'accelerate_disable_months_dropdown',
+			'type'      => 'checkbox',
+			'title'     => __( 'Disable Months Dropdown', 'wp-genius' ),
+			'desc'      => esc_html__( 'Disable the \u201cFilter by month\u201d dropdown in the admin list for the selected post types (avoids slow queries on large datasets). The Media Library maps to the attachment type; keep it unchecked if you need month filtering in the library.', 'wp-genius' ),
+			'options'   => array(), // Options are injected dynamically by the csf_w2p_settings_sections filter at init:10 (all CPTs are registered by then).
+			'check_all' => true,
+			'inline'    => true,
+			'default'   => array(),
 		),
 		array(
 			'id'      => 'accelerate_enable_local_avatar',
@@ -244,6 +248,17 @@ return array(
 			'title'   => __( 'Delete with Images', 'wp-genius' ),
 			'label'   => __( 'Adds a "Delete w/ Images" action to the post list.', 'wp-genius' ),
 			'default' => false,
+		),
+		array(
+			'id'         => 'accelerate_delete_with_images_post_types',
+			'type'       => 'checkbox',
+			'title'      => __( 'Delete with Images — Post Types', 'wp-genius' ),
+			'desc'       => esc_html__( 'Select the post types where the "Delete w/ Images" action is available. Defaults to Posts and Albums.', 'wp-genius' ),
+			'options'    => array(), // Options are injected dynamically by the csf_w2p_settings_sections filter at init:10 (all CPTs are registered by then).
+			'check_all'  => true,
+			'inline'     => true,
+			'default'    => array( 'post', 'albums' ),
+			'dependency' => array( 'accelerate_enable_delete_with_images', '==', 'true' ),
 		),
 
 		// Update Behaviors

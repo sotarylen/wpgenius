@@ -36,14 +36,14 @@
         }
 
         init() {
-            // 严格检查：只允许在存在 #w2p-book-chapters 的页面激活
+            // Strict check: only activate on pages with the #w2p-book-chapters container
             this.$container = $(this.containerSelector);
 
             if (this.$container.length === 0) {
-                return; // 直接退出，不做任何操作
+                return; // Exit directly without doing anything
             }
 
-            // 只有在找到目标容器时才初始化功能
+            // Only initialize the feature when the target container is found
             this.createProgressBar();
             this.createToolbar();
 
@@ -98,9 +98,9 @@
             const $sizeControl = $('<div>', { class: 'wpg-reader-size-control' });
 
             // Use type="button" to prevent form submission logic if placed inside form
-            const $btnDecrease = $('<button>', { type: 'button', class: 'wpg-reader-btn-icon', text: '−', title: '减小字体' });
+            const $btnDecrease = $('<button>', { type: 'button', class: 'wpg-reader-btn-icon', text: '−', title: wpgReaderConfig.i18n.decreaseFont });
             const $sizeDisplay = $('<span>', { class: 'wpg-reader-size-display', text: this.state.fontSize + 'px' });
-            const $btnIncrease = $('<button>', { type: 'button', class: 'wpg-reader-btn-icon', text: '+', title: '增大字体' });
+            const $btnIncrease = $('<button>', { type: 'button', class: 'wpg-reader-btn-icon', text: '+', title: wpgReaderConfig.i18n.increaseFont });
 
             $btnDecrease.on('click', (e) => {
                 e.preventDefault();
@@ -117,17 +117,17 @@
 
             // --- Section 2: Font Family ---
             const $fontSection = $('<div>', { class: 'wpg-reader-section' });
-            $fontSection.append($('<span>', { class: 'wpg-reader-label', text: '字体' }));
+            $fontSection.append($('<span>', { class: 'wpg-reader-label', text: wpgReaderConfig.i18n.font }));
 
             const $fontSelect = $('<select>', { class: 'wpg-reader-select' });
             const fonts = [
-                { id: 'sans', label: '系统默认' },
-                { id: 'heiti', label: '黑体' },
-                { id: 'songti', label: '宋体' },
-                { id: 'kaiti', label: '楷体' },
-                { id: 'lishu', label: '隶书' },
-                { id: 'yahei', label: '微软雅黑' },
-                { id: 'droidsans', label: '思源黑体' }
+                { id: 'sans', label: wpgReaderConfig.i18n.fontSans },
+                { id: 'heiti', label: wpgReaderConfig.i18n.fontHeiti },
+                { id: 'songti', label: wpgReaderConfig.i18n.fontSongti },
+                { id: 'kaiti', label: wpgReaderConfig.i18n.fontKaiti },
+                { id: 'lishu', label: wpgReaderConfig.i18n.fontLishu },
+                { id: 'yahei', label: wpgReaderConfig.i18n.fontYahei },
+                { id: 'droidsans', label: wpgReaderConfig.i18n.fontDroidsans }
             ];
 
             fonts.forEach(f => {
@@ -153,10 +153,10 @@
             const $themeGroup = $('<div>', { class: 'wpg-reader-themes' });
 
             const themes = [
-                { id: 'light', icon: 'fas fa-sun', class: 'wpg-theme-btn-light', title: '明亮模式' },
-                { id: 'sepia', icon: 'fas fa-book-open', class: 'wpg-theme-btn-sepia', title: '护眼模式' },
-                { id: 'green', icon: 'fas fa-leaf', class: 'wpg-theme-btn-green', title: '自然模式' },
-                { id: 'dark', icon: 'fas fa-moon', class: 'wpg-theme-btn-dark', title: '暗黑模式' }
+                { id: 'light', icon: 'fas fa-sun', class: 'wpg-theme-btn-light', title: wpgReaderConfig.i18n.themeLight },
+                { id: 'sepia', icon: 'fas fa-book-open', class: 'wpg-theme-btn-sepia', title: wpgReaderConfig.i18n.themeSepia },
+                { id: 'green', icon: 'fas fa-leaf', class: 'wpg-theme-btn-green', title: wpgReaderConfig.i18n.themeGreen },
+                { id: 'dark', icon: 'fas fa-moon', class: 'wpg-theme-btn-dark', title: wpgReaderConfig.i18n.themeDark }
             ];
 
             themes.forEach(t => {
@@ -190,7 +190,7 @@
             const $fullscreenBtn = $('<button>', {
                 type: 'button',
                 class: 'wpg-reader-btn-icon wpg-reader-fullscreen-btn',
-                title: '全屏/专注模式',
+                title: wpgReaderConfig.i18n.fullscreen,
                 'data-fullscreen': 'false'
             });
 
@@ -241,7 +241,7 @@
             const $prevBtn = $('<button>', {
                 type: 'button',
                 class: 'wpg-reader-btn-icon',
-                title: '上一章',
+                title: wpgReaderConfig.i18n.prevChapter,
                 disabled: !links.prev
             });
             $prevBtn.append($('<i>', { class: 'fas fa-chevron-left' }));
@@ -253,7 +253,7 @@
             const $tocBtn = $('<button>', {
                 type: 'button',
                 class: 'wpg-reader-btn-icon',
-                title: '返回目录',
+                title: wpgReaderConfig.i18n.toc,
                 disabled: !links.toc
             });
             $tocBtn.append($('<i>', { class: 'fas fa-list' }));
@@ -269,7 +269,7 @@
             const $nextBtn = $('<button>', {
                 type: 'button',
                 class: 'wpg-reader-btn-icon',
-                title: '下一章',
+                title: wpgReaderConfig.i18n.nextChapter,
                 disabled: !links.next
             });
             $nextBtn.append($('<i>', { class: 'fas fa-chevron-right' }));
@@ -283,11 +283,11 @@
 
         changeFontSize(delta) {
             let currentSize = parseInt(this.state.fontSize) || 18;
-            let newSize = currentSize + (delta * 2); // 步进为2
+            let newSize = currentSize + (delta * 2); // Step of 2
 
             // Boundary checks
             if (newSize < 12) newSize = 12;
-            if (newSize > 40) newSize = 40; // 最大限制为40px
+            if (newSize > 40) newSize = 40; // Max limit of 40px
 
             // Early return if no change
             if (this.state.fontSize === newSize) return;
@@ -394,7 +394,7 @@
                 this.savePosition();
             });
 
-            // 键盘支持：ESC退出全屏模式
+            // Keyboard support: ESC exits fullscreen mode
             $(document).on('keydown', (e) => {
                 if (e.key === 'Escape' && this.$fullscreenBtn && this.$fullscreenBtn.data('fullscreen') === 'true') {
                     this.exitFullscreen();
@@ -450,7 +450,7 @@
                 // Update button state
                 this.$fullscreenBtn.data('fullscreen', 'true');
                 this.$fullscreenBtn.find('i').removeClass('fas fa-expand-alt').addClass('fas fa-compress-alt');
-                this.$fullscreenBtn.attr('title', '退出全屏/专注模式');
+                this.$fullscreenBtn.attr('title', wpgReaderConfig.i18n.exitFullscreen);
 
                 // Add fullscreen mode class
                 $('body').addClass('wpg-reader-fullscreen');
@@ -469,7 +469,7 @@
                 // Update button state
                 this.$fullscreenBtn.data('fullscreen', 'false');
                 this.$fullscreenBtn.find('i').removeClass('fas fa-compress-alt').addClass('fas fa-expand-alt');
-                this.$fullscreenBtn.attr('title', '全屏/专注模式');
+                this.$fullscreenBtn.attr('title', wpgReaderConfig.i18n.fullscreen);
 
                 // Remove fullscreen mode class
                 $('body').removeClass('wpg-reader-fullscreen');

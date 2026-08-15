@@ -2,7 +2,7 @@
 /**
  * Anthropic Provider
  *
- * Anthropic Claude API 适配器
+ * Anthropic Claude API adapter
  *
  * @package WP_Genius
  * @subpackage Modules/AIEngine/Providers
