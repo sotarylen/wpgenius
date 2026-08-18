@@ -12,13 +12,15 @@ class MediaEngineMinioService {
 
 	public function __construct() {
 		if ( ! class_exists( 'MediaEngineConversionLogger' ) ) {
-			require_once plugin_dir_path( __DIR__ ) . 'class-logger-service.php';
+			// class-minio-service.php lives in services/ together with class-logger-service.php,
+			// so resolve via __FILE__ (plugin_dir_path( __DIR__ ) would point one level up).
+			require_once plugin_dir_path( __FILE__ ) . 'class-logger-service.php';
 		}
 		$this->logger = new MediaEngineConversionLogger();
 	}
 
 	public function upload( $attachment_id ) {
-		$cmd = sprintf( 'wp advmo offload %d 2>&1', $attachment_id );
+		$cmd = sprintf( 'timeout 600 wp advmo offload %d 2>&1', $attachment_id );
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI invocation; attachment IDs are bound via absint/%d.
 		exec( $cmd, $output, $return_code );
 		$stats = $this->parse_offload_stats( $output, 1 );
@@ -44,7 +46,7 @@ class MediaEngineMinioService {
 			);
 		}
 		$ids_str = implode( ',', $attachment_ids );
-		$cmd     = sprintf( 'wp advmo offload %s 2>&1', $ids_str );
+		$cmd     = sprintf( 'timeout 600 wp advmo offload %s 2>&1', $ids_str );
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI invocation; attachment IDs are bound via absint/%d.
 		exec( $cmd, $output, $return_code );
 		$stats = $this->parse_offload_stats( $output, count( $attachment_ids ) );
@@ -90,8 +92,12 @@ class MediaEngineMinioService {
 	}
 
 	public function is_available() {
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI invocation; attachment IDs are bound via absint/%d.
-		exec( 'wp advmo --help 2>&1', $output, $return_code );
-		return $return_code === 0;
+		// Static availability check: the advmo plugin is active => considered available.
+		// We no longer spawn a wp-cli process per batch (`wp advmo --help`), which put
+		// heavy pressure on Redis connections and failed intermittently.
+		if ( ! function_exists( 'is_plugin_active' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+		return is_plugin_active( 'advanced-media-offloader/advanced-media-offloader.php' );
 	}
 }

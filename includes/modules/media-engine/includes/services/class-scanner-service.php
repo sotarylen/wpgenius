@@ -28,7 +28,9 @@ class MediaEngineScannerService {
 			"SELECT p.ID FROM {$wpdb->posts} p
 			LEFT JOIN {$wpdb->postmeta} pm ON (p.ID = pm.post_id AND pm.meta_key = 'advmo_offloaded' AND pm.meta_value = '1')
 			LEFT JOIN {$wpdb->postmeta} pmf ON (p.ID = pmf.post_id AND pmf.meta_key = '_w2p_media_failed')
-			WHERE p.post_type = 'attachment' AND p.post_mime_type IN ($mime_placeholders) AND pm.post_id IS NULL AND pmf.post_id IS NULL
+			LEFT JOIN {$wpdb->postmeta} pmp ON (p.ID = pmp.post_id AND pmp.meta_key = '_w2p_rewrite_pending')
+			WHERE p.post_type = 'attachment' AND p.post_mime_type IN ($mime_placeholders)
+				AND ( pm.post_id IS NULL OR pmp.post_id IS NOT NULL ) AND pmf.post_id IS NULL
 			ORDER BY p.ID DESC LIMIT %d OFFSET %d",
 			array_merge( $mime_types, array( $limit, $offset ) )
 		);

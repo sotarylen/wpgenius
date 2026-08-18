@@ -12,13 +12,15 @@ class MediaEngineThumbnailService {
 
 	public function __construct() {
 		if ( ! class_exists( 'MediaEngineConversionLogger' ) ) {
-			require_once plugin_dir_path( __DIR__ ) . 'class-logger-service.php';
+			// class-thumbnail-service.php lives in services/ together with class-logger-service.php,
+			// so resolve via __FILE__ (plugin_dir_path( __DIR__ ) would point one level up).
+			require_once plugin_dir_path( __FILE__ ) . 'class-logger-service.php';
 		}
 		$this->logger = new MediaEngineConversionLogger();
 	}
 
 	public function regenerate( $attachment_id ) {
-		$cmd = sprintf( 'wp media regenerate %d --only-missing --yes 2>&1', $attachment_id );
+		$cmd = sprintf( 'timeout 300 wp media regenerate %d --only-missing --yes 2>&1', $attachment_id );
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI invocation; attachment ID is cast via absint.
 		exec( $cmd, $output, $return_code );
 		$stats = $this->parse_thumbnail_stats( $output, 1 );
@@ -37,7 +39,7 @@ class MediaEngineThumbnailService {
 			);
 		}
 		$ids_str = implode( ' ', $attachment_ids );
-		$cmd     = sprintf( 'wp media regenerate %s --only-missing --yes 2>&1', $ids_str );
+		$cmd     = sprintf( 'timeout 300 wp media regenerate %s --only-missing --yes 2>&1', $ids_str );
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI invocation; attachment ID is cast via absint.
 		exec( $cmd, $output, $return_code );
 		$stats = $this->parse_thumbnail_stats( $output, count( $attachment_ids ) );

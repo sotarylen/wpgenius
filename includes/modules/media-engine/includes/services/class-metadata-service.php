@@ -19,6 +19,9 @@ class MediaEngineMetadataService {
 		}
 		update_attached_file( $attachment_id, $relative_path );
 		$wpdb->update( $wpdb->posts, array( 'post_mime_type' => 'image/webp' ), array( 'ID' => $attachment_id ) );
+		// Direct SQL writes bypass the WP post cache: without an explicit invalidation,
+		// get_post() would keep returning the stale (pre-webp) mime type.
+		clean_post_cache( $attachment_id );
 		$metadata = wp_get_attachment_metadata( $attachment_id );
 		if ( $metadata ) {
 			$metadata['file'] = $relative_path;

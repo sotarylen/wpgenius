@@ -109,50 +109,69 @@ class MediaEngineProcessor {
 		$this->logger->log_batch_start( $total, $total );
 		$results = array();
 
+		// 补偿机制：拆出上一批回写失败的附件（_w2p_rewrite_pending）。
+		// 这类附件跳过 STEP1/2/3（已转换/已生成缩略图），只补做 STEP4 回写 + STEP5 清理。
+		$pending_ids = array();
+		foreach ( $attachment_ids as $id ) {
+			if ( get_post_meta( $id, '_w2p_rewrite_pending', true ) ) {
+				$pending_ids[] = $id;
+			}
+		}
+		$normal_ids = array_diff( $attachment_ids, $pending_ids );
+
 		// Step 1: Batch convert all images (STEP1 log)
 		$this->logger->log_step_header( 'STEP1: Convert Media Format to WebP' );
-		foreach ( $attachment_ids as $id ) {
-			$file_path = get_attached_file( $id );
-			if ( ! $file_path || ! file_exists( $file_path ) ) {
+		foreach ( $normal_ids as $id ) {
+			try {
+				$file_path = get_attached_file( $id );
+				if ( ! $file_path || ! file_exists( $file_path ) ) {
+					$results[ $id ] = array(
+						'success' => false,
+						'error'   => 'File not found',
+					);
+					continue;
+				}
+				$original_url   = wp_get_attachment_url( $id );
+				$convert_result = $this->converter->convert_to_webp( $id );
+				if ( ! $convert_result['success'] ) {
+					// Mark the attachment as failed so the scanner stops picking it up on
+					// every round (avoids an endless retry loop). The failed state can be
+					// cleared via the "Retry failed" action once the underlying problem is fixed.
+					update_post_meta( $id, '_w2p_media_failed', time() );
+					// Failed conversions do NOT proceed to offload/URL rewrite: uploading the
+					// unconverted original and rewriting content URLs would serve visitors a
+					// heavy/unsupported format (e.g. BMP) from the bucket instead of WebP.
+					$results[ $id ] = $convert_result;
+					continue;
+				}
+				delete_post_meta( $id, '_w2p_media_failed' );
+				// If it is a WebP file, mark conversion as skipped, but still run the subsequent steps
+				if ( ! empty( $convert_result['skipped'] ) ) {
+					$results[ $id ] = array_merge(
+						$convert_result,
+						array(
+							'original_url'       => $original_url,
+							'conversion_skipped' => true,
+						)
+					);
+				} else {
+					$this->metadata->update( $id, $file_path, $convert_result['output_path'] );
+					$this->metadata->save_original_info( $id, basename( $file_path ) );
+					$results[ $id ] = array_merge( $convert_result, array( 'original_url' => $original_url ) );
+				}
+			} catch ( \Throwable $e ) {
+				// 单附件异常不中断整个批次：记录失败状态并继续下一个
+				update_post_meta( $id, '_w2p_media_failed', time() );
 				$results[ $id ] = array(
 					'success' => false,
-					'error'   => 'File not found',
+					'error'   => 'Exception: ' . $e->getMessage(),
 				);
-				continue;
-			}
-			$original_url   = wp_get_attachment_url( $id );
-			$convert_result = $this->converter->convert_to_webp( $id );
-			if ( ! $convert_result['success'] ) {
-				// Mark the attachment as failed so the scanner stops picking it up on
-				// every round (avoids an endless retry loop). The failed state can be
-				// cleared via the "Retry failed" action once the underlying problem is fixed.
-				update_post_meta( $id, '_w2p_media_failed', time() );
-				// Failed conversions do NOT proceed to offload/URL rewrite: uploading the
-				// unconverted original and rewriting content URLs would serve visitors a
-				// heavy/unsupported format (e.g. BMP) from the bucket instead of WebP.
-				$results[ $id ] = $convert_result;
-				continue;
-			}
-			delete_post_meta( $id, '_w2p_media_failed' );
-			// If it is a WebP file, mark conversion as skipped, but still run the subsequent steps
-			if ( ! empty( $convert_result['skipped'] ) ) {
-				$results[ $id ] = array_merge(
-					$convert_result,
-					array(
-						'original_url'       => $original_url,
-						'conversion_skipped' => true,
-					)
-				);
-			} else {
-				$this->metadata->update( $id, $file_path, $convert_result['output_path'] );
-				$this->metadata->save_original_info( $id, basename( $file_path ) );
-				$results[ $id ] = array_merge( $convert_result, array( 'original_url' => $original_url ) );
 			}
 		}
 
 		// Step 2: Thumbnail Generation
 		$ids_to_regenerate = array();
-		foreach ( $attachment_ids as $id ) {
+		foreach ( $normal_ids as $id ) {
 			if ( isset( $results[ $id ] ) && $results[ $id ]['success'] ) {
 				$ids_to_regenerate[] = $id;
 			}
@@ -165,7 +184,7 @@ class MediaEngineProcessor {
 		// Includes files that converted successfully and files that failed conversion but whose original file can still be offloaded
 		if ( $this->is_minio_available() ) {
 			$ids_to_upload = array();
-			foreach ( $attachment_ids as $id ) {
+			foreach ( $normal_ids as $id ) {
 				// Offload any attachment that has original_url stored (successful or failed conversion)
 				if ( isset( $results[ $id ]['original_url'] ) ) {
 					$ids_to_upload[] = $id;
@@ -177,11 +196,27 @@ class MediaEngineProcessor {
 			}
 		}
 
+		// 补偿分支：上一批回写失败的附件，本批只补做回写 + 清理（跳过 STEP1/2/3）
+		if ( ! empty( $pending_ids ) ) {
+			$this->logger->log_step_header( 'STEP4-RETRY: WP Rewrite Content URL (compensation)' );
+			foreach ( $pending_ids as $id ) {
+				try {
+					$results[ $id ] = $this->compensate_pending( $id );
+				} catch ( \Throwable $e ) {
+					// 补偿异常：保留标记，下批再试（不中断批次）
+					$results[ $id ] = array(
+						'success' => false,
+						'error'   => 'Exception: ' . $e->getMessage(),
+					);
+				}
+			}
+		}
+
 		// Step 4: Batch URL rewrite (wp_get_attachment_url now returns the final URL; STEP4 log)
 		$this->logger->log_step_header( 'STEP4: WP Rewrite Content URL' );
 		$rewrite_count = 0;
 		$skip_count    = 0;
-		foreach ( $attachment_ids as $id ) {
+		foreach ( $normal_ids as $id ) {
 			if ( ! isset( $results[ $id ]['original_url'] ) ) {
 				++$skip_count;
 				continue;
@@ -196,7 +231,20 @@ class MediaEngineProcessor {
 				++$skip_count;
 				continue;
 			}
-			$result = $this->url_rewrite->rewrite_content( $id, $original_url, $new_url );
+			try {
+				$result = $this->url_rewrite->rewrite_content( $id, $original_url, $new_url );
+			} catch ( \Throwable $e ) {
+				// 单附件回写异常不中断批次：标记待补偿，下批走补偿分支
+				update_post_meta( $id, '_w2p_rewrite_pending', time() );
+				$results[ $id ]['rewrite_error'] = 'Exception: ' . $e->getMessage();
+				continue;
+			}
+			// 回写未发生任何替换（no_parent/no_match/无变化）→ 标记待补偿；替换成功 → 清除标记
+			if ( empty( $result['replaced'] ) ) {
+				update_post_meta( $id, '_w2p_rewrite_pending', time() );
+			} else {
+				delete_post_meta( $id, '_w2p_rewrite_pending' );
+			}
 			++$rewrite_count;
 		}
 
@@ -204,7 +252,7 @@ class MediaEngineProcessor {
 		$cleanup_success = 0;
 		$cleanup_skip    = 0;
 		$cleanup_failed  = 0;
-		foreach ( $attachment_ids as $id ) {
+		foreach ( $normal_ids as $id ) {
 			// Conversion failed / skipped: no cleanup needed → skip
 			if ( ! isset( $results[ $id ] ) || ! $results[ $id ]['success'] || ! empty( $results[ $id ]['conversion_skipped'] ) ) {
 				++$cleanup_skip;
@@ -250,17 +298,153 @@ class MediaEngineProcessor {
 	}
 
 	private function should_cleanup( $attachment_id ) {
-		// If keeping the original file is set, do not clean up
+		// keep_original 开关打开 → 永不清理
 		if ( ! empty( $this->settings['keep_original'] ) && $this->settings['keep_original'] === '1' ) {
 			return false;
 		}
-		// If Minio is unavailable, also clean up (because the file has already been converted)
-		if ( ! $this->is_minio_available() ) {
-			return true;
-		}
-		// If Minio is available, check whether the file has been uploaded
-		$is_offloaded = get_post_meta( $attachment_id, '_is_minio_offloaded', true );
+		// 安全检查：只有确认已 offload（advmo 或 minio meta 任一为 '1'）才允许删除本地文件。
+		// 不再有 "Minio 不可用 → 返回 true" 的逻辑：那会在未 offload 的情况下删除本地文件导致图片 404。
+		$is_offloaded = '1' === get_post_meta( $attachment_id, 'advmo_offloaded', true )
+			|| '1' === get_post_meta( $attachment_id, '_is_minio_offloaded', true );
 		return (bool) $is_offloaded;
+	}
+
+	/**
+	 * 补偿回写：处理上一批回写失败（_w2p_rewrite_pending）的附件。
+	 *
+	 * 跳过转换/缩略图/上传（STEP1/2/3），只补做内容回写 + 本地原文件清理。
+	 * 文章内无旧引用（no_parent/no_match）视为"确认无引用"，同样清除标记，避免无限重试。
+	 *
+	 * @param int $attachment_id Attachment ID.
+	 * @return array
+	 */
+	private function compensate_pending( $attachment_id ) {
+		$new_url = wp_get_attachment_url( $attachment_id );
+		if ( ! $new_url ) {
+			delete_post_meta( $attachment_id, '_w2p_rewrite_pending' );
+			return array(
+				'success'  => true,
+				'replaced' => false,
+				'reason'   => 'no_url',
+			);
+		}
+
+		$result = $this->rewrite_content_fallback( $attachment_id, $new_url );
+
+		// 无论是否替换成功（无引用也视为确认完成），都清除待补偿标记，避免无限重试。
+		// 若补偿过程中抛异常，由调用方保留标记、下批再试。
+		delete_post_meta( $attachment_id, '_w2p_rewrite_pending' );
+
+		// 补清理：仅当确认已 offload 且满足清理条件时才允许删除本地原文件
+		if ( $this->should_cleanup( $attachment_id ) ) {
+			$this->metadata->cleanup_original( $attachment_id );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * 基于原文件名（stem）对父文章做正则替换，把残留的本地旧引用替换为 $new_url。
+	 *
+	 * 旧引用目录取自 attached_file 的相对路径；旧扩展名用常见格式（jpg/jpeg/png/gif）
+	 * 匹配——转换后原始扩展名已丢失，只能用 stem + 常见后缀做宽松匹配。
+	 *
+	 * @param int    $attachment_id Attachment ID.
+	 * @param string $new_url       New URL.
+	 * @return array
+	 */
+	private function rewrite_content_fallback( $attachment_id, $new_url ) {
+		global $wpdb;
+
+		$post_parent = wp_get_post_parent_id( $attachment_id );
+		if ( ! $post_parent ) {
+			return array(
+				'success'  => true,
+				'replaced' => false,
+				'reason'   => 'no_parent',
+			);
+		}
+
+		$post = get_post( $post_parent );
+		if ( ! $post || empty( $post->post_content ) ) {
+			return array(
+				'success'  => true,
+				'replaced' => false,
+				'reason'   => 'no_content',
+			);
+		}
+
+		$original_name = get_post_meta( $attachment_id, '_w2p_original_file', true );
+		if ( empty( $original_name ) ) {
+			return array(
+				'success'  => true,
+				'replaced' => false,
+				'reason'   => 'no_original_name',
+			);
+		}
+
+		$stem = pathinfo( $original_name, PATHINFO_FILENAME );
+		if ( $stem === '' ) {
+			return array(
+				'success'  => true,
+				'replaced' => false,
+				'reason'   => 'no_stem',
+			);
+		}
+
+		$upload_dir = wp_get_upload_dir();
+		$file_rel   = get_attached_file( $attachment_id );
+		$rel_dir    = '';
+		if ( $file_rel ) {
+			$rel_dir = dirname( ltrim( str_replace( $upload_dir['basedir'], '', $file_rel ), '/\\' ) );
+			if ( '.' === $rel_dir ) {
+				$rel_dir = '';
+			}
+		}
+		$old_dir = trailingslashit( $upload_dir['baseurl'] ) . ( $rel_dir ? trailingslashit( $rel_dir ) : '' );
+
+		$pattern = '/'
+			. '(?:https?:\/\/[^\/]+)?'
+			. preg_quote( $old_dir, '/' )
+			. preg_quote( $stem, '/' )
+			. '(?:(?:-\d+x\d+)?(?:-scaled)?)?'
+			. '\.(?:jpe?g|png|gif)'
+			. '/i';
+
+		// 替换串中的 $ 和 \ 需要转义，避免被当作 preg 反向引用
+		$replacement = str_replace( array( '\\', '$' ), array( '\\\\', '\\$' ), $new_url );
+
+		$count       = 0;
+		$new_content = preg_replace( $pattern, $replacement, $post->post_content, -1, $count );
+
+		if ( $count === 0 || $new_content === $post->post_content ) {
+			return array(
+				'success'  => true,
+				'replaced' => false,
+				'reason'   => 'no_match',
+			);
+		}
+
+		$updated = $wpdb->update(
+			$wpdb->posts,
+			array( 'post_content' => $new_content ),
+			array( 'ID' => $post_parent )
+		);
+		clean_post_cache( $post_parent );
+
+		$result = array(
+			'success'     => true,
+			'replaced'    => true,
+			'count'       => $count,
+			'post_parent' => $post_parent,
+		);
+
+		if ( false === $updated ) {
+			$result['success'] = false;
+			$result['error']   = 'DB update failed';
+		}
+
+		return $result;
 	}
 
 	private function is_minio_available() {
