@@ -125,6 +125,10 @@ class MediaEngineProcessor {
 			try {
 				$file_path = get_attached_file( $id );
 				if ( ! $file_path || ! file_exists( $file_path ) ) {
+					// Mark as failed so the scanner stops picking it up on every round
+					// (dead attachments — DB record exists but local file is gone — would
+					// otherwise be re-returned forever and inflate the failed counter).
+					update_post_meta( $id, '_w2p_media_failed', time() );
 					$results[ $id ] = array(
 						'success' => false,
 						'error'   => 'File not found',
