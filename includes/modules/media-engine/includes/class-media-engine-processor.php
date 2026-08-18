@@ -434,7 +434,11 @@ class MediaEngineProcessor {
 			array( 'post_content' => $new_content ),
 			array( 'ID' => $post_parent )
 		);
-		clean_post_cache( $post_parent );
+		// Targeted cache invalidation (see metadata-service update(): clean_post_cache()
+		// fires the supercache hook → PHP Warning → X-QM-php_errors headers overflow
+		// nginx fastcgi_buffer_size → 502).
+		wp_cache_delete( $post_parent, 'posts' );
+		wp_cache_delete( $post_parent, 'post_meta' );
 
 		$result = array(
 			'success'     => true,
