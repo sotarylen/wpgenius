@@ -42,25 +42,21 @@ $settings = W2P_Settings::tab_with_legacy( 'media_engine_tabs', 'w2p_media_turbo
 						<i class="fa-solid fa-play"></i>
 						<?php /* translators: 1: scan limit, 2: batch size. */ printf( esc_html__( 'Batch Conversion (%1$d items, batch %2$d)', 'wp-genius' ), absint( $scan_limit ), absint( $batch_size ) ); ?>
 					</button>
-					<!-- Full auto processing (new): loops scan → batch convert → scan → convert until everything is done -->
+					<!-- 全自动处理（新）：自动循环 扫描 → 批次转换 → 再扫描 → 再转换 直到全部完成 -->
 					<button type="button" id="w2p-start-auto" class="w2p-btn w2p-btn-primary">
 						<i class="fa-solid fa-rotate"></i>
-						<?php esc_html_e( 'Full Auto Processing', 'wp-genius' ); ?>
+						<?php esc_html_e( '全自动处理', 'wp-genius' ); ?>
 					</button>
-					<!-- Pause/Resume (new, hidden initially) -->
+					<!-- 暂停/恢复（新，初始隐藏） -->
 					<button type="button" id="w2p-pause-auto" class="w2p-btn w2p-btn-warning w2p-hidden">
 						<i class="fa-solid fa-pause"></i>
-						<?php esc_html_e( 'Pause', 'wp-genius' ); ?>
+						<?php esc_html_e( '暂停', 'wp-genius' ); ?>
 					</button>
 					<button type="button" id="w2p-stop-conversion" class="w2p-btn w2p-btn-stop w2p-hidden">
 						<i class="fa-solid fa-stop"></i>
 						<?php esc_html_e( 'Stop Processing', 'wp-genius' ); ?>
 					</button>
 					<span style="border-left:1px solid var(--w2p-border-color);height:24px;margin:0 4px;"></span>
-					<button type="button" id="w2p-retry-failed" class="w2p-btn w2p-btn-secondary">
-						<i class="fa-solid fa-rotate-left"></i>
-						<?php esc_html_e( 'Retry Failed Items', 'wp-genius' ); ?>
-					</button>
 					<button type="button" id="w2p-view-log" class="w2p-btn w2p-btn-secondary">
 						<i class="fa-solid fa-file-lines"></i>
 						<?php esc_html_e( 'View Log', 'wp-genius' ); ?>
@@ -197,7 +193,7 @@ $settings = W2P_Settings::tab_with_legacy( 'media_engine_tabs', 'w2p_media_turbo
 (function($) {
 	'use strict';
 	
-	// Configuration passed in from PHP
+	// 从 PHP 传入的配置
 	const scanLimit = <?php echo absint( $settings['scan_limit'] ?? 1000 ); ?>;
 	const batchSize = <?php echo absint( $settings['batch_size'] ?? 10 ); ?>;
 	
@@ -206,7 +202,7 @@ $settings = W2P_Settings::tab_with_legacy( 'media_engine_tabs', 'w2p_media_turbo
 		MediaProcessingUI.concurrentWorkers = batchSize;
 	}
 	
-	// Set the global config for media-processing-ui.js
+	// 设置全局配置供 media-processing-ui.js 使用
 	window.w2pMediaConfig = {
 		scanLimit: scanLimit,
 		batchSize: batchSize

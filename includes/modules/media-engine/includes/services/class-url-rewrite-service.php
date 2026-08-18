@@ -96,7 +96,7 @@ class MediaEngineUrlRewriteService {
 			$result['error']   = 'DB update failed';
 		}
 
-		// STEP4 result line: attachment ID | parent ID | new URL | OK/NG
+		// STEP4 结果行：附件ID | 父级ID | 新地址 | OK/NG
 		$this->logger->log_rewrite_result( $attachment_id, (int) $post_parent, $new_url, $result['success'] );
 
 		return $result;

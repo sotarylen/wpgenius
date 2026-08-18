@@ -48,21 +48,21 @@ class MediaEngineConverterService {
 	 */
 	private function detect_engines() {
 		// Detect vips
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- System tool invocation (vips/cwebp); file paths pass through escapeshellarg.
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- 系统工具调用（vips/cwebp），文件路径经 escapeshellarg。
 		exec( 'vips --version 2>&1', $output, $return_code );
 		if ( $return_code === 0 ) {
 			$this->available_engines['vips'] = true;
 		}
 
 		// Detect cwebp
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- System tool invocation (vips/cwebp); file paths pass through escapeshellarg.
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- 系统工具调用（vips/cwebp），文件路径经 escapeshellarg。
 		exec( 'cwebp -version 2>&1', $output, $return_code );
 		if ( $return_code === 0 ) {
 			$this->available_engines['cwebp'] = true;
 		}
 
 		// Detect gif2webp
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- System tool invocation (vips/cwebp); file paths pass through escapeshellarg.
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- 系统工具调用（vips/cwebp），文件路径经 escapeshellarg。
 		exec( 'gif2webp -version 2>&1', $output, $return_code );
 		if ( $return_code === 0 ) {
 			$this->available_engines['gif2webp'] = true;
@@ -102,7 +102,7 @@ class MediaEngineConverterService {
 	 *
 	 * @param string      $file_path Source file path
 	 * @param string|null $output_path Output path (optional)
-	 * @param int         $attachment_id Attachment ID (used to format the conversion result log)
+	 * @param int         $attachment_id Attachment ID（用于格式化转换结果日志）
 	 * @return array Result
 	 */
 	public function convert_file_to_webp( $file_path, $output_path = null, $attachment_id = 0 ) {
@@ -133,7 +133,7 @@ class MediaEngineConverterService {
 	 * @param string $file_path Source file path
 	 * @param string $output_path Output path
 	 * @param int    $quality Quality
-	 * @param int    $attachment_id Attachment ID (used to format the conversion result log)
+	 * @param int    $attachment_id Attachment ID（用于格式化转换结果日志）
 	 */
 	private function convert_gif( $file_path, $output_path, $quality, $attachment_id = 0 ) {
 		if ( ! isset( $this->available_engines['gif2webp'] ) ) {
@@ -173,7 +173,7 @@ class MediaEngineConverterService {
 	 * @param string $file_path Source file path
 	 * @param string $output_path Output path
 	 * @param int    $quality Quality
-	 * @param int    $attachment_id Attachment ID (used to format the conversion result log)
+	 * @param int    $attachment_id Attachment ID（用于格式化转换结果日志）
 	 */
 	private function convert_static( $file_path, $output_path, $quality, $attachment_id = 0 ) {
 		// Try vips first
@@ -209,18 +209,18 @@ class MediaEngineConverterService {
 	/**
 	 * Execute command wrapper
 	 *
-	 * @param string $command Executed command
-	 * @param string $output_path Output file path
-	 * @param string $engine Conversion engine
-	 * @param int    $quality Quality parameter
-	 * @param int    $attachment_id Attachment ID (used to format the conversion result log)
-	 * @param string $original_file Full path of the original file (used to calculate the original size and extract the file name)
+	 * @param string $command 执行的命令
+	 * @param string $output_path 输出文件路径
+	 * @param string $engine 转换引擎
+	 * @param int    $quality 质量参数
+	 * @param int    $attachment_id 附件 ID（用于格式化转换结果日志）
+	 * @param string $original_file 原文件完整路径（用于计算原大小与取文件名）
 	 * @return array Result
 	 */
 	private function execute_command( $command, $output_path, $engine, $quality, $attachment_id = 0, $original_file = '' ) {
 		$output      = array();
 		$return_code = 0;
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- System tool invocation (vips/cwebp); file paths pass through escapeshellarg.
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- 系统工具调用（vips/cwebp），文件路径经 escapeshellarg。
 		exec( $command, $output, $return_code );
 
 		$output_str = implode( "\n", $output );

@@ -67,7 +67,7 @@ class MediaEngineProcessor {
 		}
 		$original_url = wp_get_attachment_url( $attachment_id );
 
-		// Single-file flow: output the STEP1 header line before conversion (consistent with the batch flow)
+		// 单文件流程：转换前输出 STEP1 标题行（与批量流程保持一致）
 		$this->logger->log_step_header( 'STEP1: Convert Media Format to WebP' );
 		$convert_result              = $this->converter->convert_to_webp( $attachment_id );
 		$results['steps']['convert'] = $convert_result;
@@ -109,25 +109,9 @@ class MediaEngineProcessor {
 		$this->logger->log_batch_start( $total, $total );
 		$results = array();
 
-		// Step 1: Batch convert all images (STEP1 log)
+		// 步骤1: 批量转换所有图片（STEP1 日志）
 		$this->logger->log_step_header( 'STEP1: Convert Media Format to WebP' );
 		foreach ( $attachment_ids as $id ) {
-			// Idempotency: attachments already offloaded are marked as a successful skip instead
-			// of being converted again. This is the fallback for when scanner-side exclusions
-			// fail (e.g. advmo writes advmo_offloaded = 'false' on skip), which previously led
-			// to the same ID being converted multiple times in concurrent batches.
-			$offloaded_val = get_post_meta( $id, 'advmo_offloaded', true );
-			$is_offloaded  = ( '' !== $offloaded_val && '0' !== $offloaded_val && 'false' !== $offloaded_val )
-				|| '1' === get_post_meta( $id, '_is_minio_offloaded', true );
-			if ( $is_offloaded ) {
-				$results[ $id ] = array(
-					'success'          => true,
-					'skipped'          => true,
-					'already_offloaded' => true,
-					'original_url'     => wp_get_attachment_url( $id ),
-				);
-				continue;
-			}
 			$file_path = get_attached_file( $id );
 			if ( ! $file_path || ! file_exists( $file_path ) ) {
 				$results[ $id ] = array(
@@ -139,18 +123,12 @@ class MediaEngineProcessor {
 			$original_url   = wp_get_attachment_url( $id );
 			$convert_result = $this->converter->convert_to_webp( $id );
 			if ( ! $convert_result['success'] ) {
-				// Mark the attachment as failed so the scanner stops picking it up on
-				// every round (avoids an endless retry loop). The failed state can be
-				// cleared via the "Retry failed" action once the underlying problem is fixed.
-				update_post_meta( $id, '_w2p_media_failed', time() );
-				// Failed conversions do NOT proceed to offload/URL rewrite: uploading the
-				// unconverted original and rewriting content URLs would serve visitors a
-				// heavy/unsupported format (e.g. BMP) from the bucket instead of WebP.
-				$results[ $id ] = $convert_result;
+				// Store original_url for failed conversions too — needed for path prefix
+				// rewrite if the original file is later offloaded to Minio.
+				$results[ $id ] = array_merge( $convert_result, array( 'original_url' => $original_url ) );
 				continue;
 			}
-			delete_post_meta( $id, '_w2p_media_failed' );
-			// If it is a WebP file, mark conversion as skipped, but still run the subsequent steps
+			// 如果是WebP文件,标记为跳过转换,但仍然执行后续步骤
 			if ( ! empty( $convert_result['skipped'] ) ) {
 				$results[ $id ] = array_merge(
 					$convert_result,
@@ -169,8 +147,7 @@ class MediaEngineProcessor {
 		// Step 2: Thumbnail Generation
 		$ids_to_regenerate = array();
 		foreach ( $attachment_ids as $id ) {
-			// Already-offloaded skips carry no local file to regenerate thumbnails from.
-			if ( isset( $results[ $id ] ) && $results[ $id ]['success'] && empty( $results[ $id ]['already_offloaded'] ) ) {
+			if ( isset( $results[ $id ] ) && $results[ $id ]['success'] ) {
 				$ids_to_regenerate[] = $id;
 			}
 		}
@@ -178,25 +155,23 @@ class MediaEngineProcessor {
 			$this->thumbnail->regenerate_batch( $ids_to_regenerate );
 		}
 
-		// Step 3: Batch upload to Minio (before URL rewrite, so wp_get_attachment_url returns the final Minio path)
-		// Includes files that converted successfully and files that failed conversion but whose original file can still be offloaded
+		// 步骤3: 批量Minio上传（放在URL重写之前，确保wp_get_attachment_url返回最终Minio路径）
+		// 包含转换成功的文件和转换失败但原始文件仍可offload的文件
 		if ( $this->is_minio_available() ) {
 			$ids_to_upload = array();
 			foreach ( $attachment_ids as $id ) {
-				// Offload any attachment that has original_url stored (successful or failed
-				// conversion), but never re-offload an idempotent already_offloaded skip —
-				// that would start an extra advmo CLI run per skipped attachment.
-				if ( isset( $results[ $id ]['original_url'] ) && empty( $results[ $id ]['already_offloaded'] ) ) {
+				// Offload any attachment that has original_url stored (successful or failed conversion)
+				if ( isset( $results[ $id ]['original_url'] ) ) {
 					$ids_to_upload[] = $id;
 				}
 			}
 			if ( ! empty( $ids_to_upload ) ) {
-				// The STEP3 header line is already output by log_offload_result; no redundant debug is logged here
+				// STEP3 标题行已由 log_offload_result 输出，此处不再记录冗余 debug
 				$this->minio->upload_batch( $ids_to_upload );
 			}
 		}
 
-		// Step 4: Batch URL rewrite (wp_get_attachment_url now returns the final URL; STEP4 log)
+		// 步骤4: 批量URL重写（此时wp_get_attachment_url已返回最终URL，STEP4 日志）
 		$this->logger->log_step_header( 'STEP4: WP Rewrite Content URL' );
 		$rewrite_count = 0;
 		$skip_count    = 0;
@@ -219,17 +194,17 @@ class MediaEngineProcessor {
 			++$rewrite_count;
 		}
 
-		// Step 5: Batch cleanup (STEP5 log; the header is output internally by log_cleanup_result)
+		// 步骤5: 批量清理（STEP5 日志，标题由 log_cleanup_result 内部输出）
 		$cleanup_success = 0;
 		$cleanup_skip    = 0;
 		$cleanup_failed  = 0;
 		foreach ( $attachment_ids as $id ) {
-			// Conversion failed / skipped: no cleanup needed → skip
+			// 转换失败/跳过转换：无清理必要 → skip
 			if ( ! isset( $results[ $id ] ) || ! $results[ $id ]['success'] || ! empty( $results[ $id ]['conversion_skipped'] ) ) {
 				++$cleanup_skip;
 				continue;
 			}
-			// Cleanup conditions not met (keep_original / not offloaded): skip
+			// 不满足清理条件（keep_original / 未 offload）：skip
 			if ( ! $this->should_cleanup( $id ) ) {
 				++$cleanup_skip;
 				continue;
@@ -238,7 +213,7 @@ class MediaEngineProcessor {
 			if ( ! empty( $cleanup_result['success'] ) && ! empty( $cleanup_result['count'] ) ) {
 				++$cleanup_success;
 			} else {
-				++$cleanup_skip; // No original file to clean up (count=0)
+				++$cleanup_skip; // 无原文件可清理（count=0）
 			}
 		}
 		$this->logger->log_cleanup_result( $attachment_ids, $cleanup_success, $cleanup_skip, $cleanup_failed );
@@ -269,15 +244,15 @@ class MediaEngineProcessor {
 	}
 
 	private function should_cleanup( $attachment_id ) {
-		// If keeping the original file is set, do not clean up
+		// 如果设置了保留原文件,不清理
 		if ( ! empty( $this->settings['keep_original'] ) && $this->settings['keep_original'] === '1' ) {
 			return false;
 		}
-		// If Minio is unavailable, also clean up (because the file has already been converted)
+		// 如果Minio不可用,也清理(因为文件已经转换成功)
 		if ( ! $this->is_minio_available() ) {
 			return true;
 		}
-		// If Minio is available, check whether the file has been uploaded
+		// 如果Minio可用,检查是否已上传
 		$is_offloaded = get_post_meta( $attachment_id, '_is_minio_offloaded', true );
 		return (bool) $is_offloaded;
 	}

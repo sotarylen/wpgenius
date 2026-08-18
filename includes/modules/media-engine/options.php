@@ -137,7 +137,7 @@ return array(
 
 				// Tab 5: Residual Media Audit (Content Field)
 				array(
-					'title'  => __( 'Residual Media Audit', 'wp-genius' ),
+					'title'  => __( '残留媒体审计', 'wp-genius' ),
 					'icon'   => 'fa fa-search',
 					'fields' => array(
 						array(

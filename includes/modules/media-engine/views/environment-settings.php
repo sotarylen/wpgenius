@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Load the environment detection class
+// 加载环境检测类
 if ( ! class_exists( 'MediaEngineEnvironmentChecker' ) ) {
 	require_once __DIR__ . '/../includes/services/class-environment-service.php';
 }
@@ -32,7 +32,7 @@ $env_results = MediaEngineEnvironmentChecker::check_all();
 			</div>
 		</div>
 		<div class="w2p-section-body">
-			<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_status_html escapes internally (esc_html_e); it is a safe rendering boundary.
+			<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_status_html 内部自转义（esc_html_e），为安全渲染函数边界。
 			echo MediaEngineEnvironmentChecker::render_status_html( $env_results );
 			?>
 		</div>
