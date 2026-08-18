@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Genius
  * Description: A comprehensive toolkit for WordPress content management, optimization, and automation (Auto-Publish, Media Engine, System Health, and more).
- * Version: 1.2.0
+ * Version: 1.3.0
  * Author: Sotary
  * Text Domain: wp-genius
  */
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Define plugin constants
 define( 'WP_GENIUS_FILE', __FILE__ );
-define( 'W2P_VERSION', '1.2.0' );
+define( 'W2P_VERSION', '1.3.0' );
 define( 'W2P_DB_VERSION', '1.0' );
 
 // Include module framework (abstracts, loader, admin settings)
@@ -156,6 +156,15 @@ function w2p_migrate_legacy_module_keys() {
 }
 
 function w2p_core_init() {
+	// Disable Query Monitor's response header output. In admin-ajax scenarios QM serializes
+	// every PHP error into an X-QM-php_errors response header (with stack, ~600B each); when
+	// process_batch handles a large batch the cumulative error headers exceed nginx's default
+	// fastcgi_buffer_size (~4KB) → 502 Bad Gateway. This filter disables QM's header output at
+	// the source, so PHP errors can no longer cause 502s (the QM panel itself is unaffected).
+	if ( class_exists( 'QueryMonitor' ) ) {
+		add_filter( 'qm/outputter/headers', '__return_empty_array', 999 );
+	}
+
 	// Load plugin textdomain first
 	load_plugin_textdomain( 'wp-genius', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 

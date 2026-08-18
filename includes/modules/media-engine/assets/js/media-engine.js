@@ -29,6 +29,7 @@
         abandonedIds: [],          // attachment ids given up on after too many rounds (never leave the queue)
         maxStrikes: 5,             // rounds after which a stuck attachment is abandoned instead of retried forever
         scanRetries: 0,            // consecutive scan-request failures in the current round
+        batchRetries: 0,           // consecutive batch-request failures for the current batch (max 2, then marked failed)
         autoRound: 0,              // Current round counter
 
         /**
@@ -583,6 +584,7 @@
             self.strikeCounts = {};
             self.abandonedIds = [];
             self.scanRetries = 0;
+            self.batchRetries = 0;
             self.autoRound = 0;
             self.currentBatchIndex = 0;
             self.batches = [];
@@ -775,6 +777,10 @@
                     attachment_ids: batchIds
                 },
                 success: function (response) {
+                    // Any successful response (even a whole-batch business failure) proves the request
+                    // reached the server, so the retry counter for this batch is no longer needed.
+                    self.batchRetries = 0;
+
                     if (response.success) {
                         const stats = response.data.stats;
 
@@ -808,7 +814,28 @@
                     self.afterAutoBatch();
                 },
                 error: function () {
-                    // Request failed
+                    // Network/gateway error (e.g. 502): the backend may have actually succeeded, so do
+                    // not mark the batch failed immediately — retry the same batch instead.
+                    if (self.batchRetries < 2) {
+                        self.batchRetries++;
+                        // Undo this attempt's batch-start stats (pending--/processing++ were applied
+                        // once per item at the top of processNextAutoBatch). The retry re-enters
+                        // processNextAutoBatch with the same currentBatchIndex, whose batch-start
+                        // section re-applies them; without this restore, pending/processing would be
+                        // double-counted and currentBatchIndex would be untouched → same batch retried.
+                        batch.forEach(() => {
+                            self.stats.pending++;
+                            self.stats.processing--;
+                        });
+                        $('#w2p-output-content').append(
+                            '<div style="color: #f59e0b;">⚠️ Batch request failed (retry ' + self.batchRetries + '/2)...</div>'
+                        );
+                        self.updateQueueStats();
+                        setTimeout(() => self.processNextAutoBatch(), 10000);  // 10s 后重试当前批次，不推进 currentBatchIndex
+                        return;
+                    }
+                    // Retries exhausted: mark failed and continue.
+                    self.batchRetries = 0;
                     batch.forEach((item, idx) => {
                         const $row = $('#attachment-row-' + (startIndex + idx));
                         self.stats.processing--;
