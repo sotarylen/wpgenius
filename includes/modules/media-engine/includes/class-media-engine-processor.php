@@ -239,8 +239,8 @@ class MediaEngineProcessor {
 				$results[ $id ]['rewrite_error'] = 'Exception: ' . $e->getMessage();
 				continue;
 			}
-			// 回写未发生任何替换（no_parent/no_match/无变化）→ 标记待补偿；替换成功 → 清除标记
-			if ( empty( $result['replaced'] ) ) {
+			// 回写未成功或未发生任何替换（no_parent/no_match/无变化/DB 更新失败）→ 标记待补偿；成功替换 → 清除标记
+			if ( empty( $result['success'] ) || empty( $result['replaced'] ) ) {
 				update_post_meta( $id, '_w2p_rewrite_pending', time() );
 			} else {
 				delete_post_meta( $id, '_w2p_rewrite_pending' );
@@ -331,9 +331,11 @@ class MediaEngineProcessor {
 
 		$result = $this->rewrite_content_fallback( $attachment_id, $new_url );
 
-		// 无论是否替换成功（无引用也视为确认完成），都清除待补偿标记，避免无限重试。
-		// 若补偿过程中抛异常，由调用方保留标记、下批再试。
-		delete_post_meta( $attachment_id, '_w2p_rewrite_pending' );
+		// 仅在回写成功（含 no_parent/no_match 等"确认无引用"场景，success 均为 true）时清除
+		// 待补偿标记；DB 更新失败（success=false）时保留标记，下批再试，避免内容 URL 永久残留。
+		if ( ! empty( $result['success'] ) ) {
+			delete_post_meta( $attachment_id, '_w2p_rewrite_pending' );
+		}
 
 		// 补清理：仅当确认已 offload 且满足清理条件时才允许删除本地原文件
 		if ( $this->should_cleanup( $attachment_id ) ) {
@@ -401,11 +403,13 @@ class MediaEngineProcessor {
 				$rel_dir = '';
 			}
 		}
-		$old_dir = trailingslashit( $upload_dir['baseurl'] ) . ( $rel_dir ? trailingslashit( $rel_dir ) : '' );
+		// 相对路径形式（与 rewrite_content 的 pattern 结构对齐）：域名前缀可选，
+		// 使残留的绝对 URL 引用与相对路径引用（/wp-content/uploads/...）都能被补偿匹配
+		$rel_old_dir = wp_make_link_relative( trailingslashit( $upload_dir['baseurl'] ) . ( $rel_dir ? trailingslashit( $rel_dir ) : '' ) );
 
 		$pattern = '/'
 			. '(?:https?:\/\/[^\/]+)?'
-			. preg_quote( $old_dir, '/' )
+			. preg_quote( $rel_old_dir, '/' )
 			. preg_quote( $stem, '/' )
 			. '(?:(?:-\d+x\d+)?(?:-scaled)?)?'
 			. '\.(?:jpe?g|png|gif)'

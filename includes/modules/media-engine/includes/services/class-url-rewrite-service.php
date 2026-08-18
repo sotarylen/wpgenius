@@ -12,7 +12,9 @@ class MediaEngineUrlRewriteService {
 
 	public function __construct() {
 		if ( ! class_exists( 'MediaEngineConversionLogger' ) ) {
-			require_once plugin_dir_path( __DIR__ ) . 'class-logger-service.php';
+			// class-url-rewrite-service.php lives in services/ together with class-logger-service.php,
+			// so resolve via __FILE__ (plugin_dir_path( __DIR__ ) would point one level up).
+			require_once plugin_dir_path( __FILE__ ) . 'class-logger-service.php';
 		}
 		$this->logger = new MediaEngineConversionLogger();
 	}
