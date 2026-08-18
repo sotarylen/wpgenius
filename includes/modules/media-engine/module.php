@@ -234,9 +234,36 @@ class W2P_MediaEngineModule extends W2P_Abstract_Module {
 			wp_send_json_error( 'No IDs' );
 		}
 
-		$processor = new MediaEngineProcessor();
-		$result    = $processor->process_batch( $ids );
-		wp_send_json_success( $result );
+		// Global batch lock: the frontend timeouts long before the backend finishes, so a
+		// timed-out client would otherwise fire the next batch while the previous one is
+		// still converting the same IDs — concurrent runs inflate batches and convert
+		// attachments twice. Reject any overlapping request with a batch_in_progress code.
+		$lock_key = 'w2p_media_batch_lock';
+		if ( get_transient( $lock_key ) ) {
+			wp_send_json_error(
+				array(
+					'code'    => 'batch_in_progress',
+					'message' => __( 'Another batch is still running. Please wait.', 'wp-genius' ),
+				)
+			);
+		}
+		// TTL 20 minutes covers the longest observed batch (576s), with margin.
+		set_transient( $lock_key, time(), 1200 );
+
+		if ( function_exists( 'set_time_limit' ) ) {
+			set_time_limit( 300 );
+		}
+
+		try {
+			$processor = new MediaEngineProcessor();
+			$result    = $processor->process_batch( $ids );
+			delete_transient( $lock_key );
+			wp_send_json_success( $result );
+		} catch ( \Exception $e ) {
+			// Release the lock on every failure path so a crashed batch never wedges the queue.
+			delete_transient( $lock_key );
+			wp_send_json_error( 'Batch processing error: ' . $e->getMessage() );
+		}
 	}
 
 	/**

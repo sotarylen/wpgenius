@@ -29,6 +29,7 @@
         abandonedIds: [],          // attachment ids given up on after too many rounds (never leave the queue)
         maxStrikes: 5,             // rounds after which a stuck attachment is abandoned instead of retried forever
         scanRetries: 0,            // consecutive scan-request failures in the current round
+        batchRetries: 0,           // consecutive AJAX failures for the current batch (auto mode; reset on success, max 2)
         autoRound: 0,              // Current round counter
 
         /**
@@ -385,6 +386,7 @@
             $.ajax({
                 url: w2pMediaEngine.ajax_url,
                 type: 'POST',
+                timeout: 900000,
                 data: {
                     action: 'w2p_process_batch',
                     nonce: w2pMediaEngine.nonce,
@@ -583,6 +585,7 @@
             self.strikeCounts = {};
             self.abandonedIds = [];
             self.scanRetries = 0;
+            self.batchRetries = 0;
             self.autoRound = 0;
             self.currentBatchIndex = 0;
             self.batches = [];
@@ -769,6 +772,7 @@
             $.ajax({
                 url: w2pMediaEngine.ajax_url,
                 type: 'POST',
+                timeout: 900000,
                 data: {
                     action: 'w2p_process_batch',
                     nonce: w2pMediaEngine.nonce,
@@ -777,6 +781,9 @@
                 success: function (response) {
                     if (response.success) {
                         const stats = response.data.stats;
+
+                        // Batch completed server-side — any previous failure is cleared.
+                        self.batchRetries = 0;
 
                         // Update status item by item and collect failed ids
                         batch.forEach((item, idx) => {
@@ -794,6 +801,21 @@
                                 self.updateRowStatus($row, 'FAILED', convertResult?.error || 'Unknown error');
                             }
                         });
+                    } else if (response.data && response.data.code === 'batch_in_progress') {
+                        // Another batch is still running on the server (frontend timeout fired
+                        // before the backend finished). Do NOT mark these attachments failed and
+                        // do NOT advance currentBatchIndex — undo the PROCESSING marking so the
+                        // retry re-marks cleanly, then retry the same batch after 10s.
+                        batch.forEach((item) => {
+                            self.stats.pending++;
+                            self.stats.processing--;
+                        });
+                        self.updateQueueStats();
+                        $('#w2p-output-content').append(
+                            '<div style="color: #f59e0b;">⏳ Another batch is running, waiting 10s to retry...</div>'
+                        );
+                        setTimeout(function () { self.processNextAutoBatch(); }, 10000);
+                        return;
                     } else {
                         // Whole batch failed
                         batch.forEach((item, idx) => {
@@ -808,7 +830,23 @@
                     self.afterAutoBatch();
                 },
                 error: function () {
-                    // Request failed
+                    // Request failed (HTTP error / timeout). The backend may still be running this
+                    // batch, so retry the same batch up to 2 times before giving up on it.
+                    if (self.batchRetries < 2) {
+                        self.batchRetries++;
+                        $('#w2p-output-content').append(
+                            '<div style="color: #f59e0b;">⚠️ Batch request failed — retrying (' + self.batchRetries + '/2)...</div>'
+                        );
+                        // Undo the PROCESSING marking so the retried batch re-marks cleanly.
+                        batch.forEach((item) => {
+                            self.stats.pending++;
+                            self.stats.processing--;
+                        });
+                        self.updateQueueStats();
+                        setTimeout(function () { self.processNextAutoBatch(); }, 10000);
+                        return;
+                    }
+                    // Retries exhausted: mark all as failed and move on.
                     batch.forEach((item, idx) => {
                         const $row = $('#attachment-row-' + (startIndex + idx));
                         self.stats.processing--;

@@ -112,6 +112,21 @@ class MediaEngineProcessor {
 		// Step 1: Batch convert all images (STEP1 log)
 		$this->logger->log_step_header( 'STEP1: Convert Media Format to WebP' );
 		foreach ( $attachment_ids as $id ) {
+			// Idempotency: attachments already offloaded are marked as a successful skip instead
+			// of being converted again. This is the fallback for when scanner-side exclusions
+			// fail (e.g. advmo writes advmo_offloaded = 'false' on skip), which previously led
+			// to the same ID being converted multiple times in concurrent batches.
+			$is_offloaded = '1' === get_post_meta( $id, 'advmo_offloaded', true )
+				|| '1' === get_post_meta( $id, '_is_minio_offloaded', true );
+			if ( $is_offloaded ) {
+				$results[ $id ] = array(
+					'success'          => true,
+					'skipped'          => true,
+					'already_offloaded' => true,
+					'original_url'     => wp_get_attachment_url( $id ),
+				);
+				continue;
+			}
 			$file_path = get_attached_file( $id );
 			if ( ! $file_path || ! file_exists( $file_path ) ) {
 				$results[ $id ] = array(
@@ -153,7 +168,8 @@ class MediaEngineProcessor {
 		// Step 2: Thumbnail Generation
 		$ids_to_regenerate = array();
 		foreach ( $attachment_ids as $id ) {
-			if ( isset( $results[ $id ] ) && $results[ $id ]['success'] ) {
+			// Already-offloaded skips carry no local file to regenerate thumbnails from.
+			if ( isset( $results[ $id ] ) && $results[ $id ]['success'] && empty( $results[ $id ]['already_offloaded'] ) ) {
 				$ids_to_regenerate[] = $id;
 			}
 		}
