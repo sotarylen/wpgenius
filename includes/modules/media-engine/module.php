@@ -238,8 +238,12 @@ class W2P_MediaEngineModule extends W2P_Abstract_Module {
 		// timed-out client would otherwise fire the next batch while the previous one is
 		// still converting the same IDs — concurrent runs inflate batches and convert
 		// attachments twice. Reject any overlapping request with a batch_in_progress code.
+		// wp_cache_add() is atomic (SETNX semantics, only sets when absent) and cross-process
+		// via the Redis-backed object cache, so two requests racing through this point can
+		// never both acquire the lock. (add_transient() is unavailable in this core build.)
 		$lock_key = 'w2p_media_batch_lock';
-		if ( get_transient( $lock_key ) ) {
+		$lock_group = 'w2p_media_batch';
+		if ( ! wp_cache_add( $lock_key, time(), $lock_group, 1200 ) ) {
 			wp_send_json_error(
 				array(
 					'code'    => 'batch_in_progress',
@@ -247,21 +251,20 @@ class W2P_MediaEngineModule extends W2P_Abstract_Module {
 				)
 			);
 		}
-		// TTL 20 minutes covers the longest observed batch (576s), with margin.
-		set_transient( $lock_key, time(), 1200 );
-
-		if ( function_exists( 'set_time_limit' ) ) {
-			set_time_limit( 300 );
-		}
+		// TTL 20 minutes covers the longest observed batch (576s), with margin; Redis expires
+		// the key automatically even if the process crashes.
+		// NOTE: no set_time_limit() here — FPM applies it as a CPU-time budget, the heavy work
+		// runs in exec() child processes, and a CPU-limit Fatal on the parent is not catchable.
+		// The FPM max_execution_time still bounds batches.
 
 		try {
 			$processor = new MediaEngineProcessor();
 			$result    = $processor->process_batch( $ids );
-			delete_transient( $lock_key );
+			wp_cache_delete( $lock_key, $lock_group );
 			wp_send_json_success( $result );
-		} catch ( \Exception $e ) {
+		} catch ( \Throwable $e ) {
 			// Release the lock on every failure path so a crashed batch never wedges the queue.
-			delete_transient( $lock_key );
+			wp_cache_delete( $lock_key, $lock_group );
 			wp_send_json_error( 'Batch processing error: ' . $e->getMessage() );
 		}
 	}

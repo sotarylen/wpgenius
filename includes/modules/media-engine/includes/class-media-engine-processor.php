@@ -116,7 +116,8 @@ class MediaEngineProcessor {
 			// of being converted again. This is the fallback for when scanner-side exclusions
 			// fail (e.g. advmo writes advmo_offloaded = 'false' on skip), which previously led
 			// to the same ID being converted multiple times in concurrent batches.
-			$is_offloaded = '1' === get_post_meta( $id, 'advmo_offloaded', true )
+			$offloaded_val = get_post_meta( $id, 'advmo_offloaded', true );
+			$is_offloaded  = ( '' !== $offloaded_val && '0' !== $offloaded_val && 'false' !== $offloaded_val )
 				|| '1' === get_post_meta( $id, '_is_minio_offloaded', true );
 			if ( $is_offloaded ) {
 				$results[ $id ] = array(
@@ -182,8 +183,10 @@ class MediaEngineProcessor {
 		if ( $this->is_minio_available() ) {
 			$ids_to_upload = array();
 			foreach ( $attachment_ids as $id ) {
-				// Offload any attachment that has original_url stored (successful or failed conversion)
-				if ( isset( $results[ $id ]['original_url'] ) ) {
+				// Offload any attachment that has original_url stored (successful or failed
+				// conversion), but never re-offload an idempotent already_offloaded skip —
+				// that would start an extra advmo CLI run per skipped attachment.
+				if ( isset( $results[ $id ]['original_url'] ) && empty( $results[ $id ]['already_offloaded'] ) ) {
 					$ids_to_upload[] = $id;
 				}
 			}
