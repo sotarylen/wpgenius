@@ -5,6 +5,8 @@
 (function ($) {
     'use strict';
 
+    const { sprintf } = wp.i18n;
+
     const MediaProcessingUI = {
         queue: [],
         processing: false,
@@ -18,19 +20,16 @@
             processing: 0,
             completed: 0,
             failed: 0,
-            failedTotal: 0          // 累计失败数（展示口径：跨轮次累计失败事件）
+            failedTotal: 0          // Cumulative failure count (display scope: failures accumulated across rounds)
         },
         autoMode: 'idle',          // 'idle' | 'running' | 'paused' | 'completed' | 'stopped'
-        pauseRequested: false,     // 点击暂停置 true；当前批次 AJAX 回调末尾消费
-        stopRequested: false,      // 自动模式下点击停止置 true；当前批次回调末尾消费（优雅停止）
-        roundStartedCompleted: 0,  // 本轮开始时的已完成数（用于无进展检测）
-        roundNoProgress: 0,        // 连续无进展轮数
-        maxNoProgressRounds: (window.w2pMediaEngine && window.w2pMediaEngine.max_no_progress_rounds) || 3, // 防死循环阈值
-        failedIds: [],             // 本轮失败 id 集合（统计展示用）
-        lastRoundFailedIds: [],    // 上一轮失败 id 集合（防死循环「假进展」检测）
-        lastRoundQueueIds: [],     // 上一轮扫描队列 id（防死循环「假进展」检测）
-        queueUnchanged: false,     // 本轮队列与上轮完全一致（无任何附件离开待处理集合）
-        autoRound: 0,              // 当前轮次计数
+        pauseRequested: false,     // Set true when Pause is clicked; consumed at the end of the current batch AJAX callback
+        stopRequested: false,      // Set true when Stop is clicked in auto mode; consumed at the end of the current batch callback (graceful stop)
+        strikeCounts: {},          // attachment id -> consecutive rounds it stayed in the pending queue
+        abandonedIds: [],          // attachment ids given up on after too many rounds (never leave the queue)
+        maxStrikes: 5,             // rounds after which a stuck attachment is abandoned instead of retried forever
+        scanRetries: 0,            // consecutive scan-request failures in the current round
+        autoRound: 0,              // Current round counter
 
         /**
          * Initialize
@@ -38,7 +37,7 @@
         init: function () {
             this.bindEvents();
             this.initLogViewer();
-            // 确保初始按钮状态符合 idle 状态矩阵（页面加载时）
+            // Ensure initial button state matches the idle state matrix (on page load)
             this.setAutoUI('idle');
         },
 
@@ -80,12 +79,12 @@
                 self.stopProcessing();
             });
 
-            // 全自动处理
+            // Full auto processing
             $('#w2p-start-auto').on('click', function () {
                 self.startAutoProcessing();
             });
 
-            // 暂停/恢复
+            // Pause / Resume
             $('#w2p-pause-auto').on('click', function () {
                 if (self.autoMode === 'running' && !self.pauseRequested) {
                     self.pauseAutoProcessing();
@@ -93,6 +92,61 @@
                     self.resumeAutoProcessing();
                 }
             });
+
+            // Retry failed items (clears the _w2p_media_failed marker so the scanner picks them up again)
+            $('#w2p-retry-failed').on('click', function () {
+                self.retryFailed($(this));
+            });
+        },
+
+        /**
+         * Re-enable attachments that failed conversion (clears the _w2p_media_failed marker)
+         */
+        retryFailed: function ($button) {
+            const self = this;
+
+            const doRetry = function () {
+                $button.prop('disabled', true).find('i').removeClass().addClass('fa-solid fa-spinner fa-spin');
+                $.ajax({
+                    url: w2pMediaEngine.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'w2p_media_retry_failed',
+                        nonce: w2pMediaEngine.nonce,
+                        attachment_ids: '[]'
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            const cleared = response.data.cleared || 0;
+                            if (typeof w2p !== 'undefined' && w2p.toast) {
+                                w2p.toast(cleared > 0
+                                    ? sprintf(w2pMediaEngine.i18n.retryFailedDone, cleared)
+                                    : w2pMediaEngine.i18n.retryFailedNone, cleared > 0 ? 'success' : 'info');
+                            }
+                            // Re-scan so the re-enabled items appear in the queue
+                            self.scanAttachments();
+                        } else {
+                            if (typeof w2p !== 'undefined' && w2p.toast) {
+                                w2p.toast(response.data && response.data.message ? response.data.message : w2pMediaEngine.i18n.unknownError, 'error');
+                            }
+                        }
+                    },
+                    error: function () {
+                        if (typeof w2p !== 'undefined' && w2p.toast) {
+                            w2p.toast(w2pMediaEngine.i18n.ajaxFailed, 'error');
+                        }
+                    },
+                    complete: function () {
+                        $button.prop('disabled', false).find('i').removeClass().addClass('fa-solid fa-rotate-left');
+                    }
+                });
+            };
+
+            if (typeof w2p !== 'undefined' && w2p.confirm) {
+                w2p.confirm(w2pMediaEngine.i18n.retryFailedConfirm.replace('%1$d', (self.stats && self.stats.failedCount) ? self.stats.failedCount : '0'), doRetry);
+            } else {
+                doRetry();
+            }
         },
 
         /**
@@ -141,9 +195,12 @@
                 if (response.success) {
                     self.displayQueue();
 
-                    $('#w2p-output-content').html(
-                        '<div style="color: #10b981;">✓ Found ' + self.queue.length + ' attachments</div>'
-                    );
+                    let html = '<div style="color: #10b981;">✓ Found ' + self.queue.length + ' attachments</div>';
+                    if (response.data.failed_count > 0) {
+                        html += '<div style="color: #f59e0b; margin-top: 6px;">⚠️ ' +
+                            sprintf(w2pMediaEngine.i18n.failedSkippedInfo, response.data.failed_count) + '</div>';
+                    }
+                    $('#w2p-output-content').html(html);
 
                     if (typeof w2p !== 'undefined' && w2p.toast) {
                         w2p.toast('Found ' + self.queue.length + ' attachments', 'success');
@@ -269,8 +326,8 @@
 
             if (self.processing) return;
 
-            // 手动批处理启动时重置自动模式状态，避免残留的 completed/stopped
-            // 使 stopProcessing 误走自动分支（不置 stopRequested 也不 autoStop）而硬停失效
+            // Reset auto-mode state when manual batch processing starts, so leftover completed/stopped
+            // does not make stopProcessing take the auto branch (which sets neither stopRequested nor autoStop) and hard-stop fails
             self.autoMode = 'idle';
             self.processing = true;
             self.stopped = false;
@@ -321,6 +378,9 @@
             });
             self.updateQueueStats();
 
+            // Bring the first PROCESSING row into view at the top of the list.
+            self.scrollToFirstProcessing();
+
             // Call batch API
             $.ajax({
                 url: w2pMediaEngine.ajax_url,
@@ -353,10 +413,11 @@
 
                         self.updateQueueStats();
 
-                        // Move to next batch
+                        // Move to next batch (chained on the AJAX completion event; no setTimeout so
+                        // background-tab timer throttling cannot stall the run)
                         self.currentBatchIndex++;
                         if (!self.stopped) {
-                            setTimeout(() => self.processNextBatch(), 500);
+                            self.processNextBatch();
                         }
                     } else {
                         // Batch failed, mark all as failed
@@ -369,10 +430,10 @@
                         });
                         self.updateQueueStats();
 
-                        // Continue anyway
+                        // Continue anyway (chained on the AJAX completion event)
                         self.currentBatchIndex++;
                         if (!self.stopped) {
-                            setTimeout(() => self.processNextBatch(), 500);
+                            self.processNextBatch();
                         }
                     }
                 },
@@ -387,10 +448,10 @@
                     });
                     self.updateQueueStats();
 
-                    // Continue anyway
+                    // Continue anyway (chained on the AJAX completion event)
                     self.currentBatchIndex++;
                     if (!self.stopped) {
-                        setTimeout(() => self.processNextBatch(), 1000);
+                        self.processNextBatch();
                     }
                 }
             });
@@ -398,34 +459,34 @@
 
         /**
          * Stop processing
-         * 手动模式（autoMode==='idle'）：保持现有硬停行为
-         * 自动模式（running/paused）：优雅停止 —— 置 stopRequested，当前批次完成后结束整个流程
+         * Manual mode (autoMode==='idle'): keep the existing hard-stop behavior
+         * Auto mode (running/paused): graceful stop - set stopRequested, the whole flow ends after the current batch completes
          */
         stopProcessing: function () {
             const self = this;
 
-            // 自动模式下：置 stopRequested，由批次回调末尾消费
+            // Auto mode: set stopRequested; consumed at the end of the batch callback
             if (self.autoMode !== 'idle') {
                 if (self.autoMode === 'running' || self.autoMode === 'paused') {
                     self.stopRequested = true;
 
                     $('#w2p-output-content').append(
-                        '<div style="color: #f59e0b;">⛔ 已请求停止，当前批次完成后结束…</div>'
+                        '<div style="color: #f59e0b;">⛔ ' + w2pMediaEngine.i18n.stopRequested + '</div>'
                     );
 
                     if (typeof w2p !== 'undefined' && w2p.toast) {
-                        w2p.toast('已请求停止，当前批次完成后结束', 'warning');
+                        w2p.toast(w2pMediaEngine.i18n.stopRequested, 'warning');
                     }
                 }
 
-                // 暂停状态下没有进行中的批次，直接结束
+                // No batch in progress while paused; end directly
                 if (self.autoMode === 'paused') {
-                    self.autoStop('用户停止');
+                    self.autoStop(w2pMediaEngine.i18n.userStopped);
                 }
                 return;
             }
 
-            // 手动模式：保持现有硬停行为
+            // Manual mode: keep the existing hard-stop behavior
             self.stopped = true;
             self.processing = false;
 
@@ -447,7 +508,27 @@
          * Update row status
          */
         updateRowStatus: function ($row, status, message) {
+            $row.attr('data-status', status);
             $row.find('.status-cell').html(this.getStatusBadge(status, message));
+        },
+
+        /**
+         * Scroll the batch list so the first PROCESSING row sits at the top of the visible area
+         * (just below the sticky table header). Called when a new batch starts.
+         */
+        scrollToFirstProcessing: function () {
+            const $container = $('#w2p-attachment-list .w2p-log-container');
+            const $first = $('#w2p-attachment-tbody tr[data-status="PROCESSING"]').first();
+            if (!$container.length || !$first.length) {
+                return;
+            }
+
+            const containerTop = $container.offset().top;
+            const headerHeight = $container.find('thead').outerHeight() || 0;
+            const target = Math.max(0, $first.offset().top - containerTop - headerHeight + $container.scrollTop());
+
+            // Smooth scroll; stop(true) clears any in-flight animation so rapid batch switches don't pile up.
+            $container.stop(true).animate({ scrollTop: target }, 300);
         },
 
         /**
@@ -473,39 +554,36 @@
         },
 
         /* ======================================================================
-         * 全自动处理模式（MediaEngine 自动化处理）
-         * 自动循环：扫描 → 批次转换 → 再扫描 → 再转换，直到全部处理完成。
-         * 失败重试依赖「每轮重新 scan」：转换失败（mime 未变）或 Minio 失败（offload
-         * meta 未写）的图片，下次 scan 天然返回，无需前端维护失败 ID 列表。
+         * Full auto processing mode (MediaEngine automation)
+         * Auto loop: scan → batch convert → scan again → convert again, until everything is done.
+         * Failure retry relies on re-scanning each round: images that failed to convert (mime unchanged) or Minio
+         * (offload meta not written) naturally come back on the next scan; no need for the frontend to track failed IDs.
          * ====================================================================== */
 
         /**
-         * 启动全自动处理（入口）
+         * Start full auto processing (entry point)
          */
         startAutoProcessing: function () {
             const self = this;
 
             if (self.autoMode === 'running' || self.autoMode === 'paused') return;
 
-            // 手动批处理进行中不允许启动自动模式
+            // Auto mode cannot start while manual batch processing is running
             if (self.autoMode === 'idle' && self.processing) {
                 if (typeof w2p !== 'undefined' && w2p.toast) {
-                    w2p.toast('请先停止当前批处理，再启动全自动处理', 'warning');
+                    w2p.toast(w2pMediaEngine.i18n.stopBatchFirst, 'warning');
                 }
                 return;
             }
 
-            // 重置自动模式状态
+            // Reset auto mode state
             self.autoMode = 'running';
             self.pauseRequested = false;
             self.stopRequested = false;
-            self.roundNoProgress = 0;
-            self.failedIds = [];
-            self.lastRoundFailedIds = [];
-            self.lastRoundQueueIds = [];
-            self.queueUnchanged = false;
+            self.strikeCounts = {};
+            self.abandonedIds = [];
+            self.scanRetries = 0;
             self.autoRound = 0;
-            self.roundStartedCompleted = 0;
             self.currentBatchIndex = 0;
             self.batches = [];
             self.stopped = false;
@@ -514,19 +592,19 @@
             self.setAutoUI('running');
 
             $('#w2p-processing-output').show();
-            $('#w2p-output-content').html('<div style="color: #10b981;">▶ 全自动处理已启动</div>');
+            $('#w2p-output-content').html('<div style="color: #10b981;">▶ ' + w2pMediaEngine.i18n.autoStarted + '</div>');
 
             if (typeof w2p !== 'undefined' && w2p.toast) {
-                w2p.toast('全自动处理已启动', 'success');
+                w2p.toast(w2pMediaEngine.i18n.autoStarted, 'success');
             }
 
             self.autoScanAndProcess();
         },
 
         /**
-         * 获取待处理附件（扫描 AJAX 封装，手动/自动共用）
-         * 自动模式下：已完成数与累计失败数跨轮次保留（供「已完成 X / 失败 Y」展示），
-         * 本轮失败数按轮重置（用于无进展检测）
+         * Fetch pending attachments (scan AJAX wrapper, shared by manual / auto modes)
+         * Auto mode: completed and cumulative failed counts persist across rounds (for the "Completed X / Failed Y" display),
+         * while this round's failed count resets each round (for no-progress detection)
          */
         fetchPendingAttachments: function (callback) {
             const self = this;
@@ -549,10 +627,11 @@
                             processing: 0,
                             completed: 0,
                             failed: 0,
-                            failedTotal: 0
+                            failedTotal: 0,
+                            failedCount: response.data.failed_count || 0
                         };
 
-                        // 自动模式下：已完成数与累计失败数跨轮次保留，本轮失败数按轮重置
+                        // Auto mode: completed and cumulative failed counts persist across rounds; this round's failed count resets
                         if (self.autoMode === 'running') {
                             self.stats.completed = prevCompleted;
                             self.stats.failedTotal = prevFailedTotal;
@@ -567,7 +646,7 @@
         },
 
         /**
-         * 自动扫描并处理（每轮入口）
+         * Auto-scan and process (entry point for each round)
          */
         autoScanAndProcess: function () {
             const self = this;
@@ -575,28 +654,51 @@
             if (self.autoMode !== 'running') return;
 
             self.autoRound++;
-            self.failedIds = []; // 每轮清空失败集合
 
             $('#w2p-output-content').append(
-                '<div style="color: #3b82f6;">🔄 第 ' + self.autoRound + ' 轮：扫描待处理图片…</div>'
+                '<div style="color: #3b82f6;">🔄 ' + sprintf(w2pMediaEngine.i18n.roundScanning, self.autoRound) + '</div>'
             );
 
             self.fetchPendingAttachments(function (response) {
                 if (!response.success) {
-                    self.autoStop('扫描请求失败');
+                    // Transient scan failures (network/DB hiccups) are retried; only give up after repeated failures.
+                    if (self.scanRetries < 3) {
+                        self.scanRetries++;
+                        $('#w2p-output-content').append(
+                            '<div style="color: #f59e0b;">⚠️ ' + sprintf(w2pMediaEngine.i18n.scanRetrying, self.scanRetries, 3) + '</div>'
+                        );
+                        setTimeout(function () { self.autoScanAndProcess(); }, 1000 * self.scanRetries);
+                    } else {
+                        self.autoStop(w2pMediaEngine.i18n.scanFailed);
+                    }
                     return;
                 }
+                self.scanRetries = 0;
 
-                // 记录本轮开始时的已完成数（completed 跨轮次累计）
-                self.roundStartedCompleted = self.stats.completed;
-
-                // 防死循环「假进展」检测：本轮队列与上轮完全一致 → 无任何附件离开待处理集合。
-                // 覆盖「转换成功但 offload meta 未写」场景（completed 每轮 +1 却始终 pending，
-                // 单靠 completed 增量无法识别无进展）
-                self.queueUnchanged = (self.lastRoundQueueIds.length > 0 &&
-                    self.lastRoundQueueIds.length === self.queue.length &&
-                    self.queue.every(a => self.lastRoundQueueIds.indexOf(a.id) !== -1));
-                self.lastRoundQueueIds = self.queue.map(a => a.id);
+                // Abandon attachments that never leave the pending queue.
+                // An attachment leaves the queue only when the backend marks it offloaded; anything that
+                // stays for too many rounds (conversion or offload keeps failing) is dropped so the
+                // overall run can finish instead of looping forever - but the run itself is never
+                // stopped automatically.
+                const present = {};
+                self.queue.forEach(function (a) { present[a.id] = true; });
+                Object.keys(self.strikeCounts).forEach(function (id) {
+                    if (!present[id]) {
+                        delete self.strikeCounts[id]; // Left the queue → reset its strike count.
+                    }
+                });
+                self.queue = self.queue.filter(function (a) {
+                    if (self.abandonedIds.indexOf(a.id) !== -1) {
+                        return false;
+                    }
+                    const strikes = (self.strikeCounts[a.id] || 0) + 1;
+                    self.strikeCounts[a.id] = strikes;
+                    if (strikes >= self.maxStrikes) {
+                        self.abandonedIds.push(a.id);
+                        return false;
+                    }
+                    return true;
+                });
 
                 if (self.queue.length === 0) {
                     self.autoComplete();
@@ -605,7 +707,7 @@
 
                 self.displayQueue();
 
-                // 按 batchSize 切分批次
+                // Split into batches by batchSize
                 self.batches = [];
                 for (let i = 0; i < self.queue.length; i += self.batchSize) {
                     self.batches.push(self.queue.slice(i, i + self.batchSize));
@@ -613,7 +715,7 @@
                 self.currentBatchIndex = 0;
 
                 $('#w2p-output-content').append(
-                    '<div style="color: #10b981;">✓ 第 ' + self.autoRound + ' 轮发现 ' + self.queue.length + ' 张待处理图片，共 ' + self.batches.length + ' 批</div>'
+                    '<div style="color: #10b981;">✓ ' + sprintf(w2pMediaEngine.i18n.roundFound, self.autoRound, self.queue.length, self.batches.length) + '</div>'
                 );
 
                 self.processNextAutoBatch();
@@ -621,7 +723,7 @@
         },
 
         /**
-         * 自动模式：处理下一批次（逻辑与手动 processNextBatch 平行）
+         * Auto mode: process the next batch (parallel to the manual processNextBatch flow)
          */
         processNextAutoBatch: function () {
             const self = this;
@@ -629,7 +731,7 @@
             if (self.autoMode !== 'running') return;
 
             if (self.stopRequested) {
-                self.autoStop('用户停止');
+                self.autoStop(w2pMediaEngine.i18n.userStopped);
                 return;
             }
 
@@ -648,10 +750,10 @@
             const startIndex = self.currentBatchIndex * self.batchSize;
 
             $('#w2p-output-content').append(
-                '<div style="color: #3b82f6;">⚙️ 第 ' + self.autoRound + ' 轮 · 批次 ' + (self.currentBatchIndex + 1) + '/' + self.batches.length + '（' + batchIds.length + ' 张）</div>'
+                '<div style="color: #3b82f6;">⚙️ ' + sprintf(w2pMediaEngine.i18n.roundBatch, self.autoRound, (self.currentBatchIndex + 1), self.batches.length, batchIds.length) + '</div>'
             );
 
-            // 更新当前批次行状态为 PROCESSING
+            // Update the current batch row status to PROCESSING
             batch.forEach((item, idx) => {
                 const $row = $('#attachment-row-' + (startIndex + idx));
                 self.stats.pending--;
@@ -660,7 +762,10 @@
             });
             self.updateQueueStats();
 
-            // 调用批次处理 API
+            // Bring the first PROCESSING row into view at the top of the list.
+            self.scrollToFirstProcessing();
+
+            // Call the batch processing API
             $.ajax({
                 url: w2pMediaEngine.ajax_url,
                 type: 'POST',
@@ -673,7 +778,7 @@
                     if (response.success) {
                         const stats = response.data.stats;
 
-                        // 逐项更新状态并收集失败 id
+                        // Update status item by item and collect failed ids
                         batch.forEach((item, idx) => {
                             const $row = $('#attachment-row-' + (startIndex + idx));
                             const convertResult = stats.convert[item.id];
@@ -686,18 +791,16 @@
                             } else {
                                 self.stats.failed++;
                                 self.stats.failedTotal++;
-                                self.failedIds.push(item.id);
                                 self.updateRowStatus($row, 'FAILED', convertResult?.error || 'Unknown error');
                             }
                         });
                     } else {
-                        // 整批失败
+                        // Whole batch failed
                         batch.forEach((item, idx) => {
                             const $row = $('#attachment-row-' + (startIndex + idx));
                             self.stats.processing--;
                             self.stats.failed++;
                             self.stats.failedTotal++;
-                            self.failedIds.push(item.id);
                             self.updateRowStatus($row, 'FAILED', 'Batch failed');
                         });
                     }
@@ -705,13 +808,12 @@
                     self.afterAutoBatch();
                 },
                 error: function () {
-                    // 请求失败
+                    // Request failed
                     batch.forEach((item, idx) => {
                         const $row = $('#attachment-row-' + (startIndex + idx));
                         self.stats.processing--;
                         self.stats.failed++;
                         self.stats.failedTotal++;
-                        self.failedIds.push(item.id);
                         self.updateRowStatus($row, 'FAILED', 'Request failed');
                     });
                     self.updateQueueStats();
@@ -721,8 +823,8 @@
         },
 
         /**
-         * 批次回调末尾公共逻辑（success / error 共用）
-         * 替代手动流程中 currentBatchIndex++ 后直接继续的逻辑
+         * Common logic at the end of a batch callback (shared by success / error)
+         * Replaces the manual flow of currentBatchIndex++ then continue directly
          */
         afterAutoBatch: function () {
             const self = this;
@@ -730,62 +832,40 @@
             self.currentBatchIndex++;
             self.updateQueueStats();
 
-            if (self.autoMode !== 'running') return;      // 已被停止/完成
+            if (self.autoMode !== 'running') return;      // Already stopped / completed
 
             if (self.stopRequested) {
-                self.autoStop('用户停止');
+                self.autoStop(w2pMediaEngine.i18n.userStopped);
                 return;
             }
 
             if (self.pauseRequested) {
-                self.enterPaused();                        // 当前批次跑完 → 暂停
+                self.enterPaused();                        // Current batch finished → pause
                 return;
             }
 
             if (self.currentBatchIndex < self.batches.length) {
-                setTimeout(() => self.processNextAutoBatch(), 500);  // 下一批
+                // Chain directly on the AJAX completion event (no setTimeout):
+                // browser throttling of timers on background tabs would otherwise stall the run.
+                self.processNextAutoBatch();
             } else {
-                self.onAutoRoundFinished();                // 本轮完成
+                self.onAutoRoundFinished();                // This round finished
             }
         },
 
         /**
-         * 一轮所有批次处理完成后的收尾逻辑（无进展检测 / 暂停 / 下一轮）
+         * Wrap-up after all batches of a round complete (no-progress detection / pause / next round)
          */
         onAutoRoundFinished: function () {
             const self = this;
 
             if (self.autoMode !== 'running') return;
 
-            // 本轮完成的增量（completed 跨轮次累计，roundStartedCompleted 为本轮起点）
-            const roundCompleted = self.stats.completed - self.roundStartedCompleted;
-
-            // 无进展检测（任一条件成立即累计）：
-            // 1) 本轮无任何完成且存在失败（原始判定）
-            // 2) 本轮失败集合与上一轮完全一致（新附件不断成功、旧附件持续失败时，completed 增量 >0
-            //    会掩盖无进展，用失败集合不变来识别）
-            // 3) 本轮队列与上轮完全一致（「假进展」漏洞：转换成功但 offload meta 未写时，
-            //    completed 每轮 +1 却始终 pending，失败集合为空，需用队列未缩小来识别）
-            const noProgressByCompletion = (roundCompleted === 0 && self.failedIds.length > 0);
-            const noProgressBySameFailures = (self.failedIds.length > 0 &&
-                self.lastRoundFailedIds.length === self.failedIds.length &&
-                self.failedIds.every(id => self.lastRoundFailedIds.indexOf(id) !== -1));
-            const noProgressByQueueUnchanged = self.queueUnchanged;
-
-            if (noProgressByCompletion || noProgressBySameFailures || noProgressByQueueUnchanged) {
-                self.roundNoProgress++;
-            } else {
-                self.roundNoProgress = 0;
-            }
-            self.lastRoundFailedIds = self.failedIds.slice();
-
-            if (self.roundNoProgress >= self.maxNoProgressRounds) {
-                self.autoStop('连续 ' + self.maxNoProgressRounds + ' 轮无进展，请检查错误日志');
-                return;
-            }
-
+            // The run continues until the queue is empty, the user stops it, or the server fails.
+            // Attachments that can never leave the queue are abandoned by the strike mechanism in
+            // autoScanAndProcess, so an endless loop is impossible - but an automatic stop is.
             if (self.stopRequested) {
-                self.autoStop('用户停止');
+                self.autoStop(w2pMediaEngine.i18n.userStopped);
                 return;
             }
 
@@ -794,11 +874,12 @@
                 return;
             }
 
-            setTimeout(() => self.autoScanAndProcess(), 500);
+            // Chain the next scan directly on the AJAX completion event (see afterAutoBatch).
+            self.autoScanAndProcess();
         },
 
         /**
-         * 请求暂停（不打断当前 AJAX，当前批次完成后生效）
+         * Request a pause (does not interrupt the current AJAX; takes effect after the current batch completes)
          */
         pauseAutoProcessing: function () {
             const self = this;
@@ -808,18 +889,18 @@
             self.pauseRequested = true;
 
             $('#w2p-output-content').append(
-                '<div style="color: #f59e0b;">⏸ 已请求暂停，将在当前批次完成后暂停…</div>'
+                '<div style="color: #f59e0b;">⏸ ' + w2pMediaEngine.i18n.pauseRequested + '</div>'
             );
 
             self.setPauseButtonLabel('resume');
 
             if (typeof w2p !== 'undefined' && w2p.toast) {
-                w2p.toast('已请求暂停，将在当前批次完成后暂停', 'warning');
+                w2p.toast(w2pMediaEngine.i18n.pauseRequested, 'warning');
             }
         },
 
         /**
-         * 进入暂停状态
+         * Enter the paused state
          */
         enterPaused: function () {
             const self = this;
@@ -829,12 +910,12 @@
             self.setAutoUI('paused');
 
             $('#w2p-output-content').append(
-                '<div style="color: #f59e0b;">⏸ 已暂停。点击[恢复]继续。已完成 ' + self.stats.completed + ' | 失败 ' + self.stats.failedTotal + '</div>'
+                '<div style="color: #f59e0b;">⏸ ' + sprintf(w2pMediaEngine.i18n.paused, self.stats.completed, self.stats.failedTotal) + '</div>'
             );
         },
 
         /**
-         * 恢复处理（接着执行下一批次 / 下一轮）
+         * Resume processing (continue with the next batch / next round)
          */
         resumeAutoProcessing: function () {
             const self = this;
@@ -847,7 +928,7 @@
             self.setAutoUI('running');
 
             $('#w2p-output-content').append(
-                '<div style="color: #10b981;">▶ 继续处理…</div>'
+                '<div style="color: #10b981;">▶ ' + w2pMediaEngine.i18n.continuing + '</div>'
             );
 
             if (self.currentBatchIndex < self.batches.length) {
@@ -858,7 +939,7 @@
         },
 
         /**
-         * 自动处理完成
+         * Auto processing complete
          */
         autoComplete: function () {
             const self = this;
@@ -868,22 +949,22 @@
             self.setAutoUI('idle');
 
             $('#w2p-output-content').append(
-                '<div style="color: #10b981;">✓ 自动处理完成！已完成 ' + self.stats.completed + ' | 失败 ' + self.stats.failedTotal + '</div>'
+                '<div style="color: #10b981;">✓ ' + sprintf(w2pMediaEngine.i18n.autoComplete, self.stats.completed, self.stats.failedTotal) + '</div>'
             );
 
             if (self.stats.failedTotal > 0) {
                 $('#w2p-output-content').append(
-                    '<div style="color: #ef4444;">⚠️ 有 ' + self.stats.failedTotal + ' 个文件失败，请检查日志</div>'
+                    '<div style="color: #ef4444;">⚠️ ' + sprintf(w2pMediaEngine.i18n.filesFailed, self.stats.failedTotal) + '</div>'
                 );
             }
 
             if (typeof w2p !== 'undefined' && w2p.toast) {
-                w2p.toast('自动处理完成！已完成 ' + self.stats.completed + ' | 失败 ' + self.stats.failedTotal, self.stats.failedTotal > 0 ? 'warning' : 'success');
+                w2p.toast(sprintf(w2pMediaEngine.i18n.autoComplete, self.stats.completed, self.stats.failedTotal), self.stats.failedTotal > 0 ? 'warning' : 'success');
             }
         },
 
         /**
-         * 停止自动处理
+         * Stop auto processing
          */
         autoStop: function (reason) {
             const self = this;
@@ -895,16 +976,16 @@
             self.setAutoUI('idle');
 
             $('#w2p-output-content').append(
-                '<div style="color: #ef4444;">⛔ 自动处理已停止：' + reason + '。已完成 ' + self.stats.completed + ' | 失败 ' + self.stats.failedTotal + '</div>'
+                '<div style="color: #ef4444;">⛔ ' + sprintf(w2pMediaEngine.i18n.autoStopped, reason, self.stats.completed, self.stats.failedTotal) + '</div>'
             );
 
             if (typeof w2p !== 'undefined' && w2p.toast) {
-                w2p.toast('自动处理已停止：' + reason, 'warning');
+                w2p.toast(sprintf(w2pMediaEngine.i18n.autoStoppedToast, reason), 'warning');
             }
         },
 
         /**
-         * 统一按钮状态（按状态矩阵控制 5 个按钮的显隐/禁用/标签）
+         * Unify button states (control show/hide/disable/label of the 5 buttons by the state matrix)
          */
         setAutoUI: function (mode) {
             const self = this;
@@ -916,7 +997,7 @@
 
             const isActive = (mode === 'running' || mode === 'paused');
 
-            // #w2p-start-auto：running/paused 置灰并显示「正在处理中…」，其余可用「全自动处理」
+            // #w2p-start-auto: greyed out with "Processing…" when running/paused; otherwise usable as "Full auto processing"
             if (isActive) {
                 $startAuto.prop('disabled', true);
                 self.setStartAutoLabel('running');
@@ -926,7 +1007,7 @@
             }
             $startAuto.show();
 
-            // #w2p-pause-auto：running/paused 显示（暂停/恢复），其余隐藏
+            // #w2p-pause-auto: shown when running/paused (Pause/Resume), hidden otherwise
             if (isActive) {
                 $pauseAuto.removeClass('w2p-hidden').show();
                 self.setPauseButtonLabel(mode === 'paused' ? 'resume' : 'pause');
@@ -934,53 +1015,53 @@
                 $pauseAuto.addClass('w2p-hidden').hide();
             }
 
-            // #w2p-stop-conversion：running/paused 显示（复用为自动模式停止按钮），其余隐藏
+            // #w2p-stop-conversion: shown when running/paused (reused as the auto-mode stop button), hidden otherwise
             if (isActive) {
                 $stop.removeClass('w2p-hidden').show();
             } else {
                 $stop.addClass('w2p-hidden').hide();
             }
 
-            // #w2p-start-conversion：running/paused 隐藏，其余显示
+            // #w2p-start-conversion: hidden when running/paused, shown otherwise
             if (isActive) {
                 $start.hide();
             } else {
                 $start.show();
             }
 
-            // #w2p-get-stats：running/paused 禁用
+            // #w2p-get-stats: disabled when running/paused
             $getStats.prop('disabled', isActive);
         },
 
         /**
-         * 设置「全自动处理」按钮文字（保留 <i> 图标结构，仅重设文字节点）
+         * Set the "Full Auto Processing" button label (keeps the <i> icon structure, only resets the text node)
          */
         setStartAutoLabel: function (mode) {
             const $btn = $('#w2p-start-auto');
-            const label = (mode === 'running' || mode === 'paused') ? '正在处理中…' : '全自动处理';
+            const label = (mode === 'running' || mode === 'paused') ? w2pMediaEngine.i18n.processingLabel : w2pMediaEngine.i18n.fullAutoLabel;
             const $icon = $btn.find('i');
             $btn.empty().append($icon).append(document.createTextNode(' ' + label));
         },
 
         /**
-         * 设置「暂停/恢复」按钮图标与文字（fa-pause↔fa-play，暂停↔恢复）
+         * Set the "Pause/Resume" button icon and label (fa-pause↔fa-play, Pause↔Resume)
          */
         setPauseButtonLabel: function (state) {
             const $btn = $('#w2p-pause-auto');
             const isResume = (state === 'resume');
             const $icon = $btn.find('i');
             $icon.removeClass().addClass('fa-solid ' + (isResume ? 'fa-play' : 'fa-pause'));
-            $btn.empty().append($icon).append(document.createTextNode(' ' + (isResume ? '恢复' : '暂停')));
+            $btn.empty().append($icon).append(document.createTextNode(' ' + (isResume ? w2pMediaEngine.i18n.resumeLabel : w2pMediaEngine.i18n.pauseLabel)));
         },
 
         /* ======================================================================
-         * 日志查看浮层（Log Viewer Modal）
+         * Log Viewer Modal
          * ====================================================================== */
 
         logPollingTimer: null,
 
         /**
-         * 初始化日志查看器事件绑定
+         * Initialize log viewer event bindings
          */
         initLogViewer: function () {
             const self = this;
@@ -1015,7 +1096,7 @@
         },
 
         /**
-         * 打开日志浮层
+         * Open the log modal
          */
         openLogModal: function () {
             const self = this;
@@ -1028,7 +1109,7 @@
         },
 
         /**
-         * 关闭日志浮层
+         * Close the log modal
          */
         closeLogModal: function () {
             if (this.logPollingTimer) {
@@ -1039,7 +1120,7 @@
         },
 
         /**
-         * 拉取日志尾部内容
+         * Fetch the log tail content
          */
         fetchLog: function () {
             $.ajax({
@@ -1069,7 +1150,7 @@
         },
 
         /**
-         * 清空日志（带确认）
+         * Clear the log (with confirmation)
          */
         clearLog: function () {
             const doClear = function () {

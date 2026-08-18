@@ -2,8 +2,8 @@
 /**
  * Media Engine Audit Service
  *
- * 扫描 uploads 目录中的残留媒体文件，通过 Minio 存储桶 HEAD 探测判断
- * 文件是否已成功 offload，并对未 offload 文件做原因分析。
+ * Scans for leftover media files in the uploads directory, probing the Minio bucket with HEAD requests to determine
+ * whether a file was successfully offloaded, and analyzes the reasons for files that were not offloaded.
  *
  * @package WP_Genius
  * @subpackage Modules/MediaEngine
@@ -16,62 +16,62 @@ if ( ! defined( 'ABSPATH' ) ) {
 class MediaEngineAuditService {
 
 	/**
-	 * 扫描的图片扩展名（含不支持转换的 bmp/svg 等，用于报告残留）
+	 * Image extensions to scan (including bmp/svg etc. that cannot be converted, used for reporting leftovers)
 	 */
 	const SCAN_EXTS = array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'tiff', 'ico', 'avif' );
 
 	/**
-	 * 转换支持的 MIME（对应 scanner 的 get_supported_mime_types + webp）
+	 * MIME types supported for conversion (corresponding to the scanner's get_supported_mime_types + webp)
 	 */
 	const SUPPORTED_MIMES = array( 'image/jpeg', 'image/png', 'image/gif', 'image/webp' );
 
 	/**
-	 * 每批扫描数量（AJAX 分批用）
+	 * Number of files scanned per batch (used for AJAX batching)
 	 */
 	const BATCH_SIZE = 50;
 
 	/**
-	 * 目录中图片文件相对 uploads 根目录的路径 -> 本地绝对路径 的映射缓存
+	 * Cache mapping image file paths relative to the uploads root -> local absolute paths
 	 *
 	 * @var array|null
 	 */
 	private $file_list_cache = null;
 
 	/**
-	 * 目录索引缓存目录（uploads/w2p-audit-index/）
+	 * Directory index cache directory (uploads/w2p-audit-index/)
 	 *
 	 * @var string
 	 */
 	private $index_dir;
 
 	/**
-	 * 索引缓存有效期（秒）
+	 * Index cache lifetime (seconds)
 	 *
 	 * @var int
 	 */
 	private $index_ttl;
 
 	/**
-	 * 构造函数：初始化索引缓存目录
+	 * Constructor: initializes the index cache directory
 	 */
 	public function __construct() {
 		$upload_dir      = wp_upload_dir();
 		$this->index_dir = $upload_dir['basedir'] . '/w2p-audit-index/';
-		$this->index_ttl = 600; // 10 分钟
+		$this->index_ttl = 600; // 10 minutes
 	}
 
 	/**
-	 * 扫描 uploads 子目录中的一批图片文件
+	 * Scan a batch of image files in an uploads subdirectory
 	 *
-	 * @param string $subdir 相对 uploads 根目录的子路径（如 2026/07）
-	 * @param int    $offset 偏移（按文件名排序）
-	 * @param int    $limit  数量
+	 * @param string $subdir Subpath relative to the uploads root (e.g. 2026/07)
+	 * @param int    $offset Offset (ordered by file name)
+	 * @param int    $limit  Count
 	 * @return array { total:int, scanned:int, files:array, index_built:bool }
 	 */
 	public function scan_batch( $subdir, $offset = 0, $limit = self::BATCH_SIZE ) {
 		$subdir = trim( $subdir, '/\\' );
 
-		// 防目录穿越：只允许相对路径且不能包含 ..
+		// Prevent directory traversal: only allow relative paths that do not contain ..
 		if ( $subdir === '' || strpos( $subdir, '..' ) !== false ) {
 			return array( 'error' => __( 'Invalid directory', 'wp-genius' ) );
 		}
@@ -85,7 +85,7 @@ class MediaEngineAuditService {
 		$files = $this->get_image_files( $dir_abs, $subdir );
 		$total = count( $files );
 
-		// 构建/读取目录索引（首次构建可能耗时 ~25s，之后走文件缓存）
+		// Build/read the directory index (first build may take ~25s, later reads use the file cache)
 		$index       = $this->get_directory_index( $subdir );
 		$index_built = ! empty( $index['fresh'] );
 		$att_map     = $index['attached'] ?? array();   // rel_path => att_id
@@ -107,10 +107,10 @@ class MediaEngineAuditService {
 	}
 
 	/**
-	 * 获取目录下所有图片文件（排除 source/ 子目录）
+	 * Get all image files in a directory (excluding source/ subdirectories)
 	 *
-	 * @param string $dir_abs 目录绝对路径
-	 * @param string $subdir  相对 uploads 的子路径
+	 * @param string $dir_abs Directory absolute path
+	 * @param string $subdir  Subpath relative to uploads
 	 * @return array rel_path => abs_path
 	 */
 	private function get_image_files( $dir_abs, $subdir ) {
@@ -129,7 +129,7 @@ class MediaEngineAuditService {
 			if ( '.' === $entry || '..' === $entry ) {
 				continue;
 			}
-			// 跳过 source/ 等子目录
+			// Skip subdirectories such as source/
 			if ( is_dir( $dir_abs . '/' . $entry ) ) {
 				continue;
 			}
@@ -141,25 +141,25 @@ class MediaEngineAuditService {
 		}
 		closedir( $dh );
 
-		// 按文件名排序保证分批顺序稳定
+		// Sort by file name to keep batch order stable
 		ksort( $files );
 		$this->file_list_cache = $files;
 		return $files;
 	}
 
 	/**
-	 * 获取目录索引（文件缓存 600s）：rel_path => att_id、stem => att_id
+	 * Get the directory index (file cache 600s): rel_path => att_id, stem => att_id
 	 *
-	 * 背景：postmeta 表 95 万级且 meta_value 无索引，全表 LIKE 约 25s。
-	 * 这里一次性构建并缓存到文件，后续批次秒回。
+	 * Background: the postmeta table has ~950k rows and meta_value has no index; a full-table LIKE takes ~25s.
+	 * The index is built once here and cached to a file, so subsequent batches return in seconds.
 	 *
-	 * @param string $subdir 相对 uploads 子目录
+	 * @param string $subdir Subpath relative to uploads
 	 * @return array { attached:array, stems:array, fresh:bool }
 	 */
 	private function get_directory_index( $subdir ) {
 		$cache_file = $this->index_dir . md5( $subdir ) . '.json';
 
-		// 命中缓存
+		// Cache hit
 		if ( file_exists( $cache_file ) && ( time() - filemtime( $cache_file ) ) < $this->index_ttl ) {
 			$data = json_decode( (string) file_get_contents( $cache_file ), true );
 			if ( is_array( $data ) && isset( $data['attached'] ) ) {
@@ -170,7 +170,7 @@ class MediaEngineAuditService {
 
 		global $wpdb;
 
-		// 1. 按上传月份从 posts 表取附件 ID（走 post_date 索引，~1.8s）
+		// 1. Fetch attachment IDs from the posts table by upload month (uses the post_date index, ~1.8s)
 		$att_ids = array();
 		if ( preg_match( '#^(\d{4})/(\d{2})$#', $subdir, $m ) ) {
 			$start   = $m[1] . '-' . $m[2] . '-01';
@@ -196,14 +196,14 @@ class MediaEngineAuditService {
 			);
 		}
 
-		// 2. 按 post_id 索引批量查 _wp_attached_file（覆盖裸文件名形态，走 post_id 索引）
+		// 2. Batch query _wp_attached_file by the post_id index (covers bare file-name forms, uses the post_id index)
 		$attached   = array();
 		$stems      = array();
 		$dir_prefix = rtrim( $subdir, '/' ) . '/';
 
 		foreach ( array_chunk( $att_ids, 500 ) as $chunk ) {
 			$placeholders = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders -- IN 占位符由 %d 组成（array_fill 生成），参数经 prepare 绑定。
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders -- IN placeholders consist of %d (generated by array_fill), and parameters are bound via prepare.
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT post_id, meta_value FROM {$wpdb->postmeta}
@@ -216,19 +216,19 @@ class MediaEngineAuditService {
 				$att_id = (int) $row->post_id;
 				$val    = $row->meta_value;
 
-				// 精确路径映射：相对路径形态
+				// Exact path mapping: relative path form
 				if ( strpos( $val, $dir_prefix ) === 0 ) {
 					$attached[ $val ] = $att_id;
 				}
 
-				// stem 映射：所有非 URL 形态（含裸文件名 —— advmo 会改写 _wp_attached_file 为裸名）
+				// stem mapping: all non-URL forms (including bare file names -- advmo rewrites _wp_attached_file to the bare name)
 				if ( strpos( $val, '://' ) === false ) {
 					$stems[ pathinfo( $val, PATHINFO_FILENAME ) ] = $att_id;
 				}
 			}
 		}
 
-		// 写入文件缓存
+		// Write to the file cache
 		if ( ! is_dir( $this->index_dir ) ) {
 			wp_mkdir_p( $this->index_dir );
 		}
@@ -251,12 +251,12 @@ class MediaEngineAuditService {
 	}
 
 	/**
-	 * 分类单个文件
+	 * Classify a single file
 	 *
-	 * @param string $rel_path   相对 uploads 路径（2026/07/name.jpg）
-	 * @param string $abs_path   本地绝对路径
-	 * @param array  $att_map    rel_path => attachment_id 索引
-	 * @param array  $stem_map   stem => attachment_id 索引
+	 * @param string $rel_path   Path relative to uploads (2026/07/name.jpg)
+	 * @param string $abs_path   Local absolute path
+	 * @param array  $att_map    rel_path => attachment_id index
+	 * @param array  $stem_map   stem => attachment_id index
 	 * @return array
 	 */
 	private function classify_file( $rel_path, $abs_path, $att_map = array(), $stem_map = array() ) {
@@ -264,7 +264,7 @@ class MediaEngineAuditService {
 		$basename = basename( $rel_path );
 		$ext      = strtolower( pathinfo( $basename, PATHINFO_EXTENSION ) );
 
-		// 1. 匹配数据库 attachment 记录（精确 rel_path，兜底 stem）
+		// 1. Match the attachment record in the database (exact rel_path, fall back to stem)
 		$attachment_id = isset( $att_map[ $rel_path ] ) ? $att_map[ $rel_path ] : 0;
 		if ( ! $attachment_id ) {
 			$attachment_id = isset( $stem_map[ pathinfo( $basename, PATHINFO_FILENAME ) ] )
@@ -273,14 +273,14 @@ class MediaEngineAuditService {
 		}
 		$attachment_id = (int) $attachment_id;
 
-		// 2. HEAD 探测存储桶：先试同名 .webp，再试 -static.webp（GIF 冲突变体）
+		// 2. HEAD-probe the bucket: try the same-name .webp first, then -static.webp (GIF conflict variant)
 		$stem      = pathinfo( $basename, PATHINFO_FILENAME );
 		$webp_urls = array();
 		if ( 'webp' !== $ext ) {
 			$webp_urls[] = $this->build_webp_url( $dir_rel, $stem . '.webp' );
 			$webp_urls[] = $this->build_webp_url( $dir_rel, $stem . '-static.webp' );
 		} else {
-			// 已是 webp，探测自身
+			// Already webp, probe itself
 			$webp_urls[] = $this->build_webp_url( $dir_rel, $basename );
 		}
 		$in_bucket = $this->head_exists_any( $webp_urls );
@@ -296,32 +296,32 @@ class MediaEngineAuditService {
 			'checked_url'   => $in_bucket ? $webp_urls[0] : '',
 		);
 
-		// 3. 分类
+		// 3. Classify
 		if ( $in_bucket ) {
-			// A 类：桶里已有对应文件，可清理本地
+			// Class A: the bucket already has the corresponding file; the local copy can be cleaned
 			$item['status'] = 'cleanable';
-			$item['reason'] = __( '桶中已存在对应文件，可清理本地', 'wp-genius' );
+			$item['reason'] = __( 'Corresponding file already exists in the bucket; local copy can be cleaned', 'wp-genius' );
 		} elseif ( $attachment_id ) {
-			// B 类：未 offload，但媒体库有记录
+			// Class B: not offloaded, but the media library has a record
 			$item['status'] = 'not_offloaded';
 			$item['reason'] = $this->analyze_reason( $attachment_id, $rel_path, $abs_path );
 			$item['parent'] = $this->get_parent_info( $attachment_id );
-			// 是否可重新入队（mime 在支持列表内）
+			// Whether it can be re-queued (mime is in the supported list)
 			$item['can_enqueue'] = $this->can_enqueue( $attachment_id );
 		} else {
-			// C 类：孤儿文件（数据库无记录）
+			// Class C: orphan file (no record in the database)
 			$item['status'] = 'orphan';
-			$item['reason'] = __( '媒体库中无对应记录（孤儿文件）', 'wp-genius' );
+			$item['reason'] = __( 'No matching record in the media library (orphan file)', 'wp-genius' );
 		}
 
 		return $item;
 	}
 
 	/**
-	 * 构造 /wp-media/ URL
+	 * Build a /wp-media/ URL
 	 *
-	 * @param string $dir_rel 相对目录（2026/07）
-	 * @param string $file    文件名（name.webp）
+	 * @param string $dir_rel Relative directory (2026/07)
+	 * @param string $file    File name (name.webp)
 	 * @return string
 	 */
 	private function build_webp_url( $dir_rel, $file ) {
@@ -330,11 +330,11 @@ class MediaEngineAuditService {
 	}
 
 	/**
-	 * HEAD 探测多个 URL，任一 200 即返回 true
+	 * HEAD-probe multiple URLs; returns true if any returns 200
 	 *
-	 * 使用 curl 直连（本地 OrbStack 环境，域名走 hosts 解析，不依赖 WP HTTP API）
+	 * Uses curl directly (local OrbStack environment; domains resolve via hosts, does not rely on the WP HTTP API)
 	 *
-	 * @param array $urls 候选 URL 列表
+	 * @param array $urls List of candidate URLs
 	 * @return bool
 	 */
 	private function head_exists_any( $urls ) {
@@ -364,7 +364,7 @@ class MediaEngineAuditService {
 			$chans[] = $ch;
 		}
 
-		// 执行并发探测
+		// Run the probes concurrently
 		$running = null;
 		do {
 			$status = curl_multi_exec( $mh, $running );
@@ -391,11 +391,11 @@ class MediaEngineAuditService {
 	}
 
 	/**
-	 * 分析未 offload 的原因
+	 * Analyze why a file was not offloaded
 	 *
-	 * @param int    $attachment_id 附件 ID
-	 * @param string $rel_path      相对路径
-	 * @param string $abs_path      绝对路径
+	 * @param int    $attachment_id Attachment ID
+	 * @param string $rel_path      Relative path
+	 * @param string $abs_path      Absolute path
 	 * @return string
 	 */
 	private function analyze_reason( $attachment_id, $rel_path, $abs_path ) {
@@ -403,38 +403,38 @@ class MediaEngineAuditService {
 		$offloaded = get_post_meta( $attachment_id, 'advmo_offloaded', true );
 		$attached  = get_attached_file( $attachment_id );
 
-		// 1. mime 不在转换支持列表（scanner 不返回）
+		// 1. mime is not in the supported conversion list (the scanner does not return it)
 		if ( ! in_array( $mime, self::SUPPORTED_MIMES, true ) ) {
 			return sprintf(
-				// translators: %1: placeholder。
-				__( '媒体类型 %s 不在转换支持列表，scanner 不会将其纳入队列', 'wp-genius' ),
-				$mime ? $mime : '(空)'
+				// translators: %1: placeholder.
+				__( 'Media type %s is not in the supported conversion list; the scanner will not queue it', 'wp-genius' ),
+				$mime ? $mime : '(empty)'
 			);
 		}
 
-		// 2. 已标记 offload 但桶里找不到 → 数据不一致
+		// 2. Marked as offloaded but not found in the bucket -> data inconsistency
 		if ( '1' === (string) $offloaded ) {
-			return __( '数据库已标记 offload（advmo_offloaded=1）但桶中未找到，可能 offload 记录残留或存储桶被清理', 'wp-genius' );
+			return __( 'Database marks this file as offloaded (advmo_offloaded=1) but it was not found in the bucket; the offload record may be stale or the bucket was cleaned', 'wp-genius' );
 		}
 
-		// 3. 附件的 _wp_attached_file 与实际文件不一致
+		// 3. The attachment's _wp_attached_file does not match the actual file
 		$attached_rel = str_replace( wp_upload_dir()['basedir'] . '/', '', $attached );
 		if ( $attached_rel !== $rel_path ) {
 			return sprintf(
-				// translators: %1: placeholder。
-				__( '数据库记录的附件路径（%s）与实际文件不一致', 'wp-genius' ),
+				// translators: %1: placeholder.
+				__( 'The attachment path in the database (%s) does not match the actual file', 'wp-genius' ),
 				$attached_rel
 			);
 		}
 
-		// 4. 其余：未 offload，scanner 应能扫到
-		return __( '未标记 offload，scanner 应可扫描到（可重新入队处理）', 'wp-genius' );
+		// 4. Everything else: not offloaded, the scanner should be able to pick it up
+		return __( 'Not marked as offloaded; the scanner should be able to pick it up (can be re-queued)', 'wp-genius' );
 	}
 
 	/**
-	 * 判断附件是否可重新入队（mime 在支持列表内）
+	 * Determine whether an attachment can be re-queued (mime is in the supported list)
 	 *
-	 * @param int $attachment_id 附件 ID
+	 * @param int $attachment_id Attachment ID
 	 * @return bool
 	 */
 	private function can_enqueue( $attachment_id ) {
@@ -443,9 +443,9 @@ class MediaEngineAuditService {
 	}
 
 	/**
-	 * 获取父级文章信息
+	 * Get the parent post information
 	 *
-	 * @param int $attachment_id 附件 ID
+	 * @param int $attachment_id Attachment ID
 	 * @return array { id:int, title:string, url:string }
 	 */
 	private function get_parent_info( $attachment_id ) {
@@ -453,7 +453,7 @@ class MediaEngineAuditService {
 		if ( ! $parent_id ) {
 			return array(
 				'id'    => 0,
-				'title' => __( '无父级文章（Unattached）', 'wp-genius' ),
+				'title' => __( 'No parent post (Unattached)', 'wp-genius' ),
 				'url'   => '',
 			);
 		}
@@ -465,14 +465,15 @@ class MediaEngineAuditService {
 	}
 
 	/**
-	 * 清理指定文件（A 类：桶中已确认存在）
+	 * Clean up the specified files (Class A: already confirmed to exist in the bucket)
 	 *
-	 * 二次 HEAD 确认后 unlink，写日志。
+	 * Unlinks after a second HEAD confirmation and writes a log entry.
 	 *
-	 * @param array $rel_paths 相对 uploads 路径列表
+	 * @param array $rel_paths List of paths relative to uploads
+	 * @param bool  $force     Skip the bucket-containment check (used for orphan files with no DB record).
 	 * @return array { cleaned:int, skipped:array }
 	 */
-	public function clean_files( $rel_paths ) {
+	public function clean_files( $rel_paths, $force = false ) {
 		$base_dir = wp_upload_dir()['basedir'];
 		$cleaned  = 0;
 		$skipped  = array();
@@ -500,7 +501,7 @@ class MediaEngineAuditService {
 				continue;
 			}
 
-			// 二次确认：桶里必须存在对应 webp 才删
+			// Second confirmation: only delete if the corresponding webp exists in the bucket
 			$dir_rel  = dirname( $rel_path );
 			$basename = basename( $rel_path );
 			$ext      = strtolower( pathinfo( $basename, PATHINFO_EXTENSION ) );
@@ -514,7 +515,9 @@ class MediaEngineAuditService {
 				$urls[] = $this->build_webp_url( $dir_rel, $basename );
 			}
 
-			if ( ! $this->head_exists_any( $urls ) ) {
+			// Orphan (force) files have no DB record, so there is nothing to break by deleting them;
+			// normal (cleanables) still require the corresponding webp to exist in the bucket.
+			if ( ! $force && ! $this->head_exists_any( $urls ) ) {
 				$skipped[] = array(
 					'file'   => $rel_path,
 					'reason' => 'not_in_bucket',
@@ -524,7 +527,7 @@ class MediaEngineAuditService {
 
 			if ( @unlink( $abs_path ) ) {
 				++$cleaned;
-				$logger->log_debug( sprintf( 'Audit Clean: 已清理本地文件 %s (桶中存在 %s)', $rel_path, $urls[0] ) );
+				$logger->log_debug( sprintf( 'Audit Clean: removed local file %s (bucket has %s)', $rel_path, $urls[0] ) );
 			} else {
 				$skipped[] = array(
 					'file'   => $rel_path,

@@ -2,7 +2,7 @@
 /**
  * Media Engine WP-CLI Commands
  *
- * WP-CLI 命令注册和处理
+ * WP-CLI command registration and handling
  *
  * @package WP_Genius
  * @subpackage Modules/MediaEngine
@@ -19,14 +19,14 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
 class MediaEngineCLI {
 
 	/**
-	 * 处理器实例
+	 * Processor instance
 	 *
 	 * @var MediaEngineProcessor
 	 */
 	private $processor;
 
 	/**
-	 * 构造函数
+	 * Constructor
 	 */
 	public function __construct() {
 		if ( ! class_exists( 'MediaEngineProcessor' ) ) {
@@ -37,34 +37,34 @@ class MediaEngineCLI {
 	}
 
 	/**
-	 * 转换图片到 WebP 格式
+	 * Convert images to WebP format
 	 *
 	 * ## OPTIONS
 	 *
 	 * [--limit=<number>]
-	 * : 批次大小,默认 100
+	 * : Batch size, default 100
 	 *
 	 * [--offset=<number>]
-	 * : 偏移量,默认 0
+	 * : Offset, default 0
 	 *
 	 * [--id=<number>]
-	 * : 处理指定的附件 ID
+	 * : Process the specified attachment ID
 	 *
 	 * [--parallel]
-	 * : 使用并行处理
+	 * : Use parallel processing
 	 *
 	 * [--workers=<number>]
-	 * : 并行处理的 worker 数量
+	 * : Number of workers for parallel processing
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     # 转换 100 个图片
+	 *     # Convert 100 images
 	 *     wp media-engine convert --limit=100
 	 *
-	 *     # 转换指定 ID 的图片
+	 *     # Convert an image with a specified ID
 	 *     wp media-engine convert --id=12345
 	 *
-	 *     # 并行转换
+	 *     # Convert in parallel
 	 *     wp media-engine convert --limit=100 --parallel --workers=4
 	 *
 	 * @when after_wp_load
@@ -76,9 +76,9 @@ class MediaEngineCLI {
 		$parallel = isset( $assoc_args['parallel'] );
 		$workers  = isset( $assoc_args['workers'] ) ? (int) $assoc_args['workers'] : null;
 
-		// 处理单个附件
+		// Process a single attachment
 		if ( $id ) {
-			// translators: %1: placeholder。
+			// translators: %1: placeholder.
 			WP_CLI::line( sprintf( __( 'Processing attachment ID: %d', 'wp-genius' ), $id ) );
 			$result = $this->processor->process_attachment( $id );
 
@@ -91,7 +91,7 @@ class MediaEngineCLI {
 			return;
 		}
 
-		// 获取待处理附件
+		// Get pending attachments
 		$attachments = $this->processor->get_pending_attachments( $limit, $offset );
 		$total       = count( $attachments );
 
@@ -100,22 +100,22 @@ class MediaEngineCLI {
 			return;
 		}
 
-		// translators: %1: placeholder。
+		// translators: %1: placeholder.
 		WP_CLI::line( sprintf( __( 'Found %d attachments to process', 'wp-genius' ), $total ) );
 
-		// 并行处理
+		// Parallel processing
 		if ( $parallel ) {
-			// translators: %1: placeholder。
+			// translators: %1: placeholder.
 			WP_CLI::line( sprintf( __( 'Using parallel processing with %d workers', 'wp-genius' ), $workers ?? 'auto' ) );
 			$result = $this->processor->parallel_process( $attachments, $workers );
 		} else {
-			// 批量处理
+			// Batch processing
 			$result = $this->processor->batch_process( $limit, $offset );
 		}
 
 		WP_CLI::line(
 			sprintf(
-				// translators: %1: placeholder, %2: placeholder, %3: placeholder。
+				// translators: %1: placeholder, %2: placeholder, %3: placeholder.
 				__( 'Processed: %1$d | Succeeded: %2$d | Failed: %3$d | Duration: %4$.2fs', 'wp-genius' ),
 				$result['processed'],
 				$result['succeeded'],
@@ -125,23 +125,23 @@ class MediaEngineCLI {
 		);
 
 		if ( $result['succeeded'] > 0 ) {
-			// translators: %1: placeholder。
+			// translators: %1: placeholder.
 			WP_CLI::success( sprintf( __( 'Successfully converted %d images', 'wp-genius' ), $result['succeeded'] ) );
 		}
 
 		if ( $result['failed'] > 0 ) {
-			// translators: %1: placeholder。
+			// translators: %1: placeholder.
 			WP_CLI::warning( sprintf( __( '%d images failed to convert', 'wp-genius' ), $result['failed'] ) );
 		}
 	}
 
 	/**
-	 * 搬运文件到 Minio
+	 * Offload files to Minio
 	 *
 	 * ## OPTIONS
 	 *
 	 * [--limit=<number>]
-	 * : 批次大小,默认 100
+	 * : Batch size, default 100
 	 *
 	 * ## EXAMPLES
 	 *
@@ -152,12 +152,12 @@ class MediaEngineCLI {
 	public function offload( $args, $assoc_args ) {
 		$limit = isset( $assoc_args['limit'] ) ? (int) $assoc_args['limit'] : 100;
 
-		// translators: %1: placeholder。
+		// translators: %1: placeholder.
 		WP_CLI::line( sprintf( __( 'Offloading up to %d files to Minio...', 'wp-genius' ), $limit ) );
 
 		$command = sprintf( 'wp advmo offload --limit=%d --yes 2>&1', $limit );
 		$output  = array();
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- 系统工具调用，参数已消毒。
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- System tool invocation; parameters have been sanitized.
 		exec( $command, $output, $return_code );
 
 		if ( $return_code === 0 ) {
@@ -169,12 +169,12 @@ class MediaEngineCLI {
 	}
 
 	/**
-	 * 清理本地文件
+	 * Clean up local files
 	 *
 	 * ## OPTIONS
 	 *
 	 * [--verify-minio]
-	 * : 验证 Minio 端文件存在后再删除
+	 * : Verify the file exists on the Minio side before deleting
 	 *
 	 * ## EXAMPLES
 	 *
@@ -187,13 +187,13 @@ class MediaEngineCLI {
 
 		WP_CLI::line( __( 'Cleaning up local files...', 'wp-genius' ) );
 
-		// TODO: 实现清理逻辑
+		// TODO: Implement cleanup logic
 
 		WP_CLI::success( __( 'Cleanup completed', 'wp-genius' ) );
 	}
 
 	/**
-	 * 检查环境依赖
+	 * Check environment dependencies
 	 *
 	 * ## EXAMPLES
 	 *
@@ -232,7 +232,7 @@ class MediaEngineCLI {
 	}
 
 	/**
-	 * 获取待处理附件统计
+	 * Get pending attachment statistics
 	 *
 	 * ## EXAMPLES
 	 *
@@ -243,13 +243,13 @@ class MediaEngineCLI {
 	public function stats( $args, $assoc_args ) {
 		$total = $this->processor->get_pending_count();
 
-		// translators: %1: placeholder。
+		// translators: %1: placeholder.
 		WP_CLI::line( sprintf( __( 'Pending attachments: %d', 'wp-genius' ), $total ) );
 
 		if ( $total > 0 ) {
 			WP_CLI::line(
 				sprintf(
-					// translators: %1: placeholder。
+					// translators: %1: placeholder.
 					__( 'Estimated batches (100/batch): %d', 'wp-genius' ),
 					ceil( $total / 100 )
 				)
@@ -258,5 +258,5 @@ class MediaEngineCLI {
 	}
 }
 
-// 注册 WP-CLI 命令
+// Register WP-CLI command
 WP_CLI::add_command( 'media-engine', 'MediaEngineCLI' );
