@@ -202,6 +202,13 @@ return array(
 							'default' => true,
 						),
 						array(
+							'id'      => 'smart_aui_media_orphan_bind',
+							'type'    => 'switcher',
+							'title'   => __( '孤儿媒体实时绑定', 'wp-genius' ),
+							'label'   => __( '保存文章时从正文提取引用的媒体 ID（wp-image-{ID} / data-id / data-attachment-id），把仍为孤儿的附件（post_parent=0）反向绑定到当前文章（先引用先占有），并顺带把正文里本地 /wp-content/uploads/ 路径回写为 bucket /wp-media/ 路径；CLI 提供 wp media-bind-orphans 分批执行。', 'wp-genius' ),
+							'default' => true,
+						),
+						array(
 							'id'      => 'smart_aui_enhance_attach',
 							'type'    => 'switcher',
 							'title'   => __( '文件名反查与 URL 回写', 'wp-genius' ),

@@ -165,6 +165,13 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 			new W2P_SmartAUI_Media_Mime_Cache();
 		}
 
+		// 功能 3.5：孤儿媒体实时绑定（默认开，保持子主题现状；未保存过设置时按 true 兜底）。
+		$orphan_bind = isset( $media_enhance['smart_aui_media_orphan_bind'] ) ? (bool) $media_enhance['smart_aui_media_orphan_bind'] : true;
+		if ( $orphan_bind ) {
+			require_once __DIR__ . '/includes/class-media-orphan-bind.php';
+			new W2P_SmartAUI_Media_Orphan_Bind();
+		}
+
 		// 功能 4：文件名反查与 URL 回写（默认关，会改写文章内容；key 保持不变）。
 		$enhance_attach = isset( $media_enhance['smart_aui_enhance_attach'] ) ? (bool) $media_enhance['smart_aui_enhance_attach'] : false;
 		if ( $enhance_attach ) {
