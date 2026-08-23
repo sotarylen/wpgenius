@@ -95,7 +95,11 @@ class W2P_SmartAUI_UI {
 			'alt_text_pattern'   => ! empty( $global_settings['smart_aui_alt_text_pattern'] ) ? $global_settings['smart_aui_alt_text_pattern'] : '%image_alt%',
 		);
 
-		wp_register_script( 'w2p-smart-auto-upload', $plugin_url . 'includes/modules/smart-aui/assets/js/smart-aui-ui.js', array( 'w2p-core-js' ), W2P_VERSION, true );
+		// Cache-bust: use file mtime so JS edits (e.g. batch local-image ID update) are picked up immediately.
+		$smart_aui_ui_path = plugin_dir_path( WP_GENIUS_FILE ) . 'includes/modules/smart-aui/assets/js/smart-aui-ui.js';
+		$smart_aui_ui_ver  = file_exists( $smart_aui_ui_path ) ? filemtime( $smart_aui_ui_path ) : W2P_VERSION;
+
+		wp_register_script( 'w2p-smart-auto-upload', $plugin_url . 'includes/modules/smart-aui/assets/js/smart-aui-ui.js', array( 'w2p-core-js' ), $smart_aui_ui_ver, true );
 
 		wp_enqueue_script( 'w2p-smart-auto-upload' );
 

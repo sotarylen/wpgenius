@@ -732,6 +732,8 @@
                             var content = postData.post_content;
                             var images = self.findExternalImages(content);
                             var videos = self.findExternalVideos(content);
+                            // Local images needing ID injection (same as single-post update)
+                            var localImagesWithoutID = self.findLocalImagesWithoutID(content);
 
                             // Combine into media items
                             var mediaItems = [];
@@ -740,6 +742,14 @@
                             }
                             for (var j = 0; j < videos.length; j++) {
                                 mediaItems.push({ url: videos[j], type: 'video' });
+                            }
+                            // Local images needing ID injection (same as single-post update)
+                            for (var l = 0; l < localImagesWithoutID.length; l++) {
+                                mediaItems.push({
+                                    url: localImagesWithoutID[l].src,
+                                    type: 'local-image',
+                                    tag: localImagesWithoutID[l].tag
+                                });
                             }
 
                             if (mediaItems.length === 0) {

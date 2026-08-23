@@ -74,6 +74,13 @@ return array(
 							'default' => true,
 						),
 						array(
+							'id'      => 'smart_aui_attach_orphan_images',
+							'type'    => 'switcher',
+							'title'   => __( 'Attach Orphan Images', 'wp-genius' ),
+							'label'   => __( 'When assigning an ID to an image that is an orphan in the media library (not attached to any post/page), automatically set this post as its parent.', 'wp-genius' ),
+							'default' => true,
+						),
+						array(
 							'id'      => 'smart_aui_capture_videos',
 							'type'    => 'switcher',
 							'title'   => __( 'Capture Videos', 'wp-genius' ),

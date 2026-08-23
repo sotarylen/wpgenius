@@ -743,6 +743,8 @@ class W2P_SmartAUI_Ajax {
 		}
 
 		$image_url = isset( $_POST['image_url'] ) ? esc_url_raw( wp_unslash( $_POST['image_url'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- nonce already verified by check_ajax_referer() above.
+		$post_id = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
 
 		if ( empty( $image_url ) ) {
 			wp_send_json_error( array( 'message' => 'Invalid image URL' ) );
@@ -752,6 +754,9 @@ class W2P_SmartAUI_Ajax {
 		$attachment_id = $this->processor->get_attachment_id_from_url( $image_url );
 
 		if ( $attachment_id ) {
+			// If the attachment is an orphan in the media library, set this post as its parent.
+			$this->maybe_attach_orphan_image( $attachment_id, $post_id );
+
 			wp_send_json_success(
 				array(
 					'attachment_id' => $attachment_id,
@@ -761,5 +766,42 @@ class W2P_SmartAUI_Ajax {
 		} else {
 			wp_send_json_error( array( 'message' => 'Attachment not found' ) );
 		}
+	}
+
+	/**
+	 * Attach an orphan attachment to a post.
+	 *
+	 * When the module resolves/assigns an ID to an image in post content, if that
+	 * attachment is currently an orphan (not attached to any post or page) and the
+	 * toggle is enabled, set this post as its parent.
+	 *
+	 * @param int $attachment_id Attachment ID.
+	 * @param int $post_id        Post ID being edited.
+	 * @return void
+	 */
+	private function maybe_attach_orphan_image( int $attachment_id, int $post_id ): void {
+		if ( $attachment_id <= 0 || $post_id <= 0 ) {
+			return;
+		}
+
+		// Respect the toggle (read from the synced legacy settings; default on).
+		$settings      = \SmartAutoUploadImages\Plugin::get_settings();
+		$attach_orphan = isset( $settings['attach_orphan_images'] ) ? (bool) $settings['attach_orphan_images'] : true;
+		if ( ! $attach_orphan ) {
+			return;
+		}
+
+		// Only attach if the attachment is currently an orphan (no parent).
+		$parent_id = (int) get_post_field( 'post_parent', $attachment_id );
+		if ( 0 !== $parent_id ) {
+			return;
+		}
+
+		wp_update_post(
+			array(
+				'ID'          => $attachment_id,
+				'post_parent' => $post_id,
+			)
+		);
 	}
 }
