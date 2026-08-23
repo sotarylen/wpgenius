@@ -170,7 +170,53 @@ return array(
 						),
 					),
 				),
-				// Tab 2: Logs
+				// Tab 2: 媒体增强（迁移自子主题 Impreza-child 的媒体增强功能）
+				array(
+					'title'  => __( '媒体增强', 'wp-genius' ),
+					'icon'   => 'fa fa-images',
+					'fields' => array(
+						array(
+							'id'      => '_subheading_media_enhance',
+							'type'    => 'subheading',
+							'content' => __( 'Media Enhancements', 'wp-genius' ),
+						),
+						array(
+							'id'      => 'smart_aui_media_find_posts_filter',
+							'type'    => 'switcher',
+							'title'   => __( '附加筛选', 'wp-genius' ),
+							'label'   => __( '在「附加到文章或页面」弹窗注入 Type / ID 范围 / Status 三档筛选；查询白名单 post / page / novel / albums，固定排除 chapter，搜索只匹配文章标题（不查内容），每页 25 条。', 'wp-genius' ),
+							'default' => true,
+						),
+						array(
+							'id'      => 'smart_aui_media_bulk_move_category',
+							'type'    => 'switcher',
+							'title'   => __( '批量移动到分类', 'wp-genius' ),
+							'label'   => __( '媒体库列表模式批量操作新增「移动到分类」，选择目标分类（us_media_category）后批量替换附件分类，并提示移动结果。', 'wp-genius' ),
+							'default' => true,
+						),
+						array(
+							'id'      => 'smart_aui_media_mime_cache',
+							'type'    => 'switcher',
+							'title'   => __( '媒体库性能优化', 'wp-genius' ),
+							'label'   => __( '短路 get_available_post_mime_types 慢查询（约百万附件下表扫描 ~20s），Redis → wp_options → SQL 三级缓存 + 双写，TTL 12h；CLI 提供 media-mime-flush / media-mime-test / media-perf-verify。', 'wp-genius' ),
+							'default' => true,
+						),
+						array(
+							'id'      => 'smart_aui_enhance_attach',
+							'type'    => 'switcher',
+							'title'   => __( '文件名反查与 URL 回写', 'wp-genius' ),
+							'label'   => __( '媒体库列表 Unattached 过滤下，弹窗自动按附件文件名反查包含该图（内容中）的文章；选择后经 wp_media_attach_action 把文章里匹配文件名的图片 URL（含远程遗留 URL）替换为本地 URL。', 'wp-genius' ),
+							'default' => false,
+						),
+						array(
+							'id'      => '_submessage_media_enhance_migration',
+							'type'    => 'submessage',
+							'style'   => 'warning',
+							'content' => __( '以下功能迁移自子主题 Impreza-child。与子主题同名功能并存时以先加载者生效；迁移完成后请删除子主题 functions.php 的 [任务1][任务3] 段与 inc/media-bulk-move-category.php。', 'wp-genius' ),
+						),
+					),
+				),
+				// Tab 3: Logs
 				array(
 					'title'  => __( 'Capture Failure Logs', 'wp-genius' ),
 					'icon'   => 'fa fa-history',

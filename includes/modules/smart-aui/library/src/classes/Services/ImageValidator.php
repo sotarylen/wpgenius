@@ -112,16 +112,18 @@ class ImageValidator {
 			return false;
 		}
 
-		// Check minimum dimensions if configured
+		// Check minimum dimensions if configured.
+		// An image is skipped when EITHER its width is below min_width OR its height is below min_height.
+		// Each threshold is independent: set a value to 0 to disable that dimension's check.
 		$min_width  = (int) $this->settings_manager->get_setting( 'min_width', 0 );
 		$min_height = (int) $this->settings_manager->get_setting( 'min_height', 0 );
 
-		if ( $min_width > 0 && $min_height > 0 ) {
+		if ( $min_width > 0 || $min_height > 0 ) {
 			$width  = $image_info[0] ?? 0;
 			$height = $image_info[1] ?? 0;
 
-			if ( $width < $min_width && $height < $min_height ) {
-				return false; // Skip small images (both width and height must be below threshold)
+			if ( ( $min_width > 0 && $width < $min_width ) || ( $min_height > 0 && $height < $min_height ) ) {
+				return false; // Skip images smaller than the configured minimums.
 			}
 		}
 

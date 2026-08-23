@@ -140,6 +140,37 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 		add_action( 'wp_ajax_w2p_smart_aui_clear_failed_logs', array( $this->ajax, 'ajax_clear_failed_logs' ) );
 		add_action( 'wp_ajax_w2p_smart_aui_get_failed_logs', array( $this->ajax, 'ajax_get_failed_logs' ) );
 		add_action( 'wp_ajax_w2p_smart_aui_get_attachment_id', array( $this->ajax, 'ajax_get_attachment_id' ) );
+
+		// 媒体增强功能挂载（各自独立开关：开=挂载生效，关=完全不加载）。
+		$media_enhance = $this->get_settings();
+
+		// 功能 1：附加筛选（默认开，保持子主题现状；未保存过设置时按 true 兜底）。
+		$find_posts_filter = isset( $media_enhance['smart_aui_media_find_posts_filter'] ) ? (bool) $media_enhance['smart_aui_media_find_posts_filter'] : true;
+		if ( $find_posts_filter ) {
+			require_once __DIR__ . '/includes/class-media-find-posts-filter.php';
+			new W2P_SmartAUI_Media_FindPosts_Filter();
+		}
+
+		// 功能 2：批量移动到分类（默认开）。
+		$bulk_move_category = isset( $media_enhance['smart_aui_media_bulk_move_category'] ) ? (bool) $media_enhance['smart_aui_media_bulk_move_category'] : true;
+		if ( $bulk_move_category ) {
+			require_once __DIR__ . '/includes/class-media-bulk-move-category.php';
+			new W2P_SmartAUI_Media_Bulk_Move_Category();
+		}
+
+		// 功能 3：媒体库性能优化（默认开）。
+		$mime_cache = isset( $media_enhance['smart_aui_media_mime_cache'] ) ? (bool) $media_enhance['smart_aui_media_mime_cache'] : true;
+		if ( $mime_cache ) {
+			require_once __DIR__ . '/includes/class-media-mime-cache.php';
+			new W2P_SmartAUI_Media_Mime_Cache();
+		}
+
+		// 功能 4：文件名反查与 URL 回写（默认关，会改写文章内容；key 保持不变）。
+		$enhance_attach = isset( $media_enhance['smart_aui_enhance_attach'] ) ? (bool) $media_enhance['smart_aui_enhance_attach'] : false;
+		if ( $enhance_attach ) {
+			require_once __DIR__ . '/includes/class-attach-enhance.php';
+			new W2P_SmartAUI_Attach_Enhance();
+		}
 	}
 
 	/**
