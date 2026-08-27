@@ -15,7 +15,7 @@ jQuery(document).ready(function ($) {
                 if (response.success && response.data && response.data.length > 0) {
                     var html = '<ul class="w2p-log-list">';
                     $.each(response.data, function (index, item) {
-                        html += '<li><span class="badgew2p-badge-warning">' + item.time + '</span> <code>' + item.url + '</code></li>';
+                        html += '<li><span class="w2p-badge w2p-badge-warning">' + item.time + '</span> <code>' + item.url + '</code></li>';
                     });
                     html += '</ul>';
                     $container.html(html);

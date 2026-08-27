@@ -1,31 +1,14 @@
 <?php
 /**
- * Smart AUI — 孤儿媒体实时绑定（save_post 反向关联 + URL 回写 + CLI 分批绑定）
+ * Smart AUI — Real-time Orphan Media Binding (save_post Reverse Binding + URL Rewrite + CLI Batch Binding)
  *
- * 迁移自子主题 Impreza-child functions.php [孤儿绑定] 段（行 142-262）
- * 与 inc/media-perf/media-bind.php（wp media-bind-orphans 命令）。
- *
- * 原实现依赖已随 media-engine 重构移除的 MediaEngineOrphanService 与
- * MediaEngineUrlRewriteService::rewrite_content_for_posts，本类将 adopt_orphans
- * 与「复数文章 URL 回写」逻辑自包含移植，不再依赖已删除的类（零外部依赖）。
- *
- * 功能：
- *   1. save_post 实时绑定：保存文章时从正文提取 wp-image-{ID} / data-id /
- *      data-attachment-id 引用的媒体 ID，把仍为孤儿（post_parent=0）的附件
- *      反向绑定到当前文章（先引用先占有），并顺带把正文里本地
- *      /wp-content/uploads/ 路径回写为 bucket /wp-media/ 路径。
- *   2. wp media-bind-orphans：按 offset/limit 分批遍历文章执行同样的绑定
- *      与回写（适合全站批量执行，--dry-run 预览，--post-type 限定类型）。
- *
- * 并存策略：回调运行时检测子主题同名函数（w2p_realtime_bind_orphans /
- * w2p_extract_media_ids_for_bind / w2p_ensure_orphan_service）存在即让位；
- * CLI 注册以 function_exists + method_exists('WP_CLI','has_command') 双保险。
- *
- * 相对原实现的修正：
- *   - 回写目标 URL 用 wp_get_attachment_url()（附件真实 URL），不再硬编码
- *     强制转 .webp——本站 bucket 保留原扩展名（如 .gif），旧逻辑会产出 404；
- *   - CLI / save_post 共用同一 adopt 逻辑，去重（原 media-bind.php 重复定义
- *     了两个辅助函数）；无全局函数、无全局常量。
+ * Provides real-time and batch orphan media association for posts:
+ *   1. save_post real-time binding: Extracts referenced media IDs (wp-image-{ID}, wp-video-{ID},
+ *      data-id, data-attachment-id, [video id="..."]) from post content on save. Binds unattached
+ *      orphan attachments (post_parent=0) to the current post (first-reference-first-served),
+ *      injects media IDs into video tags, and rewrites local /wp-content/uploads/ paths to bucket /wp-media/ URLs.
+ *   2. wp media-bind-orphans: Batches through posts via offset/limit to perform identical binding
+ *      and URL rewriting across existing content (--dry-run preview, --post-type restriction supported).
  *
  * @package WP_Genius
  * @subpackage Modules/SmartAUI
@@ -36,40 +19,47 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * 孤儿媒体实时绑定类。
+ * Real-time Orphan Media Binding Class.
  */
 class W2P_SmartAUI_Media_Orphan_Bind {
 
 	/**
-	 * save_post 回调优先级（与子主题一致）。
+	 * save_post callback priority.
 	 *
 	 * @var int
 	 */
 	const SAVE_POST_PRIORITY = 20;
 
 	/**
-	 * CLI 分批上限（与子主题一致，防超大批次拖垮内存/Redis 连接）。
+	 * CLI batch size limit to prevent memory and Redis connection exhaustion.
 	 *
 	 * @var int
 	 */
 	const CLI_BATCH_MAX = 2000;
 
 	/**
-	 * 猜测文章内旧路径时尝试的候选扩展名（含转 webp 前/后的原始扩展）。
+	 * Candidate file extensions to test when resolving legacy uploads URLs in post content.
 	 *
 	 * @var string[]
 	 */
 	const OLD_EXT_CANDIDATES = array( 'webp', 'jpg', 'jpeg', 'png', 'gif' );
 
 	/**
-	 * 防重入标志：adopt 内部 wp_update_post 触发 save_post 时阻止递归。
+	 * Re-entrancy guard: Prevents infinite recursion when wp_update_post fires save_post inside adopt.
 	 *
 	 * @var bool
 	 */
 	private $processing = false;
 
 	/**
-	 * 构造器：挂载 save_post 实时绑定与 CLI 注册钩子。
+	 * In-memory cache: URL to Attachment ID mapping to prevent duplicate DB queries during the same request.
+	 *
+	 * @var array<string, int>
+	 */
+	private static $url_to_id_cache = array();
+
+	/**
+	 * Constructor: Mount save_post hook and CLI command registration.
 	 */
 	public function __construct() {
 		add_action( 'save_post', array( $this, 'realtime_bind_orphans' ), self::SAVE_POST_PRIORITY, 2 );
@@ -80,22 +70,20 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 	}
 
 	/**
-	 * 文章保存时，把正文引用的孤儿媒体反绑到当前文章（先引用先占有），
-	 * 并触发 URL 回写（本地 /wp-content/uploads/ → bucket /wp-media/）。
+	 * On post save, bind referenced orphan media (images and videos) to current post,
+	 * inject media IDs into video shortcodes and HTML video tags, and rewrite local uploads URLs to bucket URLs.
 	 *
-	 * 并存让位：子主题 w2p_realtime_bind_orphans 已声明时由子主题接管。
-	 *
-	 * @param int      $post_id 文章 ID。
-	 * @param \WP_Post $post    文章对象。
+	 * @param int      $post_id Post ID.
+	 * @param \WP_Post $post    Post object.
 	 * @return void
 	 */
 	public function realtime_bind_orphans( $post_id, $post ) {
-		// 并存期让位：子主题同名回调存在时由子主题生效。
+		// Coexistence guard: Yield to child theme if legacy callback is defined.
 		if ( function_exists( 'w2p_realtime_bind_orphans' ) ) {
 			return;
 		}
 
-		// 跳过自动保存 / 修订 / 媒体自身保存 / 草稿态，避免无意义处理。
+		// Skip autosaves, revisions, attachments, auto-drafts, and trash.
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
 			return;
 		}
@@ -109,7 +97,7 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 			return;
 		}
 
-		// 防重入：adopt 内部 wp_update_post 会触发其他文章的 save_post。
+		// Prevent re-entrancy.
 		if ( $this->processing ) {
 			return;
 		}
@@ -119,29 +107,46 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 			return;
 		}
 
-		$ids = $this->extract_media_ids( $content );
-		if ( empty( $ids ) ) {
-			return;
-		}
-
-		// 只收集「当前是孤儿」的媒体（post_parent=0），先引用先占有。
-		$pairs = array();
-		foreach ( $ids as $mid ) {
-			$att = get_post( $mid );
-			if ( ! $att || 'attachment' !== $att->post_type ) {
-				continue;
-			}
-			if ( 0 !== (int) $att->post_parent ) {
-				continue; // 已被其他文章占有的跳过。
-			}
-			$pairs[] = array( 'orphan_id' => $mid, 'post_id' => $post_id );
-		}
-		if ( empty( $pairs ) ) {
-			return;
-		}
-
 		$this->processing = true;
 		try {
+			// 1. Process video content, inject media IDs ([video id="..."] and <video class="wp-video-..." data-id="...">).
+			$video_ids       = array();
+			$updated_content = $this->process_video_content( $content, $video_ids );
+
+			// If video IDs were injected, update post content directly in DB to prevent re-triggering save_post.
+			if ( $updated_content !== $content ) {
+				global $wpdb;
+				$wpdb->update(
+					$wpdb->posts,
+					array( 'post_content' => $updated_content ),
+					array( 'ID' => $post_id )
+				);
+				wp_cache_delete( $post_id, 'posts' );
+				$content = $updated_content;
+			}
+
+			// 2. Collect all referenced media IDs (images + videos).
+			$ids = array_unique( array_merge( $this->extract_media_ids( $content ), $video_ids ) );
+			if ( empty( $ids ) ) {
+				return;
+			}
+
+			// Only collect attachments that are currently unattached (post_parent=0).
+			$pairs = array();
+			foreach ( $ids as $mid ) {
+				$att = get_post( $mid );
+				if ( ! $att || 'attachment' !== $att->post_type ) {
+					continue;
+				}
+				if ( 0 !== (int) $att->post_parent ) {
+					continue; // Already attached to another post.
+				}
+				$pairs[] = array( 'orphan_id' => $mid, 'post_id' => $post_id );
+			}
+			if ( empty( $pairs ) ) {
+				return;
+			}
+
 			$this->adopt_orphans( $pairs );
 		} finally {
 			$this->processing = false;
@@ -149,11 +154,7 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 	}
 
 	/**
-	 * 注册 wp media-bind-orphans 命令。
-	 *
-	 * 并存守卫：子主题函数存在（其 media-bind.php 已注册同名命令）或
-	 * WP_CLI::has_command 命中时跳过自身注册（has_command 非所有版本都有，
-	 * 以 method_exists 守卫），避免 add_command 同名抛异常中断所有 wp 命令。
+	 * Register wp media-bind-orphans command.
 	 *
 	 * @return void
 	 */
@@ -162,7 +163,7 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 			|| function_exists( 'w2p_ensure_orphan_service' )
 			|| ( method_exists( 'WP_CLI', 'has_command' ) && WP_CLI::has_command( 'media-bind-orphans' ) )
 		) {
-			WP_CLI::warning( __( '检测到子主题同名 CLI 命令（media-bind-orphans），插件已跳过自身注册。请删除子主题 functions.php 的 [孤儿绑定] 段及对 inc/media-perf/media-bind.php 的引用，随后插件将自动接管。', 'wp-genius' ) );
+			WP_CLI::warning( __( 'Detected child theme CLI commands (media-bind-orphans). Plugin CLI registration skipped to prevent conflict.', 'wp-genius' ) );
 			return;
 		}
 
@@ -170,12 +171,10 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 	}
 
 	/**
-	 * wp media-bind-orphans —— 分批遍历文章侧，把正文引用的孤儿媒体双向绑定。
+	 * wp media-bind-orphans — Batches through posts to bind referenced orphan media.
 	 *
-	 * 按 ID 升序分页，保证「先引用先占有」确定性（小 ID 文章先处理）。
-	 *
-	 * @param array $args       位置参数。
-	 * @param array $assoc_args 关联参数：--limit / --offset / --post-type / --dry-run。
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Associative arguments: --limit / --offset / --post-type / --dry-run.
 	 * @return void
 	 */
 	public function cli_bind_orphans( $args, $assoc_args ) {
@@ -200,8 +199,8 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 		);
 
 		if ( empty( $ids ) ) {
-			/* translators: %d: 偏移量。 */
-			WP_CLI::success( sprintf( __( '没有更多文章（offset=%d）', 'wp-genius' ), $offset ) );
+			/* translators: %d: Offset number. */
+			WP_CLI::success( sprintf( __( 'No more posts found (offset=%d)', 'wp-genius' ), $offset ) );
 			return;
 		}
 
@@ -211,30 +210,45 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 			if ( ! $post || empty( $post->post_content ) ) {
 				continue;
 			}
-			$mids = $this->extract_media_ids( $post->post_content );
+
+			$content         = $post->post_content;
+			$video_ids       = array();
+			$updated_content = $this->process_video_content( $content, $video_ids );
+
+			if ( ! $dry_run && $updated_content !== $content ) {
+				$wpdb->update(
+					$wpdb->posts,
+					array( 'post_content' => $updated_content ),
+					array( 'ID' => $pid )
+				);
+				wp_cache_delete( $pid, 'posts' );
+				$content = $updated_content;
+			}
+
+			$mids = array_unique( array_merge( $this->extract_media_ids( $content ), $video_ids ) );
 			foreach ( $mids as $mid ) {
 				$att = get_post( $mid );
 				if ( ! $att || 'attachment' !== $att->post_type ) {
 					continue;
 				}
 				if ( 0 !== (int) $att->post_parent ) {
-					continue; // 先引用先占有。
+					continue; // First reference wins.
 				}
 				$pairs[] = array( 'orphan_id' => $mid, 'post_id' => $pid );
 			}
 		}
 
 		if ( empty( $pairs ) ) {
-			/* translators: 1: 本批文章数 2: 偏移量。 */
-			WP_CLI::log( sprintf( __( '本批 %1$d 篇文章，无新孤儿可绑定（offset=%2$d）', 'wp-genius' ), count( $ids ), $offset ) );
+			/* translators: 1: Batch post count, 2: Offset number. */
+			WP_CLI::log( sprintf( __( 'Batch of %1$d posts, no new orphan media to bind (offset=%2$d)', 'wp-genius' ), count( $ids ), $offset ) );
 			return;
 		}
 
 		if ( $dry_run ) {
-			/* translators: 1: 待绑定孤儿数 2: 本批文章数 3: 偏移量。 */
-			WP_CLI::log( sprintf( __( 'DRY-RUN：本批将绑定 %1$d 个孤儿（来自 %2$d 篇文章，offset=%3$d）', 'wp-genius' ), count( $pairs ), count( $ids ), $offset ) );
+			/* translators: 1: Orphan count, 2: Batch post count, 3: Offset number. */
+			WP_CLI::log( sprintf( __( 'DRY-RUN: Batch will bind %1$d orphan media items (from %2$d posts, offset=%3$d)', 'wp-genius' ), count( $pairs ), count( $ids ), $offset ) );
 			foreach ( $pairs as $p ) {
-				/* translators: 1: 孤儿媒体 ID 2: 文章 ID。 */
+				/* translators: 1: Orphan media ID, 2: Post ID. */
 				WP_CLI::log( sprintf( __( '  orphan %1$d -> post %2$d', 'wp-genius' ), $p['orphan_id'], $p['post_id'] ) );
 			}
 			return;
@@ -247,24 +261,20 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 			$this->processing = false;
 		}
 
-		/* translators: 1: 成功数 2: 失败数 3: 偏移量。 */
+		/* translators: 1: Adopted count, 2: Failed count, 3: Offset number. */
 		WP_CLI::log( sprintf( __( 'adopted=%1$d failed=%2$d (batch offset=%3$d)', 'wp-genius' ), $result['adopted'], $result['failed'], $offset ) );
 	}
 
 	/**
-	 * 收养孤儿附件：分配父级文章并在所有引用文章中回写 uploads → bucket URL。
+	 * Adopt orphan attachments: Assign post_parent to first referencing post and rewrite uploads URLs to bucket URLs.
 	 *
-	 * 自包含移植自旧 MediaEngineOrphanService::adopt_orphans()（该服务已随
-	 * media-engine 重构移除）。每条记录 [orphan_id => int, post_id => int]；
-	 * 同一孤儿可被多篇文章引用：post_parent 取首条引用，URL 回写作用于全部引用。
-	 *
-	 * @param array $pairs 孤儿绑定对列表。
+	 * @param array $pairs List of [orphan_id => int, post_id => int] pairs.
 	 * @return array { adopted:int, failed:int, results:array }
 	 */
 	public function adopt_orphans( $pairs ) {
 		$pairs = is_array( $pairs ) ? $pairs : array();
 
-		// 按 orphan_id 分组，保持插入顺序。
+		// Group by orphan_id while preserving insertion order.
 		$grouped = array();
 		foreach ( $pairs as $pair ) {
 			if ( ! is_array( $pair ) ) {
@@ -313,7 +323,7 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 				continue;
 			}
 
-			// 安全：只收养仍为孤儿的附件。
+			// Ensure attachment is still unattached.
 			if ( 0 !== (int) $att->post_parent ) {
 				$result['error'] = 'parent_changed';
 				$results[]       = $result;
@@ -321,7 +331,7 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 				continue;
 			}
 
-			// 1. 建立父子关系（首篇引用文章获胜）。
+			// 1. Establish parent-child relationship (first post wins).
 			$parent_id = $post_ids[0];
 			wp_update_post(
 				array(
@@ -333,10 +343,10 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 			wp_cache_delete( $orphan_id, 'post_meta' );
 			$result['parent'] = $parent_id;
 
-			// 2. 在全部引用文章中回写 uploads → bucket URL。
+			// 2. Rewrite uploads -> bucket URLs in all referencing posts.
 			$result['rewrite'] = $this->rewrite_orphan_urls( $orphan_id, $post_ids );
 
-			// 3. 清除扫描重试标记。
+			// 3. Clear retry markers.
 			delete_post_meta( $orphan_id, '_w2p_rewrite_pending' );
 			delete_post_meta( $orphan_id, '_w2p_media_failed' );
 
@@ -353,15 +363,10 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 	}
 
 	/**
-	 * 把孤儿的本地 uploads URL 回写为 bucket URL（作用于给定文章列表）。
+	 * Rewrite local uploads URLs of an orphan attachment to bucket URLs across given post IDs.
 	 *
-	 * 旧 URL 从附件自身的 _wp_attached_file 推导（stem + 候选扩展名），
-	 * 新 URL 取 wp_get_attachment_url()（附件真实 URL，本站 bucket 保留原扩展名；
-	 * 旧实现硬编码转 .webp 会产出 404，此处修正）。每个候选扩展名都尝试
-	 * 直到至少命中一篇文章，覆盖转码前（.jpg）与当前（.webp）两类引用。
-	 *
-	 * @param int   $attachment_id 孤儿附件 ID。
-	 * @param int[] $post_ids      需要回写的文章 ID 列表。
+	 * @param int   $attachment_id Orphan attachment ID.
+	 * @param int[] $post_ids      List of referencing post IDs.
 	 * @return array
 	 */
 	private function rewrite_orphan_urls( $attachment_id, $post_ids ) {
@@ -384,10 +389,9 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 			);
 		}
 
-		// 真实 bucket URL：附件当前实际地址（含 bucket 路径与真实扩展名）。
+		// Get current bucket URL.
 		$new_url = wp_get_attachment_url( $attachment_id );
 		if ( ! $new_url || false !== strpos( $new_url, '/wp-content/uploads/' ) ) {
-			// 未离线上传（本地路径）→ 无 bucket 目标可回写。
 			return array(
 				'success'  => true,
 				'replaced' => false,
@@ -396,7 +400,7 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 			);
 		}
 
-		// 候选旧扩展名：原始转换前扩展名优先，再补当前扩展名与通用候选集。
+		// Candidate extensions to search and replace.
 		$candidates = array();
 		$metadata   = wp_get_attachment_metadata( $attachment_id );
 		if ( is_array( $metadata ) && ! empty( $metadata['original_image'] ) ) {
@@ -433,7 +437,7 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 				$best = $result;
 			}
 
-			// 首个产生替换的候选即停止：后续候选是同 stem 不同扩展名，只会加噪音。
+			// Stop on first candidate that produces replacements.
 			if ( $this->count_hits( $result ) > 0 ) {
 				return array(
 					'success'  => true,
@@ -455,15 +459,11 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 	}
 
 	/**
-	 * 在给定文章中替换旧 URL 为 bucket URL（复数文章版，直接 SQL 更新）。
+	 * Replace old URL with bucket URL across given posts (direct SQL update).
 	 *
-	 * 自包含移植自旧 MediaEngineUrlRewriteService::rewrite_content_for_posts()
-	 * （该方法已随重构移除）；与当前单数版 rewrite_content() 同构：
-	 * 域前缀可选、文件名尺寸后缀（-150x150 / -scaled）兼容。
-	 *
-	 * @param int[]  $post_ids 文章 ID 列表。
-	 * @param string $old_url  旧本地 URL（如 https://.../wp-content/uploads/2026/08/name.jpg）。
-	 * @param string $new_url  新 bucket URL（如 https://.../wp-media/2026/08/name.webp）。
+	 * @param int[]  $post_ids List of post IDs.
+	 * @param string $old_url  Old local URL.
+	 * @param string $new_url  New bucket URL.
 	 * @return array { success:bool, replaced:bool, posts:array }
 	 */
 	private function rewrite_content_for_posts( $post_ids, $old_url, $new_url ) {
@@ -487,7 +487,6 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 		$posts_result = array();
 
 		foreach ( $post_ids as $post_id ) {
-			// 只回写真实文章（跳过修订/附件）。
 			$post = $wpdb->get_row(
 				$wpdb->prepare(
 					"SELECT ID, post_content FROM {$wpdb->posts} WHERE ID = %d AND post_type NOT IN ('revision','attachment')",
@@ -519,7 +518,6 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 				array( 'post_content' => $new_content ),
 				array( 'ID' => $post_id )
 			);
-			// 精准缓存失效（避免 clean_post_cache 触发 supercache 钩子 → 502）。
 			wp_cache_delete( $post_id, 'posts' );
 			wp_cache_delete( $post_id, 'post_meta' );
 
@@ -539,12 +537,10 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 	}
 
 	/**
-	 * 由 old/new URL 构建正则模式与替换串。
+	 * Build regex pattern and replacement string from old and new URLs.
 	 *
-	 * 与当前 media-engine 单数版 rewrite_content() 语义一致。
-	 *
-	 * @param string $old_url 旧 URL。
-	 * @param string $new_url 新 URL。
+	 * @param string $old_url Old URL.
+	 * @param string $new_url New URL.
 	 * @return array [pattern:string, replacement:string]
 	 */
 	private function get_pattern_parts( $old_url, $new_url ) {
@@ -573,14 +569,20 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 	}
 
 	/**
-	 * 从文章正文提取被引用的媒体 ID（wp-image-{ID} / data-id / data-attachment-id）。
+	 * Extract referenced media IDs (wp-image-{ID}, wp-video-{ID}, [video id="..."], data-id, data-attachment-id) from post content.
 	 *
-	 * @param string $content 文章正文。
+	 * @param string $content Post content.
 	 * @return int[]
 	 */
 	private function extract_media_ids( $content ) {
 		$ids = array();
 		if ( preg_match_all( '/wp-image-(\d+)/', $content, $m ) ) {
+			$ids = array_merge( $ids, $m[1] );
+		}
+		if ( preg_match_all( '/wp-video-(\d+)/', $content, $m ) ) {
+			$ids = array_merge( $ids, $m[1] );
+		}
+		if ( preg_match_all( '/\[video[^\]]*\bid=["\']?(\d+)/i', $content, $m ) ) {
 			$ids = array_merge( $ids, $m[1] );
 		}
 		if ( preg_match_all( '/data-id=["\']?(\d+)/i', $content, $m ) ) {
@@ -590,18 +592,195 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 			$ids = array_merge( $ids, $m[1] );
 		}
 		$ids = array_unique( array_map( 'absint', $ids ) );
-		return array_filter(
-			$ids,
-			function ( $x ) {
-				return $x > 0;
-			}
+		return array_values(
+			array_filter(
+				$ids,
+				function ( $x ) {
+					return $x > 0;
+				}
+			)
 		);
 	}
 
 	/**
-	 * 统计回写结果中有多少篇文章发生了至少一次替换。
+	 * Check whether a URL belongs to local site media (base_url, site_url, home_url, or relative uploads path).
+	 * External URLs are skipped with zero DB queries.
 	 *
-	 * @param array $result rewrite_content_for_posts() 的返回。
+	 * @param string $url Media URL.
+	 * @return bool
+	 */
+	public function is_local_media_url( $url ) {
+		if ( empty( $url ) || ! is_string( $url ) ) {
+			return false;
+		}
+
+		$url = trim( $url );
+
+		// Relative path: must contain /wp-media/ or /wp-content/uploads/
+		if ( strpos( $url, '/' ) === 0 && strpos( $url, '//' ) !== 0 ) {
+			return ( strpos( $url, '/wp-media/' ) !== false || strpos( $url, '/wp-content/uploads/' ) !== false );
+		}
+
+		// Must use http:// or https:// protocol.
+		if ( strpos( $url, 'http://' ) !== 0 && strpos( $url, 'https://' ) !== 0 ) {
+			return false;
+		}
+
+		$settings = \SmartAutoUploadImages\Plugin::get_settings();
+		$base_url = ! empty( $settings['base_url'] ) ? rtrim( $settings['base_url'], '/' ) : '';
+		$site_url = rtrim( site_url(), '/' );
+		$home_url = rtrim( home_url(), '/' );
+
+		// 1. Check Smart AUI base_url prefix match.
+		if ( ! empty( $base_url ) && strpos( $url, $base_url ) === 0 ) {
+			return true;
+		}
+
+		// 2. Check WordPress site_url / home_url prefix match.
+		if ( strpos( $url, $site_url ) === 0 || strpos( $url, $home_url ) === 0 ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Resolve attachment ID from a media URL.
+	 *
+	 * 1. Skip non-local URLs immediately with zero DB queries.
+	 * 2. In-memory cache hit.
+	 * 3. Exact relative path index match on _wp_attached_file.
+	 * 4. Core attachment_url_to_postid().
+	 *
+	 * @param string $url Media URL.
+	 * @return int Attachment ID, or 0 if not found / external.
+	 */
+	public function find_attachment_id_by_url( $url ) {
+		if ( empty( $url ) || ! is_string( $url ) ) {
+			return 0;
+		}
+
+		$url = trim( $url );
+		if ( isset( self::$url_to_id_cache[ $url ] ) ) {
+			return self::$url_to_id_cache[ $url ];
+		}
+
+		// Non-local media returns 0 immediately.
+		if ( ! $this->is_local_media_url( $url ) ) {
+			self::$url_to_id_cache[ $url ] = 0;
+			return 0;
+		}
+
+		global $wpdb;
+		$path = wp_parse_url( $url, PHP_URL_PATH );
+		if ( ! empty( $path ) ) {
+			// 1. Match relative path against _wp_attached_file.
+			if ( preg_match( '#/(?:wp-media|wp-content/uploads)/(.*)$#i', $path, $m ) ) {
+				$rel_file = ltrim( $m[1], '/' );
+				$found_id = $wpdb->get_var(
+					$wpdb->prepare(
+						"SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND meta_value = %s LIMIT 1",
+						$rel_file
+					)
+				);
+				if ( $found_id > 0 ) {
+					self::$url_to_id_cache[ $url ] = (int) $found_id;
+					return (int) $found_id;
+				}
+			}
+		}
+
+		// 2. Core lookup.
+		$id = attachment_url_to_postid( $url );
+		if ( $id > 0 ) {
+			self::$url_to_id_cache[ $url ] = (int) $id;
+			return (int) $id;
+		}
+
+		self::$url_to_id_cache[ $url ] = 0;
+		return 0;
+	}
+
+	/**
+	 * Parse video content in post body ([video] shortcodes and <video> HTML tags) and inject media IDs.
+	 *
+	 * @param string $content   Post content.
+	 * @param int[]  $video_ids Output parameter: collected video attachment IDs.
+	 * @return string Processed post content.
+	 */
+	public function process_video_content( $content, &$video_ids = array() ) {
+		if ( empty( $content ) || ! is_string( $content ) ) {
+			return $content;
+		}
+
+		$updated_content = $content;
+		$video_ids       = is_array( $video_ids ) ? $video_ids : array();
+
+		// 1. Process [video ...] shortcodes.
+		if ( false !== strpos( $updated_content, '[video' ) ) {
+			$updated_content = preg_replace_callback(
+				'/(\[video\b)([^\]]*)(\](?:.*?\[\/video\])?)/is',
+				function ( $matches ) use ( &$video_ids ) {
+					$prefix    = $matches[1];
+					$attrs_str = $matches[2];
+					$suffix    = $matches[3];
+
+					// Extract video URL (mp4, src, webm, m4v, ogv, mov).
+					if ( preg_match( '/(?:mp4|src|webm|m4v|ogv|mov)=["\']([^"\']+)["\']/i', $attrs_str, $url_m ) ) {
+						$video_url = $url_m[1];
+						$att_id    = $this->find_attachment_id_by_url( $video_url );
+						if ( $att_id > 0 ) {
+							$video_ids[] = $att_id;
+
+							// Inject or update id attribute.
+							if ( preg_match( '/\bid=["\']?\d+["\']?/i', $attrs_str ) ) {
+								$attrs_str = preg_replace( '/\bid=["\']?\d+["\']?/i', 'id="' . $att_id . '"', $attrs_str );
+							} else {
+								$attrs_str = ' id="' . $att_id . '"' . $attrs_str;
+							}
+						}
+					}
+					return $prefix . $attrs_str . $suffix;
+				},
+				$updated_content
+			);
+		}
+
+		// 2. Process <video> HTML tags.
+		if ( false !== strpos( $updated_content, '<video' ) ) {
+			$processor = new \WP_HTML_Tag_Processor( $updated_content );
+			while ( $processor->next_tag( 'video' ) ) {
+				$src = $processor->get_attribute( 'src' );
+				if ( ! empty( $src ) ) {
+					$att_id = $this->find_attachment_id_by_url( $src );
+					if ( $att_id > 0 ) {
+						$video_ids[] = $att_id;
+						$processor->set_attribute( 'data-id', (string) $att_id );
+
+						$existing_class = $processor->get_attribute( 'class' ) ?? '';
+						$new_class      = 'wp-video-' . $att_id;
+						if ( ! empty( $existing_class ) ) {
+							if ( strpos( $existing_class, 'wp-video-' ) === false ) {
+								$new_class = trim( $existing_class ) . ' ' . $new_class;
+							} else {
+								$new_class = preg_replace( '/wp-video-\d+/', 'wp-video-' . $att_id, $existing_class );
+							}
+						}
+						$processor->set_attribute( 'class', $new_class );
+					}
+				}
+			}
+			$updated_content = $processor->get_updated_html();
+		}
+
+		$video_ids = array_values( array_unique( array_filter( $video_ids ) ) );
+		return $updated_content;
+	}
+
+	/**
+	 * Count number of posts that had at least one URL replaced.
+	 *
+	 * @param array $result Return value of rewrite_content_for_posts().
 	 * @return int
 	 */
 	private function count_hits( $result ) {

@@ -83,9 +83,19 @@ class ImageValidator {
 		return true;
 	}
 
-	public function validate_image_file( string $file_path, array $image_data ): bool {
+	/**
+	 * Validate image file
+	 *
+	 * @param string $file_path File path.
+	 * @param array  $image_data Image data.
+	 * @return true|\WP_Error True if valid, \WP_Error on failure.
+	 */
+	public function validate_image_file( string $file_path, array $image_data ) {
 		if ( ! file_exists( $file_path ) || filesize( $file_path ) === 0 ) {
-			return false;
+			return new \WP_Error(
+				'corrupted_image',
+				esc_html__( 'Downloaded file is empty or missing.', 'wp-genius' )
+			);
 		}
 
 		// Extract extension from URL.
@@ -102,14 +112,24 @@ class ImageValidator {
 
 		$file_validation = wp_check_filetype_and_ext( $file_path, $filename );
 
-		$image_info = getimagesize( $file_path );
-
 		if ( false === $file_validation['type'] || empty( $file_validation['type'] ) ) {
-			return false;
+			return new \WP_Error(
+				'invalid_file_type',
+				sprintf(
+					/* translators: %s: File extension */
+					esc_html__( 'Invalid or unsupported image file type (%s).', 'wp-genius' ),
+					esc_html( $extension )
+				)
+			);
 		}
 
+		$image_info = @getimagesize( $file_path );
+
 		if ( false === $image_info ) {
-			return false;
+			return new \WP_Error(
+				'corrupted_image',
+				esc_html__( 'File is corrupted or not a valid image format.', 'wp-genius' )
+			);
 		}
 
 		// Check minimum dimensions if configured.
@@ -123,7 +143,23 @@ class ImageValidator {
 			$height = $image_info[1] ?? 0;
 
 			if ( ( $min_width > 0 && $width < $min_width ) || ( $min_height > 0 && $height < $min_height ) ) {
-				return false; // Skip images smaller than the configured minimums.
+				return new \WP_Error(
+					'image_too_small',
+					sprintf(
+						/* translators: 1: Width, 2: Height, 3: Min width, 4: Min height */
+						esc_html__( 'Image dimensions (%1$dx%2$dpx) are smaller than configured minimum (%3$dx%4$dpx).', 'wp-genius' ),
+						$width,
+						$height,
+						$min_width,
+						$min_height
+					),
+					array(
+						'width'      => $width,
+						'height'     => $height,
+						'min_width'  => $min_width,
+						'min_height' => $min_height,
+					)
+				);
 			}
 		}
 
@@ -135,11 +171,11 @@ class ImageValidator {
 	 *
 	 * @param string $file_content File content.
 	 * @param array  $image_data Image data.
-	 * @return bool True if valid image, false otherwise.
+	 * @return true|\WP_Error True if valid, \WP_Error on failure.
 	 */
-	public function validate_image_content( string $file_content, array $image_data ): bool {
+	public function validate_image_content( string $file_content, array $image_data ) {
 		if ( empty( $file_content ) ) {
-			return false;
+			return new \WP_Error( 'corrupted_image', esc_html__( 'Image content is empty.', 'wp-genius' ) );
 		}
 
 		if ( ! function_exists( 'wp_tempnam' ) ) {
@@ -250,8 +286,8 @@ class ImageValidator {
 	 * @return bool True if valid, false otherwise.
 	 */
 	private function is_valid_url( string $url ): bool {
-		// 自定义校验：保留基本合法性（scheme + host），跳过 wp_http_validate_url 的 SSRF IP 段检查。
-		// 原因：Clash Verge fake-ip 模式下所有域名解析到 198.18.0.0/15 保留段，SSRF 防护误伤所有外部图片。
+		// Custom validation: verify scheme and host while skipping wp_http_validate_url SSRF IP checks
+		// to allow environments using fake-ip/proxy ranges (e.g. 198.18.0.0/15) to resolve external images properly.
 		$parts = wp_parse_url( $url );
 		if ( empty( $parts['scheme'] ) || ! in_array( $parts['scheme'], array( 'http', 'https' ), true ) ) {
 			return false;

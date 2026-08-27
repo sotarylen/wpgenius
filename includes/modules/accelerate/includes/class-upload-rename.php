@@ -25,6 +25,15 @@ class W2P_Accelerate_UploadRename {
 	private $module;
 
 	/**
+	 * Sanitized-name → original-name map, shared across upload filters in
+	 * the same request. PHP-FPM worker process-local static; residual data
+	 * may persist between requests until the worker exits.
+	 *
+	 * @var array<string, string>
+	 */
+	private static $original_titles = array();
+
+	/**
 	 * Constructor.
 	 *
 	 * @param W2P_AccelerateModule $module Parent module.
@@ -119,5 +128,37 @@ class W2P_Accelerate_UploadRename {
 		}
 
 		return $data;
+	}
+
+	/**
+	 * Supported rename tokens and their meaning.
+	 *
+	 * Single source of truth for the replacement tokens, shared by
+	 * handle_upload_prefilter() (which computes the runtime values) and the
+	 * settings UI hint in options.php (which reads this list to tell users
+	 * what they can type). Keep the keys in sync with the $replacements map
+	 * in handle_upload_prefilter().
+	 *
+	 * @return array<string,string> token => human-readable meaning.
+	 */
+	public static function get_token_descriptions() {
+		return array(
+			'{timestamp}'    => __( 'Unix timestamp in seconds', 'wp-genius' ),
+			'{sanitized}'    => __( 'Original filename, sanitized', 'wp-genius' ),
+			'{rand}'         => __( '4-digit random number', 'wp-genius' ),
+			'{datetime}'     => __( 'Date and time (YmdHis)', 'wp-genius' ),
+			'{date:Y-m-d}'   => __( 'Date in any PHP date() format, e.g. {date:Y-m-d}', 'wp-genius' ),
+			'{year}'         => __( '4-digit year', 'wp-genius' ),
+			'{month}'        => __( '2-digit month', 'wp-genius' ),
+			'{day}'          => __( '2-digit day', 'wp-genius' ),
+			'{hour}'         => __( '2-digit hour', 'wp-genius' ),
+			'{minute}'       => __( '2-digit minute', 'wp-genius' ),
+			'{second}'       => __( '2-digit second', 'wp-genius' ),
+			'{user_id}'      => __( 'Current user ID', 'wp-genius' ),
+			'{user_login}'   => __( 'Current user login', 'wp-genius' ),
+			'{orig}'         => __( 'Original base filename', 'wp-genius' ),
+			'{ext}'          => __( 'File extension (no dot)', 'wp-genius' ),
+			'{uniqid}'       => __( 'Unique ID', 'wp-genius' ),
+		);
 	}
 }

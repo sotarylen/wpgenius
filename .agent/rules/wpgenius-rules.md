@@ -23,7 +23,14 @@ trigger: always_on
 - **测试环境**：
   - URL: `https://web.sotarylen.com/wp-admin` (sotary / rainman)
   - CLI: `docker exec -it php_wp sh 'cd web && wp <command>'`
+- **部署环境（调试前必读）**：
+  - WordPress 部署在本机 **OrbStack 的 LNMP 容器**中；编排文件位于 `/Users/sotary/dev.localized/lnmp`（容器定义/端口/挂载都在此查看）。
+  - `web.sotarylen.com` 为**纯本机域名**，通过本机 **hosts 文件** 解析到本地（无公网 DNS/解析记录）。
+  - 涉及容器/环境排查时，先读 `/Users/sotary/dev.localized/lnmp` 下的编排与配置。
 - **国际化**：可见文本使用 `__( 'text', 'wp-genius' )`。
+- **自动执行与确认策略 (Auto-Execution)**：
+  - 在当前工作区、关联目录及本地 OrbStack 测试环境中，主动自主执行代码修改、语法 lint、测试脚本及环境排查命令，最小化手动确认打断。
+  - 仅在遇到高危破坏性操作（如清空全库数据、不可逆删除外部核心配置）时才请求确认。
 
 ## 3. 负向约束 (Negative Constraint)
 **禁止事项**：

@@ -83,7 +83,11 @@ class W2P_Clipboard_Handler {
 			true
 		);
 
-		$module_settings = get_option( 'media_engine', array() );
+		// Clipboard settings live under the media_engine_tabs section of the
+		// unified w2p_settings option (legacy fallback: w2p_media_turbo_settings).
+		// The old key 'media_engine' was never written, so reading it always
+		// returned an empty array and disabled the feature by default.
+		$module_settings = W2P_Settings::tab_with_legacy( 'media_engine_tabs', 'w2p_media_turbo_settings', array() );
 		$settings        = array(
 			'enabled'      => isset( $module_settings['clipboard_enabled'] ) ? $module_settings['clipboard_enabled'] : false,
 			'image_prefix' => isset( $module_settings['clipboard_prefix'] ) ? $module_settings['clipboard_prefix'] : 'clipboard_',
@@ -154,7 +158,7 @@ class W2P_Clipboard_Handler {
 		}
 
 		// Prepare filename
-		$module_settings = get_option( 'media_engine', array() );
+		$module_settings = W2P_Settings::tab_with_legacy( 'media_engine_tabs', 'w2p_media_turbo_settings', array() );
 		$prefix          = isset( $module_settings['clipboard_prefix'] ) ? $module_settings['clipboard_prefix'] : 'clipboard_';
 		$filename        = $prefix . uniqid() . '.' . $extension;
 

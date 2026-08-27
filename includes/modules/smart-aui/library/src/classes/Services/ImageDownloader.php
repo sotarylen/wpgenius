@@ -147,9 +147,13 @@ class ImageDownloader {
 
 		$temp_file = $fetch_result['file'];
 
-		if ( ! $this->validator->validate_image_file( $temp_file, $image_data ) ) {
+		$file_val_result = $this->validator->validate_image_file( $temp_file, $image_data );
+		if ( is_wp_error( $file_val_result ) || false === $file_val_result ) {
 			wp_delete_file( $temp_file );
-			return new WP_Error( 'invalid_image', 'Downloaded file is not a valid image' );
+			if ( is_wp_error( $file_val_result ) ) {
+				return $file_val_result;
+			}
+			return new WP_Error( 'invalid_image', esc_html__( 'Downloaded file is not a valid image.', 'wp-genius' ) );
 		}
 
 		$image_data = $this->prepare_image_data( $image_data, $post_data );
@@ -237,26 +241,38 @@ class ImageDownloader {
 
 		if ( is_wp_error( $response ) ) {
 			wp_delete_file( $temp_file );
+			$error_message = $response->get_error_message();
 			$this->logger->error(
-				'Failed to fetch image',
+				'Network error fetching image',
 				[
 					'url'   => $url,
-					'error' => $response->get_error_message(),
+					'error' => $error_message,
 				]
 			);
-			return $response;
+			return new WP_Error(
+				'network_error',
+				sprintf(
+					/* translators: %s: Error message */
+					esc_html__( 'Network error fetching image URL: %s', 'wp-genius' ),
+					$error_message
+				)
+			);
 		}
 
 		$response_code = wp_remote_retrieve_response_code( $response );
 		if ( 200 !== $response_code ) {
 			wp_delete_file( $temp_file );
-			$error_msg = sprintf( 'HTTP %d: Failed to download image', $response_code );
+			$error_msg = sprintf(
+				/* translators: %d: HTTP response code */
+				esc_html__( 'HTTP %d: Remote image URL is unreachable or returned error.', 'wp-genius' ),
+				$response_code
+			);
 			$this->logger->error( $error_msg, [ 'url' => $url ] );
-			return new WP_Error( 'http_error', $error_msg );
+			return new WP_Error( 'http_error', $error_msg, [ 'status_code' => $response_code ] );
 		}
 
 		return [
-			'file' => $temp_file,
+			'file'    => $temp_file,
 			'headers' => wp_remote_retrieve_headers( $response ),
 		];
 	}

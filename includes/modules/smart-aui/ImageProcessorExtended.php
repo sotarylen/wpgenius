@@ -187,8 +187,10 @@ class ImageProcessorExtended {
 					break;
 				}
 
-				// If the image has previously failed, don't retry, just skip it according to objective
-				if ( $result->get_error_code() === 'previously_failed' ) {
+				$err_code = $result->get_error_code();
+
+				// Non-retryable errors: deterministic checks (size, mime, format, domain/url exclusion, previously failed)
+				if ( in_array( $err_code, array( 'previously_failed', 'image_too_small', 'invalid_file_type', 'corrupted_image', 'excluded_domain', 'internal_url', 'invalid_url' ), true ) ) {
 					break;
 				}
 
@@ -201,34 +203,56 @@ class ImageProcessorExtended {
 			}
 
 			if ( is_wp_error( $result ) ) {
-				if ( $result->get_error_code() === 'previously_failed' ) {
-					$logger->info( 'Skipped previously failed image', array( 'url' => $image['url'] ) );
-					do_action( 'smart_aui_image_processed', $image, array( 'skipped' => true ), $index );
+				$error_code    = $result->get_error_code();
+				$error_message = $result->get_error_message();
+
+				if ( 'previously_failed' === $error_code || 'image_too_small' === $error_code ) {
+					$logger->info(
+						'Skipped image',
+						array(
+							'url'        => $image['url'],
+							'error_code' => $error_code,
+							'reason'     => $error_message,
+						)
+					);
+					do_action(
+						'smart_aui_image_processed',
+						$image,
+						array(
+							'skipped'    => true,
+							'error_code' => $error_code,
+							'reason'     => $error_message,
+						),
+						$index
+					);
 					++$success_count;
 					++$processed_count;
 					continue;
 				}
 
 				$logger->error(
-					'Failed to process image after retries',
+					'Failed to process image',
 					array(
-						'url'     => $image['url'],
-						'error'   => $result->get_error_message(),
-						'retries' => $retry_count,
+						'url'        => $image['url'],
+						'error_code' => $error_code,
+						'error'      => $error_message,
+						'retries'    => $retry_count,
 					)
 				);
 
-				// Failed images also count as success; keep the original URL, no replacement needed
+				// Failed images also count as processed; keep the original URL, no replacement needed
 				++$success_count;
 				++$processed_count;
 
-				// Fire action for failed image (but marked as skipped)
+				// Fire action for failed image
 				do_action(
 					'smart_aui_image_processed',
 					$image,
 					array(
-						'skipped' => true,
-						'error'   => $result->get_error_message(),
+						'skipped'    => true,
+						'failed'     => true,
+						'error_code' => $error_code,
+						'error'      => $error_message,
 					),
 					$index
 				);

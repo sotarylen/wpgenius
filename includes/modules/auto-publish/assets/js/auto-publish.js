@@ -116,7 +116,7 @@
             url: ajaxurl,
             type: 'POST',
             data: {
-                action: 'w2p_auto_publish_get_stats',
+                action: 'w2p_auto_publish_stats',
                 nonce: config.nonce,
                 exclude: failedPostIds
             },
@@ -337,7 +337,7 @@
             url: ajaxurl,
             type: 'POST',
             data: {
-                action: 'w2p_auto_publish_get_stats',
+                action: 'w2p_auto_publish_stats',
                 nonce: config.nonce
             },
             success: function (response) {

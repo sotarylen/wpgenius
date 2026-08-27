@@ -67,7 +67,6 @@ class W2P_SmartAUI_Settings {
 			'smart_aui_exclude_post_types'         => 'exclude_post_types',
 			'smart_aui_auto_set_featured_image'    => 'auto_set_featured_image',
 			'smart_aui_attach_orphan_images'      => 'attach_orphan_images',
-			'smart_aui_enhance_attach'            => 'enhance_attach',
 			'smart_aui_show_progress_ui'           => 'show_progress_ui',
 			'smart_aui_process_images_on_rest_api' => 'process_images_on_rest_api',
 			'smart_aui_concurrent_threads'         => 'concurrent_threads',

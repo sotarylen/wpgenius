@@ -1137,6 +1137,12 @@
                 return videos;
             }
 
+            // Get base URL from settings if available
+            var baseUrl = siteUrl;
+            if (this.settings && this.settings.base_url) {
+                baseUrl = this.settings.base_url.replace(/\/$/, '');
+            }
+
             // Prepare exclusions
             var exclusions = [];
             if (this.settings && this.settings.domain_exclusions) {
@@ -1148,43 +1154,43 @@
                 }
             }
 
-            // Find videos from <video src="..."> tags
+            var isLocalOrExcluded = function (src) {
+                if (!src || typeof src !== 'string') return true;
+                if (src.indexOf(siteUrl) === 0 || src.indexOf(baseUrl) === 0 || src.indexOf('/wp-content/') === 0 || src.indexOf('/wp-media/') === 0 || src.indexOf('data:') === 0) {
+                    return true;
+                }
+                for (var i = 0; i < exclusions.length; i++) {
+                    if (src.indexOf(exclusions[i]) !== -1) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+
+            // 1. Find videos from <video src="..."> tags
             var videoSrcRegex = /<video[^>]+src=["']([^"']+)["'][^>]*>/gi;
             var match;
             while ((match = videoSrcRegex.exec(content)) !== null) {
                 var src = match[1];
-                if (src.indexOf(siteUrl) === 0 || src.indexOf('/wp-content/') === 0 || src.indexOf('data:') === 0) continue;
-
-                // Check exclusions
-                var isExcluded = false;
-                for (var i = 0; i < exclusions.length; i++) {
-                    if (src.indexOf(exclusions[i]) !== -1) {
-                        isExcluded = true;
-                        break;
-                    }
-                }
-
-                if (!isExcluded && videos.indexOf(src) === -1) {
+                if (!isLocalOrExcluded(src) && videos.indexOf(src) === -1) {
                     videos.push(src);
                 }
             }
 
-            // Find videos from <source src="..."> tags within <video> elements
+            // 2. Find videos from <source src="..."> tags within <video> elements
             var sourceSrcRegex = /<source[^>]+src=["']([^"']+)["'][^>]*>/gi;
             while ((match = sourceSrcRegex.exec(content)) !== null) {
                 var src = match[1];
-                if (src.indexOf(siteUrl) === 0 || src.indexOf('/wp-content/') === 0 || src.indexOf('data:') === 0) continue;
-
-                // Check exclusions
-                var isExcluded = false;
-                for (var i = 0; i < exclusions.length; i++) {
-                    if (src.indexOf(exclusions[i]) !== -1) {
-                        isExcluded = true;
-                        break;
-                    }
+                if (!isLocalOrExcluded(src) && videos.indexOf(src) === -1) {
+                    videos.push(src);
                 }
+            }
 
-                if (!isExcluded && videos.indexOf(src) === -1) {
+            // 3. Find videos from [video ...] shortcodes
+            var shortcodeRegex = /\[video\b[^\]]*\b(?:mp4|src|webm|m4v|ogv|mov)=["']([^"']+)["'][^\]]*\]/gi;
+            while ((match = shortcodeRegex.exec(content)) !== null) {
+                var src = match[1];
+                if (!isLocalOrExcluded(src) && videos.indexOf(src) === -1) {
                     videos.push(src);
                 }
             }

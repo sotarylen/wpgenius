@@ -277,8 +277,10 @@ class W2P_SmartAUI_Ajax {
 				break;
 			}
 
-			// If the image has previously failed, don't retry, just skip it according to objective
-			if ( $result->get_error_code() === 'previously_failed' ) {
+			$err_code = $result->get_error_code();
+
+			// If the error is non-retryable (size, mime, excluded, etc.), break immediately
+			if ( in_array( $err_code, array( 'previously_failed', 'image_too_small', 'invalid_file_type', 'corrupted_image', 'excluded_domain', 'internal_url', 'invalid_url' ), true ) ) {
 				break;
 			}
 
@@ -291,34 +293,38 @@ class W2P_SmartAUI_Ajax {
 		} while ( $attempt <= $max_retries );
 
 		if ( is_wp_error( $result ) ) {
-			// If it was skipped because it previously failed, return SUCCESS with skipped=true
-			if ( $result->get_error_code() === 'previously_failed' ) {
+			$error_code = $result->get_error_code();
+			$error_msg  = $result->get_error_message();
+
+			// If it was skipped because it previously failed or image is too small, return SUCCESS with skipped=true
+			if ( 'previously_failed' === $error_code || 'image_too_small' === $error_code ) {
 				wp_send_json_success(
 					array(
 						'source_url'     => $image_url,
 						'downloaded_url' => $image_url,
 						'skipped'        => true,
+						'error_code'     => $error_code,
 						'process_id'     => $process_id,
-						'message'        => 'Previously failed, skipped gracefully',
+						'message'        => $error_msg,
 					)
 				);
 			}
 
-			// Only add to failed list after all retries are exhausted
-			// This ensures we don't mark URLs as failed on first network hiccup
+			// Only add to failed list for actual download/network/corruption failures after all retries are exhausted
 			$failed_manager = $container->get( 'failed_images_manager' );
-			if ( $failed_manager ) {
+			if ( $failed_manager && in_array( $error_code, array( 'network_error', 'http_error', 'corrupted_image', 'invalid_file_type' ), true ) ) {
 				$failed_manager->add_failed_url( $image_url );
 			}
 
-			// Return a failed status (not using wp_send_json_error, so the frontend does not treat it as an AJAX error)
+			// Return a failed status (not using wp_send_json_error, so the frontend does not treat it as an AJAX fatal error)
 			wp_send_json_success(
 				array(
 					'source_url'     => $image_url,
 					'downloaded_url' => $image_url,
 					'failed'         => true,
+					'error_code'     => $error_code,
 					'process_id'     => $process_id,
-					'message'        => $result->get_error_message(),
+					'message'        => $error_msg,
 				)
 			);
 		}
@@ -674,7 +680,7 @@ class W2P_SmartAUI_Ajax {
 		}
 
 		// Check if video capture is enabled
-		$settings = get_option( 'smart_aui_settings', array() );
+		$settings = \SmartAutoUploadImages\Plugin::get_settings();
 		if ( empty( $settings['capture_videos'] ) ) {
 			wp_send_json_success(
 				array(

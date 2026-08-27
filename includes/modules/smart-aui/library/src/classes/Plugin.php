@@ -94,7 +94,7 @@ class Plugin {
 		$is_forced = ( defined( 'W2P_FORCE_IMAGE_PROCESS' ) && W2P_FORCE_IMAGE_PROCESS );
 
 		if ( ! $is_forced ) {
-			// 检查是否为 REST API 请求
+			// Check if this is a REST API or XML-RPC request.
 			$is_rest_request = defined( 'REST_REQUEST' ) && REST_REQUEST;
 			$is_xmlrpc_request = defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST;
 			

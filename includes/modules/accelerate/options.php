@@ -57,6 +57,31 @@ $defaults = array(
 );
 
 // Return the module definition
+// Build dynamic options for the SQL interception checkbox from rules exposed by the mu-plugin.
+$sql_rules = apply_filters( 'w2p_accel_sql_rules', array() );
+if ( empty( $sql_rules ) && function_exists( 'w2p_skip_sql_get_rules' ) ) {
+	$sql_rules = w2p_skip_sql_get_rules();
+}
+$sql_skip_options = array();
+foreach ( $sql_rules as $rid => $r ) {
+	$sql_skip_options[ $rid ] = isset( $r['label'] ) ? $r['label'] : $rid;
+}
+
+// The canonical rename-token list/meaning lives in the UploadRename class.
+// options.php is parsed before the module's init() wires that class in, so
+// load it on demand and reuse it here instead of redefining the tokens.
+if ( ! class_exists( 'W2P_Accelerate_UploadRename', false ) ) {
+	require_once __DIR__ . '/includes/class-upload-rename.php';
+}
+$rename_token_hint = '';
+if ( class_exists( 'W2P_Accelerate_UploadRename', false ) ) {
+	$token_parts = array();
+	foreach ( W2P_Accelerate_UploadRename::get_token_descriptions() as $token => $meaning ) {
+		$token_parts[] = $token . ' = ' . $meaning;
+	}
+	$rename_token_hint = esc_html__( 'Available tokens (use in the pattern above):', 'wp-genius' ) . ' ' . implode( ';<br /> ', $token_parts );
+}
+
 return array(
 	'module_id' => 'accelerate',
 	'id'        => 'accelerate',
@@ -221,28 +246,6 @@ return array(
 			'default'   => array(),
 		),
 		array(
-			'id'      => 'accelerate_enable_local_avatar',
-			'type'    => 'switcher',
-			'title'   => __( 'Local Avatar Manager', 'wp-genius' ),
-			'label'   => __( 'Replace Gravatar with local avatar management.', 'wp-genius' ),
-			'default' => false,
-		),
-		array(
-			'id'      => 'accelerate_enable_upload_rename',
-			'type'    => 'switcher',
-			'title'   => __( 'Auto Rename Uploads', 'wp-genius' ),
-			'label'   => __( 'Automatically normalize uploaded filenames.', 'wp-genius' ),
-			'default' => false,
-		),
-		array(
-			'id'         => 'accelerate_upload_rename_pattern',
-			'type'       => 'text',
-			'title'      => __( 'Rename Pattern', 'wp-genius' ),
-			'label'      => __( 'Pattern: {timestamp}, {sanitized}, {rand}, {date}, etc.', 'wp-genius' ),
-			'default'    => '{timestamp}_{sanitized}',
-			'dependency' => array( 'accelerate_enable_upload_rename', '==', 'true' ),
-		),
-		array(
 			'id'      => 'accelerate_enable_delete_with_images',
 			'type'    => 'switcher',
 			'title'   => __( 'Delete with Images', 'wp-genius' ),
@@ -260,6 +263,29 @@ return array(
 			'default'    => array( 'post', 'albums' ),
 			'dependency' => array( 'accelerate_enable_delete_with_images', '==', 'true' ),
 		),
+		array(
+			'id'      => 'accelerate_enable_local_avatar',
+			'type'    => 'switcher',
+			'title'   => __( 'Local Avatar Manager', 'wp-genius' ),
+			'label'   => __( 'Replace Gravatar with local avatar management.', 'wp-genius' ),
+			'default' => false,
+		),
+		array(
+			'id'      => 'accelerate_enable_upload_rename',
+			'type'    => 'switcher',
+			'title'   => __( 'Auto Rename Uploads', 'wp-genius' ),
+			'label'   => __( 'Automatically normalize uploaded filenames.', 'wp-genius' ),
+			'default' => false,
+		),
+		array(
+			'id'         => 'accelerate_upload_rename_pattern',
+			'type'       => 'text',
+			'title'      => __( 'Rename Pattern', 'wp-genius' ),
+			'default'    => '{timestamp}_{sanitized}',
+			'desc'       => $rename_token_hint,
+			'dependency' => array( 'accelerate_enable_upload_rename', '==', 'true' ),
+		),
+		
 
 		// Update Behaviors
 		array(
@@ -302,6 +328,20 @@ return array(
 			'default' => false,
 		),
 
+		array(
+			'id'      => '_subheading_sql_interception',
+			'type'    => 'subheading',
+			'content' => __( 'Redundant SQL Interception', 'wp-genius' ),
+		),
+		array(
+			'id'      => 'sql_skip_enabled',
+			'type'    => 'checkbox',
+			'title'   => __( 'Enable SQL Interception', 'wp-genius' ),
+			'desc'    => __( 'Check = Block SQL; Uncheck = Allow (restore plugin original behavior). Default = Block all and new rules add to Blocklist', 'wp-genius' ),
+			'options' => $sql_skip_options,
+			'inline'  => true,
+			'default' => array_keys( $sql_rules ),
+		),
 		// HTTP Blocking
 		array(
 			'id'      => '_subheading_http_blocking',

@@ -12,14 +12,15 @@
         isUploading: false,
 
         init: function () {
-            // Load settings
+            // Load settings. Treat any truthy value as enabled so the
+            // switcher's stored '0'/'1' strings behave correctly.
             if (window.w2pClipboardParams && w2pClipboardParams.settings) {
-                this.isEnabled = w2pClipboardParams.settings.enabled !== false;
+                this.isEnabled = !!( w2pClipboardParams.settings && w2pClipboardParams.settings.enabled );
             }
 
+            this.initTinyMCE();
             this.initGutenberg();
             this.initMediaLibrary();
-            this.initTinyMCE();
         },
 
         initTinyMCE: function () {
@@ -51,10 +52,12 @@
                     editor.on('paste', function (e) {
                         if (!self.isEnabled) return;
 
-                        var items = (e.clipboardData || e.originalEvent.clipboardData).items;
-                        for (var i = 0; i < items.length; i++) {
-                            if (items[i].type.indexOf('image') !== -1) {
-                                var blob = items[i].getAsFile();
+                        var data = (e.clipboardData || (e.originalEvent && e.originalEvent.clipboardData));
+                        if (!data || !data.items) return;
+
+                        for (var i = 0; i < data.items.length; i++) {
+                            if (data.items[i].type.indexOf('image') !== -1) {
+                                var blob = data.items[i].getAsFile();
                                 self.handleImagePaste(blob, function (url) {
                                     editor.execCommand('mceInsertContent', false, '<img src="' + url + '" />');
                                 });
@@ -69,55 +72,126 @@
         initGutenberg: function () {
             var self = this;
 
+            // Non-iframe editor: the paste event bubbles to the parent document.
             $(document).on('paste', '.editor-styles-wrapper', function (e) {
+                self.handleGutenbergPaste(e);
+            });
+
+            // Since WordPress 6.1 the block editor canvas is rendered inside an
+            // iframe; paste events there never bubble out, so we must listen
+            // inside the iframe's own document.
+            this.attachIframePaste();
+        },
+
+        attachIframePaste: function () {
+            var self = this;
+
+            var bindIframe = function (iframe) {
+                if (!iframe || !iframe.contentDocument || iframe.contentDocument.__w2pClipBound) {
+                    return;
+                }
+                iframe.contentDocument.__w2pClipBound = true;
+                iframe.contentDocument.addEventListener('paste', function (e) {
+                    self.handleGutenbergPaste(e);
+                });
+            };
+
+            var tryAttach = function () {
+                var candidates = document.querySelectorAll(
+                    '.editor-post-visual-editor__iframe, iframe[name="editor-canvas"], .block-editor-block-list__layout'
+                );
+                for (var i = 0; i < candidates.length; i++) {
+                    var node = candidates[i];
+                    if (node.tagName === 'IFRAME') {
+                        bindIframe(node);
+                    } else if (node.contentDocument) {
+                        bindIframe(node);
+                    }
+                }
+            };
+
+            tryAttach();
+
+            if (window.MutationObserver) {
+                var mo = new MutationObserver(function () { tryAttach(); });
+                mo.observe(document.body, { childList: true, subtree: true });
+            }
+
+            // The iframe may mount a tick after this script runs.
+            setTimeout(tryAttach, 500);
+            setTimeout(tryAttach, 1500);
+        },
+
+        handleGutenbergPaste: function (e) {
+            if (!this.isEnabled) return;
+
+            var data = (e.originalEvent && e.originalEvent.clipboardData)
+                ? e.originalEvent.clipboardData
+                : (e.clipboardData || null);
+
+            if (!data || !data.items) return;
+
+            var handled = false;
+            for (var i = 0; i < data.items.length; i++) {
+                var item = data.items[i];
+                if (item.type && item.type.indexOf('image') !== -1) {
+                    var blob = item.getAsFile();
+                    if (!blob) continue;
+                    this.handleImagePaste(blob, function (url) {
+                        if (typeof wp !== 'undefined' && wp.blocks && wp.data) {
+                            var block = wp.blocks.createBlock('core/image', { url: url });
+                            wp.data.dispatch('core/block-editor').insertBlocks(block);
+                        }
+                    });
+                    handled = true;
+                }
+            }
+
+            if (handled) {
+                e.preventDefault();
+                if (e.stopImmediatePropagation) {
+                    e.stopImmediatePropagation();
+                }
+            }
+        },
+
+        initMediaLibrary: function () {
+            var self = this;
+
+            // Listen on the parent document for media-library / media-modal
+            // pastes. Inputs/textareas/contenteditable are skipped so typing is
+            // unaffected; Gutenberg already stops propagation for editor pastes.
+            $(document).on('paste', function (e) {
+                if ($(e.target).is('input, textarea, [contenteditable]')) {
+                    return;
+                }
                 if (!self.isEnabled) return;
 
-                var clipboardData = e.originalEvent.clipboardData;
-                if (!clipboardData || !clipboardData.items) return;
+                var data = (e.originalEvent && e.originalEvent.clipboardData)
+                    ? e.originalEvent.clipboardData
+                    : (e.clipboardData || null);
 
-                for (var i = 0; i < clipboardData.items.length; i++) {
-                    var item = clipboardData.items[i];
-                    if (item.type.indexOf('image') !== -1) {
+                if (!data || !data.items) return;
+
+                for (var i = 0; i < data.items.length; i++) {
+                    var item = data.items[i];
+                    if (item.type && item.type.indexOf('image') !== -1) {
                         var blob = item.getAsFile();
+                        if (!blob) continue;
                         self.handleImagePaste(blob, function (url) {
-                            if (typeof wp !== 'undefined' && wp.blocks) {
-                                var block = wp.blocks.createBlock('core/image', { url: url });
-                                wp.data.dispatch('core/block-editor').insertBlocks(block);
+                            if (typeof wp !== 'undefined' && wp.media && wp.media.frame) {
+                                var view = wp.media.frame.content.get();
+                                if (view && view.collection) {
+                                    view.collection.props.set({ ignore: (+ new Date()) });
+                                }
+                            } else {
+                                location.reload();
                             }
                         });
                         e.preventDefault();
                     }
                 }
             });
-        },
-
-        initMediaLibrary: function () {
-            var self = this;
-
-            if ($('body').hasClass('upload-php') || $('.media-frame').length > 0) {
-                $(document).on('paste', function (e) {
-                    if ($(e.target).is('input, textarea, [contenteditable]')) {
-                        return;
-                    }
-
-                    var items = (e.originalEvent.clipboardData || e.clipboardData).items;
-                    for (var i = 0; i < items.length; i++) {
-                        if (items[i].type.indexOf('image') !== -1) {
-                            var blob = items[i].getAsFile();
-                            self.handleImagePaste(blob, function (url) {
-                                if (typeof wp !== 'undefined' && wp.media && wp.media.frame) {
-                                    var view = wp.media.frame.content.get();
-                                    if (view.collection) {
-                                        view.collection.props.set({ ignore: (+ new Date()) });
-                                    }
-                                } else {
-                                    location.reload();
-                                }
-                            });
-                        }
-                    }
-                });
-            }
         },
 
         handleImagePaste: function (blob, callback) {
@@ -129,7 +203,6 @@
                 var postId = $('#post_ID').val() || 0;
 
                 self.isUploading = true;
-                // console.log('Uploading clipboard image...');
 
                 $.ajax({
                     url: w2pClipboardParams.ajax_url,

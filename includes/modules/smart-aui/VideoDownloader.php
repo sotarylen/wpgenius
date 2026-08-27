@@ -192,7 +192,7 @@ class W2P_Video_Downloader {
 	 * @return string Generated filename.
 	 */
 	private function generate_filename( $video_url, $post_data, $extension ) {
-		$settings = get_option( 'smart_aui_settings', array() );
+		$settings = \SmartAutoUploadImages\Plugin::get_settings();
 		$pattern  = isset( $settings['image_name_pattern'] ) ? $settings['image_name_pattern'] : '%filename%';
 
 		// Get original filename

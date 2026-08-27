@@ -349,7 +349,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: var(--w2p-spacing-sm) var(--w2p-spacing-md);
+    padding: var(--w2p-spacing-xs) var(--w2p-spacing-md);
     height: auto;
     font-size: var(--w2p-font-size-sm);
     font-weight: var(--w2p-font-weight-medium);
