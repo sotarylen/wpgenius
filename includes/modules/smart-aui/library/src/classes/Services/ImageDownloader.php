@@ -224,11 +224,12 @@ class ImageDownloader {
 		$temp_file = wp_tempnam( $url );
 
 		$args = [
-			'timeout'  => $this->settings_manager->get_setting( 'download_timeout', 30 ),
-			'stream'   => true,
-			'filename' => $temp_file,
-			'headers'  => [
-				'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+			'timeout'   => $this->settings_manager->get_setting( 'download_timeout', 30 ),
+			'stream'    => true,
+			'filename'  => $temp_file,
+			'sslverify' => apply_filters( 'w2p_smart_aui_sslverify', true, $url ),
+			'headers'   => [
+				'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
 			],
 		];
 

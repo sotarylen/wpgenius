@@ -9,44 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Increase HTTP request timeout
-add_filter(
-	'http_request_timeout',
-	function ( $timeout, $url ) {
-		// Only increase the timeout for image requests
-		if ( preg_match( '/\.(jpg|jpeg|png|gif|webp|svg)$/i', $url ) ) {
-			return 30; // 30 seconds
-		}
-		return $timeout;
-	},
-	10,
-	2
-);
-
-// Modify wp_remote_get parameters
-add_filter(
-	'http_request_args',
-	function ( $args, $url ) {
-		// Only modify image requests
-		if ( preg_match( '/\.(jpg|jpeg|png|gif|webp|svg)$/i', $url ) ) {
-			$args['timeout']   = 30;
-			$args['sslverify'] = false;
-
-			if ( ! isset( $args['headers'] ) ) {
-				$args['headers'] = array();
-			}
-
-			// Add a User-Agent to avoid being rejected
-			if ( ! isset( $args['headers']['User-Agent'] ) ) {
-				$args['headers']['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-			}
-		}
-
-		return $args;
-	},
-	10,
-	2
-);
+// HTTP request settings are encapsulated directly inside ImageDownloader to prevent polluting global requests.
 
 // Increase WordPress max execution time
 add_filter(
