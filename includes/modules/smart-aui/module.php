@@ -438,24 +438,6 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 	public function ajax_get_attachment_id() {
 		$this->ajax->ajax_get_attachment_id();
 	}
-
-	/**
-	 * AJAX: Scan Posts for External Media.
-	 *
-	 * @return void
-	 */
-	public function ajax_scanner_scan() {
-		$this->ajax->ajax_scanner_scan();
-	}
-
-	/**
-	 * AJAX: Batch Process Posts for External Media.
-	 *
-	 * @return void
-	 */
-	public function ajax_scanner_process_batch() {
-		$this->ajax->ajax_scanner_process_batch();
-	}
 }
 
 // Legacy alias for backward compatibility (pre-2.0.0 class name).
