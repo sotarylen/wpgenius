@@ -83,8 +83,7 @@
 
             $('#w2p-audit-scan').prop('disabled', true);
             $('#w2p-audit-stop').removeClass('w2p-hidden').show();
-            $('#w2p-audit-progress').removeClass('w2p-hidden').show();
-            $('#w2p-audit-summary').addClass('w2p-hidden').hide();
+            $('#w2p-unified-progress, #w2p-audit-progress').removeClass('w2p-hidden').show();
             $('#w2p-audit-results').addClass('w2p-hidden').hide();
             $('#w2p-audit-tbody').empty();
             $('#w2p-audit-clean-all').addClass('w2p-hidden').hide();
@@ -101,9 +100,10 @@
                 return;
             }
 
-            $('#w2p-audit-progress-text').text(sprintf(w2pMediaEngine.i18n.scanning, self.offset) +
+            const progressMsg = sprintf(w2pMediaEngine.i18n.scanning, self.offset) +
                 (self.total ? ' / ' + self.total : '') +
-                (self.offset === 0 ? ' ' + w2pMediaEngine.i18n.firstScanIndex : ''));
+                (self.offset === 0 ? ' ' + w2pMediaEngine.i18n.firstScanIndex : '');
+            $('#w2p-unified-progress-text, #w2p-audit-progress-text').text(progressMsg);
 
             $.ajax({
                 url: w2pMediaEngine.ajax_url,
@@ -163,11 +163,11 @@
 
             $('#w2p-audit-scan').prop('disabled', false);
             $('#w2p-audit-stop').addClass('w2p-hidden').hide();
-            $('#w2p-audit-progress').addClass('w2p-hidden').hide();
+            $('#w2p-unified-progress, #w2p-audit-progress').addClass('w2p-hidden').hide();
 
             if (errorMsg) {
-                $('#w2p-audit-progress-text').text(errorMsg);
-                $('#w2p-audit-progress').removeClass('w2p-hidden').show();
+                $('#w2p-unified-progress-text, #w2p-audit-progress-text').text(errorMsg);
+                $('#w2p-unified-progress, #w2p-audit-progress').removeClass('w2p-hidden').show();
                 return;
             }
 

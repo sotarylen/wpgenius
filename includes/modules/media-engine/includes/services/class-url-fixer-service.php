@@ -69,6 +69,144 @@ class MediaEngineUrlFixerService {
 	}
 
 	/**
+	 * Check prerequisites before running URL fixer:
+	 * 1. Ensure all media library attachments have been offloaded to MinIO.
+	 * 2. Ensure wp-content/uploads/ has no local media files remaining (cleaned by Residual Media Audit).
+	 *
+	 * @param bool $force_refresh Whether to bypass transient cache
+	 * @return array { passed: bool, not_offloaded_count: int, local_files_found: int, sample_local_files: array, messages: array }
+	 */
+	public function check_prerequisites( $force_refresh = false ) {
+		global $wpdb;
+
+		$cache_key = 'w2p_fixer_prereq_check';
+		if ( ! $force_refresh ) {
+			$cached = get_transient( $cache_key );
+			if ( is_array( $cached ) && isset( $cached['passed'] ) ) {
+				return $cached;
+			}
+		}
+
+		// 1. Fast sample probe of recent 30 image attachments
+		$recent_ids = $wpdb->get_col(
+			"SELECT ID FROM {$wpdb->posts}
+			WHERE post_type = 'attachment' AND post_mime_type LIKE 'image/%'
+			ORDER BY ID DESC LIMIT 30"
+		);
+
+		$not_offloaded = 0;
+		if ( ! empty( $recent_ids ) ) {
+			$id_list         = implode( ',', array_map( 'intval', $recent_ids ) );
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$offloaded_count = (int) $wpdb->get_var(
+				"SELECT COUNT(DISTINCT post_id) FROM {$wpdb->postmeta}
+				WHERE post_id IN ({$id_list})
+				AND meta_key IN ('advmo_offloaded', '_is_minio_offloaded')
+				AND meta_value = '1'"
+			);
+			if ( $offloaded_count < count( $recent_ids ) ) {
+				$not_offloaded = count( $recent_ids ) - $offloaded_count;
+			}
+		}
+
+		// 2. Fast check for local media files in wp-content/uploads/ (focused on YYYY/MM media dirs)
+		$upload_dir         = wp_upload_dir();
+		$basedir            = $upload_dir['basedir'];
+		$local_files_found  = 0;
+		$sample_local_files = array();
+		$ignore_folders     = array( 'fonts', 'smile_fonts', 'elementor', 'js_composer', 'w2p-audit-index', 'wc-logs', 'woocommerce_uploads', 'dynamic_avia' );
+
+		if ( is_dir( $basedir ) ) {
+			$exts       = array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp' );
+			$dir_handle = @opendir( $basedir );
+			if ( $dir_handle ) {
+				while ( false !== ( $entry = readdir( $dir_handle ) ) ) {
+					if ( '.' === $entry || '..' === $entry || in_array( $entry, $ignore_folders, true ) ) {
+						continue;
+					}
+					$full = $basedir . '/' . $entry;
+					if ( is_file( $full ) ) {
+						$ext = strtolower( (string) pathinfo( $full, PATHINFO_EXTENSION ) );
+						if ( in_array( $ext, $exts, true ) ) {
+							$local_files_found++;
+							$sample_local_files[] = $entry;
+							break;
+						}
+					} elseif ( is_dir( $full ) && preg_match( '/^\d{4}$/', $entry ) ) {
+						// Match Year directory (e.g., 2024, 2025, 2026)
+						$sub_handle = @opendir( $full );
+						if ( $sub_handle ) {
+							while ( false !== ( $sub_entry = readdir( $sub_handle ) ) ) {
+								if ( '.' === $sub_entry || '..' === $sub_entry ) {
+									continue;
+								}
+								$sub_full = $full . '/' . $sub_entry;
+								if ( is_file( $sub_full ) ) {
+									$ext = strtolower( (string) pathinfo( $sub_full, PATHINFO_EXTENSION ) );
+									if ( in_array( $ext, $exts, true ) ) {
+										$local_files_found++;
+										$sample_local_files[] = $entry . '/' . $sub_entry;
+										break 2;
+									}
+								} elseif ( is_dir( $sub_full ) ) {
+									// Month directory (e.g. 01, 08, etc.)
+									$sub2_handle = @opendir( $sub_full );
+									if ( $sub2_handle ) {
+										while ( false !== ( $sub2_entry = readdir( $sub2_handle ) ) ) {
+											if ( '.' === $sub2_entry || '..' === $sub2_entry ) {
+												continue;
+											}
+											$sub2_full = $sub_full . '/' . $sub2_entry;
+											if ( is_file( $sub2_full ) ) {
+												$ext = strtolower( (string) pathinfo( $sub2_full, PATHINFO_EXTENSION ) );
+												if ( in_array( $ext, $exts, true ) ) {
+													$local_files_found++;
+													$sample_local_files[] = $entry . '/' . $sub_entry . '/' . $sub2_entry;
+													break 3;
+												}
+											}
+										}
+										closedir( $sub2_handle );
+									}
+								}
+							}
+							closedir( $sub_handle );
+						}
+					}
+				}
+				closedir( $dir_handle );
+			}
+		}
+
+		$messages = array();
+		if ( $not_offloaded > 0 ) {
+			$messages[] = __( 'Warning: Un-offloaded media attachments detected in library. Please complete Step 1 (Batch Conversion & Offload) first.', 'wp-genius' );
+		}
+
+		if ( $local_files_found > 0 ) {
+			$messages[] = sprintf(
+				/* translators: %s: sample residual local file */
+				__( 'Warning: Local residual media file detected in wp-content/uploads/ (%s). Please complete Step 2 (Residual Media Audit) cleanup first.', 'wp-genius' ),
+				implode( ', ', $sample_local_files )
+			);
+		}
+
+		$passed = ( $not_offloaded === 0 && $local_files_found === 0 );
+
+		$result = array(
+			'passed'              => $passed,
+			'not_offloaded_count' => $not_offloaded,
+			'local_files_found'   => $local_files_found,
+			'sample_local_files'  => $sample_local_files,
+			'messages'            => $messages,
+		);
+
+		set_transient( $cache_key, $result, 600 );
+
+		return $result;
+	}
+
+	/**
 	 * Get statistics about posts needing URL fixes
 	 *
 	 * Uses cached count or fast estimation to prevent locking the database.

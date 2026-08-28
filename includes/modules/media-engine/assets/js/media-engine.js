@@ -98,6 +98,23 @@
             $('#w2p-retry-failed').on('click', function () {
                 self.retryFailed($(this));
             });
+
+            // Workflow Step Navigation Switcher
+            $('.w2p-workflow-step-btn').on('click', function () {
+                const step = parseInt($(this).data('step'), 10);
+                $('.w2p-workflow-step-btn').removeClass('active');
+                $(this).addClass('active');
+
+                // Toggle Step Action Panels
+                $('#w2p-step-1-panel').toggleClass('w2p-hidden', step !== 1).toggle(step === 1);
+                $('#w2p-step-2-panel').toggleClass('w2p-hidden', step !== 2).toggle(step === 2);
+                $('#w2p-step-3-panel').toggleClass('w2p-hidden', step !== 3).toggle(step === 3);
+
+                // Toggle Result Tables
+                $('#w2p-attachment-list').toggleClass('w2p-hidden', step !== 1).toggle(step === 1);
+                $('#w2p-audit-results').toggleClass('w2p-hidden', step !== 2).toggle(step === 2);
+                $('#w2p-fixer-results').toggleClass('w2p-hidden', step !== 3).toggle(step === 3);
+            });
         },
 
         /**
@@ -1093,7 +1110,7 @@
         initLogViewer: function () {
             const self = this;
 
-            $('#w2p-view-log').on('click', function () {
+            $('#w2p-view-log, .w2p-shared-view-log-btn').on('click', function () {
                 self.openLogModal();
             });
 

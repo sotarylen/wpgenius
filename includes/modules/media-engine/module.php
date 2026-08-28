@@ -75,6 +75,7 @@ class W2P_MediaEngineModule extends W2P_Abstract_Module {
 		add_action( 'wp_ajax_w2p_media_audit_scan', array( $this, 'ajax_audit_scan' ) );
 		add_action( 'wp_ajax_w2p_media_audit_clean', array( $this, 'ajax_audit_clean' ) );
 		add_action( 'wp_ajax_w2p_media_fixer_stats', array( $this, 'ajax_fixer_stats' ) );
+		add_action( 'wp_ajax_w2p_media_fixer_check_prerequisites', array( $this, 'ajax_fixer_check_prerequisites' ) );
 		add_action( 'wp_ajax_w2p_media_fixer_scan', array( $this, 'ajax_fixer_scan' ) );
 		add_action( 'wp_ajax_w2p_media_fixer_process_batch', array( $this, 'ajax_fixer_process_batch' ) );
 		add_action( 'wp_ajax_w2p_media_fixer_preview_post', array( $this, 'ajax_fixer_preview_post' ) );
@@ -434,6 +435,21 @@ class W2P_MediaEngineModule extends W2P_Abstract_Module {
 		$stats             = $fixer->get_stats( $include_revisions );
 
 		wp_send_json_success( $stats );
+	}
+
+	/**
+	 * AJAX: Check prerequisites for URL fixer
+	 */
+	public function ajax_fixer_check_prerequisites() {
+		check_ajax_referer( 'w2p_media_engine_nonce', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
+
+		$fixer  = new MediaEngineUrlFixerService();
+		$result = $fixer->check_prerequisites();
+
+		wp_send_json_success( $result );
 	}
 
 	/**

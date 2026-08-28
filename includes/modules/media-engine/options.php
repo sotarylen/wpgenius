@@ -70,9 +70,9 @@ return array(
 					),
 				),
 
-				// Tab 2: Format Conversion - Tools (Content Field)
+				// Tab 2: Format Conversion & Maintenance - Tools (Content Field)
 				array(
-					'title'  => __( 'Batch Processing', 'wp-genius' ),
+					'title'  => __( 'Batch Processing & Maintenance', 'wp-genius' ),
 					'icon'   => 'fa fa-rocket',
 					'fields' => array(
 						array(
@@ -80,8 +80,6 @@ return array(
 							'content' => ( function () use ( $module_dir ) {
 								$turbo_path = $module_dir . 'views/turbo-settings.php';
 								if ( file_exists( $turbo_path ) ) {
-									// Include the full turbo-settings view
-									// The settings form at the top is read-only now since we use CSF fields
 									ob_start();
 									include $turbo_path;
 									return ob_get_clean();
@@ -131,46 +129,6 @@ return array(
 							'label'      => __( 'Prefix added to the filename of images uploaded via clipboard (e.g., prefix_uniqueid.png).', 'wp-genius' ),
 							'default'    => 'clipboard_',
 							'dependency' => array( 'clipboard_enabled', '==', 'true' ),
-						),
-					),
-				),
-
-				// Tab 5: Residual Media Audit (Content Field)
-				array(
-					'title'  => __( 'Residual Media Audit', 'wp-genius' ),
-					'icon'   => 'fa fa-search',
-					'fields' => array(
-						array(
-							'type'    => 'content',
-							'content' => ( function () use ( $module_dir ) {
-								$audit_path = $module_dir . 'views/audit-settings.php';
-								if ( file_exists( $audit_path ) ) {
-									ob_start();
-									include $audit_path;
-									return ob_get_clean();
-								}
-								return '<p>' . __( 'Residual media audit not available.', 'wp-genius' ) . '</p>';
-							} )(),
-						),
-					),
-				),
-
-				// Tab 6: Content URL & Format Fixer (Content Field)
-				array(
-					'title'  => __( 'URL & Format Fixer', 'wp-genius' ),
-					'icon'   => 'fa fa-wand-magic-sparkles',
-					'fields' => array(
-						array(
-							'type'    => 'content',
-							'content' => ( function () use ( $module_dir ) {
-								$fixer_path = $module_dir . 'views/url-fixer-settings.php';
-								if ( file_exists( $fixer_path ) ) {
-									ob_start();
-									include $fixer_path;
-									return ob_get_clean();
-								}
-								return '<p>' . __( 'Content URL fixer not available.', 'wp-genius' ) . '</p>';
-							} )(),
 						),
 					),
 				),

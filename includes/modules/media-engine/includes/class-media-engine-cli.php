@@ -293,9 +293,23 @@ class MediaEngineCLI {
 		$dry_run           = isset( $assoc_args['dry-run'] );
 		$all               = isset( $assoc_args['all'] );
 		$include_revisions = isset( $assoc_args['include-revisions'] );
+		$force             = isset( $assoc_args['force'] );
 
 		if ( $dry_run ) {
 			WP_CLI::warning( __( 'Running in DRY-RUN mode: no database changes will be made.', 'wp-genius' ) );
+		}
+
+		// Prerequisite check (unless --force is specified)
+		if ( ! $force ) {
+			$prereq = $fixer->check_prerequisites();
+			if ( ! $prereq['passed'] ) {
+				foreach ( $prereq['messages'] as $msg ) {
+					WP_CLI::warning( $msg );
+				}
+				if ( ! $dry_run ) {
+					WP_CLI::confirm( __( 'Prerequisites not fully satisfied. Are you sure you want to proceed?', 'wp-genius' ) );
+				}
+			}
 		}
 
 		// Single post

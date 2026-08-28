@@ -3,6 +3,7 @@
  *
  * Handles AJAX interactions for scanning, previewing, and batch-fixing
  * /wp-content/uploads/ references in post contents with MinIO WebP paths.
+ * Enforces prerequisite safety checks before execution.
  *
  * @package WP_Genius
  * @subpackage Modules/MediaEngine
@@ -21,6 +22,7 @@
         batchSize: 15,
         scanLastId: 0,
         autoLastId: 0,
+        prereqPassed: false,
         posts: [],
         stats: {
             scannedPosts: 0,
@@ -45,20 +47,31 @@
         bindEvents: function () {
             const self = this;
 
+            // Check prerequisites button
+            $('#w2p-fixer-check-prereq').on('click', function () {
+                self.checkPrerequisites(null, true);
+            });
+
             $('#w2p-fixer-get-stats').on('click', function () {
                 self.fetchInitialStats();
             });
 
             $('#w2p-fixer-scan').on('click', function () {
-                self.startScan();
+                self.checkPrerequisites(function () {
+                    self.startScan();
+                });
             });
 
             $('#w2p-fixer-start, #w2p-fixer-fix-checked').on('click', function () {
-                self.fixSelected();
+                self.checkPrerequisites(function () {
+                    self.fixSelected();
+                });
             });
 
             $('#w2p-fixer-start-auto').on('click', function () {
-                self.startAutoFix();
+                self.checkPrerequisites(function () {
+                    self.startAutoFix();
+                });
             });
 
             $('#w2p-fixer-pause-auto').on('click', function () {
@@ -94,6 +107,85 @@
             $('#w2p-fixer-summary .w2p-fixer-stat-card').on('click', function () {
                 const filter = $(this).data('filter');
                 self.toggleFilter(filter);
+            });
+        },
+
+        /**
+         * Check prerequisites before performing scan or fixes
+         *
+         * @param {Function|null} onPassed Callback to execute if prerequisites pass
+         * @param {boolean} isManualClick Whether user explicitly clicked the check button
+         */
+        checkPrerequisites: function (onPassed, isManualClick) {
+            const self = this;
+            const $btn = $('#w2p-fixer-check-prereq');
+            const $banner = $('#w2p-fixer-prereq-banner');
+            const $bannerText = $('#w2p-fixer-prereq-text');
+
+            $btn.prop('disabled', true).find('i').removeClass().addClass('fa-solid fa-spinner fa-spin');
+
+            $.ajax({
+                url: w2pMediaEngine.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'w2p_media_fixer_check_prerequisites',
+                    nonce: w2pMediaEngine.nonce
+                },
+                success: function (response) {
+                    if (response && response.success && response.data) {
+                        const d = response.data;
+                        self.prereqPassed = d.passed;
+
+                        if (d.passed) {
+                            $banner.removeClass('w2p-notice-warning w2p-notice-info').addClass('w2p-notice-success');
+                            $banner.find('i').removeClass().addClass('fa-solid fa-circle-check');
+                            $bannerText.text(w2pMediaEngine.i18n.fixerPrereqPassed || '✓ Prerequisites satisfied: All media offloaded & no local files in uploads directory.');
+
+                            if (isManualClick && typeof w2p !== 'undefined' && w2p.toast) {
+                                w2p.toast('Prerequisites check passed: Ready to fix content URLs.', 'success');
+                            }
+
+                            if (typeof onPassed === 'function') {
+                                onPassed();
+                            }
+                        } else {
+                            $banner.removeClass('w2p-notice-success w2p-notice-info').addClass('w2p-notice-warning');
+                            $banner.find('i').removeClass().addClass('fa-solid fa-triangle-exclamation');
+                            
+                            const msgs = d.messages || [];
+                            const msgStr = msgs.join(' ');
+                            $bannerText.text(msgStr);
+
+                            const warnConfirm = function () {
+                                if (typeof w2p !== 'undefined' && w2p.confirm) {
+                                    w2p.confirm('⚠️ Warning: Prerequisites check failed!\n\n' + msgs.join('\n') + '\n\nProceed anyway?', function () {
+                                        if (typeof onPassed === 'function') {
+                                            onPassed();
+                                        }
+                                    });
+                                } else if (confirm('⚠️ Warning: Prerequisites check failed!\n\n' + msgs.join('\n') + '\n\nProceed anyway?')) {
+                                    if (typeof onPassed === 'function') {
+                                        onPassed();
+                                    }
+                                }
+                            };
+
+                            if (typeof onPassed === 'function') {
+                                warnConfirm();
+                            } else if (isManualClick && typeof w2p !== 'undefined' && w2p.toast) {
+                                w2p.toast(msgs[0] || 'Prerequisites check failed', 'warning');
+                            }
+                        }
+                    }
+                },
+                error: function () {
+                    if (typeof onPassed === 'function') {
+                        onPassed();
+                    }
+                },
+                complete: function () {
+                    $btn.prop('disabled', false).find('i').removeClass().addClass('fa-solid fa-clipboard-check');
+                }
             });
         },
 
@@ -160,7 +252,7 @@
 
             $('#w2p-fixer-scan').prop('disabled', true);
             $('#w2p-fixer-stop').removeClass('w2p-hidden').show();
-            $('#w2p-fixer-progress').removeClass('w2p-hidden').show();
+            $('#w2p-unified-progress').removeClass('w2p-hidden').show();
             $('#w2p-fixer-results').removeClass('w2p-hidden').show();
             $('#w2p-fixer-tbody').empty();
 
@@ -178,7 +270,7 @@
                 return;
             }
 
-            $('#w2p-fixer-progress-text').text(sprintf(w2pMediaEngine.i18n.scanning, self.posts.length));
+            $('#w2p-unified-progress-text').text(sprintf(w2pMediaEngine.i18n.scanning, self.posts.length));
 
             $.ajax({
                 url: w2pMediaEngine.ajax_url,
@@ -211,7 +303,7 @@
                     self.updateStatsDisplay();
                     self.renderRows(items);
 
-                    // Scan up to 1-2 pages (e.g. 30 posts) for responsive preview, or continue if user didn't stop
+                    // Scan up to ~30 posts for responsive preview
                     if (items.length >= self.batchSize && self.posts.length < 30) {
                         setTimeout(function () { self.scanNextBatch(); }, 100);
                     } else {
@@ -233,7 +325,7 @@
 
             $('#w2p-fixer-scan').prop('disabled', false);
             $('#w2p-fixer-stop').addClass('w2p-hidden').hide();
-            $('#w2p-fixer-progress').addClass('w2p-hidden').hide();
+            $('#w2p-unified-progress').addClass('w2p-hidden').hide();
 
             if (errorMsg) {
                 if (typeof w2p !== 'undefined' && w2p.toast) {
@@ -341,7 +433,7 @@
 
             const doFix = function () {
                 self.processing = true;
-                $('#w2p-fixer-terminal').removeClass('w2p-hidden').show();
+                $('#w2p-processing-output').removeClass('w2p-hidden').show();
                 self.logTerminal(sprintf('Starting batch fix on %d selected post(s)...', postIds.length));
 
                 $.ajax({
@@ -366,7 +458,6 @@
                             if (typeof w2p !== 'undefined' && w2p.toast) {
                                 w2p.toast(msg, 'success');
                             }
-                            // Refresh list
                             setTimeout(function () { self.startScan(); }, 1200);
                         } else {
                             self.logTerminal('✗ ' + (response && response.data ? response.data : 'Batch failed'));
@@ -401,7 +492,7 @@
             $('#w2p-fixer-start-auto').prop('disabled', true);
             $('#w2p-fixer-pause-auto').removeClass('w2p-hidden').show().text(w2pMediaEngine.i18n.pauseLabel);
             $('#w2p-fixer-stop').removeClass('w2p-hidden').show();
-            $('#w2p-fixer-terminal').removeClass('w2p-hidden').show();
+            $('#w2p-processing-output').removeClass('w2p-hidden').show();
 
             self.logTerminal('--- ' + w2pMediaEngine.i18n.autoStarted + ' ---');
             self.autoFixRound(1);
@@ -486,7 +577,6 @@
                                 self.updateStatsDisplay();
 
                                 self.logTerminal(sprintf('  Round %d complete: %d posts modified | %d URLs replaced (%d WebP ext)', round, d.modified_posts, d.total_replaced, d.ext_fixed));
-                                // Continue to next round
                                 setTimeout(function () { self.autoFixRound(round + 1); }, 200);
                             } else {
                                 self.endAutoFix('error', 'Batch processing failed');
@@ -538,7 +628,8 @@
          * Append line to terminal
          */
         logTerminal: function (text) {
-            const $content = $('#w2p-fixer-output-content');
+            const $content = $('#w2p-output-content');
+            $('#w2p-processing-output').removeClass('w2p-hidden').show();
             const $line = $('<div>').text('[' + new Date().toLocaleTimeString() + '] ' + text);
             $content.append($line);
             $content.parent().scrollTop($content.parent()[0].scrollHeight);
