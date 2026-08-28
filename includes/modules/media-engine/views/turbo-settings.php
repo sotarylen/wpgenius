@@ -117,7 +117,6 @@ $batch_size = isset( $settings['batch_size'] ) ? absint( $settings['batch_size']
 			<div class="w2p-step-panel w2p-hidden" id="w2p-step-2-panel">
 				<div class="w2p-processing-actions">
 					<div class="w2p-flex w2p-gap-sm w2p-items-center w2p-flex-wrap">
-						<input type="text" id="w2p-audit-subdir" value="2026/07" placeholder="2026/07" class="w2p-audit-input" />
 						<button type="button" id="w2p-audit-scan" class="w2p-btn w2p-btn-primary">
 							<i class="fa-solid fa-magnifying-glass"></i>
 							<?php esc_html_e( 'Start Scan', 'wp-genius' ); ?>
@@ -142,8 +141,8 @@ $batch_size = isset( $settings['batch_size'] ) ? absint( $settings['batch_size']
 					</div>
 				</div>
 
-				<!-- Step 2 Stat Cards -->
-				<div id="w2p-audit-summary" class="w2p-audit-stats-grid">
+				<!-- Step 2 Stat Cards (Hidden before scan execution) -->
+				<div id="w2p-audit-summary" class="w2p-audit-stats-grid w2p-hidden">
 					<div class="w2p-audit-stat-card w2p-audit-stat-total" data-filter="total" role="button" tabindex="0">
 						<span class="label"><?php esc_html_e( 'Scanned Files', 'wp-genius' ); ?></span>
 						<span class="value" data-stat="total">0</span>

@@ -31,67 +31,79 @@ class W2P_Media_Audit_Service {
 	const BATCH_SIZE = 50;
 
 	/**
-	 * Cache mapping image file paths relative to the uploads root -> local absolute paths
+	 * In-memory cache mapping image file paths relative to uploads root -> local absolute paths
 	 *
 	 * @var array|null
 	 */
 	private $file_list_cache = null;
 
 	/**
-	 * Directory index cache directory (uploads/w2p-audit-index/)
-	 *
-	 * @var string
-	 */
-	private $index_dir;
-
-	/**
-	 * Index cache lifetime (seconds)
-	 *
-	 * @var int
-	 */
-	private $index_ttl;
-
-	/**
-	 * Constructor: initializes the index cache directory
+	 * Constructor: cleans up any legacy index directory if left over from older versions
 	 */
 	public function __construct() {
-		$upload_dir      = wp_upload_dir();
-		$this->index_dir = $upload_dir['basedir'] . '/w2p-audit-index/';
-		$this->index_ttl = 600; // 10 minutes
+		$this->cleanup_legacy_index_dir();
 	}
 
 	/**
-	 * Scan a batch of image files in an uploads subdirectory
-	 *
-	 * @param string $subdir Subpath relative to the uploads root (e.g. 2026/07)
-	 * @param int    $offset Offset (ordered by file name)
-	 * @param int    $limit  Count
-	 * @return array { total:int, scanned:int, files:array, index_built:bool }
+	 * Quietly clean up any historical w2p-audit-index directory in uploads to keep the directory clean
 	 */
-	public function scan_batch( $subdir, $offset = 0, $limit = self::BATCH_SIZE ) {
-		$subdir = trim( $subdir, '/\\' );
+	private function cleanup_legacy_index_dir() {
+		$upload_dir = wp_upload_dir();
+		$legacy_dir = $upload_dir['basedir'] . '/w2p-audit-index';
+		if ( is_dir( $legacy_dir ) ) {
+			$files = @scandir( $legacy_dir );
+			if ( is_array( $files ) ) {
+				foreach ( $files as $file ) {
+					if ( '.' !== $file && '..' !== $file ) {
+						@unlink( $legacy_dir . '/' . $file );
+					}
+				}
+			}
+			@rmdir( $legacy_dir );
+		}
+	}
 
-		// Prevent directory traversal: only allow relative paths that do not contain ..
-		if ( $subdir === '' || strpos( $subdir, '..' ) !== false ) {
+	/**
+	 * Scan a batch of image files across the uploads directory (or a specific subdirectory)
+	 *
+	 * @param string $subdir Subpath relative to the uploads root (empty for global YYYY/MM scan)
+	 * @param int    $offset Offset (ordered by relative path)
+	 * @param int    $limit  Count
+	 * @return array { total:int, scanned:int, files:array }
+	 */
+	public function scan_batch( $subdir = '', $offset = 0, $limit = self::BATCH_SIZE ) {
+		$subdir = trim( (string) $subdir, '/\\' );
+
+		// Prevent directory traversal
+		if ( strpos( $subdir, '..' ) !== false ) {
 			return array( 'error' => __( 'Invalid directory', 'wp-genius' ) );
 		}
 
 		$base_dir = wp_upload_dir()['basedir'];
-		$dir_abs  = $base_dir . '/' . $subdir;
-		if ( ! is_dir( $dir_abs ) ) {
-			return array( 'error' => __( 'Directory not found', 'wp-genius' ) );
+
+		if ( '' !== $subdir ) {
+			$dir_abs = $base_dir . '/' . $subdir;
+			if ( ! is_dir( $dir_abs ) ) {
+				return array( 'error' => __( 'Directory not found', 'wp-genius' ) );
+			}
+			$files = $this->get_image_files_in_dir( $dir_abs, $subdir );
+		} else {
+			$files = $this->get_all_image_files( $base_dir );
 		}
 
-		$files = $this->get_image_files( $dir_abs, $subdir );
 		$total = count( $files );
+		$slice = array_slice( $files, $offset, $limit, true );
 
-		// Build/read the directory index (first build may take ~25s, later reads use the file cache)
-		$index       = $this->get_directory_index( $subdir );
-		$index_built = ! empty( $index['fresh'] );
-		$att_map     = $index['attached'] ?? array();   // rel_path => att_id
-		$stem_map    = $index['stems'] ?? array();      // stem => att_id
+		if ( empty( $slice ) ) {
+			return array(
+				'total'   => $total,
+				'scanned' => 0,
+				'files'   => array(),
+			);
+		}
 
-		$slice = array_slice( $files, $offset, $limit );
+		// Batch match attachment records for the 50 files in this slice (direct indexed query, zero disk index)
+		list( $att_map, $stem_map ) = $this->batch_match_attachments( array_keys( $slice ) );
 
 		$items = array();
 		foreach ( $slice as $rel_path => $abs_path ) {
@@ -99,29 +111,80 @@ class W2P_Media_Audit_Service {
 		}
 
 		return array(
-			'total'       => $total,
-			'scanned'     => count( $slice ),
-			'index_built' => $index_built,
-			'files'       => $items,
+			'total'   => $total,
+			'scanned' => count( $slice ),
+			'files'   => $items,
 		);
 	}
 
 	/**
-	 * Get all image files in a directory (excluding source/ subdirectories)
+	 * Get all image files in standard YYYY/MM directories and uploads root without recursing into deeper subfolders
 	 *
-	 * @param string $dir_abs Directory absolute path
-	 * @param string $subdir  Subpath relative to uploads
+	 * @param string $base_dir Uploads root directory
 	 * @return array rel_path => abs_path
 	 */
-	private function get_image_files( $dir_abs, $subdir ) {
+	private function get_all_image_files( $base_dir ) {
 		if ( null !== $this->file_list_cache ) {
 			return $this->file_list_cache;
 		}
 
 		$files = array();
+
+		// 1. Root uploads directory files
+		$root_files = $this->get_image_files_in_dir( $base_dir, '' );
+		foreach ( $root_files as $rel => $abs ) {
+			$files[ $rel ] = $abs;
+		}
+
+		// 2. Year directories (YYYY)
+		$dh = @opendir( $base_dir );
+		if ( $dh ) {
+			while ( false !== ( $year_entry = readdir( $dh ) ) ) {
+				if ( '.' === $year_entry || '..' === $year_entry ) {
+					continue;
+				}
+				$year_path = $base_dir . '/' . $year_entry;
+				if ( is_dir( $year_path ) && preg_match( '/^\d{4}$/', $year_entry ) ) {
+					// 3. Month directories (MM)
+					$year_dh = @opendir( $year_path );
+					if ( $year_dh ) {
+						while ( false !== ( $month_entry = readdir( $year_dh ) ) ) {
+							if ( '.' === $month_entry || '..' === $month_entry ) {
+								continue;
+							}
+							$month_path = $year_path . '/' . $month_entry;
+							if ( is_dir( $month_path ) && preg_match( '/^\d{2}$/', $month_entry ) ) {
+								$sub_rel = $year_entry . '/' . $month_entry;
+								$m_files = $this->get_image_files_in_dir( $month_path, $sub_rel );
+								foreach ( $m_files as $rel => $abs ) {
+									$files[ $rel ] = $abs;
+								}
+							}
+						}
+						closedir( $year_dh );
+					}
+				}
+			}
+			closedir( $dh );
+		}
+
+		// Keep order deterministic across batches
+		ksort( $files );
+		$this->file_list_cache = $files;
+		return $files;
+	}
+
+	/**
+	 * Get image files directly in a directory (does not recurse into subdirectories)
+	 *
+	 * @param string $dir_abs Directory absolute path
+	 * @param string $sub_rel Subpath relative to uploads (e.g. 2026/08 or empty string)
+	 * @return array rel_path => abs_path
+	 */
+	private function get_image_files_in_dir( $dir_abs, $sub_rel ) {
+		$files = array();
 		$dh    = @opendir( $dir_abs );
 		if ( ! $dh ) {
-			$this->file_list_cache = $files;
 			return $files;
 		}
 
@@ -129,175 +192,134 @@ class W2P_Media_Audit_Service {
 			if ( '.' === $entry || '..' === $entry ) {
 				continue;
 			}
-			// Skip subdirectories such as source/
-			if ( is_dir( $dir_abs . '/' . $entry ) ) {
+			$full_path = $dir_abs . '/' . $entry;
+			// Skip subdirectories (e.g. source/ or nested folders)
+			if ( is_dir( $full_path ) ) {
 				continue;
 			}
 			$ext = strtolower( pathinfo( $entry, PATHINFO_EXTENSION ) );
 			if ( ! in_array( $ext, self::SCAN_EXTS, true ) ) {
 				continue;
 			}
-			$files[ $subdir . '/' . $entry ] = $dir_abs . '/' . $entry;
+			$rel_path           = '' !== $sub_rel ? $sub_rel . '/' . $entry : $entry;
+			$files[ $rel_path ] = $full_path;
 		}
 		closedir( $dh );
 
-		// Sort by file name to keep batch order stable
-		ksort( $files );
-		$this->file_list_cache = $files;
 		return $files;
 	}
 
 	/**
-	 * Get the directory index (file cache 600s): rel_path => att_id, stem => att_id
+	 * Direct indexed database query for the current slice of files (zero disk cache, ~1ms execution)
 	 *
-	 * Background: the postmeta table has ~950k rows and meta_value has no index; a full-table LIKE takes ~25s.
-	 * The index is built once here and cached to a file, so subsequent batches return in seconds.
-	 *
-	 * @param string $subdir Subpath relative to uploads
-	 * @return array { attached:array, stems:array, fresh:bool }
+	 * @param array $rel_paths List of relative paths (e.g. 50 items)
+	 * @return array [ attached_map, stem_map ]
 	 */
-	private function get_directory_index( $subdir ) {
-		$cache_file = $this->index_dir . md5( $subdir ) . '.json';
+	private function batch_match_attachments( array $rel_paths ) {
+		global $wpdb;
 
-		// Cache hit
-		if ( file_exists( $cache_file ) && ( time() - filemtime( $cache_file ) ) < $this->index_ttl ) {
-			$data = json_decode( (string) file_get_contents( $cache_file ), true );
-			if ( is_array( $data ) && isset( $data['attached'] ) ) {
-				$data['fresh'] = false;
-				return $data;
+		if ( empty( $rel_paths ) ) {
+			return array( array(), array() );
+		}
+
+		$attached = array();
+		$stems    = array();
+		$stem_arr = array();
+
+		foreach ( $rel_paths as $rp ) {
+			$stem_arr[] = pathinfo( $rp, PATHINFO_FILENAME );
+		}
+
+		// 1. Query exact relative paths in _wp_attached_file
+		$placeholders = implode( ',', array_fill( 0, count( $rel_paths ), '%s' ) );
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT post_id, meta_value FROM {$wpdb->postmeta}
+				WHERE meta_key = '_wp_attached_file' AND meta_value IN ($placeholders)",
+				$rel_paths
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		if ( is_array( $rows ) ) {
+			foreach ( $rows as $row ) {
+				$att_id             = (int) $row->post_id;
+				$val                = (string) $row->meta_value;
+				$attached[ $val ]   = $att_id;
+				$stem_key           = pathinfo( $val, PATHINFO_FILENAME );
+				$stems[ $stem_key ] = $att_id;
 			}
 		}
 
-		global $wpdb;
-
-		// 1. Fetch attachment IDs from the posts table by upload month (uses the post_date index, ~1.8s)
-		// Or query by attached_file meta if not standard YYYY/MM
-		$att_ids = array();
-		if ( preg_match( '#^(\d{4})/(\d{2})$#', $subdir, $m ) ) {
-			$start   = $m[1] . '-' . $m[2] . '-01';
-			$end     = gmdate( 'Y-m-d', strtotime( $start . ' +1 month' ) );
-			$att_ids = array_map(
-				'intval',
-				$wpdb->get_col(
-					$wpdb->prepare(
-						"SELECT ID FROM {$wpdb->posts}
-					WHERE post_type = 'attachment' AND post_date >= %s AND post_date < %s",
-						$start,
-						$end
-					)
-				)
-			);
-		} else {
-			// Generic subfolder query
-			$like_pattern = '%' . $wpdb->esc_like( trim( $subdir, '/' ) ) . '%';
-			$att_ids      = array_map(
-				'intval',
-				$wpdb->get_col(
-					$wpdb->prepare(
-						"SELECT post_id FROM {$wpdb->postmeta}
-						WHERE meta_key = '_wp_attached_file' AND meta_value LIKE %s",
-						$like_pattern
-					)
-				)
-			);
-		}
-
-		if ( empty( $att_ids ) ) {
-			return array(
-				'attached' => array(),
-				'stems'    => array(),
-				'fresh'    => true,
-			);
-		}
-
-		// 2. Batch query _wp_attached_file by the post_id index (covers bare file-name forms, uses the post_id index)
-		$attached   = array();
-		$stems      = array();
-		$dir_prefix = rtrim( $subdir, '/' ) . '/';
-
-		foreach ( array_chunk( $att_ids, 500 ) as $chunk ) {
-			$placeholders = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders -- IN placeholders consist of %d (generated by array_fill), and parameters are bound via prepare.
-			$rows = $wpdb->get_results(
+		// 2. Query bare filenames / stems for any unmatched files (covers advmo bare-filename rewrite)
+		$unmatched_stems = array_diff( array_unique( $stem_arr ), array_keys( $stems ) );
+		if ( ! empty( $unmatched_stems ) ) {
+			$stem_placeholders = implode( ',', array_fill( 0, count( $unmatched_stems ), '%s' ) );
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders
+			$stem_rows = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT post_id, meta_value FROM {$wpdb->postmeta}
-					WHERE meta_key = '_wp_attached_file' AND post_id IN ($placeholders)",
-					$chunk
+					WHERE meta_key = '_wp_attached_file' AND meta_value IN ($stem_placeholders)",
+					$unmatched_stems
 				)
 			);
 			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			foreach ( $rows as $row ) {
-				$att_id = (int) $row->post_id;
-				$val    = $row->meta_value;
-
-				// Exact path mapping: relative path form
-				if ( strpos( $val, $dir_prefix ) === 0 ) {
-					$attached[ $val ] = $att_id;
-				}
-
-				// stem mapping: all non-URL forms (including bare file names -- advmo rewrites _wp_attached_file to the bare name)
-				if ( strpos( $val, '://' ) === false ) {
-					$stems[ pathinfo( $val, PATHINFO_FILENAME ) ] = $att_id;
+			if ( is_array( $stem_rows ) ) {
+				foreach ( $stem_rows as $row ) {
+					$att_id             = (int) $row->post_id;
+					$stem_key           = pathinfo( $row->meta_value, PATHINFO_FILENAME );
+					$stems[ $stem_key ] = $att_id;
 				}
 			}
 		}
 
-		// Write to the file cache
-		if ( ! is_dir( $this->index_dir ) ) {
-			wp_mkdir_p( $this->index_dir );
-		}
-		file_put_contents(
-			$cache_file,
-			wp_json_encode(
-				array(
-					'attached' => $attached,
-					'stems'    => $stems,
-				)
-			),
-			LOCK_EX
-		);
-
-		return array(
-			'attached' => $attached,
-			'stems'    => $stems,
-			'fresh'    => true,
-		);
+		return array( $attached, $stems );
 	}
 
 	/**
 	 * Classify a single file
 	 *
-	 * @param string $rel_path   Path relative to uploads (2026/07/name.jpg)
-	 * @param string $abs_path   Local absolute path
-	 * @param array  $att_map    rel_path => attachment_id index
-	 * @param array  $stem_map   stem => attachment_id index
+	 * @param string $rel_path Path relative to uploads (e.g. 2026/08/name.jpg)
+	 * @param string $abs_path Local absolute path
+	 * @param array  $att_map  rel_path => attachment_id index
+	 * @param array  $stem_map stem => attachment_id index
 	 * @return array
 	 */
 	private function classify_file( $rel_path, $abs_path, $att_map = array(), $stem_map = array() ) {
 		$dir_rel  = dirname( $rel_path );
+		if ( '.' === $dir_rel ) {
+			$dir_rel = '';
+		}
 		$basename = basename( $rel_path );
 		$ext      = strtolower( pathinfo( $basename, PATHINFO_EXTENSION ) );
+		$stem     = pathinfo( $basename, PATHINFO_FILENAME );
 
 		// 1. Match the attachment record in the database (exact rel_path, fall back to stem)
 		$attachment_id = isset( $att_map[ $rel_path ] ) ? $att_map[ $rel_path ] : 0;
 		if ( ! $attachment_id ) {
-			$attachment_id = isset( $stem_map[ pathinfo( $basename, PATHINFO_FILENAME ) ] )
-				? $stem_map[ pathinfo( $basename, PATHINFO_FILENAME ) ]
-				: 0;
+			$attachment_id = isset( $stem_map[ $stem ] ) ? $stem_map[ $stem ] : 0;
 		}
 		$attachment_id = (int) $attachment_id;
 
-		// 2. HEAD-probe the bucket: try the same-name .webp first, then -static.webp (GIF conflict variant)
-		$stem      = pathinfo( $basename, PATHINFO_FILENAME );
+		// 2. HEAD-probe the bucket: try same-name .webp first, then -static.webp
 		$webp_urls = array();
 		if ( 'webp' !== $ext ) {
 			$webp_urls[] = $this->build_webp_url( $dir_rel, $stem . '.webp' );
 			$webp_urls[] = $this->build_webp_url( $dir_rel, $stem . '-static.webp' );
 		} else {
-			// Already webp, probe itself
 			$webp_urls[] = $this->build_webp_url( $dir_rel, $basename );
 		}
 		$in_bucket = $this->head_exists_any( $webp_urls );
+
+		// Compute thumbnail URL
+		$upload_info = wp_upload_dir();
+		$thumb_url   = '';
+		if ( file_exists( $abs_path ) ) {
+			$thumb_url = rtrim( $upload_info['baseurl'], '/' ) . '/' . ltrim( $rel_path, '/' );
+		} elseif ( $in_bucket ) {
+			$thumb_url = $webp_urls[0];
+		}
 
 		$item = array(
 			'file'          => $rel_path,
@@ -308,22 +330,22 @@ class W2P_Media_Audit_Service {
 			'attachment_id' => $attachment_id ? (int) $attachment_id : 0,
 			'in_bucket'     => $in_bucket,
 			'checked_url'   => $in_bucket ? $webp_urls[0] : '',
+			'thumb_url'     => $thumb_url,
 		);
 
 		// 3. Classify
 		if ( $in_bucket ) {
-			// Class A: the bucket already has the corresponding file; the local copy can be cleaned
+			// Class A: bucket has the file; local copy can be cleaned
 			$item['status'] = 'cleanable';
 			$item['reason'] = __( 'Corresponding file already exists in the bucket; local copy can be cleaned', 'wp-genius' );
 		} elseif ( $attachment_id ) {
-			// Class B: not offloaded, but the media library has a record
-			$item['status'] = 'not_offloaded';
-			$item['reason'] = $this->analyze_reason( $attachment_id, $rel_path, $abs_path );
-			$item['parent'] = $this->get_parent_info( $attachment_id );
-			// Whether it can be re-queued (mime is in the supported list)
+			// Class B: not offloaded, but media library has a record
+			$item['status']      = 'not_offloaded';
+			$item['reason']      = $this->analyze_reason( $attachment_id, $rel_path, $abs_path );
+			$item['parent']      = $this->get_parent_info( $attachment_id );
 			$item['can_enqueue'] = $this->can_enqueue( $attachment_id );
 		} else {
-			// Class C: orphan file (no record in the database)
+			// Class C: orphan file (no record in database)
 			$item['status'] = 'orphan';
 			$item['reason'] = __( 'No matching record in the media library (orphan file)', 'wp-genius' );
 		}
@@ -334,13 +356,14 @@ class W2P_Media_Audit_Service {
 	/**
 	 * Build a /wp-media/ URL
 	 *
-	 * @param string $dir_rel Relative directory (2026/07)
+	 * @param string $dir_rel Relative directory (e.g. 2026/08 or empty string)
 	 * @param string $file    File name (name.webp)
 	 * @return string
 	 */
 	private function build_webp_url( $dir_rel, $file ) {
-		$home = home_url();
-		return rtrim( $home, '/' ) . '/wp-media/' . ltrim( $dir_rel, '/' ) . '/' . $file;
+		$home     = home_url();
+		$path_rel = '' !== $dir_rel ? ltrim( $dir_rel, '/' ) . '/' . $file : $file;
+		return rtrim( $home, '/' ) . '/wp-media/' . $path_rel;
 	}
 
 	/**
@@ -432,7 +455,7 @@ class W2P_Media_Audit_Service {
 		}
 
 		// 3. The attachment's _wp_attached_file does not match the actual file
-		$attached_rel = str_replace( wp_upload_dir()['basedir'] . '/', '', $attached );
+		$attached_rel = str_replace( wp_upload_dir()['basedir'] . '/', '', (string) $attached );
 		if ( $attached_rel !== $rel_path ) {
 			return sprintf(
 				// translators: %1: placeholder.
@@ -492,10 +515,10 @@ class W2P_Media_Audit_Service {
 		$cleaned  = 0;
 		$skipped  = array();
 
-		if ( ! class_exists( 'MediaEngineConversionLogger' ) ) {
+		if ( ! class_exists( 'W2P_Media_Conversion_Logger' ) ) {
 			require_once plugin_dir_path( __FILE__ ) . 'class-logger-service.php';
 		}
-		$logger = new MediaEngineConversionLogger();
+		$logger = new W2P_Media_Conversion_Logger();
 
 		foreach ( $rel_paths as $rel_path ) {
 			$rel_path = trim( $rel_path, '/\\' );
@@ -517,6 +540,9 @@ class W2P_Media_Audit_Service {
 
 			// Second confirmation: only delete if the corresponding webp exists in the bucket
 			$dir_rel  = dirname( $rel_path );
+			if ( '.' === $dir_rel ) {
+				$dir_rel = '';
+			}
 			$basename = basename( $rel_path );
 			$ext      = strtolower( pathinfo( $basename, PATHINFO_EXTENSION ) );
 			$stem     = pathinfo( $basename, PATHINFO_FILENAME );

@@ -9,7 +9,7 @@
     const AuditUI = {
         scanning: false,
         stopRequested: false,
-        subdir: '2026/07',
+        subdir: '',
         batchSize: 50,
         offset: 0,
         total: 0,
@@ -25,13 +25,7 @@
             const self = this;
 
             $('#w2p-audit-scan').on('click', function () {
-                self.subdir = $('#w2p-audit-subdir').val().trim().replace(/^\/+|\/+$/g, '');
-                if (!self.subdir) {
-                    if (typeof w2p !== 'undefined' && w2p.toast) {
-                        w2p.toast(w2pMediaEngine.i18n.enterScanDir, 'warning');
-                    }
-                    return;
-                }
+                self.subdir = '';
                 self.startScan();
             });
 
@@ -84,6 +78,7 @@
             $('#w2p-audit-scan').prop('disabled', true);
             $('#w2p-audit-stop').removeClass('w2p-hidden').show();
             $('#w2p-unified-progress, #w2p-audit-progress').removeClass('w2p-hidden').show();
+            $('#w2p-audit-summary').addClass('w2p-hidden').hide();
             $('#w2p-audit-results').addClass('w2p-hidden').hide();
             $('#w2p-audit-tbody').empty();
             $('#w2p-audit-clean-all').addClass('w2p-hidden').hide();
@@ -216,6 +211,10 @@
                     desc += '<div class="w2p-parent-info">' + w2pMediaEngine.i18n.parentLabel + parentHtml + '</div>';
                 }
 
+                const thumb = item.thumb_url ?
+                    '<img src="' + item.thumb_url + '" class="w2p-audit-thumb" loading="lazy" />' :
+                    '<span class="w2p-audit-thumb-placeholder"><i class="fa-regular fa-image"></i></span>';
+
                 $tbody.append(
                     '<tr data-status="' + item.status + '">' +
                     '<td><input type="checkbox" class="w2p-audit-row-check" ' +
@@ -224,7 +223,12 @@
                     (item.status === 'orphan' ? 'data-orphan="1"' : '') +
                     (item.status === 'not_offloaded' && item.attachment_id ? 'data-enqueue="' + item.attachment_id + '"' : '') +
                     ' /></td>' +
-                    '<td class="w2p-audit-file-cell"><span class="w2p-audit-filename">' + $('<div>').text(item.file).html() + '</span></td>' +
+                    '<td class="w2p-audit-file-cell">' +
+                    '<div class="w2p-audit-file-wrap">' +
+                    thumb +
+                    '<span class="w2p-audit-filename" title="' + $('<div>').text(item.file).html() + '">' + $('<div>').text(item.file).html() + '</span>' +
+                    '</div>' +
+                    '</td>' +
                     '<td>' + item.ext + '</td>' +
                     '<td><span class="w2p-status-badge w2p-status-' + st.cls + '">' + st.label + '</span></td>' +
                     '<td>' + (item.size ? self.formatSize(item.size) : '-') + '</td>' +

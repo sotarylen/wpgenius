@@ -118,6 +118,7 @@
                 $('#w2p-attachment-list').toggleClass('w2p-hidden', step !== 1 || !hasStep1Table).toggle(step === 1 && hasStep1Table);
 
                 const hasStep2Data = $('#w2p-audit-tbody tr').length > 0;
+                $('#w2p-audit-summary').toggleClass('w2p-hidden', step !== 2 || !hasStep2Data).toggle(step === 2 && hasStep2Data);
                 $('#w2p-audit-results').toggleClass('w2p-hidden', step !== 2 || !hasStep2Data).toggle(step === 2 && hasStep2Data);
 
                 const hasStep3Data = $('#w2p-fixer-tbody tr').length > 0;

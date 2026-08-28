@@ -214,19 +214,45 @@
 .w2p-fixer-stat-path .value { color: var(--w2p-color-info); }
 .w2p-fixer-stat-external .value { color: var(--w2p-text-muted); }
 
-.w2p-audit-input { width: 180px; }
-
-/* File column -- single line, path+filename, no wrapping */
+/* File column with thumbnail */
 .w2p-audit-file-cell {
+	max-width: 420px;
+}
+.w2p-audit-file-wrap {
+	display: flex;
+	align-items: center;
+	gap: var(--w2p-spacing-xs);
+	min-width: 0;
+}
+.w2p-audit-thumb {
+	width: 36px;
+	height: 36px;
+	object-fit: cover;
+	border-radius: var(--w2p-radius-sm);
+	border: 1px solid var(--w2p-border-color);
+	background: var(--w2p-bg-surface-secondary);
+	flex-shrink: 0;
+}
+.w2p-audit-thumb-placeholder {
+	width: 36px;
+	height: 36px;
+	border-radius: var(--w2p-radius-sm);
+	border: 1px solid var(--w2p-border-color);
+	background: var(--w2p-bg-surface-secondary);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--w2p-text-muted);
+	font-size: 14px;
+	flex-shrink: 0;
+}
+.w2p-audit-filename {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	max-width: 360px;
-}
-.w2p-audit-file-cell .w2p-audit-filename {
-	display: inline;
-	overflow: hidden;
-	text-overflow: ellipsis;
+	display: inline-block;
+	flex: 1;
+	min-width: 0;
 }
 
 /* ========== Fixer Previews ========== */
