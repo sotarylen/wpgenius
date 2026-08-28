@@ -3,8 +3,8 @@
  * Smart AUI — Post List External Media Filter
  *
  * Adds an "External Media Filter" button next to "Search Posts" on edit.php.
- * Filters posts containing external images/media and excludes drafts.
- * Controlled by module switcher setting.
+ * Filters posts containing genuine external images/media, skips local/Base URL files,
+ * and excludes drafts.
  *
  * @package WP_Genius
  * @subpackage Modules/SmartAUI
@@ -43,7 +43,7 @@ class W2P_SmartAUI_Post_List_Filter {
 
 		add_action( 'admin_head-edit.php', array( $this, 'inject_filter_button_script' ) );
 		add_action( 'pre_get_posts', array( $this, 'filter_posts_query' ) );
-		add_filter( 'posts_clauses', array( $this, 'filter_posts_clauses' ), 10, 2 );
+		add_action( 'save_post', array( $this, 'clear_clean_meta_on_save' ) );
 	}
 
 	/**
@@ -86,7 +86,20 @@ class W2P_SmartAUI_Post_List_Filter {
 	}
 
 	/**
-	 * Modify WP_Query to exclude drafts and prepare external media filtering.
+	 * Clear clean status meta when a post is edited/updated.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return void
+	 */
+	public function clear_clean_meta_on_save( $post_id ) {
+		if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
+			return;
+		}
+		delete_post_meta( $post_id, '_w2p_smart_aui_clean' );
+	}
+
+	/**
+	 * Modify WP_Query to filter only posts containing genuine external media.
 	 *
 	 * @param WP_Query $query The query instance.
 	 * @return void
@@ -103,39 +116,184 @@ class W2P_SmartAUI_Post_List_Filter {
 
 		// Strictly exclude draft, auto-draft, trash (only active/published posts)
 		$query->set( 'post_status', array( 'publish', 'future', 'private', 'pending' ) );
+
+		$matched_post_ids = $this->get_external_media_post_ids();
+
+		if ( empty( $matched_post_ids ) ) {
+			$query->set( 'post__in', array( 0 ) );
+		} else {
+			$query->set( 'post__in', $matched_post_ids );
+		}
 	}
 
 	/**
-	 * Add SQL clauses to filter posts containing external media.
+	 * Get list of post IDs containing genuine external media.
+	 * Inspects candidate posts, skips local/Base URL images, and marks clean posts.
 	 *
-	 * @param array    $clauses Array of query clauses.
-	 * @param WP_Query $query   Query instance.
 	 * @return array
 	 */
-	public function filter_posts_clauses( array $clauses, $query ): array {
-		if ( ! is_admin() || ! $query->is_main_query() ) {
-			return $clauses;
-		}
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( empty( $_GET['w2p_external_filter'] ) || '1' !== (string) $_GET['w2p_external_filter'] ) {
-			return $clauses;
-		}
-
+	private function get_external_media_post_ids(): array {
 		global $wpdb;
 
 		$settings       = $this->module->get_settings();
+		$base_url       = ! empty( $settings['smart_aui_base_url'] ) ? $settings['smart_aui_base_url'] : site_url();
 		$capture_videos = ! empty( $settings['smart_aui_capture_videos'] );
 
-		// Match posts with img or video tags
+		// 1. Gather all whitelisted local hosts
+		$local_hosts = array_filter(
+			array_unique(
+				array(
+					strtolower( (string) wp_parse_url( site_url(), PHP_URL_HOST ) ),
+					strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) ),
+					strtolower( (string) wp_parse_url( $base_url, PHP_URL_HOST ) ),
+				)
+			)
+		);
+
+		// 2. Gather excluded domains
+		$exclude_domains = array();
+		if ( ! empty( $settings['smart_aui_exclude_domains'] ) ) {
+			$lines = explode( "\n", str_replace( "\r", '', $settings['smart_aui_exclude_domains'] ) );
+			foreach ( $lines as $l ) {
+				$l = trim( $l );
+				if ( ! empty( $l ) ) {
+					$exclude_domains[] = strtolower( $l );
+				}
+			}
+		}
+
 		$content_clause = $capture_videos
-			? "( {$wpdb->posts}.post_content LIKE '%<img%' OR {$wpdb->posts}.post_content LIKE '%<video%' OR {$wpdb->posts}.post_content LIKE '%[video%' )"
-			: "{$wpdb->posts}.post_content LIKE '%<img%'";
+			? "( p.post_content LIKE '%<img%' OR p.post_content LIKE '%<video%' OR p.post_content LIKE '%[video%' )"
+			: "p.post_content LIKE '%<img%'";
 
-		// Exclude already scanned clean posts
-		$clauses['join']  .= " LEFT JOIN {$wpdb->postmeta} pm_clean ON ( {$wpdb->posts}.ID = pm_clean.post_id AND pm_clean.meta_key = '_w2p_smart_aui_clean' ) ";
-		$clauses['where'] .= " AND {$content_clause} AND pm_clean.meta_value IS NULL ";
+		// 3. Query candidate posts excluding already verified clean posts
+		$posts = $wpdb->get_results(
+			"SELECT p.ID, p.post_content
+			FROM {$wpdb->posts} p
+			LEFT JOIN {$wpdb->postmeta} pm ON ( p.ID = pm.post_id AND pm.meta_key = '_w2p_smart_aui_clean' )
+			WHERE p.post_type = 'post'
+			  AND p.post_status IN ('publish', 'future', 'private', 'pending')
+			  AND {$content_clause}
+			  AND pm.meta_value IS NULL
+			ORDER BY p.ID DESC
+			LIMIT 500"
+		);
 
-		return $clauses;
+		if ( empty( $posts ) ) {
+			return array();
+		}
+
+		$matched_ids = array();
+		$clean_ids   = array();
+
+		foreach ( $posts as $post_obj ) {
+			if ( $this->post_has_external_media( $post_obj->post_content, $local_hosts, $exclude_domains, $capture_videos ) ) {
+				$matched_ids[] = (int) $post_obj->ID;
+			} else {
+				$clean_ids[] = (int) $post_obj->ID;
+			}
+		}
+
+		// 4. Batch mark clean posts to avoid re-inspection on subsequent loads
+		if ( ! empty( $clean_ids ) ) {
+			$value_rows = array();
+			foreach ( $clean_ids as $cid ) {
+				$value_rows[] = $wpdb->prepare( '(%d, %s, %s)', $cid, '_w2p_smart_aui_clean', '1' );
+			}
+			$wpdb->query( "INSERT IGNORE INTO {$wpdb->postmeta} (post_id, meta_key, meta_value) VALUES " . implode( ', ', $value_rows ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		}
+
+		return $matched_ids;
+	}
+
+	/**
+	 * Check if post content has genuinely external media items.
+	 *
+	 * @param string $content         Post HTML content.
+	 * @param array  $local_hosts     Whitelisted local hosts.
+	 * @param array  $exclude_domains Exclude domains.
+	 * @param bool   $check_videos    Whether to inspect video tags.
+	 * @return bool
+	 */
+	private function post_has_external_media( $content, array $local_hosts, array $exclude_domains, $check_videos = false ): bool {
+		if ( empty( $content ) ) {
+			return false;
+		}
+
+		// 1. Check <img> tags
+		if ( preg_match_all( '/<img[^>]+src=[\'"]([^\'"]+)[\'"]/i', $content, $img_matches ) ) {
+			foreach ( $img_matches[1] as $src ) {
+				if ( $this->is_external_media_url( $src, $local_hosts, $exclude_domains ) ) {
+					return true;
+				}
+			}
+		}
+
+		// 2. Check <video> and <source> tags if video capture is enabled
+		if ( $check_videos ) {
+			if ( preg_match_all( '/<(?:video|source)[^>]+src=[\'"]([^\'"]+)[\'"]/i', $content, $video_matches ) ) {
+				foreach ( $video_matches[1] as $src ) {
+					if ( $this->is_external_media_url( $src, $local_hosts, $exclude_domains ) ) {
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Check if a URL is an external media URL that needs to be downloaded.
+	 *
+	 * @param string $url             Media source URL.
+	 * @param array  $local_hosts     Whitelisted local domain hosts.
+	 * @param array  $exclude_domains User configured exclude domains.
+	 * @return bool True if genuinely external.
+	 */
+	private function is_external_media_url( $url, array $local_hosts, array $exclude_domains ): bool {
+		if ( empty( $url ) ) {
+			return false;
+		}
+
+		// Relative paths, Data URIs, and Blob URLs are local
+		if ( 0 === strpos( $url, 'data:' ) || 0 === strpos( $url, 'blob:' ) ) {
+			return false;
+		}
+		if ( 0 === strpos( $url, '/' ) && 0 !== strpos( $url, '//' ) ) {
+			return false;
+		}
+
+		$host = wp_parse_url( $url, PHP_URL_HOST );
+		if ( empty( $host ) ) {
+			return false;
+		}
+
+		$host = strtolower( $host );
+
+		// Check against all local hosts (site_url, home_url, smart_aui_base_url)
+		foreach ( $local_hosts as $lh ) {
+			if ( empty( $lh ) ) {
+				continue;
+			}
+			if ( $host === $lh || substr( $host, -strlen( '.' . $lh ) ) === '.' . $lh ) {
+				return false;
+			}
+		}
+
+		// Check against user excluded domains (supports wildcards, e.g. *.example.com)
+		foreach ( $exclude_domains as $ed ) {
+			if ( empty( $ed ) ) {
+				continue;
+			}
+			$pattern = str_replace( '\*', '.*', preg_quote( $ed, '#' ) );
+			if ( preg_match( '#^' . $pattern . '$#i', $host ) ) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 }
+
+
