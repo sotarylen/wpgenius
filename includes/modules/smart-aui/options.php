@@ -177,13 +177,8 @@ return array(
 							'label'   => __( 'Add an "External Media Filter" button next to "Search Posts" on edit.php to filter posts containing external images.', 'wp-genius' ),
 							'default' => true,
 						),
-					),
-				),
-				// Tab 2: Media Enhancements
-				array(
-					'title'  => __( 'Media Enhancements', 'wp-genius' ),
-					'icon'   => 'fa fa-images',
-					'fields' => array(
+
+						// === Media Enhancements ===
 						array(
 							'id'      => '_subheading_media_enhance',
 							'type'    => 'subheading',
@@ -218,7 +213,7 @@ return array(
 						),
 					),
 				),
-				// Tab 3: Logs
+				// Tab 2: Logs
 				array(
 					'title'  => __( 'Capture Failure Logs', 'wp-genius' ),
 					'icon'   => 'fa fa-history',
