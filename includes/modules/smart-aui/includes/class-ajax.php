@@ -82,15 +82,19 @@ class W2P_SmartAUI_Ajax {
 		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
 
 		if ( ! current_user_can( 'edit_posts' ) ) {
-			wp_send_json_error( 'Permission denied' );
+			wp_send_json_error( __( 'Permission denied', 'wp-genius' ) );
 		}
 
-		$post_id    = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
+		$post_id    = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
 		$content    = isset( $_POST['content'] ) ? wp_unslash( $_POST['content'] ) : '';
-		$process_id = isset( $_POST['process_id'] ) ? sanitize_text_field( $_POST['process_id'] ) : '';
+		$process_id = isset( $_POST['process_id'] ) ? sanitize_text_field( wp_unslash( $_POST['process_id'] ) ) : '';
+
+		if ( $post_id > 0 && ! current_user_can( 'edit_post', $post_id ) ) {
+			wp_send_json_error( __( 'Permission denied for this post', 'wp-genius' ) );
+		}
 
 		if ( empty( $content ) ) {
-			wp_send_json_error( 'No content to process' );
+			wp_send_json_error( __( 'No content to process', 'wp-genius' ) );
 		}
 
 		// Create mock post data
@@ -110,7 +114,7 @@ class W2P_SmartAUI_Ajax {
 		$container = \SmartAutoUploadImages\get_container();
 		$processor = $container->get( 'image_processor' );
 
-		$target_url = isset( $_POST['target_url'] ) ? esc_url_raw( $_POST['target_url'] ) : '';
+		$target_url = isset( $_POST['target_url'] ) ? esc_url_raw( wp_unslash( $_POST['target_url'] ) ) : '';
 
 		// Process content
 		// Note: Actions hooked in ImageProcessorExtended will handle progress updates
@@ -140,12 +144,16 @@ class W2P_SmartAUI_Ajax {
 		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
 
 		if ( ! current_user_can( 'edit_posts' ) ) {
-			wp_send_json_error( 'Permission denied' );
+			wp_send_json_error( __( 'Permission denied', 'wp-genius' ) );
 		}
 
-		$post_id    = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
+		$post_id    = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
 		$raw_url    = isset( $_POST['image_url'] ) ? wp_unslash( $_POST['image_url'] ) : '';
 		$process_id = isset( $_POST['process_id'] ) ? sanitize_text_field( wp_unslash( $_POST['process_id'] ) ) : '';
+
+		if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
+			wp_send_json_error( __( 'Permission denied for this post', 'wp-genius' ) );
+		}
 
 		// [FIX] Strict check for relative paths
 		// esc_url_raw converts "attachment/..." to "http://attachment/...", causing is_external_url to fail.
@@ -164,10 +172,10 @@ class W2P_SmartAUI_Ajax {
 
 		$image_url = esc_url_raw( $raw_url );
 
-		if ( ! $post_id || empty( $image_url ) ) {
+		if ( empty( $image_url ) ) {
 			wp_send_json_error(
 				array(
-					'message' => 'Invalid request',
+					'message' => __( 'Invalid request', 'wp-genius' ),
 				)
 			);
 		}
@@ -176,7 +184,7 @@ class W2P_SmartAUI_Ajax {
 		if ( ! $post ) {
 			wp_send_json_error(
 				array(
-					'message' => 'Post not found',
+					'message' => __( 'Post not found', 'wp-genius' ),
 				)
 			);
 		}
@@ -439,15 +447,19 @@ class W2P_SmartAUI_Ajax {
 		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
 
 		if ( ! current_user_can( 'edit_posts' ) ) {
-			wp_send_json_error( 'Permission denied' );
+			wp_send_json_error( __( 'Permission denied', 'wp-genius' ) );
 		}
 
-		$post_id = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
+		$post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+		if ( $post_id > 0 && ! current_user_can( 'edit_post', $post_id ) ) {
+			wp_send_json_error( __( 'Permission denied for this post', 'wp-genius' ) );
+		}
+
 		$content = isset( $_POST['content'] ) ? wp_unslash( $_POST['content'] ) : '';
 		$images  = isset( $_POST['images'] ) ? array_map( 'esc_url_raw', (array) $_POST['images'] ) : array();
 
 		if ( empty( $content ) ) {
-			wp_send_json_error( 'No content to process' );
+			wp_send_json_error( __( 'No content to process', 'wp-genius' ) );
 		}
 
 		// Create mock post data
@@ -467,7 +479,7 @@ class W2P_SmartAUI_Ajax {
 		wp_send_json_success(
 			array(
 				'processed_content' => $processed_content ? $processed_content : $content,
-				'message'           => 'All images processed successfully',
+				'message'           => __( 'All images processed successfully', 'wp-genius' ),
 			)
 		);
 	}
@@ -478,7 +490,7 @@ class W2P_SmartAUI_Ajax {
 		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( 'Permission denied' );
+			wp_send_json_error( __( 'Permission denied', 'wp-genius' ) );
 		}
 
 		$settings = get_option( 'smart_aui_settings', array() );
@@ -508,18 +520,18 @@ class W2P_SmartAUI_Ajax {
 		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
 
 		if ( ! current_user_can( 'edit_posts' ) ) {
-			wp_send_json_error( 'Permission denied' );
+			wp_send_json_error( __( 'Permission denied', 'wp-genius' ) );
 		}
 
-		$post_id = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
+		$post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
 
-		if ( ! $post_id ) {
-			wp_send_json_error( 'Invalid Post ID' );
+		if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
+			wp_send_json_error( __( 'Permission denied for this post', 'wp-genius' ) );
 		}
 
 		$post = get_post( $post_id );
 		if ( ! $post ) {
-			wp_send_json_error( 'Post not found' );
+			wp_send_json_error( __( 'Post not found', 'wp-genius' ) );
 		}
 
 		wp_send_json_success(
@@ -540,17 +552,18 @@ class W2P_SmartAUI_Ajax {
 
 		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
 
-		if ( ! current_user_can( 'edit_posts' ) ) {
-			wp_send_json_error( 'Permission denied' );
+		$post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+
+		if ( ! $post_id || ! get_post( $post_id ) ) {
+			wp_send_json_error( __( 'Invalid Post ID', 'wp-genius' ) );
 		}
 
-		$post_id     = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			wp_send_json_error( __( 'Permission denied for this post', 'wp-genius' ) );
+		}
+
 		$content     = isset( $_POST['content'] ) ? wp_unslash( $_POST['content'] ) : '';
-		$post_status = isset( $_POST['post_status'] ) ? sanitize_text_field( $_POST['post_status'] ) : null;
-
-		if ( ! $post_id ) {
-			wp_send_json_error( 'Invalid Post ID' );
-		}
+		$post_status = isset( $_POST['post_status'] ) ? sanitize_key( wp_unslash( $_POST['post_status'] ) ) : null;
 
 		// Prepare the update data
 		$update_data = array(
@@ -558,8 +571,16 @@ class W2P_SmartAUI_Ajax {
 			'post_content' => $content,
 		);
 
-		// If a status is specified, update the status too
+		// If a status is specified, update the status too after verifying publish permissions
 		if ( $post_status && in_array( $post_status, array( 'publish', 'draft', 'pending', 'private' ), true ) ) {
+			$post_type        = get_post_type( $post_id );
+			$post_type_object = get_post_type_object( $post_type );
+			$publish_cap      = $post_type_object ? $post_type_object->cap->publish_posts : 'publish_posts';
+
+			if ( 'publish' === $post_status && ! current_user_can( $publish_cap ) ) {
+				wp_send_json_error( __( 'Permission denied to publish post', 'wp-genius' ) );
+			}
+
 			$update_data['post_status'] = $post_status;
 
 			// If publishing, need to update the publication time
@@ -603,7 +624,7 @@ class W2P_SmartAUI_Ajax {
 		wp_send_json_success(
 			array(
 				'success' => true,
-				'message' => 'Post content saved successfully',
+				'message' => __( 'Post content saved successfully', 'wp-genius' ),
 			)
 		);
 	}
@@ -614,7 +635,7 @@ class W2P_SmartAUI_Ajax {
 		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
 
 		if ( ! current_user_can( 'edit_posts' ) ) {
-			wp_send_json_error( 'Permission denied' );
+			wp_send_json_error( __( 'Permission denied', 'wp-genius' ) );
 		}
 
 		$container = \SmartAutoUploadImages\get_container();
@@ -669,14 +690,18 @@ class W2P_SmartAUI_Ajax {
 		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
 
 		if ( ! current_user_can( 'edit_posts' ) ) {
-			wp_send_json_error( 'Permission denied' );
+			wp_send_json_error( __( 'Permission denied', 'wp-genius' ) );
 		}
 
-		$post_id   = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
+		$post_id   = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
 		$video_url = isset( $_POST['video_url'] ) ? esc_url_raw( wp_unslash( $_POST['video_url'] ) ) : '';
 
-		if ( ! $post_id || empty( $video_url ) ) {
-			wp_send_json_error( array( 'message' => 'Invalid request' ) );
+		if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
+			wp_send_json_error( __( 'Permission denied for this post', 'wp-genius' ) );
+		}
+
+		if ( empty( $video_url ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid request', 'wp-genius' ) ) );
 		}
 
 		// Check if video capture is enabled
@@ -687,14 +712,14 @@ class W2P_SmartAUI_Ajax {
 					'source_url'     => $video_url,
 					'downloaded_url' => $video_url,
 					'skipped'        => true,
-					'message'        => 'Video capture is disabled',
+					'message'        => __( 'Video capture is disabled', 'wp-genius' ),
 				)
 			);
 		}
 
 		$post = get_post( $post_id );
 		if ( ! $post ) {
-			wp_send_json_error( array( 'message' => 'Post not found' ) );
+			wp_send_json_error( array( 'message' => __( 'Post not found', 'wp-genius' ) ) );
 		}
 
 		$post_data = array(
@@ -737,7 +762,7 @@ class W2P_SmartAUI_Ajax {
 				'downloaded_url' => $new_url,
 				'attachment_id'  => $result['attachment_id'],
 				'mime_type'      => $result['mime_type'],
-				'message'        => 'Video downloaded successfully',
+				'message'        => __( 'Video downloaded successfully', 'wp-genius' ),
 			)
 		);
 	}
@@ -745,23 +770,25 @@ class W2P_SmartAUI_Ajax {
 		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
 
 		if ( ! current_user_can( 'edit_posts' ) ) {
-			wp_send_json_error( 'Permission denied' );
+			wp_send_json_error( __( 'Permission denied', 'wp-genius' ) );
 		}
 
 		$image_url = isset( $_POST['image_url'] ) ? esc_url_raw( wp_unslash( $_POST['image_url'] ) ) : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- nonce already verified by check_ajax_referer() above.
-		$post_id = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
+		$post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
 
 		if ( empty( $image_url ) ) {
-			wp_send_json_error( array( 'message' => 'Invalid image URL' ) );
+			wp_send_json_error( array( 'message' => __( 'Invalid image URL', 'wp-genius' ) ) );
 		}
 
 		// Use existing method to get attachment ID
 		$attachment_id = $this->processor->get_attachment_id_from_url( $image_url );
 
 		if ( $attachment_id ) {
-			// If the attachment is an orphan in the media library, set this post as its parent.
-			$this->maybe_attach_orphan_image( $attachment_id, $post_id );
+			// If the attachment is an orphan in the media library, and user has permission to edit the post, set this post as its parent.
+			if ( $post_id > 0 && current_user_can( 'edit_post', $post_id ) ) {
+				$this->maybe_attach_orphan_image( $attachment_id, $post_id );
+			}
 
 			wp_send_json_success(
 				array(
@@ -770,7 +797,7 @@ class W2P_SmartAUI_Ajax {
 				)
 			);
 		} else {
-			wp_send_json_error( array( 'message' => 'Attachment not found' ) );
+			wp_send_json_error( array( 'message' => __( 'Attachment not found', 'wp-genius' ) ) );
 		}
 	}
 
