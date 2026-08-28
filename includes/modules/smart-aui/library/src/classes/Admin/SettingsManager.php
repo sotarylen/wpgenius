@@ -169,23 +169,23 @@ class SettingsManager {
 		$errors = [];
 
 		if ( ! empty( $settings['base_url'] ) && ! wp_http_validate_url( $settings['base_url'] ) ) {
-			$errors['base_url'] = __( 'Please enter a valid URL for the base URL.', 'smart-auto-upload-images' );
+			$errors['base_url'] = __( 'Please enter a valid URL for the base URL.', 'wp-genius' );
 		}
 
 		if ( empty( $settings['image_name_pattern'] ) ) {
-			$errors['image_name_pattern'] = __( 'Image name pattern cannot be empty.', 'smart-auto-upload-images' );
+			$errors['image_name_pattern'] = __( 'Image name pattern cannot be empty.', 'wp-genius' );
 		}
 
 		if ( empty( $settings['alt_text_pattern'] ) ) {
-			$errors['alt_text_pattern'] = __( 'Alt text pattern cannot be empty.', 'smart-auto-upload-images' );
+			$errors['alt_text_pattern'] = __( 'Alt text pattern cannot be empty.', 'wp-genius' );
 		}
 
 		if ( isset( $settings['max_width'] ) && $settings['max_width'] < 0 ) {
-			$errors['max_width'] = __( 'Max width must be a positive number.', 'smart-auto-upload-images' );
+			$errors['max_width'] = __( 'Max width must be a positive number.', 'wp-genius' );
 		}
 
 		if ( isset( $settings['max_height'] ) && $settings['max_height'] < 0 ) {
-			$errors['max_height'] = __( 'Max height must be a positive number.', 'smart-auto-upload-images' );
+			$errors['max_height'] = __( 'Max height must be a positive number.', 'wp-genius' );
 		}
 
 		return $errors;

@@ -42,19 +42,19 @@ class ImageValidator {
 	 */
 	public function validate_image_url( string $url, array $post_data ) {
 		if ( ! $this->is_external_url( $url ) ) {
-			return new \WP_Error( 'internal_url', esc_html__( 'Image URL is not external', 'smart-auto-upload-images' ) );
+			return new \WP_Error( 'internal_url', esc_html__( 'Image URL is not external', 'wp-genius' ) );
 		}
 
 		if ( $this->is_domain_excluded( $url ) ) {
-			return new \WP_Error( 'excluded_domain', esc_html__( 'Image URL is excluded', 'smart-auto-upload-images' ) );
+			return new \WP_Error( 'excluded_domain', esc_html__( 'Image URL is excluded', 'wp-genius' ) );
 		}
 
 		if ( $this->is_post_type_excluded( $post_data['post_type'] ?? '' ) ) {
-			return new \WP_Error( 'excluded_post_type', esc_html__( 'Image URL is excluded', 'smart-auto-upload-images' ) );
+			return new \WP_Error( 'excluded_post_type', esc_html__( 'Image URL is excluded', 'wp-genius' ) );
 		}
 
 		if ( ! $this->is_valid_url( $url ) ) {
-			return new \WP_Error( 'invalid_url', esc_html__( 'Image URL is not valid', 'smart-auto-upload-images' ) );
+			return new \WP_Error( 'invalid_url', esc_html__( 'Image URL is not valid', 'wp-genius' ) );
 		}
 
 		/**
@@ -77,7 +77,7 @@ class ImageValidator {
 		}
 
 		if ( false === $custom_validation ) {
-			return new \WP_Error( 'custom_validation_failed', esc_html__( 'Image validation failed', 'smart-auto-upload-images' ) );
+			return new \WP_Error( 'custom_validation_failed', esc_html__( 'Image validation failed', 'wp-genius' ) );
 		}
 
 		return true;

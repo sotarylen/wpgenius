@@ -36,7 +36,7 @@ class FailedImagesManager {
 		$failed_logs = get_option( self::OPTION_NAME, [] );
 		
 		// Use URL as key to avoid duplicates and store timestamp as value
-		$failed_logs[ $url ] = current_time( 'timestamp' );
+		$failed_logs[ $url ] = time();
 
 		// Limit to last 500 entries to prevent option bloat
 		if ( count( $failed_logs ) > 500 ) {
