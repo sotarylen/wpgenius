@@ -154,7 +154,28 @@ return array(
 						),
 					),
 				),
+
+				// Tab 6: Content URL & Format Fixer (Content Field)
+				array(
+					'title'  => __( 'URL & Format Fixer', 'wp-genius' ),
+					'icon'   => 'fa fa-wand-magic-sparkles',
+					'fields' => array(
+						array(
+							'type'    => 'content',
+							'content' => ( function () use ( $module_dir ) {
+								$fixer_path = $module_dir . 'views/url-fixer-settings.php';
+								if ( file_exists( $fixer_path ) ) {
+									ob_start();
+									include $fixer_path;
+									return ob_get_clean();
+								}
+								return '<p>' . __( 'Content URL fixer not available.', 'wp-genius' ) . '</p>';
+							} )(),
+						),
+					),
+				),
 			),
 		),
 	),
 );
+

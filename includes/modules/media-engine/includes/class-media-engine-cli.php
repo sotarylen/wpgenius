@@ -240,23 +240,152 @@ class MediaEngineCLI {
 	 *
 	 * @when after_wp_load
 	 */
-	public function stats( $args, $assoc_args ) {
-		$total = $this->processor->get_pending_count();
+	/**
+	 * Fix /wp-content/uploads/ URLs in post contents and correct extensions for offloaded WebP media
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--limit=<number>]
+	 * : Number of posts to process per batch, default 50
+	 *
+	 * [--offset=<number>]
+	 * : Offset for scanning posts, default 0
+	 *
+	 * [--id=<number>]
+	 * : Process a specific post ID
+	 *
+	 * [--dry-run]
+	 * : Inspect and report replacements without modifying the database
+	 *
+	 * [--all]
+	 * : Continuously process all pending posts until none remain
+	 *
+	 * [--include-revisions]
+	 * : Include post revisions in scan/fix
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Preview fixes for 10 posts (dry-run)
+	 *     wp media-engine fix-urls --limit=10 --dry-run
+	 *
+	 *     # Fix URLs for a specific post
+	 *     wp media-engine fix-urls --id=12345
+	 *
+	 *     # Batch fix 50 posts
+	 *     wp media-engine fix-urls --limit=50
+	 *
+	 *     # Process all posts until finished
+	 *     wp media-engine fix-urls --all
+	 *
+	 * @subcommand fix-urls
+	 * @when after_wp_load
+	 */
+	public function fix_urls( $args, $assoc_args ) {
+		$service_path = plugin_dir_path( __FILE__ ) . 'services/class-url-fixer-service.php';
+		if ( ! class_exists( 'MediaEngineUrlFixerService' ) && file_exists( $service_path ) ) {
+			require_once $service_path;
+		}
 
-		// translators: %1: placeholder.
-		WP_CLI::line( sprintf( __( 'Pending attachments: %d', 'wp-genius' ), $total ) );
+		$fixer             = new MediaEngineUrlFixerService();
+		$limit             = isset( $assoc_args['limit'] ) ? max( 1, (int) $assoc_args['limit'] ) : 50;
+		$offset            = isset( $assoc_args['offset'] ) ? max( 0, (int) $assoc_args['offset'] ) : 0;
+		$post_id           = isset( $assoc_args['id'] ) ? (int) $assoc_args['id'] : null;
+		$dry_run           = isset( $assoc_args['dry-run'] );
+		$all               = isset( $assoc_args['all'] );
+		$include_revisions = isset( $assoc_args['include-revisions'] );
 
-		if ( $total > 0 ) {
+		if ( $dry_run ) {
+			WP_CLI::warning( __( 'Running in DRY-RUN mode: no database changes will be made.', 'wp-genius' ) );
+		}
+
+		// Single post
+		if ( $post_id ) {
+			WP_CLI::line( sprintf( __( 'Inspecting Post ID: %d...', 'wp-genius' ), $post_id ) );
+			$res = $fixer->fix_post( $post_id, $dry_run );
+
+			if ( ! empty( $res['changes'] ) ) {
+				WP_CLI::line( sprintf( __( 'Found %d URL(s) to replace:', 'wp-genius' ), count( $res['changes'] ) ) );
+				foreach ( $res['changes'] as $ch ) {
+					$tag = ! empty( $ch['ext_changed'] ) ? '[PATH+EXT]' : '[PATH]';
+					WP_CLI::line( sprintf( '  %s %s => %s (%d times)', $tag, $ch['old'], $ch['new'], $ch['count'] ) );
+				}
+				if ( ! $dry_run ) {
+					WP_CLI::success( sprintf( __( 'Post #%d updated successfully (%d replacements).', 'wp-genius' ), $post_id, $res['replaced'] ) );
+				} else {
+					WP_CLI::success( sprintf( __( '[DRY-RUN] Post #%d would have %d replacements.', 'wp-genius' ), $post_id, $res['replaced'] ) );
+				}
+			} else {
+				WP_CLI::line( sprintf( __( 'No local uploads URLs need fixing in Post #%d (Reason: %s).', 'wp-genius' ), $post_id, $res['reason'] ?? 'none' ) );
+			}
+			return;
+		}
+
+		// Stats
+		$stats = $fixer->get_stats( $include_revisions );
+		WP_CLI::line( sprintf( 'Site Host: %s', $stats['site_host'] ) );
+		WP_CLI::line( sprintf( 'Posts with local uploads URLs: ~%d (Total posts with any uploads: %d)', $stats['host_uploads_posts'], $stats['total_uploads_posts'] ) );
+
+		$total_modified  = 0;
+		$total_replaced  = 0;
+		$total_ext_fixed = 0;
+		$round           = 0;
+
+		do {
+			$round++;
+			$pending_ids = $fixer->get_pending_post_ids( $limit, $offset, $include_revisions );
+			$count       = count( $pending_ids );
+
+			if ( 0 === $count ) {
+				if ( 1 === $round ) {
+					WP_CLI::success( __( 'No pending posts found requiring URL fixes.', 'wp-genius' ) );
+				} else {
+					WP_CLI::success( __( 'All pending posts have been processed.', 'wp-genius' ) );
+				}
+				break;
+			}
+
+			WP_CLI::line( sprintf( __( '--- Round %d: Processing batch of %d posts (offset: %d) ---', 'wp-genius' ), $round, $count, $offset ) );
+			$batch_res = $fixer->fix_batch( $pending_ids, $dry_run );
+
+			$total_modified  += $batch_res['modified_posts'];
+			$total_replaced  += $batch_res['total_replaced'];
+			$total_ext_fixed += $batch_res['ext_fixed'];
+
 			WP_CLI::line(
 				sprintf(
-					// translators: %1: placeholder.
-					__( 'Estimated batches (100/batch): %d', 'wp-genius' ),
-					ceil( $total / 100 )
+					'  Batch Result: %d/%d posts modified | %d URLs replaced (%d path+ext, %d path only)',
+					$batch_res['modified_posts'],
+					$count,
+					$batch_res['total_replaced'],
+					$batch_res['ext_fixed'],
+					$batch_res['path_only_fixed']
 				)
 			);
-		}
+
+			// If in dry-run or not modifying, advance offset to avoid infinite loop
+			if ( $dry_run || 0 === $batch_res['modified_posts'] ) {
+				$offset += $count;
+			}
+
+			// If not --all, stop after 1 batch
+			if ( ! $all ) {
+				break;
+			}
+		} while ( $count > 0 );
+
+		WP_CLI::line( '==================================================' );
+		WP_CLI::line(
+			sprintf(
+				'Summary: %d posts modified | %d URLs replaced (%d with WebP extension fix)',
+				$total_modified,
+				$total_replaced,
+				$total_ext_fixed
+			)
+		);
+		WP_CLI::success( $dry_run ? __( 'Dry-run preview completed.', 'wp-genius' ) : __( 'URL fixing completed successfully.', 'wp-genius' ) );
 	}
 }
 
 // Register WP-CLI command
 WP_CLI::add_command( 'media-engine', 'MediaEngineCLI' );
+

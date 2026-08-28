@@ -74,6 +74,10 @@ class W2P_MediaEngineModule extends W2P_Abstract_Module {
 		add_action( 'wp_ajax_w2p_clear_conversion_log', array( $this, 'ajax_clear_conversion_log' ) );
 		add_action( 'wp_ajax_w2p_media_audit_scan', array( $this, 'ajax_audit_scan' ) );
 		add_action( 'wp_ajax_w2p_media_audit_clean', array( $this, 'ajax_audit_clean' ) );
+		add_action( 'wp_ajax_w2p_media_fixer_stats', array( $this, 'ajax_fixer_stats' ) );
+		add_action( 'wp_ajax_w2p_media_fixer_scan', array( $this, 'ajax_fixer_scan' ) );
+		add_action( 'wp_ajax_w2p_media_fixer_process_batch', array( $this, 'ajax_fixer_process_batch' ) );
+		add_action( 'wp_ajax_w2p_media_fixer_preview_post', array( $this, 'ajax_fixer_preview_post' ) );
 
 		// Enqueue admin scripts
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
@@ -127,6 +131,20 @@ class W2P_MediaEngineModule extends W2P_Abstract_Module {
 		$audit_service_path = plugin_dir_path( __FILE__ ) . 'includes/services/class-audit-service.php';
 		if ( file_exists( $audit_service_path ) ) {
 			require_once $audit_service_path;
+		}
+
+		// Load URL Fixer Service (content path and extension corrector)
+		$url_fixer_path = plugin_dir_path( __FILE__ ) . 'includes/services/class-url-fixer-service.php';
+		if ( file_exists( $url_fixer_path ) ) {
+			require_once $url_fixer_path;
+		}
+
+		// Load WP-CLI commands
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			$cli_path = plugin_dir_path( __FILE__ ) . 'includes/class-media-engine-cli.php';
+			if ( file_exists( $cli_path ) ) {
+				require_once $cli_path;
+			}
 		}
 	}
 
@@ -403,6 +421,88 @@ class W2P_MediaEngineModule extends W2P_Abstract_Module {
 	}
 
 	/**
+	 * AJAX: Get URL fixer statistics
+	 */
+	public function ajax_fixer_stats() {
+		check_ajax_referer( 'w2p_media_engine_nonce', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
+
+		$include_revisions = ! empty( $_POST['include_revisions'] );
+		$fixer             = new MediaEngineUrlFixerService();
+		$stats             = $fixer->get_stats( $include_revisions );
+
+		wp_send_json_success( $stats );
+	}
+
+	/**
+	 * AJAX: Scan posts for URL fixer
+	 */
+	public function ajax_fixer_scan() {
+		check_ajax_referer( 'w2p_media_engine_nonce', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
+
+		$limit             = isset( $_POST['limit'] ) ? absint( $_POST['limit'] ) : 20;
+		$last_id           = isset( $_POST['last_id'] ) ? absint( $_POST['last_id'] ) : 0;
+		$include_revisions = ! empty( $_POST['include_revisions'] );
+
+		$fixer  = new MediaEngineUrlFixerService();
+		$result = $fixer->scan_posts( $limit, $last_id, $include_revisions );
+
+		wp_send_json_success( $result );
+	}
+
+	/**
+	 * AJAX: Process URL fixer batch
+	 */
+	public function ajax_fixer_process_batch() {
+		check_ajax_referer( 'w2p_media_engine_nonce', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
+
+		$post_ids_raw = isset( $_POST['post_ids'] ) ? wp_unslash( $_POST['post_ids'] ) : array();
+		if ( is_string( $post_ids_raw ) ) {
+			$decoded      = json_decode( $post_ids_raw, true );
+			$post_ids_raw = is_array( $decoded ) ? $decoded : array();
+		}
+		$post_ids = is_array( $post_ids_raw ) ? array_map( 'absint', $post_ids_raw ) : array();
+		$dry_run  = ! empty( $_POST['dry_run'] );
+
+		if ( empty( $post_ids ) ) {
+			wp_send_json_error( 'No Post IDs provided' );
+		}
+
+		$fixer  = new MediaEngineUrlFixerService();
+		$result = $fixer->fix_batch( $post_ids, $dry_run );
+
+		wp_send_json_success( $result );
+	}
+
+	/**
+	 * AJAX: Preview single post URL inspection
+	 */
+	public function ajax_fixer_preview_post() {
+		check_ajax_referer( 'w2p_media_engine_nonce', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
+
+		$post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+		if ( ! $post_id ) {
+			wp_send_json_error( 'Invalid Post ID' );
+		}
+
+		$fixer  = new MediaEngineUrlFixerService();
+		$report = $fixer->inspect_post( $post_id );
+
+		wp_send_json_success( $report );
+	}
+
+	/**
 	 * Enqueue admin scripts
 	 */
 	public function enqueue_admin_scripts( $hook ) {
@@ -424,7 +524,16 @@ class W2P_MediaEngineModule extends W2P_Abstract_Module {
 		wp_enqueue_script(
 			'w2p-media-audit',
 			plugin_dir_url( __FILE__ ) . 'assets/js/media-audit.js',
-			array( 'jquery', 'wp-i18n' ),
+			array( 'jquery', 'wp-i18n', 'w2p-media-engine' ),
+			W2P_VERSION,
+			true
+		);
+
+		// Enqueue URL fixer script
+		wp_enqueue_script(
+			'w2p-media-url-fixer',
+			plugin_dir_url( __FILE__ ) . 'assets/js/url-fixer.js',
+			array( 'jquery', 'wp-i18n', 'w2p-media-engine' ),
 			W2P_VERSION,
 			true
 		);
@@ -526,6 +635,18 @@ These files will be re-converted/offloaded.',
 					'retryFailedNone'    => __( 'No failed attachments to re-enable', 'wp-genius' ),
 					/* translators: %1$d: number of failed attachments paused by the scanner. */
 					'failedSkippedInfo'  => __( '%1$d failed attachment(s) are paused and skipped by the scanner. Fix the cause, then use [Retry Failed Items].', 'wp-genius' ),
+					// URL Fixer i18n
+					'fixerScanStarting'  => __( 'Scanning posts for residual URLs...', 'wp-genius' ),
+					/* translators: 1: post count, 2: url count */
+					'fixerScanFound'     => __( 'Found %1$d posts with %2$d fixable URLs', 'wp-genius' ),
+					/* translators: 1: modified posts, 2: replaced urls, 3: ext fixes */
+					'fixerBatchDone'     => __( 'Batch complete: %1$d posts updated, %2$d URLs fixed (%3$d WebP extensions)', 'wp-genius' ),
+					/* translators: %1$d: post count */
+					'fixerConfirmFix'    => __( 'Fix URLs in %1$d selected posts? This will rewrite /wp-content/uploads/ to /wp-media/ and correct WebP extensions.', 'wp-genius' ),
+					'fixerAutoComplete'  => __( 'All pending posts have been successfully fixed!', 'wp-genius' ),
+					'fixerExternalSkip'  => __( 'External URL (Skipped)', 'wp-genius' ),
+					'fixerPathAndExt'    => __( 'Path + WebP Ext', 'wp-genius' ),
+					'fixerPathOnly'      => __( 'Path Only', 'wp-genius' ),
 				),
 			)
 		);

@@ -1707,12 +1707,3 @@ pre[class*="language-"] {
         transform: translateY(0);
     }
 }
-
-/* Utility Classes for Legacy Alignment */
-.w2p-delete-with-images-btn {
-    color: var(--w2p-color-error) !important;
-}
-
-.w2p-delete-with-images-btn:hover {
-    text-decoration: underline;
-}
