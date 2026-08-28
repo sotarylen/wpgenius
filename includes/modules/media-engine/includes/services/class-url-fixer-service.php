@@ -321,19 +321,31 @@ class W2P_Media_Url_Fixer_Service {
 				continue;
 			}
 
-			$inspection = $this->inspect_post( $id );
-			$results[]  = array(
+			$inspection    = $this->inspect_post( $id );
+			$fixable_count = count( $inspection['replacements'] );
+
+			// Filter out posts with 0 fixable URLs
+			if ( 0 === $fixable_count ) {
+				continue;
+			}
+
+			$edit_url = get_edit_post_link( $id, 'raw' );
+			if ( empty( $edit_url ) ) {
+				$edit_url = admin_url( 'post.php?post=' . (int) $id . '&action=edit' );
+			}
+
+			$results[] = array(
 				'id'              => (int) $id,
 				'title'           => $post->post_title ? $post->post_title : sprintf( __( '(Post #%d)', 'wp-genius' ), $id ),
 				'type'            => $post->post_type,
 				'date'            => $post->post_date,
-				'edit_url'        => get_edit_post_link( $id ),
+				'edit_url'        => $edit_url,
 				'local_url_count' => count( $inspection['local_urls'] ),
 				'external_count'  => count( $inspection['external_urls'] ),
-				'fixable_count'   => count( $inspection['replacements'] ),
+				'fixable_count'   => $fixable_count,
 				'has_ext_fix'     => $inspection['has_ext_fix'],
 				'has_path_fix'    => $inspection['has_path_fix'],
-				'sample_fixes'    => array_slice( $inspection['replacements'], 0, 5 ),
+				'sample_fixes'    => array_slice( $inspection['replacements'], 0, 1 ),
 			);
 		}
 

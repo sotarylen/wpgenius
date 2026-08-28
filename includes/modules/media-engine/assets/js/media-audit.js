@@ -383,6 +383,8 @@
         }
     };
 
+    window.AuditUI = AuditUI;
+
     // Initialize
     $(document).ready(function () {
         if (typeof w2pMediaEngine !== 'undefined') {

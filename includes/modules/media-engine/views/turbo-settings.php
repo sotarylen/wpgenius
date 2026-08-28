@@ -164,24 +164,8 @@ $batch_size = isset( $settings['batch_size'] ) ? absint( $settings['batch_size']
 
 			<!-- Step 3: Content URL & Format Fixer Action Bar & Stats -->
 			<div class="w2p-step-panel w2p-hidden" id="w2p-step-3-panel">
-				<!-- Prerequisite Notification Banner -->
-				<div id="w2p-fixer-prereq-banner" class="w2p-notice-banner w2p-notice-info">
-					<i class="fa-solid fa-shield-halved"></i>
-					<span id="w2p-fixer-prereq-text">
-						<?php esc_html_e( 'Prerequisite safety check: URL Fixer will verify that all media has been offloaded and local uploads are cleared before execution.', 'wp-genius' ); ?>
-					</span>
-				</div>
-
 				<div class="w2p-processing-actions">
 					<div class="w2p-flex w2p-gap-sm w2p-items-center w2p-flex-wrap">
-						<button type="button" id="w2p-fixer-check-prereq" class="w2p-btn w2p-btn-secondary">
-							<i class="fa-solid fa-clipboard-check"></i>
-							<?php esc_html_e( 'Check Prerequisites', 'wp-genius' ); ?>
-						</button>
-						<button type="button" id="w2p-fixer-get-stats" class="w2p-btn w2p-btn-secondary">
-							<i class="fa-solid fa-chart-pie"></i>
-							<?php esc_html_e( 'Get Stats', 'wp-genius' ); ?>
-						</button>
 						<button type="button" id="w2p-fixer-scan" class="w2p-btn w2p-btn-primary">
 							<i class="fa-solid fa-magnifying-glass"></i>
 							<?php esc_html_e( 'Scan Posts', 'wp-genius' ); ?>
@@ -210,8 +194,8 @@ $batch_size = isset( $settings['batch_size'] ) ? absint( $settings['batch_size']
 					</div>
 				</div>
 
-				<!-- Step 3 Stat Cards -->
-				<div id="w2p-fixer-summary" class="w2p-fixer-stats-grid">
+				<!-- Step 3 Stat Cards (Hidden before scan/fix execution) -->
+				<div id="w2p-fixer-summary" class="w2p-fixer-stats-grid w2p-hidden">
 					<div class="w2p-fixer-stat-card w2p-fixer-stat-pending" data-filter="pending" role="button" tabindex="0">
 						<span class="label"><?php esc_html_e( 'Processed / Pending', 'wp-genius' ); ?></span>
 						<span class="value" data-stat="pending_posts">0</span>

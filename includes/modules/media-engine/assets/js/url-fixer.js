@@ -19,7 +19,8 @@
         autoMode: 'idle', // 'idle' | 'running' | 'paused' | 'stopped' | 'completed'
         pauseRequested: false,
         stopRequested: false,
-        batchSize: 15,
+        batchSize: 50,
+        scanLimit: 50,
         scanLastId: 0,
         autoLastId: 0,
         prereqPassed: false,
@@ -37,8 +38,11 @@
          * Initialize module UI
          */
         init: function () {
+            if (window.w2pMediaEngine && window.w2pMediaEngine.scanLimit) {
+                this.batchSize = parseInt(window.w2pMediaEngine.scanLimit, 10) || 50;
+                this.scanLimit = this.batchSize;
+            }
             this.bindEvents();
-            this.updateStatsDisplay();
         },
 
         /**
@@ -46,15 +50,6 @@
          */
         bindEvents: function () {
             const self = this;
-
-            // Check prerequisites button
-            $('#w2p-fixer-check-prereq').on('click', function () {
-                self.checkPrerequisites(null, true);
-            });
-
-            $('#w2p-fixer-get-stats').on('click', function () {
-                self.fetchInitialStats();
-            });
 
             $('#w2p-fixer-scan').on('click', function () {
                 self.checkPrerequisites(function () {
@@ -114,15 +109,12 @@
          * Check prerequisites before performing scan or fixes
          *
          * @param {Function|null} onPassed Callback to execute if prerequisites pass
-         * @param {boolean} isManualClick Whether user explicitly clicked the check button
          */
-        checkPrerequisites: function (onPassed, isManualClick) {
+        checkPrerequisites: function (onPassed) {
             const self = this;
-            const $btn = $('#w2p-fixer-check-prereq');
-            const $banner = $('#w2p-fixer-prereq-banner');
-            const $bannerText = $('#w2p-fixer-prereq-text');
+            const $scanBtn = $('#w2p-fixer-scan');
 
-            $btn.prop('disabled', true).find('i').removeClass().addClass('fa-solid fa-spinner fa-spin');
+            $scanBtn.prop('disabled', true);
 
             $.ajax({
                 url: w2pMediaEngine.ajax_url,
@@ -132,91 +124,37 @@
                     nonce: w2pMediaEngine.nonce
                 },
                 success: function (response) {
+                    $scanBtn.prop('disabled', false);
                     if (response && response.success && response.data) {
                         const d = response.data;
-                        self.prereqPassed = d.passed;
+                        self.prereqPassed = !!d.passed;
 
                         if (d.passed) {
-                            $banner.removeClass('w2p-notice-warning w2p-notice-info').addClass('w2p-notice-success');
-                            $banner.find('i').removeClass().addClass('fa-solid fa-circle-check');
-                            $bannerText.text(w2pMediaEngine.i18n.fixerPrereqPassed || '✓ Prerequisites satisfied: All media offloaded & no local files in uploads directory.');
-
-                            if (isManualClick && typeof w2p !== 'undefined' && w2p.toast) {
-                                w2p.toast('Prerequisites check passed: Ready to fix content URLs.', 'success');
-                            }
-
                             if (typeof onPassed === 'function') {
                                 onPassed();
                             }
                         } else {
-                            $banner.removeClass('w2p-notice-success w2p-notice-info').addClass('w2p-notice-warning');
-                            $banner.find('i').removeClass().addClass('fa-solid fa-triangle-exclamation');
-                            
-                            const msgs = d.messages || [];
-                            const msgStr = msgs.join(' ');
-                            $bannerText.text(msgStr);
+                            const msgs = d.messages || [w2pMediaEngine.i18n.fixerPrereqFailed || 'Prerequisites check failed'];
+                            const msgStr = msgs.join('\n');
 
-                            const warnConfirm = function () {
-                                if (typeof w2p !== 'undefined' && w2p.confirm) {
-                                    w2p.confirm('⚠️ Warning: Prerequisites check failed!\n\n' + msgs.join('\n') + '\n\nProceed anyway?', function () {
-                                        if (typeof onPassed === 'function') {
-                                            onPassed();
-                                        }
-                                    });
-                                } else if (confirm('⚠️ Warning: Prerequisites check failed!\n\n' + msgs.join('\n') + '\n\nProceed anyway?')) {
-                                    if (typeof onPassed === 'function') {
-                                        onPassed();
-                                    }
-                                }
-                            };
-
-                            if (typeof onPassed === 'function') {
-                                warnConfirm();
-                            } else if (isManualClick && typeof w2p !== 'undefined' && w2p.toast) {
-                                w2p.toast(msgs[0] || 'Prerequisites check failed', 'warning');
+                            if (typeof w2p !== 'undefined' && w2p.toast) {
+                                w2p.toast(msgs[0], 'warning');
+                            } else {
+                                alert('⚠️ ' + msgStr);
                             }
+                            self.logTerminal('⚠️ ' + msgs.join(' | '));
+                        }
+                    } else {
+                        if (typeof onPassed === 'function') {
+                            onPassed();
                         }
                     }
                 },
                 error: function () {
+                    $scanBtn.prop('disabled', false);
                     if (typeof onPassed === 'function') {
                         onPassed();
                     }
-                },
-                complete: function () {
-                    $btn.prop('disabled', false).find('i').removeClass().addClass('fa-solid fa-clipboard-check');
-                }
-            });
-        },
-
-        /**
-         * Fetch fast statistics on demand
-         */
-        fetchInitialStats: function () {
-            const self = this;
-            const $btn = $('#w2p-fixer-get-stats');
-            $btn.prop('disabled', true).find('i').removeClass().addClass('fa-solid fa-spinner fa-spin');
-
-            $.ajax({
-                url: w2pMediaEngine.ajax_url,
-                type: 'POST',
-                data: {
-                    action: 'w2p_media_fixer_stats',
-                    nonce: w2pMediaEngine.nonce
-                },
-                success: function (response) {
-                    if (response && response.success && response.data) {
-                        const d = response.data;
-                        self.stats.scannedPosts = d.host_uploads_posts || 0;
-                        self.updateStatsDisplay();
-
-                        if (typeof w2p !== 'undefined' && w2p.toast) {
-                            w2p.toast('Estimated ' + self.stats.scannedPosts + ' posts with local uploads URLs', 'info');
-                        }
-                    }
-                },
-                complete: function () {
-                    $btn.prop('disabled', false).find('i').removeClass().addClass('fa-solid fa-chart-pie');
                 }
             });
         },
@@ -233,6 +171,8 @@
             $('#w2p-fixer-summary [data-stat="external_skipped"]').text(self.stats.externalSkipped);
         },
 
+        hasScanned: false,
+
         /**
          * Start scanning posts
          */
@@ -240,6 +180,7 @@
             const self = this;
             if (self.scanning || self.processing) return;
 
+            self.hasScanned = true;
             self.scanning = true;
             self.stopRequested = false;
             self.scanLastId = 0;
@@ -253,8 +194,10 @@
             $('#w2p-fixer-scan').prop('disabled', true);
             $('#w2p-fixer-stop').removeClass('w2p-hidden').show();
             $('#w2p-unified-progress').removeClass('w2p-hidden').show();
-            $('#w2p-fixer-results').removeClass('w2p-hidden').show();
+            $('#w2p-fixer-summary').removeClass('w2p-hidden').show();
+            $('#w2p-fixer-results').addClass('w2p-hidden').hide();
             $('#w2p-fixer-tbody').empty();
+            self.updateStatsDisplay();
 
             self.scanNextBatch();
         },
@@ -288,7 +231,10 @@
                     }
 
                     const data = response.data;
-                    const items = data.posts || [];
+                    const items = (data.posts || []).filter(function (p) {
+                        return p.fixable_count > 0;
+                    });
+
                     self.posts = self.posts.concat(items);
                     self.scanLastId = data.last_id || 0;
 
@@ -303,8 +249,8 @@
                     self.updateStatsDisplay();
                     self.renderRows(items);
 
-                    // Scan up to ~30 posts for responsive preview
-                    if (items.length >= self.batchSize && self.posts.length < 30) {
+                    // Scan more batches if the database has more matching posts and limit not reached
+                    if (data.posts && data.posts.length >= self.batchSize && self.scanLastId > 0 && self.posts.length < self.scanLimit) {
                         setTimeout(function () { self.scanNextBatch(); }, 100);
                     } else {
                         self.finishScan(false);
@@ -334,6 +280,16 @@
                 return;
             }
 
+            // Always keep summary stats visible after a scan run
+            $('#w2p-fixer-summary').removeClass('w2p-hidden').show();
+            self.updateStatsDisplay();
+
+            if (self.posts.length > 0) {
+                $('#w2p-fixer-results').removeClass('w2p-hidden').show();
+            } else {
+                $('#w2p-fixer-results').addClass('w2p-hidden').hide();
+            }
+
             self.updateActionButtons();
 
             if (typeof w2p !== 'undefined' && w2p.toast) {
@@ -349,6 +305,10 @@
             const $tbody = $('#w2p-fixer-tbody');
 
             items.forEach(function (item) {
+                if (!item.fixable_count || item.fixable_count <= 0) {
+                    return;
+                }
+
                 const $tr = $('<tr>').attr('data-post-id', item.id);
                 if (item.has_ext_fix) $tr.attr('data-type', 'ext_fix');
                 else if (item.has_path_fix) $tr.attr('data-type', 'path_only');
@@ -356,25 +316,25 @@
 
                 // Checkbox
                 const $cbTd = $('<td>');
-                if (item.fixable_count > 0) {
-                    $('<input type="checkbox">')
-                        .addClass('w2p-fixer-row-check')
-                        .attr('data-id', item.id)
-                        .prop('checked', true)
-                        .appendTo($cbTd);
-                }
+                $('<input type="checkbox">')
+                    .addClass('w2p-fixer-row-check')
+                    .attr('data-id', item.id)
+                    .prop('checked', true)
+                    .appendTo($cbTd);
                 $tr.append($cbTd);
 
                 // Post ID
                 $tr.append($('<td>').text(item.id));
 
-                // Title / Edit Link
+                // Title / Edit Link (always render clickable link with fallback)
                 const $titleTd = $('<td>');
-                if (item.edit_url) {
-                    $('<a>').attr('href', item.edit_url).attr('target', '_blank').text(item.title).appendTo($titleTd);
-                } else {
-                    $titleTd.text(item.title);
-                }
+                const editUrl = item.edit_url || (window.w2pMediaEngine && window.w2pMediaEngine.admin_url ? window.w2pMediaEngine.admin_url + 'post.php?post=' + item.id + '&action=edit' : 'post.php?post=' + item.id + '&action=edit');
+                $('<a>')
+                    .attr('href', editUrl)
+                    .attr('target', '_blank')
+                    .text(item.title)
+                    .appendTo($titleTd);
+
                 if (item.type) {
                     $('<span>').addClass('w2p-badge w2p-ml-xs').text(item.type).appendTo($titleTd);
                 }
@@ -395,15 +355,23 @@
                 }
                 $tr.append($badgeTd);
 
-                // Replacement preview
+                // Replacement preview (strictly show only 1 preview)
                 const $prevTd = $('<td>');
-                (item.sample_fixes || []).forEach(function (fix) {
+                const sampleFixes = item.sample_fixes || [];
+                if (sampleFixes.length > 0) {
+                    const fix = sampleFixes[0];
                     const $p = $('<div>').addClass('w2p-fixer-preview-item');
                     $('<span>').addClass('old-url').text(fix.old_url).appendTo($p);
                     $p.append(' &rarr; ');
                     $('<span>').addClass('new-url').text(fix.new_url).appendTo($p);
                     $prevTd.append($p);
-                });
+
+                    if (item.fixable_count > 1) {
+                        $('<div>').addClass('w2p-text-muted w2p-text-xs w2p-mt-xs')
+                            .text('+ ' + (item.fixable_count - 1) + ' more URL(s)...')
+                            .appendTo($prevTd);
+                    }
+                }
                 $tr.append($prevTd);
 
                 $tbody.append($tr);
@@ -484,10 +452,14 @@
             const self = this;
             if (self.autoMode === 'running') return;
 
+            self.hasScanned = true;
             self.autoMode = 'running';
             self.pauseRequested = false;
             self.stopRequested = false;
             self.autoLastId = 0;
+
+            $('#w2p-fixer-summary').removeClass('w2p-hidden').show();
+            self.updateStatsDisplay();
 
             $('#w2p-fixer-start-auto').prop('disabled', true);
             $('#w2p-fixer-pause-auto').removeClass('w2p-hidden').show().text(w2pMediaEngine.i18n.pauseLabel);
@@ -667,6 +639,8 @@
             }
         }
     };
+
+    window.UrlFixerUI = UrlFixerUI;
 
     $(document).ready(function () {
         if (typeof w2pMediaEngine !== 'undefined') {

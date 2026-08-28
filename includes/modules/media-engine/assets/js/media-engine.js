@@ -117,9 +117,14 @@
                 const hasStep1Table = self.queue && self.queue.length > 0;
                 $('#w2p-attachment-list').toggleClass('w2p-hidden', step !== 1 || !hasStep1Table).toggle(step === 1 && hasStep1Table);
 
+                const hasStep2Summary = (typeof window.AuditUI !== 'undefined' && window.AuditUI.results && window.AuditUI.results.length > 0) || $('#w2p-audit-tbody tr').length > 0;
+                $('#w2p-audit-summary').toggleClass('w2p-hidden', step !== 2 || !hasStep2Summary).toggle(step === 2 && hasStep2Summary);
+
                 const hasStep2Data = $('#w2p-audit-tbody tr').length > 0;
-                $('#w2p-audit-summary').toggleClass('w2p-hidden', step !== 2 || !hasStep2Data).toggle(step === 2 && hasStep2Data);
                 $('#w2p-audit-results').toggleClass('w2p-hidden', step !== 2 || !hasStep2Data).toggle(step === 2 && hasStep2Data);
+
+                const hasStep3Summary = (typeof window.UrlFixerUI !== 'undefined' && (window.UrlFixerUI.hasScanned || (window.UrlFixerUI.stats && (window.UrlFixerUI.stats.scannedPosts > 0 || window.UrlFixerUI.stats.modifiedPosts > 0)))) || $('#w2p-fixer-tbody tr').length > 0;
+                $('#w2p-fixer-summary').toggleClass('w2p-hidden', step !== 3 || !hasStep3Summary).toggle(step === 3 && hasStep3Summary);
 
                 const hasStep3Data = $('#w2p-fixer-tbody tr').length > 0;
                 $('#w2p-fixer-results').toggleClass('w2p-hidden', step !== 3 || !hasStep3Data).toggle(step === 3 && hasStep3Data);
