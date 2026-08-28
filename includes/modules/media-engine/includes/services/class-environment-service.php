@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class MediaEngineEnvironmentChecker {
+class W2P_Media_Environment_Checker {
 
 	/**
 	 * Get the required external command configuration
@@ -315,108 +315,12 @@ class MediaEngineEnvironmentChecker {
 				</div>
 			<?php endif; ?>
 		</div>
-
-		<style>
-		.w2p-environment-status {
-			font-size: 14px;
-		}
-		.w2p-alert {
-			padding: 12px 16px;
-			border-radius: 6px;
-			margin-bottom: 20px;
-			display: flex;
-			align-items: flex-start;
-			gap: 10px;
-		}
-		.w2p-alert i {
-			margin-top: 2px;
-		}
-		.w2p-alert-success {
-			background: #d1fae5;
-			color: #065f46;
-			border-left: 4px solid #10b981;
-		}
-		.w2p-alert-error {
-			background: #fee2e2;
-			color: #991b1b;
-			border-left: 4px solid #ef4444;
-		}
-		.w2p-alert-info {
-			background: #dbeafe;
-			color: #1e40af;
-			border-left: 4px solid #3b82f6;
-		}
-		.w2p-alert pre {
-			background: rgba(0,0,0,0.1);
-			padding: 8px 12px;
-			border-radius: 4px;
-			margin: 8px 0;
-		}
-		.w2p-env-section {
-			margin-bottom: 24px;
-		}
-		.w2p-env-section h5 {
-			margin: 0 0 12px 0;
-			font-size: 15px;
-			font-weight: 600;
-			color: #374151;
-		}
-		.w2p-env-table {
-			width: 100%;
-			border-collapse: collapse;
-			background: #fff;
-			border: 1px solid #e5e7eb;
-			border-radius: 6px;
-			overflow: hidden;
-		}
-		.w2p-env-table tr {
-			border-bottom: 1px solid #e5e7eb;
-		}
-		.w2p-env-table tr:last-child {
-			border-bottom: none;
-		}
-		.w2p-env-table td {
-			padding: 12px 16px;
-			vertical-align: top;
-		}
-		.w2p-env-table td:first-child {
-			width: 40%;
-			font-weight: 500;
-			background: #f9fafb;
-		}
-		.w2p-status-badge {
-			display: inline-block;
-			padding: 4px 10px;
-			border-radius: 12px;
-			font-size: 12px;
-			font-weight: 600;
-		}
-		.w2p-status-success {
-			background: #d1fae5;
-			color: #065f46;
-		}
-		.w2p-status-error {
-			background: #fee2e2;
-			color: #991b1b;
-		}
-		.w2p-priority-badge {
-			display: inline-block;
-			padding: 2px 8px;
-			border-radius: 10px;
-			font-size: 11px;
-			font-weight: 600;
-			margin-left: 6px;
-		}
-		.w2p-priority-critical {
-			background: #fecaca;
-			color: #991b1b;
-		}
-		.w2p-priority-high {
-			background: #fed7aa;
-			color: #92400e;
-		}
-		</style>
 		<?php
 		return ob_get_clean();
 	}
+}
+
+// Backward compatibility alias.
+if ( ! class_exists( 'MediaEngineEnvironmentChecker', false ) ) {
+	class_alias( 'W2P_Media_Environment_Checker', 'MediaEngineEnvironmentChecker' );
 }

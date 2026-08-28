@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class MediaEngineConversionLogger {
+class W2P_Media_Conversion_Logger {
 
 	/**
 	 * Maximum log file size (5MB)
@@ -647,4 +647,12 @@ class MediaEngineConversionLogger {
 			'size_formatted' => size_format( $size, 2 ),
 		);
 	}
+}
+
+// Backward compatibility aliases.
+if ( ! class_exists( 'MediaEngineConversionLogger', false ) ) {
+	class_alias( 'W2P_Media_Conversion_Logger', 'MediaEngineConversionLogger' );
+}
+if ( ! class_exists( 'MediaEngineLoggerService', false ) ) {
+	class_alias( 'W2P_Media_Conversion_Logger', 'MediaEngineLoggerService' );
 }

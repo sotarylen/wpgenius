@@ -1,168 +1,222 @@
 /**
  * Media Engine — Admin Styles
- *
- * 从 PHP 模板内嵌 <style> 提取（规范整改）：独立 CSS 文件，经 wp_enqueue_style 加载。
+ * Strictly inherit design tokens from core.css
  *
  * @package WP_Genius
+ * @subpackage Modules/MediaEngine
  */
 
-/* ========== Environment Status（原 class-environment-service.php 内嵌）========== */
-.w2p-environment-status {
-	font-size: 14px;
-}
-.w2p-alert {
-	padding: 12px 16px;
-	border-radius: 6px;
-	margin-bottom: 20px;
+/* ========== Common Utility Classes ========== */
+.w2p-text-success { color: var(--w2p-color-success) !important; }
+.w2p-text-warning { color: var(--w2p-color-warning) !important; }
+.w2p-text-danger  { color: var(--w2p-color-error) !important; }
+.w2p-text-info    { color: var(--w2p-color-info) !important; }
+.w2p-text-gold    { color: var(--w2p-color-warning) !important; }
+.w2p-text-muted   { color: var(--w2p-text-muted) !important; }
+
+.w2p-mt-xs { margin-top: var(--w2p-spacing-2xs, 4px) !important; }
+.w2p-mt-sm { margin-top: var(--w2p-spacing-xs, 8px) !important; }
+.w2p-font-xs { font-size: var(--w2p-font-size-xs, 10px) !important; }
+.w2p-font-sm { font-size: var(--w2p-font-size-sm, 12px) !important; }
+.w2p-flex-between {
 	display: flex;
-	align-items: flex-start;
-	gap: 10px;
-}
-.w2p-alert i {
-	margin-top: 2px;
-}
-.w2p-alert-success {
-	background: #d1fae5;
-	color: #065f46;
-	border-left: 4px solid #10b981;
-}
-.w2p-alert-error {
-	background: #fee2e2;
-	color: #991b1b;
-	border-left: 4px solid #ef4444;
-}
-.w2p-alert-info {
-	background: #dbeafe;
-	color: #1e40af;
-	border-left: 4px solid #3b82f6;
-}
-.w2p-alert pre {
-	background: rgba(0, 0, 0, 0.1);
-	padding: 8px 12px;
-	border-radius: 4px;
-	margin: 8px 0;
-}
-.w2p-env-section {
-	margin-bottom: 24px;
-}
-.w2p-env-section h5 {
-	margin: 0 0 12px 0;
-	font-size: 15px;
-	font-weight: 600;
-	color: #374151;
-}
-.w2p-env-table {
+	justify-content: space-between;
+	align-items: center;
 	width: 100%;
-	border-collapse: collapse;
-	background: #fff;
-	border: 1px solid #e5e7eb;
-	border-radius: 6px;
-	overflow: hidden;
-}
-.w2p-env-table tr {
-	border-bottom: 1px solid #e5e7eb;
-}
-.w2p-env-table tr:last-child {
-	border-bottom: none;
-}
-.w2p-env-table td {
-	padding: 12px 16px;
-	vertical-align: top;
-}
-.w2p-env-table td:first-child {
-	width: 40%;
-	font-weight: 500;
-	background: #f9fafb;
-}
-.w2p-status-badge {
-	display: inline-block;
-	padding: 4px 10px;
-	border-radius: 12px;
-	font-size: 12px;
-	font-weight: 600;
-}
-.w2p-status-success {
-	background: #d1fae5;
-	color: #065f46;
-}
-.w2p-status-error {
-	background: #fee2e2;
-	color: #991b1b;
-}
-.w2p-priority-badge {
-	display: inline-block;
-	padding: 2px 8px;
-	border-radius: 10px;
-	font-size: 11px;
-	font-weight: 600;
-	margin-left: 6px;
-}
-.w2p-priority-critical {
-	background: #fecaca;
-	color: #991b1b;
-}
-.w2p-priority-high {
-	background: #fed7aa;
-	color: #92400e;
 }
 
-/* ========== Residual Media Audit（原 audit-settings.php 内嵌）========== */
-.w2p-audit-stats-grid {
-	display: grid;
-	grid-template-columns: repeat(4, 1fr);
+/* ========== Workflow Step Navigation ========== */
+.w2p-workflow-steps-nav {
+	display: flex;
 	gap: var(--w2p-spacing-md);
 	margin-bottom: var(--w2p-spacing-lg);
+	border-bottom: 1px solid var(--w2p-border-color);
+	padding-bottom: var(--w2p-spacing-md);
 }
-.w2p-audit-stat-card {
+
+.w2p-workflow-step-btn {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	gap: var(--w2p-spacing-md);
+	padding: var(--w2p-spacing-md) var(--w2p-spacing-lg);
+	background: var(--w2p-bg-surface-secondary);
+	border: 1px solid var(--w2p-border-color);
+	border-radius: var(--w2p-radius-lg);
+	cursor: pointer;
+	text-align: left;
+	transition: all 0.2s ease;
+}
+
+.w2p-workflow-step-btn:hover {
+	border-color: var(--w2p-color-primary);
+	background: var(--w2p-bg-surface);
+}
+
+.w2p-workflow-step-btn.active {
+	border-color: var(--w2p-color-primary);
+	background: var(--w2p-bg-surface);
+	box-shadow: 0 0 0 2px var(--w2p-color-primary);
+}
+
+.w2p-workflow-step-btn .w2p-step-num {
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	background: var(--w2p-border-color-dark);
+	color: var(--w2p-text-muted);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: bold;
+	font-size: 14px;
+	flex-shrink: 0;
+}
+
+.w2p-workflow-step-btn.active .w2p-step-num {
+	background: var(--w2p-color-primary);
+	color: var(--w2p-text-inverted);
+}
+
+.w2p-workflow-step-btn .w2p-step-info {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.w2p-workflow-step-btn .w2p-step-title {
+	font-weight: var(--w2p-font-weight-bold);
+	font-size: var(--w2p-font-size-sm);
+	color: var(--w2p-text-primary);
+}
+
+.w2p-workflow-step-btn .w2p-step-desc {
+	font-size: var(--w2p-font-size-xs);
+	color: var(--w2p-text-muted);
+}
+
+.w2p-action-divider {
+	border-left: 1px solid var(--w2p-border-color);
+	height: 24px;
+	margin: 0 4px;
+	display: inline-block;
+}
+
+/* ========== Notice Banner ========== */
+.w2p-notice-banner {
+	padding: var(--w2p-spacing-md) var(--w2p-spacing-lg);
+	border-radius: var(--w2p-radius-md);
+	margin-bottom: var(--w2p-spacing-md);
+	display: flex;
+	align-items: center;
+	gap: var(--w2p-spacing-md);
+	font-size: var(--w2p-font-size-sm);
+}
+
+.w2p-notice-banner.w2p-notice-info {
+	background: var(--w2p-color-info-bg);
+	border: 1px solid var(--w2p-color-info-border);
+	color: var(--w2p-color-info);
+}
+
+.w2p-notice-banner.w2p-notice-warning {
+	background: var(--w2p-color-warning-bg);
+	border: 1px solid var(--w2p-color-warning-border);
+	color: var(--w2p-color-warning);
+}
+
+.w2p-notice-banner.w2p-notice-success {
+	background: var(--w2p-color-success-bg);
+	border: 1px solid var(--w2p-color-success-border);
+	color: var(--w2p-color-success);
+}
+
+/* ========== Stat Grids & Cards ========== */
+.w2p-queue-stats-grid,
+.w2p-audit-stats-grid,
+.w2p-fixer-stats-grid {
+	display: grid;
+	gap: var(--w2p-spacing-md);
+	margin-top: var(--w2p-spacing-md);
+	margin-bottom: var(--w2p-spacing-lg);
+}
+
+.w2p-queue-stats-grid { grid-template-columns: repeat(5, 1fr); }
+.w2p-audit-stats-grid { grid-template-columns: repeat(4, 1fr); }
+.w2p-fixer-stats-grid { grid-template-columns: repeat(5, 1fr); }
+
+.w2p-queue-stat-card,
+.w2p-audit-stat-card,
+.w2p-fixer-stat-card {
 	background: var(--w2p-bg-surface-secondary);
 	border: 1px solid var(--w2p-border-color-light);
 	border-radius: var(--w2p-radius-lg);
-	padding: var(--w2p-spacing-md) var(--w2p-spacing-lg);
+	padding: var(--w2p-spacing-md);
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: var(--w2p-spacing-sm);
+	gap: var(--w2p-spacing-xs);
 	cursor: pointer;
-	transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
 	user-select: none;
 }
-.w2p-audit-stat-card:hover {
+
+.w2p-queue-stat-card:hover,
+.w2p-audit-stat-card:hover,
+.w2p-fixer-stat-card:hover {
 	border-color: var(--w2p-color-primary);
 	box-shadow: 0 0 0 1px var(--w2p-color-primary);
 }
-.w2p-audit-stat-card:active {
-	transform: translateY(1px);
+
+.w2p-queue-stat-card.w2p-is-selected,
+.w2p-audit-stat-card.w2p-is-selected,
+.w2p-fixer-stat-card.w2p-is-selected {
+	border-color: var(--w2p-color-primary);
+	box-shadow: 0 0 0 2px var(--w2p-color-primary);
+	background: var(--w2p-color-success-bg);
 }
-.w2p-audit-stat-card .label {
+
+.w2p-queue-stat-card .label,
+.w2p-audit-stat-card .label,
+.w2p-fixer-stat-card .label {
 	font-size: var(--w2p-font-size-xs);
 	font-weight: var(--w2p-font-weight-bold);
 	color: var(--w2p-text-muted);
 	text-transform: uppercase;
 	text-align: center;
 }
-.w2p-audit-stat-card .value {
+
+.w2p-queue-stat-card .value,
+.w2p-audit-stat-card .value,
+.w2p-fixer-stat-card .value {
 	font-family: var(--w2p-font-family-value);
 	font-size: var(--w2p-font-size-2xl);
 	line-height: 1;
 }
+
+/* Step 1 Colors: Total 黑色, Pending 橙色, Processing 蓝色, Completed 绿色, Failed 红色 */
+.w2p-queue-stat-total .value { color: var(--w2p-text-primary); }
+.w2p-queue-stat-pending .value { color: var(--w2p-color-warning); }
+.w2p-queue-stat-processing .value { color: var(--w2p-color-info); }
+.w2p-queue-stat-completed .value { color: var(--w2p-color-success); }
+.w2p-queue-stat-failed .value { color: var(--w2p-color-error); }
+
+/* Step 2 Colors: Total 黑色, Cleanable 绿色, Not Offloaded 橙色, Orphan 红色 */
+.w2p-audit-stat-total .value { color: var(--w2p-text-primary); }
 .w2p-audit-stat-cleanable .value { color: var(--w2p-color-success); }
 .w2p-audit-stat-not_offloaded .value { color: var(--w2p-color-warning); }
 .w2p-audit-stat-orphan .value { color: var(--w2p-color-error); }
-.w2p-audit-stat-total .value { color: var(--w2p-color-primary); }
-.w2p-audit-stat-card.w2p-is-selected {
-	border-color: var(--w2p-color-primary);
-	box-shadow: 0 0 0 2px var(--w2p-color-primary);
-	background: var(--w2p-color-primary-bg, var(--w2p-bg-surface-secondary));
-}
-.w2p-audit-actions {
-	margin-bottom: var(--w2p-spacing-md);
-}
-.w2p-audit-controls {
-	flex-wrap: nowrap;
-}
-.w2p-audit-input {
-	width: 210px;
-}
+
+/* Step 3 Colors: Total 黑色, Fixable 橙色, Ext Fix 绿色, Path Only 蓝色, External 灰色 */
+.w2p-fixer-stat-pending .value { color: var(--w2p-text-primary); }
+.w2p-fixer-stat-fixable .value { color: var(--w2p-color-warning); }
+.w2p-fixer-stat-ext .value { color: var(--w2p-color-success); }
+.w2p-fixer-stat-path .value { color: var(--w2p-color-info); }
+.w2p-fixer-stat-external .value { color: var(--w2p-text-muted); }
+
+.w2p-audit-input { width: 180px; }
+
+/* File column -- single line, path+filename, no wrapping */
 .w2p-audit-file-cell {
 	white-space: nowrap;
 	overflow: hidden;
@@ -175,7 +229,24 @@
 	text-overflow: ellipsis;
 }
 
-/* ========== Conversion Log Modal（原 turbo-settings.php 内嵌）========== */
+/* ========== Fixer Previews ========== */
+.w2p-fixer-preview-item {
+	font-family: var(--wpg-code-font, monospace);
+	font-size: 11px;
+	line-height: 1.4;
+	margin-bottom: 4px;
+	word-break: break-all;
+}
+.w2p-fixer-preview-item .old-url {
+	color: var(--w2p-color-error);
+	text-decoration: line-through;
+}
+.w2p-fixer-preview-item .new-url {
+	color: var(--w2p-color-success);
+	font-weight: bold;
+}
+
+/* ========== Log Modal Styling ========== */
 #w2p-log-modal {
 	position: fixed;
 	top: 0;
@@ -183,7 +254,7 @@
 	width: 100%;
 	height: 100%;
 	background: rgba(0, 0, 0, 0.6);
-	z-index: var(--w2p-z-index-overlay, 999999);
+	z-index: var(--w2p-z-index-overlay);
 	display: flex;
 	justify-content: center;
 	align-items: center;
@@ -220,26 +291,138 @@
 	overflow-y: auto;
 	border-radius: 0;
 	margin: 0;
+	white-space: pre-wrap;
+	word-break: break-all;
 }
-#w2p-log-modal .w2p-modal-footer .w2p-btn-secondary[style*="error"] {
-	background: transparent;
+.w2p-log-size-label {
+	font-weight: normal;
+	font-size: 13px;
+	margin-left: 8px;
+	opacity: 0.7;
 }
-#w2p-log-modal .w2p-modal-footer .w2p-btn-secondary[style*="error"]:hover {
+.w2p-btn-error-outline {
+	color: var(--w2p-color-error);
+	border-color: var(--w2p-color-error);
+}
+.w2p-btn-error-outline:hover {
 	background: var(--w2p-color-error);
-	color: #fff;
+	color: var(--w2p-text-inverted);
 }
-#w2p-log-modal .w2p-modal-header h4 {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	margin: 0;
+.w2p-modal-close {
+	background: none;
+	border: none;
+	cursor: pointer;
+	font-size: 22px;
+	color: inherit;
+	padding: 2px 6px;
+	line-height: 1;
 }
 
-/* ========== Clipboard Toggle（原 class-clipboard-handler.php 内嵌）========== */
+/* ========== Environment Status Styles ========== */
+.w2p-environment-status {
+	font-size: var(--w2p-font-size-base);
+}
+.w2p-alert {
+	padding: var(--w2p-spacing-sm) var(--w2p-spacing-md);
+	border-radius: var(--w2p-radius-md);
+	margin-bottom: var(--w2p-spacing-lg);
+	display: flex;
+	align-items: flex-start;
+	gap: var(--w2p-spacing-xs);
+}
+.w2p-alert i {
+	margin-top: 2px;
+}
+.w2p-alert-success {
+	background: var(--w2p-color-success-bg);
+	color: var(--w2p-color-success);
+	border-left: 4px solid var(--w2p-color-success-border);
+}
+.w2p-alert-error {
+	background: var(--w2p-color-error-bg);
+	color: var(--w2p-color-error);
+	border-left: 4px solid var(--w2p-color-error-border);
+}
+.w2p-alert-info {
+	background: var(--w2p-color-info-bg);
+	color: var(--w2p-color-info);
+	border-left: 4px solid var(--w2p-color-info-border);
+}
+.w2p-alert pre {
+	background: var(--w2p-color-transparent);
+	padding: var(--w2p-spacing-xs) var(--w2p-spacing-sm);
+	border-radius: var(--w2p-radius-sm);
+	margin: var(--w2p-spacing-xs) 0;
+}
+.w2p-env-section {
+	margin-bottom: var(--w2p-spacing-lg);
+}
+.w2p-env-section h5 {
+	margin: 0 0 var(--w2p-spacing-sm) 0;
+	font-size: var(--w2p-font-size-md);
+	font-weight: var(--w2p-font-weight-medium);
+	color: var(--w2p-text-primary);
+}
+.w2p-env-table {
+	width: 100%;
+	border-collapse: collapse;
+	background: var(--w2p-bg-surface);
+	border: 1px solid var(--w2p-border-color);
+	border-radius: var(--w2p-radius-md);
+	overflow: hidden;
+}
+.w2p-env-table tr {
+	border-bottom: 1px solid var(--w2p-border-color);
+}
+.w2p-env-table tr:last-child {
+	border-bottom: none;
+}
+.w2p-env-table td {
+	padding: var(--w2p-spacing-sm) var(--w2p-spacing-md);
+	vertical-align: top;
+}
+.w2p-env-table td:first-child {
+	width: 40%;
+	font-weight: var(--w2p-font-weight-medium);
+	background: var(--w2p-bg-surface-secondary);
+}
+.w2p-status-badge {
+	display: inline-block;
+	padding: 4px 10px;
+	border-radius: 12px;
+	font-size: var(--w2p-font-size-sm);
+	font-weight: var(--w2p-font-weight-medium);
+}
+.w2p-status-success {
+	background: var(--w2p-color-success-bg);
+	color: var(--w2p-color-success);
+}
+.w2p-status-error {
+	background: var(--w2p-color-error-bg);
+	color: var(--w2p-color-error);
+}
+.w2p-priority-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 10px;
+	font-size: var(--w2p-font-size-xs);
+	font-weight: var(--w2p-font-weight-medium);
+	margin-left: 6px;
+}
+.w2p-priority-critical {
+	background: var(--w2p-color-error-bg);
+	color: var(--w2p-color-error);
+}
+.w2p-priority-high {
+	background: var(--w2p-color-warning-bg);
+	color: var(--w2p-color-warning);
+}
+
+/* ========== Clipboard Toggle Icon Styles ========== */
 i.mce-i-w2p_clipboard_toggle:before {
 	content: "\f124"; /* dashicons-paste */
 	font-family: dashicons !important;
 }
 .mce-w2p_clipboard_toggle.mce-active i {
-	color: #2271b1;
+	color: var(--w2p-color-primary);
 }

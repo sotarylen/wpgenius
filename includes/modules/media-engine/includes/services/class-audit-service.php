@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class MediaEngineAuditService {
+class W2P_Media_Audit_Service {
 
 	/**
 	 * Image extensions to scan (including bmp/svg etc. that cannot be converted, used for reporting leftovers)
@@ -171,6 +171,7 @@ class MediaEngineAuditService {
 		global $wpdb;
 
 		// 1. Fetch attachment IDs from the posts table by upload month (uses the post_date index, ~1.8s)
+		// Or query by attached_file meta if not standard YYYY/MM
 		$att_ids = array();
 		if ( preg_match( '#^(\d{4})/(\d{2})$#', $subdir, $m ) ) {
 			$start   = $m[1] . '-' . $m[2] . '-01';
@@ -183,6 +184,19 @@ class MediaEngineAuditService {
 					WHERE post_type = 'attachment' AND post_date >= %s AND post_date < %s",
 						$start,
 						$end
+					)
+				)
+			);
+		} else {
+			// Generic subfolder query
+			$like_pattern = '%' . $wpdb->esc_like( trim( $subdir, '/' ) ) . '%';
+			$att_ids      = array_map(
+				'intval',
+				$wpdb->get_col(
+					$wpdb->prepare(
+						"SELECT post_id FROM {$wpdb->postmeta}
+						WHERE meta_key = '_wp_attached_file' AND meta_value LIKE %s",
+						$like_pattern
 					)
 				)
 			);
@@ -541,4 +555,9 @@ class MediaEngineAuditService {
 			'skipped' => $skipped,
 		);
 	}
+}
+
+// Backward compatibility alias.
+if ( ! class_exists( 'MediaEngineAuditService', false ) ) {
+	class_alias( 'W2P_Media_Audit_Service', 'MediaEngineAuditService' );
 }

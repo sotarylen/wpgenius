@@ -1,22 +1,27 @@
 <?php
 /**
  * Media Engine URL Rewrite Service
+ *
+ * @package WP_Genius
+ * @subpackage Modules/MediaEngine
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class MediaEngineUrlRewriteService {
+class W2P_Media_Url_Rewrite_Service {
 	private $logger;
 
 	public function __construct() {
-		if ( ! class_exists( 'MediaEngineConversionLogger' ) ) {
-			// class-url-rewrite-service.php lives in services/ together with class-logger-service.php,
-			// so resolve via __FILE__ (plugin_dir_path( __DIR__ ) would point one level up).
+		if ( ! class_exists( 'W2P_Media_Conversion_Logger' ) ) {
 			require_once plugin_dir_path( __FILE__ ) . 'class-logger-service.php';
 		}
-		$this->logger = new MediaEngineConversionLogger();
+		if ( class_exists( 'W2P_Media_Conversion_Logger' ) ) {
+			$this->logger = new W2P_Media_Conversion_Logger();
+		} elseif ( class_exists( 'MediaEngineConversionLogger' ) ) {
+			$this->logger = new MediaEngineConversionLogger();
+		}
 	}
 
 	public function rewrite_content( $attachment_id, $old_url, $new_url ) {
@@ -28,11 +33,19 @@ class MediaEngineUrlRewriteService {
 		$old_info = pathinfo( $rel_old );
 		$new_info = pathinfo( $rel_new );
 
-		$old_dir  = trailingslashit( $old_info['dirname'] );
-		$new_dir  = trailingslashit( $new_info['dirname'] );
-		$filename = $old_info['filename'];
-		$old_ext  = $old_info['extension'];
-		$new_ext  = $new_info['extension'];
+		$old_dir  = trailingslashit( isset( $old_info['dirname'] ) ? $old_info['dirname'] : '' );
+		$new_dir  = trailingslashit( isset( $new_info['dirname'] ) ? $new_info['dirname'] : '' );
+		$filename = isset( $old_info['filename'] ) ? $old_info['filename'] : '';
+		$old_ext  = isset( $old_info['extension'] ) ? $old_info['extension'] : '';
+		$new_ext  = isset( $new_info['extension'] ) ? $new_info['extension'] : '';
+
+		if ( empty( $filename ) || empty( $old_ext ) || empty( $new_ext ) ) {
+			return array(
+				'success'  => true,
+				'replaced' => false,
+				'reason'   => 'invalid_url_structure',
+			);
+		}
 
 		$pattern = '/'
 			. '(https?:\/\/[^\/]+)?'
@@ -43,9 +56,6 @@ class MediaEngineUrlRewriteService {
 			. '/i';
 
 		$replacement = '$1' . $new_dir . $filename . '$2.' . $new_ext;
-
-		// ── Always update the attachment GUID ────────────────────────────────
-		$wpdb->update( $wpdb->posts, array( 'guid' => $new_url ), array( 'ID' => $attachment_id ) );
 
 		// ── Find and update the parent post ──────────────────────────────────
 		$post_parent = wp_get_post_parent_id( $attachment_id );
@@ -84,9 +94,7 @@ class MediaEngineUrlRewriteService {
 			array( 'post_content' => $new_content ),
 			array( 'ID' => $post_parent )
 		);
-		// Targeted cache invalidation (see metadata-service update(): clean_post_cache()
-		// fires the supercache hook → PHP Warning → X-QM-php_errors headers overflow
-		// nginx fastcgi_buffer_size → 502).
+		// Targeted cache invalidation
 		wp_cache_delete( $post_parent, 'posts' );
 		wp_cache_delete( $post_parent, 'post_meta' );
 
@@ -103,8 +111,15 @@ class MediaEngineUrlRewriteService {
 		}
 
 		// STEP4 result line: attachment ID | parent ID | new URL | OK/NG
-		$this->logger->log_rewrite_result( $attachment_id, (int) $post_parent, $new_url, $result['success'] );
+		if ( $this->logger ) {
+			$this->logger->log_rewrite_result( $attachment_id, (int) $post_parent, $new_url, $result['success'] );
+		}
 
 		return $result;
 	}
+}
+
+// Backward compatibility alias.
+if ( ! class_exists( 'MediaEngineUrlRewriteService', false ) ) {
+	class_alias( 'W2P_Media_Url_Rewrite_Service', 'MediaEngineUrlRewriteService' );
 }

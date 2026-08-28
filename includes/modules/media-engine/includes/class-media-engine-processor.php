@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class MediaEngineProcessor {
+class W2P_Media_Engine_Processor {
 	private $scanner;
 	private $converter;
 	private $thumbnail;
@@ -465,4 +465,9 @@ class MediaEngineProcessor {
 		}
 		return $this->minio_available;
 	}
+}
+
+// Backward compatibility alias.
+if ( ! class_exists( 'MediaEngineProcessor', false ) ) {
+	class_alias( 'W2P_Media_Engine_Processor', 'MediaEngineProcessor' );
 }

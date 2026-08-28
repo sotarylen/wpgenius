@@ -20,10 +20,10 @@ $env_results = MediaEngineEnvironmentChecker::check_all();
 <div class="w2p-settings-panel w2p-environment-settings">
 	<div class="w2p-section">
 		<div class="w2p-section-header">
-			<div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+			<div class="w2p-flex-between">
 				<div>
 					<h4><i class="fa-solid fa-stethoscope"></i> <?php esc_html_e( 'Environment Check', 'wp-genius' ); ?></h4>
-					<p class="description" style="margin: 5px 0 0;"><?php esc_html_e( 'Verify that all required dependencies are available for media processing.', 'wp-genius' ); ?></p>
+					<p class="description w2p-mt-xs"><?php esc_html_e( 'Verify that all required dependencies are available for media processing.', 'wp-genius' ); ?></p>
 				</div>
 				<button type="button" id="w2p-recheck-environment" class="w2p-btn w2p-btn-primary">
 					<i class="fa-solid fa-rotate"></i>

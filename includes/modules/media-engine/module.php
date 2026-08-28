@@ -20,7 +20,6 @@ class W2P_MediaEngineModule extends W2P_Abstract_Module {
 	/**
 	 * Handler instances
 	 */
-	private $turbo_handler;
 	private $clipboard_handler;
 
 	/**
@@ -61,10 +60,6 @@ class W2P_MediaEngineModule extends W2P_Abstract_Module {
 		// Register settings
 		$this->register_settings();
 
-		// Hook into upload process
-		// Auto-conversion removed per user request
-		// add_filter( 'wp_handle_upload', [ $this, 'process_uploaded_image' ] );
-
 		// AJAX Handlers
 		add_action( 'wp_ajax_w2p_scan_attachments', array( $this, 'ajax_scan_attachments' ) );
 		add_action( 'wp_ajax_w2p_process_batch', array( $this, 'ajax_process_batch' ) );
@@ -79,6 +74,7 @@ class W2P_MediaEngineModule extends W2P_Abstract_Module {
 		add_action( 'wp_ajax_w2p_media_fixer_scan', array( $this, 'ajax_fixer_scan' ) );
 		add_action( 'wp_ajax_w2p_media_fixer_process_batch', array( $this, 'ajax_fixer_process_batch' ) );
 		add_action( 'wp_ajax_w2p_media_fixer_preview_post', array( $this, 'ajax_fixer_preview_post' ) );
+		add_action( 'wp_ajax_w2p_recheck_environment', array( $this, 'ajax_recheck_environment' ) );
 
 		// Enqueue admin scripts
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
@@ -519,6 +515,26 @@ class W2P_MediaEngineModule extends W2P_Abstract_Module {
 	}
 
 	/**
+	 * AJAX: Recheck Environment
+	 */
+	public function ajax_recheck_environment() {
+		check_ajax_referer( 'w2p_media_engine_nonce', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Permission denied' );
+		}
+
+		$results = W2P_Media_Environment_Checker::check_all();
+		$html    = W2P_Media_Environment_Checker::render_status_html( $results );
+
+		wp_send_json_success(
+			array(
+				'html'        => $html,
+				'can_process' => $results['can_process'],
+			)
+		);
+	}
+
+	/**
 	 * Enqueue admin scripts
 	 */
 	public function enqueue_admin_scripts( $hook ) {
@@ -526,6 +542,14 @@ class W2P_MediaEngineModule extends W2P_Abstract_Module {
 		if ( strpos( $hook, 'wp-genius-settings' ) === false && strpos( $hook, 'word-to-posts' ) === false ) {
 			return;
 		}
+
+		// Enqueue media engine admin styles
+		wp_enqueue_style(
+			'w2p-media-engine-admin',
+			plugin_dir_url( __FILE__ ) . 'assets/css/admin.css',
+			array(),
+			W2P_VERSION
+		);
 
 		// Enqueue media engine script
 		wp_enqueue_script(
@@ -554,16 +578,19 @@ class W2P_MediaEngineModule extends W2P_Abstract_Module {
 			true
 		);
 
-		// Register sub-module assets for on-demand use
-		wp_register_script( 'w2p-clipboard-upload', plugin_dir_url( WP_GENIUS_FILE ) . 'assets/js/modules/clipboard-upload.js', array( 'w2p-core-js' ), W2P_VERSION, true );
-
 		// Localize script for AJAX
+		$module_settings = W2P_Settings::tab_with_legacy( 'media_engine_tabs', 'w2p_media_turbo_settings', array() );
+		$batch_size      = isset( $module_settings['batch_size'] ) ? absint( $module_settings['batch_size'] ) : 10;
+		$scan_limit      = isset( $module_settings['scan_limit'] ) ? absint( $module_settings['scan_limit'] ) : 500;
+
 		wp_localize_script(
 			'w2p-media-engine',
 			'w2pMediaEngine',
 			array(
 				'ajax_url'               => admin_url( 'admin-ajax.php' ),
 				'nonce'                  => wp_create_nonce( 'w2p_media_engine_nonce' ),
+				'batchSize'              => $batch_size,
+				'scanLimit'              => $scan_limit,
 				'max_no_progress_rounds' => 3, // Anti-infinite-loop threshold for fully automatic processing (stops after N consecutive rounds without progress)
 				'i18n'                   => array(
 					'log_empty'          => __( 'Log is empty', 'wp-genius' ),

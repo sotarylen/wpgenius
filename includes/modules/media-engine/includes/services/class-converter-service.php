@@ -1,17 +1,20 @@
 <?php
 /**
  * Media Engine Converter Service
+ *
+ * @package WP_Genius
+ * @subpackage Modules/MediaEngine
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class MediaEngineConverterService {
+class W2P_Media_Converter_Service {
 	/**
 	 * Logger instance
 	 *
-	 * @var MediaEngineLoggerService
+	 * @var W2P_Media_Conversion_Logger
 	 */
 	private $logger;
 
@@ -24,19 +27,16 @@ class MediaEngineConverterService {
 
 	public function __construct() {
 		// Initialize Logger
-		if ( ! class_exists( 'MediaEngineLoggerService' ) ) {
-			// Try loading from services/
+		if ( ! class_exists( 'W2P_Media_Conversion_Logger' ) ) {
 			$logger_path = plugin_dir_path( __FILE__ ) . 'class-logger-service.php';
 			if ( file_exists( $logger_path ) ) {
 				require_once $logger_path;
 			}
 		}
 
-		if ( class_exists( 'MediaEngineConversionLogger' ) ) {
-			$this->logger = new MediaEngineConversionLogger();
-		} elseif ( class_exists( 'MediaEngineLoggerService' ) ) {
-			// Handle renamed class if applicable, or keep original name in new file
-			// Based on previous move, class name inside file might still be MediaEngineConversionLogger
+		if ( class_exists( 'W2P_Media_Conversion_Logger' ) ) {
+			$this->logger = new W2P_Media_Conversion_Logger();
+		} elseif ( class_exists( 'MediaEngineConversionLogger' ) ) {
 			$this->logger = new MediaEngineConversionLogger();
 		}
 
@@ -225,13 +225,16 @@ class MediaEngineConverterService {
 
 		$output_str = implode( "\n", $output );
 		if ( $this->logger ) {
+			$orig_size = ( $original_file && file_exists( $original_file ) ) ? (int) filesize( $original_file ) : 0;
+			$out_size  = ( $output_path && file_exists( $output_path ) ) ? (int) filesize( $output_path ) : 0;
+
 			$this->logger->log_conversion_result(
 				$engine,
 				(int) $attachment_id,
 				$original_file,
-				(int) @filesize( $original_file ),
+				$orig_size,
 				$output_path,
-				(int) @filesize( $output_path ),
+				$out_size,
 				( 0 === $return_code && file_exists( $output_path ) )
 			);
 		}
@@ -256,7 +259,7 @@ class MediaEngineConverterService {
 	 * Calculate quality based on file size
 	 */
 	private function calculate_quality( $file_path, $mime_type ) {
-		$size_mb = filesize( $file_path ) / 1024 / 1024;
+		$size_mb = ( file_exists( $file_path ) ? filesize( $file_path ) : 0 ) / 1024 / 1024;
 		if ( strpos( $mime_type, 'gif' ) !== false ) {
 			if ( $size_mb > 10 ) {
 				return 20;
@@ -266,7 +269,7 @@ class MediaEngineConverterService {
 				return 50;
 			}
 		} elseif ( $size_mb > 10 ) {
-				return 50;
+			return 50;
 		} elseif ( $size_mb > 5 ) {
 			return 60;
 		} else {
@@ -283,11 +286,10 @@ class MediaEngineConverterService {
 		$ext       = strtolower( pathinfo( $file_path, PATHINFO_EXTENSION ) );
 		$webp_path = $dir . '/' . $filename . '.webp';
 
-		// Handle naming conflicts if not GIF
+		// Handle naming conflicts if both static and GIF exist with the same name
 		if ( $ext !== 'gif' ) {
-			$gif_path      = $dir . '/' . $filename . '.gif';
-			$gif_webp_path = $dir . '/' . $filename . '.webp';
-			if ( file_exists( $gif_path ) || file_exists( $gif_webp_path ) ) {
+			$gif_path = $dir . '/' . $filename . '.gif';
+			if ( file_exists( $gif_path ) ) {
 				$webp_path = $dir . '/' . $filename . '-static.webp';
 			}
 		}
@@ -297,4 +299,9 @@ class MediaEngineConverterService {
 	public function get_logger() {
 		return $this->logger;
 	}
+}
+
+// Backward compatibility alias.
+if ( ! class_exists( 'MediaEngineConverterService', false ) ) {
+	class_alias( 'W2P_Media_Converter_Service', 'MediaEngineConverterService' );
 }

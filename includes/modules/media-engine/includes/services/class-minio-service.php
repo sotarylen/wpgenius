@@ -1,30 +1,42 @@
 <?php
 /**
  * Media Engine Minio Service
+ *
+ * @package WP_Genius
+ * @subpackage Modules/MediaEngine
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class MediaEngineMinioService {
+class W2P_Media_Minio_Service {
 	private $logger;
 
 	public function __construct() {
-		if ( ! class_exists( 'MediaEngineConversionLogger' ) ) {
-			// class-minio-service.php lives in services/ together with class-logger-service.php,
-			// so resolve via __FILE__ (plugin_dir_path( __DIR__ ) would point one level up).
+		if ( ! class_exists( 'W2P_Media_Conversion_Logger' ) ) {
 			require_once plugin_dir_path( __FILE__ ) . 'class-logger-service.php';
 		}
-		$this->logger = new MediaEngineConversionLogger();
+		if ( class_exists( 'W2P_Media_Conversion_Logger' ) ) {
+			$this->logger = new W2P_Media_Conversion_Logger();
+		} elseif ( class_exists( 'MediaEngineConversionLogger' ) ) {
+			$this->logger = new MediaEngineConversionLogger();
+		}
 	}
 
 	public function upload( $attachment_id ) {
-		$cmd = sprintf( 'timeout 600 wp advmo offload %d 2>&1', $attachment_id );
+		$attachment_id = absint( $attachment_id );
+		$cmd           = sprintf( 'wp advmo offload %d 2>&1', $attachment_id );
+		if ( $this->has_timeout_command() ) {
+			$cmd = 'timeout 600 ' . $cmd;
+		}
+
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI invocation; attachment IDs are bound via absint/%d.
 		exec( $cmd, $output, $return_code );
 		$stats = $this->parse_offload_stats( $output, 1 );
-		$this->logger->log_offload_result( array( $attachment_id ), $stats['success'], $stats['skip'], $stats['failed'] );
+		if ( $this->logger ) {
+			$this->logger->log_offload_result( array( $attachment_id ), $stats['success'], $stats['skip'], $stats['failed'] );
+		}
 		if ( $return_code === 0 ) {
 			update_post_meta( $attachment_id, '_is_minio_offloaded', 1 );
 			return array(
@@ -45,21 +57,40 @@ class MediaEngineMinioService {
 				'count'   => 0,
 			);
 		}
-		$ids_str = implode( ',', $attachment_ids );
-		$cmd     = sprintf( 'timeout 600 wp advmo offload %s 2>&1', $ids_str );
+		$clean_ids = array_map( 'absint', $attachment_ids );
+		$ids_str   = implode( ',', $clean_ids );
+		$cmd       = sprintf( 'wp advmo offload %s 2>&1', $ids_str );
+		if ( $this->has_timeout_command() ) {
+			$cmd = 'timeout 600 ' . $cmd;
+		}
+
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI invocation; attachment IDs are bound via absint/%d.
 		exec( $cmd, $output, $return_code );
-		$stats = $this->parse_offload_stats( $output, count( $attachment_ids ) );
-		$this->logger->log_offload_result( $attachment_ids, $stats['success'], $stats['skip'], $stats['failed'] );
+		$stats = $this->parse_offload_stats( $output, count( $clean_ids ) );
+		if ( $this->logger ) {
+			$this->logger->log_offload_result( $clean_ids, $stats['success'], $stats['skip'], $stats['failed'] );
+		}
 		if ( $return_code === 0 ) {
-			foreach ( $attachment_ids as $id ) {
+			foreach ( $clean_ids as $id ) {
 				update_post_meta( $id, '_is_minio_offloaded', 1 );
 			}
 		}
 		return array(
 			'success' => $return_code === 0,
-			'count'   => count( $attachment_ids ),
+			'count'   => count( $clean_ids ),
 		);
+	}
+
+	private function has_timeout_command() {
+		static $has_timeout = null;
+		if ( null === $has_timeout ) {
+			$check_output = array();
+			$return_code  = 0;
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec
+			exec( 'which timeout 2>&1', $check_output, $return_code );
+			$has_timeout = ( 0 === $return_code && ! empty( $check_output[0] ) );
+		}
+		return $has_timeout;
 	}
 
 	/**
@@ -92,12 +123,14 @@ class MediaEngineMinioService {
 	}
 
 	public function is_available() {
-		// Static availability check: the advmo plugin is active => considered available.
-		// We no longer spawn a wp-cli process per batch (`wp advmo --help`), which put
-		// heavy pressure on Redis connections and failed intermittently.
 		if ( ! function_exists( 'is_plugin_active' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
 		return is_plugin_active( 'advanced-media-offloader/advanced-media-offloader.php' );
 	}
+}
+
+// Backward compatibility alias.
+if ( ! class_exists( 'MediaEngineMinioService', false ) ) {
+	class_alias( 'W2P_Media_Minio_Service', 'MediaEngineMinioService' );
 }

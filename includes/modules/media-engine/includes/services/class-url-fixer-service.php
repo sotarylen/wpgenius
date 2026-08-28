@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class MediaEngineUrlFixerService {
+class W2P_Media_Url_Fixer_Service {
 
 	/**
 	 * Supported image extensions to inspect and potentially convert to webp
@@ -515,7 +515,6 @@ class MediaEngineUrlFixerService {
 			// Clean cache without triggering heavy SuperCache flush warnings
 			wp_cache_delete( $post_id, 'posts' );
 			wp_cache_delete( $post_id, 'post_meta' );
-			clean_post_cache( $post_id );
 
 			if ( $this->logger ) {
 				$this->logger->log_debug(
@@ -783,4 +782,9 @@ class MediaEngineUrlFixerService {
 
 		curl_multi_close( $mh );
 	}
+}
+
+// Backward compatibility alias.
+if ( ! class_exists( 'MediaEngineUrlFixerService', false ) ) {
+	class_alias( 'W2P_Media_Url_Fixer_Service', 'MediaEngineUrlFixerService' );
 }

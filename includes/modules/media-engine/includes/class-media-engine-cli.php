@@ -16,12 +16,12 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
 	return;
 }
 
-class MediaEngineCLI {
+class W2P_Media_Engine_CLI {
 
 	/**
 	 * Processor instance
 	 *
-	 * @var MediaEngineProcessor
+	 * @var W2P_Media_Engine_Processor
 	 */
 	private $processor;
 
@@ -29,11 +29,11 @@ class MediaEngineCLI {
 	 * Constructor
 	 */
 	public function __construct() {
-		if ( ! class_exists( 'MediaEngineProcessor' ) ) {
+		if ( ! class_exists( 'W2P_Media_Engine_Processor' ) ) {
 			require_once plugin_dir_path( __FILE__ ) . 'class-media-engine-processor.php';
 		}
 
-		$this->processor = new MediaEngineProcessor();
+		$this->processor = new W2P_Media_Engine_Processor();
 	}
 
 	/**
@@ -50,12 +50,6 @@ class MediaEngineCLI {
 	 * [--id=<number>]
 	 * : Process the specified attachment ID
 	 *
-	 * [--parallel]
-	 * : Use parallel processing
-	 *
-	 * [--workers=<number>]
-	 * : Number of workers for parallel processing
-	 *
 	 * ## EXAMPLES
 	 *
 	 *     # Convert 100 images
@@ -64,35 +58,29 @@ class MediaEngineCLI {
 	 *     # Convert an image with a specified ID
 	 *     wp media-engine convert --id=12345
 	 *
-	 *     # Convert in parallel
-	 *     wp media-engine convert --limit=100 --parallel --workers=4
-	 *
 	 * @when after_wp_load
 	 */
 	public function convert( $args, $assoc_args ) {
-		$limit    = isset( $assoc_args['limit'] ) ? (int) $assoc_args['limit'] : 100;
-		$offset   = isset( $assoc_args['offset'] ) ? (int) $assoc_args['offset'] : 0;
-		$id       = isset( $assoc_args['id'] ) ? (int) $assoc_args['id'] : null;
-		$parallel = isset( $assoc_args['parallel'] );
-		$workers  = isset( $assoc_args['workers'] ) ? (int) $assoc_args['workers'] : null;
+		$limit  = isset( $assoc_args['limit'] ) ? (int) $assoc_args['limit'] : 100;
+		$offset = isset( $assoc_args['offset'] ) ? (int) $assoc_args['offset'] : 0;
+		$id     = isset( $assoc_args['id'] ) ? (int) $assoc_args['id'] : null;
 
 		// Process a single attachment
 		if ( $id ) {
-			// translators: %1: placeholder.
 			WP_CLI::line( sprintf( __( 'Processing attachment ID: %d', 'wp-genius' ), $id ) );
 			$result = $this->processor->process_attachment( $id );
 
-			if ( $result['success'] ) {
+			if ( ! empty( $result['success'] ) ) {
 				WP_CLI::success( __( 'Conversion completed successfully', 'wp-genius' ) );
 			} else {
-				WP_CLI::error( $result['error'] );
+				WP_CLI::error( isset( $result['error'] ) ? $result['error'] : __( 'Conversion failed', 'wp-genius' ) );
 			}
 
 			return;
 		}
 
 		// Get pending attachments
-		$attachments = $this->processor->get_pending_attachments( $limit, $offset );
+		$attachments = $this->processor->scan( $limit, $offset );
 		$total       = count( $attachments );
 
 		if ( $total === 0 ) {
@@ -100,38 +88,39 @@ class MediaEngineCLI {
 			return;
 		}
 
-		// translators: %1: placeholder.
 		WP_CLI::line( sprintf( __( 'Found %d attachments to process', 'wp-genius' ), $total ) );
 
-		// Parallel processing
-		if ( $parallel ) {
-			// translators: %1: placeholder.
-			WP_CLI::line( sprintf( __( 'Using parallel processing with %d workers', 'wp-genius' ), $workers ?? 'auto' ) );
-			$result = $this->processor->parallel_process( $attachments, $workers );
-		} else {
-			// Batch processing
-			$result = $this->processor->batch_process( $limit, $offset );
+		$start_time = microtime( true );
+		$result     = $this->processor->process_batch( $attachments );
+		$duration   = microtime( true ) - $start_time;
+
+		$stats = isset( $result['stats']['convert'] ) ? $result['stats']['convert'] : array();
+		$succeeded = 0;
+		$failed    = 0;
+		foreach ( $stats as $att_res ) {
+			if ( ! empty( $att_res['success'] ) ) {
+				$succeeded++;
+			} else {
+				$failed++;
+			}
 		}
 
 		WP_CLI::line(
 			sprintf(
-				// translators: %1: placeholder, %2: placeholder, %3: placeholder.
 				__( 'Processed: %1$d | Succeeded: %2$d | Failed: %3$d | Duration: %4$.2fs', 'wp-genius' ),
-				$result['processed'],
-				$result['succeeded'],
-				$result['failed'],
-				$result['duration']
+				$total,
+				$succeeded,
+				$failed,
+				$duration
 			)
 		);
 
-		if ( $result['succeeded'] > 0 ) {
-			// translators: %1: placeholder.
-			WP_CLI::success( sprintf( __( 'Successfully converted %d images', 'wp-genius' ), $result['succeeded'] ) );
+		if ( $succeeded > 0 ) {
+			WP_CLI::success( sprintf( __( 'Successfully converted %d images', 'wp-genius' ), $succeeded ) );
 		}
 
-		if ( $result['failed'] > 0 ) {
-			// translators: %1: placeholder.
-			WP_CLI::warning( sprintf( __( '%d images failed to convert', 'wp-genius' ), $result['failed'] ) );
+		if ( $failed > 0 ) {
+			WP_CLI::warning( sprintf( __( '%d images failed to convert', 'wp-genius' ), $failed ) );
 		}
 	}
 
@@ -152,12 +141,11 @@ class MediaEngineCLI {
 	public function offload( $args, $assoc_args ) {
 		$limit = isset( $assoc_args['limit'] ) ? (int) $assoc_args['limit'] : 100;
 
-		// translators: %1: placeholder.
 		WP_CLI::line( sprintf( __( 'Offloading up to %d files to Minio...', 'wp-genius' ), $limit ) );
 
 		$command = sprintf( 'wp advmo offload --limit=%d --yes 2>&1', $limit );
 		$output  = array();
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- System tool invocation; parameters have been sanitized.
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec
 		exec( $command, $output, $return_code );
 
 		if ( $return_code === 0 ) {
@@ -169,27 +157,49 @@ class MediaEngineCLI {
 	}
 
 	/**
-	 * Clean up local files
+	 * Clean up local residual files confirmed in MinIO bucket
 	 *
 	 * ## OPTIONS
 	 *
-	 * [--verify-minio]
-	 * : Verify the file exists on the Minio side before deleting
+	 * [--subdir=<dir>]
+	 * : Specific subfolder to audit and clean (e.g. 2026/08)
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp media-engine cleanup --verify-minio
+	 *     wp media-engine cleanup
+	 *     wp media-engine cleanup --subdir=2026/08
 	 *
 	 * @when after_wp_load
 	 */
 	public function cleanup( $args, $assoc_args ) {
-		$verify = isset( $assoc_args['verify-minio'] );
+		$subdir = isset( $assoc_args['subdir'] ) ? sanitize_text_field( $assoc_args['subdir'] ) : '';
 
-		WP_CLI::line( __( 'Cleaning up local files...', 'wp-genius' ) );
+		if ( ! class_exists( 'W2P_Media_Audit_Service' ) ) {
+			require_once plugin_dir_path( __FILE__ ) . 'services/class-audit-service.php';
+		}
 
-		// TODO: Implement cleanup logic
+		$audit = new W2P_Media_Audit_Service();
+		WP_CLI::line( __( 'Scanning for cleanable residual local files...', 'wp-genius' ) );
 
-		WP_CLI::success( __( 'Cleanup completed', 'wp-genius' ) );
+		$scan_res = $audit->scan_batch( $subdir, 0, 200 );
+		$files    = array();
+		if ( ! empty( $scan_res['files'] ) ) {
+			foreach ( $scan_res['files'] as $f ) {
+				if ( isset( $f['type'] ) && 'A' === $f['type'] ) {
+					$files[] = $f['file'];
+				}
+			}
+		}
+
+		if ( empty( $files ) ) {
+			WP_CLI::success( __( 'No cleanable local files found.', 'wp-genius' ) );
+			return;
+		}
+
+		WP_CLI::line( sprintf( __( 'Found %d confirmed cleanable files. Deleting local copies...', 'wp-genius' ), count( $files ) ) );
+		$clean_res = $audit->clean_files( $files, false );
+
+		WP_CLI::success( sprintf( __( 'Cleanup complete: %d removed, %d skipped.', 'wp-genius' ), $clean_res['cleaned'], count( $clean_res['skipped'] ) ) );
 	}
 
 	/**
@@ -199,19 +209,20 @@ class MediaEngineCLI {
 	 *
 	 *     wp media-engine check-env
 	 *
+	 * @subcommand check-env
 	 * @when after_wp_load
 	 */
 	public function check_env( $args, $assoc_args ) {
-		if ( ! class_exists( 'MediaEngineEnvironmentChecker' ) ) {
-			require_once plugin_dir_path( __FILE__ ) . 'class-environment-checker.php';
+		if ( ! class_exists( 'W2P_Media_Environment_Checker' ) ) {
+			require_once plugin_dir_path( __FILE__ ) . 'services/class-environment-service.php';
 		}
 
-		$results = MediaEngineEnvironmentChecker::check_all();
+		$results = W2P_Media_Environment_Checker::check_all();
 
 		WP_CLI::line( '=== System Information ===' );
 		WP_CLI::line( sprintf( 'OS: %s', $results['system']['os'] ) );
 		WP_CLI::line( sprintf( 'CPU Cores: %d', $results['system']['cpu_cores'] ) );
-		WP_CLI::line( sprintf( 'Recommended Workers: %d', MediaEngineEnvironmentChecker::get_recommended_workers() ) );
+		WP_CLI::line( sprintf( 'Recommended Workers: %d', W2P_Media_Environment_Checker::get_recommended_workers() ) );
 
 		WP_CLI::line( "\n=== PHP Environment ===" );
 		WP_CLI::line( sprintf( 'PHP Version: %s %s', $results['php']['version'], $results['php']['version_ok'] ? '✓' : '✗' ) );
@@ -231,15 +242,6 @@ class MediaEngineCLI {
 		}
 	}
 
-	/**
-	 * Get pending attachment statistics
-	 *
-	 * ## EXAMPLES
-	 *
-	 *     wp media-engine stats
-	 *
-	 * @when after_wp_load
-	 */
 	/**
 	 * Fix /wp-content/uploads/ URLs in post contents and correct extensions for offloaded WebP media
 	 *
@@ -263,6 +265,9 @@ class MediaEngineCLI {
 	 * [--include-revisions]
 	 * : Include post revisions in scan/fix
 	 *
+	 * [--force]
+	 * : Bypass prerequisite check warnings
+	 *
 	 * ## EXAMPLES
 	 *
 	 *     # Preview fixes for 10 posts (dry-run)
@@ -282,11 +287,11 @@ class MediaEngineCLI {
 	 */
 	public function fix_urls( $args, $assoc_args ) {
 		$service_path = plugin_dir_path( __FILE__ ) . 'services/class-url-fixer-service.php';
-		if ( ! class_exists( 'MediaEngineUrlFixerService' ) && file_exists( $service_path ) ) {
+		if ( ! class_exists( 'W2P_Media_Url_Fixer_Service' ) && file_exists( $service_path ) ) {
 			require_once $service_path;
 		}
 
-		$fixer             = new MediaEngineUrlFixerService();
+		$fixer             = new W2P_Media_Url_Fixer_Service();
 		$limit             = isset( $assoc_args['limit'] ) ? max( 1, (int) $assoc_args['limit'] ) : 50;
 		$offset            = isset( $assoc_args['offset'] ) ? max( 0, (int) $assoc_args['offset'] ) : 0;
 		$post_id           = isset( $assoc_args['id'] ) ? (int) $assoc_args['id'] : null;
@@ -329,7 +334,7 @@ class MediaEngineCLI {
 					WP_CLI::success( sprintf( __( '[DRY-RUN] Post #%d would have %d replacements.', 'wp-genius' ), $post_id, $res['replaced'] ) );
 				}
 			} else {
-				WP_CLI::line( sprintf( __( 'No local uploads URLs need fixing in Post #%d (Reason: %s).', 'wp-genius' ), $post_id, $res['reason'] ?? 'none' ) );
+				WP_CLI::line( sprintf( __( 'No local uploads URLs need fixing in Post #%d (Reason: %s).', 'wp-genius' ), $post_id, isset( $res['reason'] ) ? $res['reason'] : 'none' ) );
 			}
 			return;
 		}
@@ -400,6 +405,10 @@ class MediaEngineCLI {
 	}
 }
 
-// Register WP-CLI command
-WP_CLI::add_command( 'media-engine', 'MediaEngineCLI' );
+// Backward compatibility alias.
+if ( ! class_exists( 'MediaEngineCLI', false ) ) {
+	class_alias( 'W2P_Media_Engine_CLI', 'MediaEngineCLI' );
+}
 
+// Register WP-CLI command
+WP_CLI::add_command( 'media-engine', 'W2P_Media_Engine_CLI' );

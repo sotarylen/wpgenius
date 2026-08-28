@@ -1,13 +1,17 @@
 <?php
 /**
  * Media Engine Metadata Service
+ *
+ * @package WP_Genius
+ * @subpackage Modules/MediaEngine
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class MediaEngineMetadataService {
+class W2P_Media_Metadata_Service {
+
 	public function update( $attachment_id, $old_path, $new_path ) {
 		global $wpdb;
 		$upload_dir = wp_upload_dir();
@@ -19,14 +23,8 @@ class MediaEngineMetadataService {
 		}
 		update_attached_file( $attachment_id, $relative_path );
 		$wpdb->update( $wpdb->posts, array( 'post_mime_type' => 'image/webp' ), array( 'ID' => $attachment_id ) );
-		// Direct SQL writes bypass the WP post cache: without an explicit invalidation,
-		// get_post() would keep returning the stale (pre-webp) mime type.
-		// Use targeted wp_cache_delete instead of clean_post_cache(): the latter fires
-		// the 'clean_post_cache' action, which wp-super-cache hooks into and emits a
-		// PHP Warning (rmdir on a missing supercache dir). With WP_DEBUG + Query Monitor
-		// active, each Warning is serialized into an X-QM-php_errors response header —
-		// 20 attachments × 1 header ≈ 13KB overflows nginx fastcgi_buffer_size (~4KB)
-		// and the admin-ajax response dies with 502 Bad Gateway.
+
+		// Targeted cache invalidation without firing buggy supercache hooks
 		wp_cache_delete( $attachment_id, 'posts' );
 		wp_cache_delete( $attachment_id, 'post_meta' );
 		$metadata = wp_get_attachment_metadata( $attachment_id );
@@ -50,7 +48,11 @@ class MediaEngineMetadataService {
 			if ( ! is_dir( $source_dir ) ) {
 				wp_mkdir_p( $source_dir );
 			}
-			rename( $dir . '/' . $original_filename, $source_dir . '/' . $original_filename );
+			$dest_file = $source_dir . '/' . $original_filename;
+			if ( file_exists( $dest_file ) ) {
+				@unlink( $dest_file );
+			}
+			@rename( $dir . '/' . $original_filename, $dest_file );
 			return array(
 				'success' => true,
 				'count'   => 1,
@@ -61,4 +63,9 @@ class MediaEngineMetadataService {
 			'count'   => 0,
 		);
 	}
+}
+
+// Backward compatibility alias.
+if ( ! class_exists( 'MediaEngineMetadataService', false ) ) {
+	class_alias( 'W2P_Media_Metadata_Service', 'MediaEngineMetadataService' );
 }

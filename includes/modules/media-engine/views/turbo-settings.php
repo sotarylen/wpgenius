@@ -87,6 +87,30 @@ $batch_size = isset( $settings['batch_size'] ) ? absint( $settings['batch_size']
 						</button>
 					</div>
 				</div>
+
+				<!-- Step 1 Stat Cards (Hidden before task/scan execution) -->
+				<div id="w2p-queue-summary" class="w2p-queue-stats-grid w2p-hidden">
+					<div class="w2p-queue-stat-card w2p-queue-stat-total" data-filter="total">
+						<span class="label"><?php esc_html_e( 'Total', 'wp-genius' ); ?></span>
+						<span class="value" data-stat="total">0</span>
+					</div>
+					<div class="w2p-queue-stat-card w2p-queue-stat-pending" data-filter="pending">
+						<span class="label"><?php esc_html_e( 'Pending', 'wp-genius' ); ?></span>
+						<span class="value" data-stat="pending">0</span>
+					</div>
+					<div class="w2p-queue-stat-card w2p-queue-stat-processing" data-filter="processing">
+						<span class="label"><?php esc_html_e( 'Processing', 'wp-genius' ); ?></span>
+						<span class="value" data-stat="processing">0</span>
+					</div>
+					<div class="w2p-queue-stat-card w2p-queue-stat-completed" data-filter="completed">
+						<span class="label"><?php esc_html_e( 'Completed', 'wp-genius' ); ?></span>
+						<span class="value" data-stat="completed">0</span>
+					</div>
+					<div class="w2p-queue-stat-card w2p-queue-stat-failed" data-filter="failed">
+						<span class="label"><?php esc_html_e( 'Failed', 'wp-genius' ); ?></span>
+						<span class="value" data-stat="failed">0</span>
+					</div>
+				</div>
 			</div>
 
 			<!-- Step 2: Residual Media Audit Action Bar & Stats -->
@@ -224,7 +248,6 @@ $batch_size = isset( $settings['batch_size'] ) ? absint( $settings['batch_size']
 
 			<!-- Step 1 Result View: Attachment List -->
 			<div id="w2p-attachment-list" class="w2p-hidden w2p-attachment-list">
-				<div id="w2p-queue-stats" class="w2p-smart-aui-body"></div>
 				<div class="w2p-log-container">
 					<table class="w2p-list-table fixed striped">
 						<thead>
@@ -309,262 +332,3 @@ $batch_size = isset( $settings['batch_size'] ) ? absint( $settings['batch_size']
 		</div>
 	</div>
 </div>
-
-<style>
-/* Workflow Step Navigation */
-.w2p-workflow-steps-nav {
-	display: flex;
-	gap: var(--w2p-spacing-md);
-	margin-bottom: var(--w2p-spacing-lg);
-	border-bottom: 1px solid var(--w2p-border-color-light);
-	padding-bottom: var(--w2p-spacing-md);
-}
-
-.w2p-workflow-step-btn {
-	flex: 1;
-	display: flex;
-	align-items: center;
-	gap: var(--w2p-spacing-md);
-	padding: var(--w2p-spacing-md) var(--w2p-spacing-lg);
-	background: var(--w2p-bg-surface-secondary);
-	border: 1px solid var(--w2p-border-color-light);
-	border-radius: var(--w2p-radius-lg);
-	cursor: pointer;
-	text-align: left;
-	transition: all 0.2s ease;
-}
-
-.w2p-workflow-step-btn:hover {
-	border-color: var(--w2p-color-primary);
-	background: var(--w2p-bg-surface);
-}
-
-.w2p-workflow-step-btn.active {
-	border-color: var(--w2p-color-primary);
-	background: var(--w2p-bg-surface);
-	box-shadow: 0 0 0 2px var(--w2p-color-primary);
-}
-
-.w2p-workflow-step-btn .w2p-step-num {
-	width: 32px;
-	height: 32px;
-	border-radius: 50%;
-	background: var(--w2p-border-color-light);
-	color: var(--w2p-text-muted);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-weight: bold;
-	font-size: 14px;
-	flex-shrink: 0;
-}
-
-.w2p-workflow-step-btn.active .w2p-step-num {
-	background: var(--w2p-color-primary);
-	color: #fff;
-}
-
-.w2p-workflow-step-btn .w2p-step-info {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-}
-
-.w2p-workflow-step-btn .w2p-step-title {
-	font-weight: var(--w2p-font-weight-bold);
-	font-size: var(--w2p-font-size-sm);
-	color: var(--w2p-text-main);
-}
-
-.w2p-workflow-step-btn .w2p-step-desc {
-	font-size: var(--w2p-font-size-xs);
-	color: var(--w2p-text-muted);
-}
-
-.w2p-action-divider {
-	border-left: 1px solid var(--w2p-border-color);
-	height: 24px;
-	margin: 0 4px;
-	display: inline-block;
-}
-
-/* Notice Banner */
-.w2p-notice-banner {
-	padding: var(--w2p-spacing-md) var(--w2p-spacing-lg);
-	border-radius: var(--w2p-radius-md);
-	margin-bottom: var(--w2p-spacing-md);
-	display: flex;
-	align-items: center;
-	gap: var(--w2p-spacing-md);
-	font-size: var(--w2p-font-size-sm);
-}
-
-.w2p-notice-banner.w2p-notice-info {
-	background: rgba(2, 132, 199, 0.1);
-	border: 1px solid rgba(2, 132, 199, 0.3);
-	color: var(--w2p-color-info, #0284c7);
-}
-
-.w2p-notice-banner.w2p-notice-warning {
-	background: rgba(245, 158, 11, 0.1);
-	border: 1px solid rgba(245, 158, 11, 0.3);
-	color: var(--w2p-color-warning, #d97706);
-}
-
-.w2p-notice-banner.w2p-notice-success {
-	background: rgba(16, 185, 129, 0.1);
-	border: 1px solid rgba(16, 185, 129, 0.3);
-	color: var(--w2p-color-success, #059669);
-}
-
-/* Grid & Cards for Step 2 & Step 3 */
-.w2p-audit-stats-grid,
-.w2p-fixer-stats-grid {
-	display: grid;
-	gap: var(--w2p-spacing-md);
-	margin-top: var(--w2p-spacing-md);
-	margin-bottom: var(--w2p-spacing-lg);
-}
-
-.w2p-audit-stats-grid { grid-template-columns: repeat(4, 1fr); }
-.w2p-fixer-stats-grid { grid-template-columns: repeat(5, 1fr); }
-
-.w2p-audit-stat-card,
-.w2p-fixer-stat-card {
-	background: var(--w2p-bg-surface-secondary);
-	border: 1px solid var(--w2p-border-color-light);
-	border-radius: var(--w2p-radius-lg);
-	padding: var(--w2p-spacing-md);
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: var(--w2p-spacing-xs);
-	cursor: pointer;
-	transition: border-color 0.15s ease, box-shadow 0.15s ease;
-	user-select: none;
-}
-
-.w2p-audit-stat-card:hover,
-.w2p-fixer-stat-card:hover {
-	border-color: var(--w2p-color-primary);
-	box-shadow: 0 0 0 1px var(--w2p-color-primary);
-}
-
-.w2p-audit-stat-card .label,
-.w2p-fixer-stat-card .label {
-	font-size: var(--w2p-font-size-xs);
-	font-weight: var(--w2p-font-weight-bold);
-	color: var(--w2p-text-muted);
-	text-transform: uppercase;
-	text-align: center;
-}
-
-.w2p-audit-stat-card .value,
-.w2p-fixer-stat-card .value {
-	font-family: var(--w2p-font-family-value);
-	font-size: var(--w2p-font-size-xl);
-	line-height: 1;
-}
-
-.w2p-audit-stat-cleanable .value { color: var(--w2p-color-success); }
-.w2p-audit-stat-not_offloaded .value { color: var(--w2p-color-warning); }
-.w2p-audit-stat-orphan .value { color: var(--w2p-color-error); }
-.w2p-audit-stat-total .value { color: var(--w2p-color-primary); }
-
-.w2p-fixer-stat-pending .value { color: var(--w2p-color-primary); }
-.w2p-fixer-stat-fixable .value { color: var(--w2p-color-warning); }
-.w2p-fixer-stat-ext .value { color: var(--w2p-color-success); }
-.w2p-fixer-stat-path .value { color: var(--w2p-color-info, #0284c7); }
-.w2p-fixer-stat-external .value { color: var(--w2p-text-muted); }
-
-.w2p-audit-input { width: 180px; }
-
-/* Log Modal Styling */
-#w2p-log-modal {
-	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	background: rgba(0, 0, 0, 0.6);
-	z-index: var(--w2p-z-index-overlay, 999999);
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	opacity: 0;
-	visibility: hidden;
-	transition: opacity 0.2s ease;
-}
-#w2p-log-modal.active {
-	opacity: 1;
-	visibility: visible;
-}
-#w2p-log-modal .w2p-confirm-modal.w2p-log-viewer {
-	width: 860px;
-	max-width: 92%;
-	max-height: 88vh;
-	flex-direction: column;
-	display: flex;
-	transform: scale(0.1);
-	transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-#w2p-log-modal.active .w2p-confirm-modal.w2p-log-viewer {
-	transform: scale(1);
-}
-#w2p-log-modal .w2p-confirm-modal.w2p-log-viewer .w2p-modal-body {
-	height: auto;
-	max-height: none;
-	overflow: hidden;
-	padding: 0;
-	flex: 1;
-	min-height: 0;
-}
-#w2p-log-modal .w2p-confirm-modal.w2p-log-viewer .w2p-modal-body pre {
-	height: 420px;
-	overflow-y: auto;
-	border-radius: 0;
-	margin: 0;
-	white-space: pre-wrap;
-	word-break: break-all;
-}
-.w2p-log-size-label {
-	font-weight: normal;
-	font-size: 13px;
-	margin-left: 8px;
-	opacity: 0.7;
-}
-.w2p-btn-error-outline {
-	color: var(--w2p-color-error);
-	border-color: var(--w2p-color-error);
-}
-.w2p-btn-error-outline:hover {
-	background: var(--w2p-color-error);
-	color: #fff;
-}
-.w2p-modal-close {
-	background: none;
-	border: none;
-	cursor: pointer;
-	font-size: 22px;
-	color: inherit;
-	padding: 2px 6px;
-	line-height: 1;
-}
-
-/* Fixer Previews */
-.w2p-fixer-preview-item {
-	font-family: monospace;
-	font-size: 11px;
-	line-height: 1.4;
-	margin-bottom: 4px;
-	word-break: break-all;
-}
-.w2p-fixer-preview-item .old-url {
-	color: var(--w2p-color-error);
-	text-decoration: line-through;
-}
-.w2p-fixer-preview-item .new-url {
-	color: var(--w2p-color-success);
-	font-weight: bold;
-}
-</style>

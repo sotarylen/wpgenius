@@ -27,9 +27,6 @@ class W2P_Clipboard_Handler {
 
 		// AJAX handlers
 		add_action( 'wp_ajax_w2p_clipboard_upload', array( $this, 'ajax_handle_upload' ) );
-
-		// CSS for icon
-		add_action( 'admin_head', array( $this, 'add_icon_styles' ) );
 	}
 
 	/**
@@ -46,23 +43,6 @@ class W2P_Clipboard_Handler {
 	public function register_tinymce_plugin( $plugin_array ) {
 		$plugin_array['w2p_clipboard_upload'] = plugins_url( '../assets/js/clipboard-upload.js', __FILE__ );
 		return $plugin_array;
-	}
-
-	/**
-	 * Add Icon Styles
-	 */
-	public function add_icon_styles() {
-		?>
-		<style>
-			i.mce-i-w2p_clipboard_toggle:before {
-				content: "\f124"; /* dashicons-paste */
-				font-family: dashicons !important;
-			}
-			.mce-w2p_clipboard_toggle.mce-active i {
-				color: #2271b1;
-			}
-		</style>
-		<?php
 	}
 
 	/**

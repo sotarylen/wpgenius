@@ -1,30 +1,42 @@
 <?php
 /**
  * Media Engine Thumbnail Service
+ *
+ * @package WP_Genius
+ * @subpackage Modules/MediaEngine
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class MediaEngineThumbnailService {
+class W2P_Media_Thumbnail_Service {
 	private $logger;
 
 	public function __construct() {
-		if ( ! class_exists( 'MediaEngineConversionLogger' ) ) {
-			// class-thumbnail-service.php lives in services/ together with class-logger-service.php,
-			// so resolve via __FILE__ (plugin_dir_path( __DIR__ ) would point one level up).
+		if ( ! class_exists( 'W2P_Media_Conversion_Logger' ) ) {
 			require_once plugin_dir_path( __FILE__ ) . 'class-logger-service.php';
 		}
-		$this->logger = new MediaEngineConversionLogger();
+		if ( class_exists( 'W2P_Media_Conversion_Logger' ) ) {
+			$this->logger = new W2P_Media_Conversion_Logger();
+		} elseif ( class_exists( 'MediaEngineConversionLogger' ) ) {
+			$this->logger = new MediaEngineConversionLogger();
+		}
 	}
 
 	public function regenerate( $attachment_id ) {
-		$cmd = sprintf( 'timeout 300 wp media regenerate %d --only-missing --yes 2>&1', $attachment_id );
+		$attachment_id = absint( $attachment_id );
+		$cmd           = sprintf( 'wp media regenerate %d --only-missing --yes 2>&1', $attachment_id );
+		if ( $this->has_timeout_command() ) {
+			$cmd = 'timeout 300 ' . $cmd;
+		}
+
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI invocation; attachment ID is cast via absint.
 		exec( $cmd, $output, $return_code );
 		$stats = $this->parse_thumbnail_stats( $output, 1 );
-		$this->logger->log_thumbnail_result( array( $attachment_id ), $stats['success'], $stats['skip'], $stats['failed'] );
+		if ( $this->logger ) {
+			$this->logger->log_thumbnail_result( array( $attachment_id ), $stats['success'], $stats['skip'], $stats['failed'] );
+		}
 		return array(
 			'success' => $return_code === 0,
 			'message' => implode( "\n", $output ),
@@ -38,16 +50,35 @@ class MediaEngineThumbnailService {
 				'count'   => 0,
 			);
 		}
-		$ids_str = implode( ' ', $attachment_ids );
-		$cmd     = sprintf( 'timeout 300 wp media regenerate %s --only-missing --yes 2>&1', $ids_str );
+		$clean_ids = array_map( 'absint', $attachment_ids );
+		$ids_str   = implode( ' ', $clean_ids );
+		$cmd       = sprintf( 'wp media regenerate %s --only-missing --yes 2>&1', $ids_str );
+		if ( $this->has_timeout_command() ) {
+			$cmd = 'timeout 300 ' . $cmd;
+		}
+
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- wp CLI invocation; attachment ID is cast via absint.
 		exec( $cmd, $output, $return_code );
-		$stats = $this->parse_thumbnail_stats( $output, count( $attachment_ids ) );
-		$this->logger->log_thumbnail_result( $attachment_ids, $stats['success'], $stats['skip'], $stats['failed'] );
+		$stats = $this->parse_thumbnail_stats( $output, count( $clean_ids ) );
+		if ( $this->logger ) {
+			$this->logger->log_thumbnail_result( $clean_ids, $stats['success'], $stats['skip'], $stats['failed'] );
+		}
 		return array(
 			'success' => $return_code === 0,
-			'count'   => count( $attachment_ids ),
+			'count'   => count( $clean_ids ),
 		);
+	}
+
+	private function has_timeout_command() {
+		static $has_timeout = null;
+		if ( null === $has_timeout ) {
+			$check_output = array();
+			$return_code  = 0;
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec
+			exec( 'which timeout 2>&1', $check_output, $return_code );
+			$has_timeout = ( 0 === $return_code && ! empty( $check_output[0] ) );
+		}
+		return $has_timeout;
 	}
 
 	/**
@@ -82,4 +113,9 @@ class MediaEngineThumbnailService {
 			'failed'  => $failed,
 		);
 	}
+}
+
+// Backward compatibility alias.
+if ( ! class_exists( 'MediaEngineThumbnailService', false ) ) {
+	class_alias( 'W2P_Media_Thumbnail_Service', 'MediaEngineThumbnailService' );
 }

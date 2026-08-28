@@ -11,7 +11,7 @@
         queue: [],
         processing: false,
         stopped: false,
-        batchSize: (window.w2pMediaConfig && window.w2pMediaConfig.batchSize) || 5,
+        batchSize: (window.w2pMediaEngine && window.w2pMediaEngine.batchSize) ? parseInt(window.w2pMediaEngine.batchSize, 10) : 10,
         currentBatchIndex: 0,
         batches: [],
         stats: {
@@ -110,10 +110,18 @@
                 $('#w2p-step-2-panel').toggleClass('w2p-hidden', step !== 2).toggle(step === 2);
                 $('#w2p-step-3-panel').toggleClass('w2p-hidden', step !== 3).toggle(step === 3);
 
-                // Toggle Result Tables
-                $('#w2p-attachment-list').toggleClass('w2p-hidden', step !== 1).toggle(step === 1);
-                $('#w2p-audit-results').toggleClass('w2p-hidden', step !== 2).toggle(step === 2);
-                $('#w2p-fixer-results').toggleClass('w2p-hidden', step !== 3).toggle(step === 3);
+                // Toggle Result Tables and Stat Cards (only show if data/task is present)
+                const hasStep1Data = (self.stats && self.stats.total > 0) || (self.queue && self.queue.length > 0) || self.processing;
+                $('#w2p-queue-summary').toggleClass('w2p-hidden', step !== 1 || !hasStep1Data).toggle(step === 1 && hasStep1Data);
+
+                const hasStep1Table = self.queue && self.queue.length > 0;
+                $('#w2p-attachment-list').toggleClass('w2p-hidden', step !== 1 || !hasStep1Table).toggle(step === 1 && hasStep1Table);
+
+                const hasStep2Data = $('#w2p-audit-tbody tr').length > 0;
+                $('#w2p-audit-results').toggleClass('w2p-hidden', step !== 2 || !hasStep2Data).toggle(step === 2 && hasStep2Data);
+
+                const hasStep3Data = $('#w2p-fixer-tbody tr').length > 0;
+                $('#w2p-fixer-results').toggleClass('w2p-hidden', step !== 3 || !hasStep3Data).toggle(step === 3 && hasStep3Data);
             });
         },
 
@@ -178,21 +186,31 @@
                 url: w2pMediaEngine.ajax_url,
                 type: 'POST',
                 data: {
-                    action: 'w2p_execute_wpcli',
-                    nonce: w2pMediaEngine.nonce,
-                    command: 'wp media-engine check_env'
+                    action: 'w2p_recheck_environment',
+                    nonce: w2pMediaEngine.nonce
                 },
                 success: function (response) {
-                    if (response.success) {
-                        if (typeof w2p !== 'undefined' && w2p.toast) {
-                            w2p.toast('Environment check completed. Reloading...', 'success');
+                    $button.prop('disabled', false);
+                    $button.find('i').removeClass().addClass('fa-solid fa-rotate');
+
+                    if (response.success && response.data) {
+                        if (response.data.html) {
+                            $('.w2p-environment-settings .w2p-section-body').html(response.data.html);
                         }
-                        setTimeout(function () {
-                            location.reload();
-                        }, 1000);
+                        if (typeof w2p !== 'undefined' && w2p.toast) {
+                            w2p.toast(response.data.can_process ? 'Environment is ready' : 'Environment rechecked', response.data.can_process ? 'success' : 'warning');
+                        }
                     } else {
-                        $button.prop('disabled', false);
-                        $button.find('i').removeClass().addClass('fa-solid fa-rotate');
+                        if (typeof w2p !== 'undefined' && w2p.toast) {
+                            w2p.toast('Failed to recheck environment', 'error');
+                        }
+                    }
+                },
+                error: function () {
+                    $button.prop('disabled', false);
+                    $button.find('i').removeClass().addClass('fa-solid fa-rotate');
+                    if (typeof w2p !== 'undefined' && w2p.toast) {
+                        w2p.toast('Network error while rechecking environment', 'error');
                     }
                 }
             });
@@ -207,15 +225,15 @@
 
             $button.prop('disabled', true).find('i').removeClass().addClass('fa-solid fa-spinner fa-spin');
             $('#w2p-processing-output').show();
-            $('#w2p-output-content').html('<div style="color: #fbbf24;">Scanning...</div>');
+            $('#w2p-output-content').html('<div class="w2p-text-gold">Scanning...</div>');
 
             self.fetchPendingAttachments(function (response) {
                 if (response.success) {
                     self.displayQueue();
 
-                    let html = '<div style="color: #10b981;">✓ Found ' + self.queue.length + ' attachments</div>';
+                    let html = '<div class="w2p-text-success">✓ Found ' + self.queue.length + ' attachments</div>';
                     if (response.data.failed_count > 0) {
-                        html += '<div style="color: #f59e0b; margin-top: 6px;">⚠️ ' +
+                        html += '<div class="w2p-text-warning w2p-mt-xs">⚠️ ' +
                             sprintf(w2pMediaEngine.i18n.failedSkippedInfo, response.data.failed_count) + '</div>';
                     }
                     $('#w2p-output-content').html(html);
@@ -303,7 +321,7 @@
 
             // Append error message if exists
             if (status === 'FAILED' && message) {
-                html += '<div style="font-size: 11px; color: #ef4444; margin-top: 4px;">' + message + '</div>';
+                html += '<div class="w2p-text-danger w2p-font-xs w2p-mt-xs">' + message + '</div>';
             }
 
             return html;
@@ -314,26 +332,16 @@
          */
         updateQueueStats: function () {
             const self = this;
+            $('#w2p-queue-summary [data-stat="total"]').text(self.stats.total);
+            $('#w2p-queue-summary [data-stat="pending"]').text(self.stats.pending);
+            $('#w2p-queue-summary [data-stat="processing"]').text(self.stats.processing);
+            $('#w2p-queue-summary [data-stat="completed"]').text(self.stats.completed);
+            $('#w2p-queue-summary [data-stat="failed"]').text(self.stats.failed);
 
-            // Check if wp.template is available
-            if (typeof wp !== 'undefined' && wp.template) {
-                try {
-                    const template = wp.template('w2p-media-queue-stats');
-                    $('#w2p-queue-stats').html(template(self.stats));
-                    return;
-                } catch (e) {
-                    console.error('Template rendering failed:', e);
-                }
+            // Show stat cards when there is an active task / queue data
+            if (self.stats.total > 0 || self.processing || self.autoMode !== 'idle') {
+                $('#w2p-queue-summary').removeClass('w2p-hidden').show();
             }
-
-            // Fallback to simple string if template fails or is missing
-            $('#w2p-queue-stats').html(
-                'Total: ' + self.stats.total + ' | ' +
-                'Pending: ' + self.stats.pending + ' | ' +
-                'Processing: ' + self.stats.processing + ' | ' +
-                'Completed: ' + self.stats.completed + ' | ' +
-                'Failed: ' + self.stats.failed
-            );
         },
 
         /**
@@ -357,9 +365,11 @@
                 self.batches.push(self.queue.slice(i, i + self.batchSize));
             }
 
-            // Show stop button
+            // Show stop button and disable trigger buttons to prevent accidental duplicate actions
             $('#w2p-start-conversion').hide();
             $('#w2p-start-parallel').hide();
+            $('#w2p-get-stats').prop('disabled', true);
+            $('#w2p-start-auto').prop('disabled', true);
             $('#w2p-stop-conversion').removeClass('w2p-hidden').show();
 
             self.processNextBatch();
@@ -383,8 +393,8 @@
 
             // Update output
             $('#w2p-output-content').html(
-                '<div style="color: #3b82f6;">Processing batch ' + (self.currentBatchIndex + 1) + '/' + self.batches.length + '</div>' +
-                '<div style="margin-top: 4px; font-size: 12px;">' + batchIds.length + ' images in this batch</div>'
+                '<div class="w2p-text-info">Processing batch ' + (self.currentBatchIndex + 1) + '/' + self.batches.length + '</div>' +
+                '<div class="w2p-mt-xs w2p-font-sm">' + batchIds.length + ' images in this batch</div>'
             );
 
             // Update all rows in batch to PROCESSING
@@ -489,7 +499,7 @@
                     self.stopRequested = true;
 
                     $('#w2p-output-content').append(
-                        '<div style="color: #f59e0b;">⛔ ' + w2pMediaEngine.i18n.stopRequested + '</div>'
+                        '<div class="w2p-text-warning">⛔ ' + w2pMediaEngine.i18n.stopRequested + '</div>'
                     );
 
                     if (typeof w2p !== 'undefined' && w2p.toast) {
@@ -511,10 +521,12 @@
             $('#w2p-stop-conversion').hide();
             $('#w2p-start-conversion').show();
             $('#w2p-start-parallel').show();
+            $('#w2p-get-stats').prop('disabled', false);
+            $('#w2p-start-auto').prop('disabled', false);
 
             $('#w2p-output-content').html(
-                '<div style="color: #f59e0b;">⏸ Stopped by user</div>' +
-                '<div style="margin-top: 8px;">Completed: ' + self.stats.completed + ' | Failed: ' + self.stats.failed + '</div>'
+                '<div class="w2p-text-warning">⏸ Stopped by user</div>' +
+                '<div class="w2p-mt-sm">Completed: ' + self.stats.completed + ' | Failed: ' + self.stats.failed + '</div>'
             );
 
             if (typeof w2p !== 'undefined' && w2p.toast) {
@@ -558,12 +570,14 @@
             $('#w2p-stop-conversion').addClass('w2p-hidden').hide();
             $('#w2p-start-conversion').show();
             $('#w2p-start-parallel').show();
+            $('#w2p-get-stats').prop('disabled', false);
+            $('#w2p-start-auto').prop('disabled', false);
 
             const message = self.stopped ? 'Stopped by user' : 'Processing complete!';
 
             $('#w2p-output-content').html(
-                '<div style="color: ' + (self.stopped ? '#f59e0b' : '#10b981') + ';">' + (self.stopped ? '⏸' : '✓') + ' ' + message + '</div>' +
-                '<div style="margin-top: 8px;">Completed: ' + self.stats.completed + ' | Failed: ' + self.stats.failedTotal + '</div>'
+                '<div class="' + (self.stopped ? 'w2p-text-warning' : 'w2p-text-success') + '">' + (self.stopped ? '⏸' : '✓') + ' ' + message + '</div>' +
+                '<div class="w2p-mt-sm">Completed: ' + self.stats.completed + ' | Failed: ' + self.stats.failedTotal + '</div>'
             );
 
             if (typeof w2p !== 'undefined' && w2p.toast) {
@@ -611,7 +625,7 @@
             self.setAutoUI('running');
 
             $('#w2p-processing-output').show();
-            $('#w2p-output-content').html('<div style="color: #10b981;">▶ ' + w2pMediaEngine.i18n.autoStarted + '</div>');
+            $('#w2p-output-content').html('<div class="w2p-text-success">▶ ' + w2pMediaEngine.i18n.autoStarted + '</div>');
 
             if (typeof w2p !== 'undefined' && w2p.toast) {
                 w2p.toast(w2pMediaEngine.i18n.autoStarted, 'success');
@@ -675,7 +689,7 @@
             self.autoRound++;
 
             $('#w2p-output-content').append(
-                '<div style="color: #3b82f6;">🔄 ' + sprintf(w2pMediaEngine.i18n.roundScanning, self.autoRound) + '</div>'
+                '<div class="w2p-text-info">🔄 ' + sprintf(w2pMediaEngine.i18n.roundScanning, self.autoRound) + '</div>'
             );
 
             self.fetchPendingAttachments(function (response) {
@@ -684,7 +698,7 @@
                     if (self.scanRetries < 3) {
                         self.scanRetries++;
                         $('#w2p-output-content').append(
-                            '<div style="color: #f59e0b;">⚠️ ' + sprintf(w2pMediaEngine.i18n.scanRetrying, self.scanRetries, 3) + '</div>'
+                            '<div class="w2p-text-warning">⚠️ ' + sprintf(w2pMediaEngine.i18n.scanRetrying, self.scanRetries, 3) + '</div>'
                         );
                         setTimeout(function () { self.autoScanAndProcess(); }, 1000 * self.scanRetries);
                     } else {
@@ -734,7 +748,7 @@
                 self.currentBatchIndex = 0;
 
                 $('#w2p-output-content').append(
-                    '<div style="color: #10b981;">✓ ' + sprintf(w2pMediaEngine.i18n.roundFound, self.autoRound, self.queue.length, self.batches.length) + '</div>'
+                    '<div class="w2p-text-success">✓ ' + sprintf(w2pMediaEngine.i18n.roundFound, self.autoRound, self.queue.length, self.batches.length) + '</div>'
                 );
 
                 self.processNextAutoBatch();
@@ -769,7 +783,7 @@
             const startIndex = self.currentBatchIndex * self.batchSize;
 
             $('#w2p-output-content').append(
-                '<div style="color: #3b82f6;">⚙️ ' + sprintf(w2pMediaEngine.i18n.roundBatch, self.autoRound, (self.currentBatchIndex + 1), self.batches.length, batchIds.length) + '</div>'
+                '<div class="w2p-text-info">⚙️ ' + sprintf(w2pMediaEngine.i18n.roundBatch, self.autoRound, (self.currentBatchIndex + 1), self.batches.length, batchIds.length) + '</div>'
             );
 
             // Update the current batch row status to PROCESSING
@@ -845,7 +859,7 @@
                             self.stats.processing--;
                         });
                         $('#w2p-output-content').append(
-                            '<div style="color: #f59e0b;">⚠️ Batch request failed (retry ' + self.batchRetries + '/2)...</div>'
+                            '<div class="w2p-text-warning">⚠️ Batch request failed (retry ' + self.batchRetries + '/2)...</div>'
                         );
                         self.updateQueueStats();
                         setTimeout(() => self.processNextAutoBatch(), 10000);  // 10s 后重试当前批次，不推进 currentBatchIndex
@@ -933,7 +947,7 @@
             self.pauseRequested = true;
 
             $('#w2p-output-content').append(
-                '<div style="color: #f59e0b;">⏸ ' + w2pMediaEngine.i18n.pauseRequested + '</div>'
+                '<div class="w2p-text-warning">⏸ ' + w2pMediaEngine.i18n.pauseRequested + '</div>'
             );
 
             self.setPauseButtonLabel('resume');
@@ -954,7 +968,7 @@
             self.setAutoUI('paused');
 
             $('#w2p-output-content').append(
-                '<div style="color: #f59e0b;">⏸ ' + sprintf(w2pMediaEngine.i18n.paused, self.stats.completed, self.stats.failedTotal) + '</div>'
+                '<div class="w2p-text-warning">⏸ ' + sprintf(w2pMediaEngine.i18n.paused, self.stats.completed, self.stats.failedTotal) + '</div>'
             );
         },
 
@@ -972,7 +986,7 @@
             self.setAutoUI('running');
 
             $('#w2p-output-content').append(
-                '<div style="color: #10b981;">▶ ' + w2pMediaEngine.i18n.continuing + '</div>'
+                '<div class="w2p-text-success">▶ ' + w2pMediaEngine.i18n.continuing + '</div>'
             );
 
             if (self.currentBatchIndex < self.batches.length) {
@@ -993,12 +1007,12 @@
             self.setAutoUI('idle');
 
             $('#w2p-output-content').append(
-                '<div style="color: #10b981;">✓ ' + sprintf(w2pMediaEngine.i18n.autoComplete, self.stats.completed, self.stats.failedTotal) + '</div>'
+                '<div class="w2p-text-success">✓ ' + sprintf(w2pMediaEngine.i18n.autoComplete, self.stats.completed, self.stats.failedTotal) + '</div>'
             );
 
             if (self.stats.failedTotal > 0) {
                 $('#w2p-output-content').append(
-                    '<div style="color: #ef4444;">⚠️ ' + sprintf(w2pMediaEngine.i18n.filesFailed, self.stats.failedTotal) + '</div>'
+                    '<div class="w2p-text-danger">⚠️ ' + sprintf(w2pMediaEngine.i18n.filesFailed, self.stats.failedTotal) + '</div>'
                 );
             }
 
@@ -1020,7 +1034,7 @@
             self.setAutoUI('idle');
 
             $('#w2p-output-content').append(
-                '<div style="color: #ef4444;">⛔ ' + sprintf(w2pMediaEngine.i18n.autoStopped, reason, self.stats.completed, self.stats.failedTotal) + '</div>'
+                '<div class="w2p-text-danger">⛔ ' + sprintf(w2pMediaEngine.i18n.autoStopped, reason, self.stats.completed, self.stats.failedTotal) + '</div>'
             );
 
             if (typeof w2p !== 'undefined' && w2p.toast) {
