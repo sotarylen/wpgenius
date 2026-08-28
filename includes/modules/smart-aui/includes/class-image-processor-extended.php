@@ -22,32 +22,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Enhanced Image Processor Class
  */
-class ImageProcessorExtended {
-
-	/**
-	 * Original ImageProcessor instance
-	 *
-	 * @var \SmartAutoUploadImages\Services\ImageProcessor
-	 */
-	private $processor;
-
-	/**
-	 * Image validator
-	 *
-	 * @var ImageValidator
-	 */
-	private $validator;
+class ImageProcessorExtended extends ImageProcessor {
 
 	/**
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->processor = new ImageProcessor();
+		parent::__construct();
 
 		@ini_set( 'max_execution_time', '300' ); // 5 minutes
 		@ini_set( 'memory_limit', '512M' );
-
-		$this->validator = new ImageValidator();
 	}
 
 	/**
@@ -62,7 +46,6 @@ class ImageProcessorExtended {
 		// [FIX 1] Ensure the Post ID exists to fix unattached attachments
 		if ( empty( $post_data['ID'] ) ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- save_post content processing hook; WP core has already verified the nonce.
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- Same as above.
 			if ( isset( $_POST['post_ID'] ) ) {
 				// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- save_post hook; WP core has already verified the nonce.
 				$post_data['ID'] = intval( $_POST['post_ID'] );
@@ -71,12 +54,7 @@ class ImageProcessorExtended {
 			}
 		}
 
-		// Use reflection to access private methods
-		$reflection         = new \ReflectionClass( $this->processor );
-		$find_images_method = $reflection->getMethod( 'find_images_in_content' );
-		$find_images_method->setAccessible( true );
-
-		$images = $find_images_method->invoke( $this->processor, $content );
+		$images = $this->find_images_in_content( $content );
 
 		// [FIX 6] Single Image Processing Support
 		if ( ! empty( $target_url ) ) {
@@ -97,14 +75,8 @@ class ImageProcessorExtended {
 		// Fire action before processing
 		do_action( 'smart_aui_before_process_images', $images, $post_data );
 
-		// Get private properties
-		$downloader_property = $reflection->getProperty( 'downloader' );
-		$downloader_property->setAccessible( true );
-		$downloader = $downloader_property->getValue( $this->processor );
-
-		$logger_property = $reflection->getProperty( 'logger' );
-		$logger_property->setAccessible( true );
-		$logger = $logger_property->getValue( $this->processor );
+		$downloader = $this->downloader;
+		$logger     = $this->logger;
 
 		$processed_content = $content;
 		$processed_count   = 0;

@@ -24,21 +24,21 @@ class ImageProcessor {
 	 *
 	 * @var Logger
 	 */
-	private Logger $logger;
+	protected Logger $logger;
 
 	/**
 	 * Image downloader
 	 *
 	 * @var ImageDownloader
 	 */
-	private ImageDownloader $downloader;
+	protected ImageDownloader $downloader;
 
 	/**
 	 * Image validator
 	 *
 	 * @var ImageValidator
 	 */
-	private ImageValidator $validator;
+	protected ImageValidator $validator;
 
 	/**
 	 * Constructor
@@ -144,7 +144,7 @@ class ImageProcessor {
 	 * @param string $content Content to search.
 	 * @return array Array of image data.
 	 */
-	private function find_images_in_content( string $content ): array {
+	protected function find_images_in_content( string $content ): array {
 		$images    = [];
 		$seen_urls = [];
 
@@ -178,7 +178,7 @@ class ImageProcessor {
 	 * @param string $content Content that might be JSON-encoded.
 	 * @return string Decoded content.
 	 */
-	private function decode_json_content( string $content ): string {
+	protected function decode_json_content( string $content ): string {
 		// Check if content looks like JSON-encoded HTML.
 		if ( $this->is_json_encoded_html( $content ) ) {
 			$decoded = json_decode( $content );
