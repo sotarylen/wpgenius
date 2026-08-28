@@ -98,7 +98,7 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 		// Load delegated handler classes.
 		require_once __DIR__ . '/includes/class-settings.php';
 		require_once __DIR__ . '/includes/class-content-processor.php';
-		require_once __DIR__ . '/includes/class-scanner.php';
+		require_once __DIR__ . '/includes/class-post-list-filter.php';
 		require_once __DIR__ . '/includes/class-ajax.php';
 		require_once __DIR__ . '/includes/class-ui.php';
 
@@ -110,6 +110,9 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 		$this->processor = new W2P_SmartAUI_Content_Processor( $this );
 		$this->ajax      = new W2P_SmartAUI_Ajax( $this );
 		$this->ui        = new W2P_SmartAUI_UI( $this );
+
+		// Post List External Media Filter
+		new W2P_SmartAUI_Post_List_Filter( $this );
 
 		// Sync settings (CSF -> Legacy Option)
 		add_action( 'csf_w2p_settings_saved', array( $this->settings, 'sync_settings' ) );
@@ -134,10 +137,6 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 		add_action( 'wp_ajax_w2p_smart_aui_download_image', array( $this->ajax, 'ajax_download_image' ) );
 		// Video download endpoint
 		add_action( 'wp_ajax_w2p_smart_aui_download_video', array( $this->ajax, 'ajax_download_video' ) );
-
-		// External Media Scanner endpoints
-		add_action( 'wp_ajax_w2p_smart_aui_scanner_scan', array( $this->ajax, 'ajax_scanner_scan' ) );
-		add_action( 'wp_ajax_w2p_smart_aui_scanner_process_batch', array( $this->ajax, 'ajax_scanner_process_batch' ) );
 
 		// Bulk processing helper endpoints
 		add_action( 'wp_ajax_w2p_smart_aui_get_post_details', array( $this->ajax, 'ajax_get_post_details' ) );

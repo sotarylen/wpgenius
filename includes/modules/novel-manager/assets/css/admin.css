@@ -1,0 +1,91 @@
+/**
+ * Novel Manager — Admin Styles
+ *
+ * 从 PHP 模板内嵌 <style> 提取（规范整改）：独立 CSS 文件，经 wp_enqueue_style 加载。
+ *
+ * @package WP_Genius
+ */
+
+/* ========== 删除弹窗（原 module.php 内嵌）========== */
+#w2p-novel-delete-modal {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(0, 0, 0, 0.6);
+	z-index: 999999;
+	display: none;
+	justify-content: center;
+	align-items: center;
+}
+#w2p-novel-delete-modal.active {
+	display: flex;
+}
+#w2p-novel-delete-modal .w2p-nd-box {
+	background: #fff;
+	border-radius: 8px;
+	padding: 24px 28px;
+	width: 440px;
+	max-width: 92%;
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+	font-size: 14px;
+	color: #1d2327;
+}
+#w2p-novel-delete-modal .w2p-nd-box h4 {
+	margin: 0 0 10px;
+	font-size: 16px;
+}
+#w2p-novel-delete-modal .w2p-nd-count-row {
+	margin: 0 0 8px;
+	color: #1d2327;
+}
+#w2p-novel-delete-modal .w2p-nd-count-row span {
+	color: #50575e;
+}
+#w2p-novel-delete-modal .w2p-nd-count-row strong {
+	font-size: 18px;
+	color: #b32d2e;
+}
+#w2p-novel-delete-modal .w2p-nd-text {
+	margin: 0 0 12px;
+	color: #50575e;
+}
+#w2p-novel-delete-modal .w2p-nd-progress-bg {
+	height: 10px;
+	background: #e5e7eb;
+	border-radius: 5px;
+	overflow: hidden;
+	margin-top: 8px;
+}
+#w2p-novel-delete-modal .w2p-nd-progress-fill {
+	height: 100%;
+	width: 0%;
+	background: #b32d2e;
+	transition: width 0.25s ease;
+}
+
+/* ========== 进度条与日志（原 fix-index-tools.php 内嵌）========== */
+.w2p-progress-wrapper .w2p-progress-bar {
+	background: #f1f1f1;
+	height: 20px;
+	border-radius: 3px;
+	overflow: hidden;
+	box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+.w2p-progress-fill {
+	background: #2271b1;
+	height: 100%;
+	transition: width 0.3s ease;
+}
+.w2p-progress-status {
+	margin-top: 5px;
+	font-size: 13px;
+	color: #444;
+}
+.w2p-log-container {
+	max-height: 400px;
+	overflow-y: auto;
+	border: 1px solid #ccd0d4;
+	margin-top: 15px;
+}

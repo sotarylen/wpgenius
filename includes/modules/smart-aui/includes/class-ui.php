@@ -84,53 +84,6 @@ class W2P_SmartAUI_UI {
 				)
 			);
 
-			$default_limit     = isset( $global_settings['smart_aui_scan_limit'] ) ? absint( $global_settings['smart_aui_scan_limit'] ) : 100;
-			$scanner_js_path   = plugin_dir_path( WP_GENIUS_FILE ) . 'includes/modules/smart-aui/assets/js/smart-aui-scanner.js';
-			$scanner_js_ver    = file_exists( $scanner_js_path ) ? filemtime( $scanner_js_path ) : W2P_VERSION;
-
-			wp_enqueue_script( 'w2p-smart-aui-scanner', $plugin_url . 'includes/modules/smart-aui/assets/js/smart-aui-scanner.js', array( 'jquery', 'wp-i18n' ), $scanner_js_ver, true );
-
-			wp_localize_script(
-				'w2p-smart-aui-scanner',
-				'w2pSmartAuiScanner',
-				array(
-					'ajax_url'     => admin_url( 'admin-ajax.php' ),
-					'nonce'        => wp_create_nonce( 'w2p_smart_aui_progress' ),
-					'defaultLimit' => $default_limit,
-					'i18n'         => array(
-						'scanStarted'         => __( 'Starting scan...', 'wp-genius' ),
-						'scanning'            => __( 'Scanning posts...', 'wp-genius' ),
-						'scanningBatch'       => __( 'Scanning posts batch...', 'wp-genius' ),
-						'postsLabel'          => __( 'posts', 'wp-genius' ),
-						'itemsLabel'          => __( 'items', 'wp-genius' ),
-						'moreLabel'           => __( 'more...', 'wp-genius' ),
-						'withExternalLabel'   => __( 'containing external media', 'wp-genius' ),
-						'scannedBatchMsg'     => __( 'Batch scanned', 'wp-genius' ),
-						'scanFoundMsg'        => __( 'Scan complete: found %d post(s) containing %u external URL(s).', 'wp-genius' ),
-						'scanFailed'          => __( 'Scan failed.', 'wp-genius' ),
-						'networkError'        => __( 'Network error occurred.', 'wp-genius' ),
-						'pendingLabel'        => __( 'Pending', 'wp-genius' ),
-						'processingLabel'     => __( 'Processing...', 'wp-genius' ),
-						'completedLabel'      => __( 'Completed', 'wp-genius' ),
-						'processingSelected'  => __( 'Starting grab for %d post(s)...', 'wp-genius' ),
-						'confirmGrabSelected' => __( 'Are you sure you want to grab external media for %d post(s)?', 'wp-genius' ),
-						'batchDoneMsg'        => __( 'Batch complete: %d post(s) updated.', 'wp-genius' ),
-						'autoStarted'         => __( 'Full Auto Scan & Grab Mode Started', 'wp-genius' ),
-						'autoComplete'        => __( 'All posts scanned and processed successfully!', 'wp-genius' ),
-						'userStopped'         => __( 'Processing stopped by user.', 'wp-genius' ),
-						'paused'              => __( 'Paused', 'wp-genius' ),
-						'pauseLabel'          => __( 'Pause', 'wp-genius' ),
-						'resumeLabel'         => __( 'Resume', 'wp-genius' ),
-						'continuing'          => __( 'Resuming...', 'wp-genius' ),
-						'pauseRequested'      => __( 'Pause requested, will pause after current batch...', 'wp-genius' ),
-						'stopRequested'       => __( 'Stop requested, stopping...', 'wp-genius' ),
-						'loading'             => __( 'Loading logs...', 'wp-genius' ),
-						'noLogs'              => __( 'No failed logs found.', 'wp-genius' ),
-						'logsCleared'         => __( 'Logs Cleared', 'wp-genius' ),
-						'confirmClearLogs'    => __( 'Are you sure you want to clear all failed logs?', 'wp-genius' ),
-					),
-				)
-			);
 		}
 
 		$settings = array(

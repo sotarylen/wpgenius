@@ -157,16 +157,6 @@ return array(
 							'default'  => 3,
 						),
 						array(
-							'id'       => 'smart_aui_scan_limit',
-							'type'     => 'slider',
-							'title'    => __( 'Default Scan Batch Limit', 'wp-genius' ),
-							'subtitle' => __( 'Number of posts to inspect per scan batch (50-1000).', 'wp-genius' ),
-							'min'      => 50,
-							'max'      => 1000,
-							'step'     => 50,
-							'default'  => 100,
-						),
-						array(
 							'id'      => 'smart_aui_skip_duplicates',
 							'type'    => 'switcher',
 							'title'   => __( 'Skip Duplicate Images', 'wp-genius' ),
@@ -180,24 +170,12 @@ return array(
 							'label'   => __( 'Display a progress bar when saving posts with external images.', 'wp-genius' ),
 							'default' => true,
 						),
-					),
-				),
-				// Tab 2: External Media Scanner & Batch Grabber
-				array(
-					'title'  => __( 'External Media Scanner', 'wp-genius' ),
-					'icon'   => 'fa fa-search-plus',
-					'fields' => array(
 						array(
-							'type'    => 'content',
-							'content' => ( function () use ( $module_dir ) {
-								$scanner_path = $module_dir . 'views/scanner-settings.php';
-								if ( file_exists( $scanner_path ) ) {
-									ob_start();
-									include $scanner_path;
-									return ob_get_clean();
-								}
-								return '<div class="w2p-info-box"><p>' . esc_html__( 'Scanner tools not available.', 'wp-genius' ) . '</p></div>';
-							} )(),
+							'id'      => 'smart_aui_enable_post_filter',
+							'type'    => 'switcher',
+							'title'   => __( 'Post List External Filter', 'wp-genius' ),
+							'label'   => __( 'Add an "External Media Filter" button next to "Search Posts" on edit.php to filter posts containing external images.', 'wp-genius' ),
+							'default' => true,
 						),
 					),
 				),
