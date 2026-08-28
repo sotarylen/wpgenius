@@ -73,19 +73,21 @@ class W2P_SmartAUI_Scanner_Service {
 		$type_placeholders = implode( ', ', array_fill( 0, count( $target_types ), '%s' ) );
 
 		$content_clause = $capture_videos
-			? "AND (post_content LIKE '%<img%' OR post_content LIKE '%<video%' OR post_content LIKE '%[video%')"
-			: "AND post_content LIKE '%<img%'";
+			? "AND (p.post_content LIKE '%<img%' OR p.post_content LIKE '%<video%' OR p.post_content LIKE '%[video%')"
+			: "AND p.post_content LIKE '%<img%'";
 
-		// Build SQL with cursor pagination
+		// Build SQL with cursor pagination and exclude already scanned clean posts
 		$query_args = array_merge( array( $last_id ), $target_types, array( $limit ) );
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$sql = "SELECT ID, post_title, post_type, post_status, post_date, post_content
-				FROM {$wpdb->posts}
-				WHERE ID > %d
-				  AND post_status IN ('publish', 'draft', 'pending', 'future', 'private')
-				  AND post_type IN ({$type_placeholders})
+		$sql = "SELECT p.ID, p.post_title, p.post_type, p.post_status, p.post_date, p.post_content
+				FROM {$wpdb->posts} p
+				LEFT JOIN {$wpdb->postmeta} pm ON (p.ID = pm.post_id AND pm.meta_key = '_w2p_smart_aui_clean')
+				WHERE p.ID > %d
+				  AND p.post_status IN ('publish', 'draft', 'pending', 'future', 'private')
+				  AND p.post_type IN ({$type_placeholders})
 				  {$content_clause}
-				ORDER BY ID ASC
+				  AND pm.meta_value IS NULL
+				ORDER BY p.ID ASC
 				LIMIT %d";
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -117,6 +119,8 @@ class W2P_SmartAUI_Scanner_Service {
 
 			$content = (string) $row->post_content;
 			if ( empty( $content ) ) {
+				// Empty content has no external media
+				update_post_meta( $post_id, '_w2p_smart_aui_clean', time() );
 				continue;
 			}
 
@@ -204,6 +208,9 @@ class W2P_SmartAUI_Scanner_Service {
 					'sample_urls'    => array_slice( $external_images, 0, 3 ),
 					'edit_url'       => $edit_url,
 				);
+			} else {
+				// No external media found in this post: mark as clean so future scans exclude it immediately
+				update_post_meta( $post_id, '_w2p_smart_aui_clean', time() );
 			}
 		}
 
@@ -280,6 +287,8 @@ class W2P_SmartAUI_Scanner_Service {
 				// Auto set featured image if applicable
 				$this->module->auto_set_featured_image( $post_id, $post );
 
+				update_post_meta( $post_id, '_w2p_smart_aui_clean', time() );
+
 				$modified_posts++;
 				$details[] = array(
 					'id'      => $post_id,
@@ -287,6 +296,7 @@ class W2P_SmartAUI_Scanner_Service {
 					'message' => __( 'External media grabbed and replaced successfully', 'wp-genius' ),
 				);
 			} else {
+				update_post_meta( $post_id, '_w2p_smart_aui_clean', time() );
 				$details[] = array(
 					'id'      => $post_id,
 					'status'  => 'unchanged',

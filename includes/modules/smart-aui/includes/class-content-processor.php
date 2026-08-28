@@ -54,6 +54,9 @@ class W2P_SmartAUI_Content_Processor {
 			}
 		}
 
+		// Invalidate clean scan flag so newly added external media can be scanned in the future
+		delete_post_meta( $post_id, '_w2p_smart_aui_clean' );
+
 		// Check if enabled (default true)
 		$settings = $this->module->get_settings();
 		$auto_set = isset( $settings['smart_aui_auto_set_featured_image'] ) ? $settings['smart_aui_auto_set_featured_image'] : true;

@@ -83,11 +83,6 @@ $scan_limit = isset( $settings['smart_aui_scan_limit'] ) ? absint( $settings['sm
 				</div>
 			</div>
 
-			<!-- Terminal Output Console -->
-			<div id="w2p-aui-scanner-terminal" class="w2p-hidden w2p-terminal">
-				<div id="w2p-aui-scanner-output-content"></div>
-			</div>
-
 			<!-- Progress Indicator -->
 			<div id="w2p-aui-scanner-progress" class="w2p-hidden w2p-unified-progress">
 				<span id="w2p-aui-scanner-progress-text"></span>
@@ -117,13 +112,14 @@ $scan_limit = isset( $settings['smart_aui_scan_limit'] ) ? absint( $settings['sm
 
 </div>
 
-<!-- Log Viewer Modal -->
-<div id="w2p-aui-log-modal" class="w2p-modal-overlay w2p-log-overlay">
+<!-- Shared Log Viewer Modal (Media Engine Style) -->
+<div id="w2p-aui-log-modal" class="w2p-log-overlay">
 	<div class="w2p-confirm-modal w2p-log-viewer">
 		<div class="w2p-modal-header">
 			<h4>
 				<i class="fa-solid fa-file-lines"></i>
 				<?php esc_html_e( 'Smart AUI Scanner Log', 'wp-genius' ); ?>
+				<span id="w2p-aui-log-size" class="w2p-log-size-label"></span>
 			</h4>
 			<button type="button" id="w2p-aui-close-log" class="w2p-modal-close">&times;</button>
 		</div>
@@ -131,9 +127,6 @@ $scan_limit = isset( $settings['smart_aui_scan_limit'] ) ? absint( $settings['sm
 			<pre id="w2p-aui-log-content" class="w2p-terminal"></pre>
 		</div>
 		<div class="w2p-modal-footer">
-			<button type="button" id="w2p-aui-refresh-log" class="w2p-btn w2p-btn-secondary">
-				<i class="fa-solid fa-rotate"></i> <?php esc_html_e( 'Refresh', 'wp-genius' ); ?>
-			</button>
 			<button type="button" id="w2p-aui-clear-log" class="w2p-btn w2p-btn-secondary w2p-btn-error-outline">
 				<i class="fa-solid fa-trash"></i> <?php esc_html_e( 'Clear Log', 'wp-genius' ); ?>
 			</button>

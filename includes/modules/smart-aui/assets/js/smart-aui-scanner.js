@@ -21,6 +21,7 @@
         scanLastId: 0,
         autoLastId: 0,
         posts: [],
+        runtimeLogs: [],
         stats: {
             scannedPosts: 0,
             pendingPosts: 0,
@@ -677,21 +678,40 @@
         },
 
         /**
-         * Log to terminal console
+         * Log to terminal / log modal buffer
          */
-        logTerminal: function (msg) {
+         logTerminal: function (msg) {
             var now = new Date();
             var timeStr = '[' + ('0' + now.getHours()).slice(-2) + ':' +
                 ('0' + now.getMinutes()).slice(-2) + ':' +
                 ('0' + now.getSeconds()).slice(-2) + '] ';
 
-            var $content = $('#w2p-aui-scanner-output-content');
-            var $line = $('<div>').text(timeStr + msg);
-            $content.append($line);
+            var line = timeStr + msg;
+            this.runtimeLogs.push(line);
 
-            var $terminal = $('#w2p-aui-scanner-terminal');
-            if ($terminal.length) {
-                $terminal.scrollTop($terminal[0].scrollHeight);
+            // Limit buffer size to 1000 lines
+            if (this.runtimeLogs.length > 1000) {
+                this.runtimeLogs.shift();
+            }
+
+            var $logContent = $('#w2p-aui-log-content');
+            if ($logContent.length) {
+                $logContent.text(this.runtimeLogs.join('\n'));
+                $logContent.scrollTop($logContent[0].scrollHeight);
+            }
+
+            this.updateLogSizeLabel();
+        },
+
+        /**
+         * Update log size label in modal header
+         */
+        updateLogSizeLabel: function () {
+            var $sizeLabel = $('#w2p-aui-log-size');
+            if ($sizeLabel.length) {
+                var totalChars = this.runtimeLogs.join('\n').length;
+                var sizeKb = (totalChars / 1024).toFixed(1);
+                $sizeLabel.text('(' + this.runtimeLogs.length + ' lines, ' + sizeKb + ' KB)');
             }
         },
 
@@ -710,8 +730,23 @@
          * Open log modal
          */
         openLogModal: function () {
-            $('#w2p-aui-log-modal').addClass('active');
-            this.loadLogs();
+            var $modal = $('#w2p-aui-log-modal');
+            var $logContent = $('#w2p-aui-log-content');
+            
+            if (this.runtimeLogs.length > 0) {
+                $logContent.text(this.runtimeLogs.join('\n'));
+            } else {
+                $logContent.text('(No logs recorded yet. Start scanning or grabbing to generate logs.)');
+            }
+
+            this.updateLogSizeLabel();
+            $modal.addClass('active');
+
+            setTimeout(function () {
+                if ($logContent.length && $logContent[0]) {
+                    $logContent.scrollTop($logContent[0].scrollHeight);
+                }
+            }, 100);
         },
 
         /**
@@ -722,59 +757,18 @@
         },
 
         /**
-         * Load failed logs into modal
-         */
-        loadLogs: function () {
-            var $logContent = $('#w2p-aui-log-content');
-            $logContent.text(w2pSmartAuiScanner.i18n.loading || 'Loading logs...');
-
-            $.ajax({
-                url: w2pSmartAuiScanner.ajax_url,
-                type: 'POST',
-                data: {
-                    action: 'w2p_smart_aui_get_failed_logs',
-                    nonce: w2pSmartAuiScanner.nonce
-                },
-                success: function (response) {
-                    if (response && response.success && response.data && response.data.length > 0) {
-                        var lines = [];
-                        response.data.forEach(function (item) {
-                            lines.push('[' + item.time + '] ' + item.url);
-                        });
-                        $logContent.text(lines.join('\n'));
-                    } else {
-                        $logContent.text(w2pSmartAuiScanner.i18n.noLogs || 'No failed logs found.');
-                    }
-                },
-                error: function () {
-                    $logContent.text(w2pSmartAuiScanner.i18n.networkError || 'Failed to load logs.');
-                }
-            });
-        },
-
-        /**
-         * Clear failed logs
+         * Clear runtime logs
          */
         clearLogs: function () {
             var self = this;
             var doClear = function () {
-                $.ajax({
-                    url: w2pSmartAuiScanner.ajax_url,
-                    type: 'POST',
-                    data: {
-                        action: 'w2p_smart_aui_clear_failed_logs',
-                        nonce: w2pSmartAuiScanner.nonce
-                    },
-                    success: function (res) {
-                        if (res && res.success) {
-                            self.showToast(w2pSmartAuiScanner.i18n.logsCleared || 'Logs cleared', 'success');
-                            $('#w2p-aui-log-content').text(w2pSmartAuiScanner.i18n.noLogs || 'No failed logs found.');
-                        }
-                    }
-                });
+                self.runtimeLogs = [];
+                $('#w2p-aui-log-content').text('(No logs recorded yet.)');
+                self.updateLogSizeLabel();
+                self.showToast(w2pSmartAuiScanner.i18n.logsCleared || 'Logs cleared', 'success');
             };
 
-            var confirmMsg = w2pSmartAuiScanner.i18n.confirmClearLogs || 'Are you sure you want to clear all failed logs?';
+            var confirmMsg = w2pSmartAuiScanner.i18n.confirmClearLogs || 'Are you sure you want to clear all logs?';
             if (window.w2p && w2p.confirm) {
                 w2p.confirm(confirmMsg, doClear);
             } else if (confirm(confirmMsg)) {

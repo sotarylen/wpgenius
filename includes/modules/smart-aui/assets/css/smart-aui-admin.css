@@ -131,17 +131,58 @@
 	color: var(--w2p-text-muted);
 }
 
-/* ========== Log Viewer Modal Specifics ========== */
-.w2p-log-viewer {
-	width: 90%;
-	max-width: 800px;
+/* ========== Log Viewer Modal Specifics (Media Engine Match) ========== */
+#w2p-aui-log-modal {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(0, 0, 0, 0.6);
+	z-index: var(--w2p-z-index-overlay, 100050);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	opacity: 0;
+	visibility: hidden;
+	transition: opacity 0.2s ease;
 }
 
-.w2p-log-viewer pre.w2p-terminal {
-	max-height: 400px;
-	min-height: 200px;
+#w2p-aui-log-modal.active {
+	opacity: 1;
+	visibility: visible;
+}
+
+#w2p-aui-log-modal .w2p-confirm-modal.w2p-log-viewer {
+	width: 860px;
+	max-width: 92%;
+	max-height: 88vh;
+	flex-direction: column;
+	display: flex;
+	transform: scale(0.1);
+	transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+#w2p-aui-log-modal.active .w2p-confirm-modal.w2p-log-viewer {
+	transform: scale(1);
+}
+
+#w2p-aui-log-modal .w2p-confirm-modal.w2p-log-viewer .w2p-modal-body {
+	height: auto;
+	max-height: none;
+	overflow: hidden;
+	padding: 0;
+	flex: 1;
+	min-height: 0;
+}
+
+#w2p-aui-log-modal .w2p-confirm-modal.w2p-log-viewer .w2p-modal-body pre {
+	height: 420px;
 	overflow-y: auto;
+	border-radius: 0;
 	margin: 0;
+	white-space: pre-wrap;
+	word-break: break-all;
 }
 
 /* ========== Find Posts Extras Modal Filter ========== */

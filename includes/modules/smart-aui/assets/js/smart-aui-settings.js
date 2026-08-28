@@ -32,12 +32,23 @@ jQuery(document).ready(function ($) {
         });
     }
 
-    // Load logs immediately if container exists
+    // Load logs immediately if container exists and is visible
     if ($("#w2p-smart-aui-logs-container").length) {
         loadSmartAuiLogs();
     }
 
-    $("#w2p-smart-aui-clear-logs").on("click", function () {
+    // Auto load logs when user switches to the Capture Failure Logs tab
+    $(document).on("click", ".csf-tabbed-nav a, .csf-nav a, .csf-section a", function () {
+        setTimeout(function () {
+            if ($("#w2p-smart-aui-logs-container").is(":visible")) {
+                loadSmartAuiLogs();
+            }
+        }, 150);
+    });
+
+    // Clear logs handler with event delegation
+    $(document).on("click", "#w2p-smart-aui-clear-logs", function (e) {
+        e.preventDefault();
         var $btn = $(this);
 
         // Define the execution logic
@@ -53,16 +64,16 @@ jQuery(document).ready(function ($) {
                 },
                 success: function (response) {
                     $btn.removeClass("w2p-btn-loading");
-                    if (response.success) {
-                        if (window.w2p && w2p.toast) {
+                    if (response && response.success) {
+                        if (window.w2p && typeof w2p.toast === 'function') {
                             w2p.toast(w2pSmartAuiSettings.strings.logs_cleared, "success");
                         } else {
                             alert(w2pSmartAuiSettings.strings.logs_cleared);
                         }
                         $("#w2p-smart-aui-logs-container").html('<p>' + w2pSmartAuiSettings.strings.no_logs + '</p>');
                     } else {
-                        var msg = response.data || w2pSmartAuiSettings.strings.unknown_error;
-                        if (window.w2p && w2p.toast) {
+                        var msg = (response && response.data) ? response.data : w2pSmartAuiSettings.strings.unknown_error;
+                        if (window.w2p && typeof w2p.toast === 'function') {
                             w2p.toast(w2pSmartAuiSettings.strings.error_prefix + msg, "error");
                         } else {
                             alert(w2pSmartAuiSettings.strings.error_prefix + msg);
@@ -71,7 +82,7 @@ jQuery(document).ready(function ($) {
                 },
                 error: function () {
                     $btn.removeClass("w2p-btn-loading");
-                    if (window.w2p && w2p.toast) {
+                    if (window.w2p && typeof w2p.toast === 'function') {
                         w2p.toast(w2pSmartAuiSettings.strings.network_error, "error");
                     } else {
                         alert(w2pSmartAuiSettings.strings.network_error);
@@ -81,9 +92,10 @@ jQuery(document).ready(function ($) {
         };
 
         // Use custom confirm if available
-        if (window.w2p && w2p.confirm) {
-            w2p.confirm(w2pSmartAuiSettings.strings.confirm_clear, executeClear);
-        } else if (confirm(w2pSmartAuiSettings.strings.confirm_clear)) {
+        var confirmMsg = w2pSmartAuiSettings.strings.confirm_clear || 'Are you sure you want to clear all logs?';
+        if (window.w2p && typeof w2p.confirm === 'function') {
+            w2p.confirm(confirmMsg, executeClear);
+        } else if (confirm(confirmMsg)) {
             executeClear();
         }
     });
