@@ -76,7 +76,7 @@ class W2P_SmartAUI_Post_List_Filter {
 					url.searchParams.set('w2p_external_filter', '1');
 					url.searchParams.delete('paged');
 				}
-				var $btn = $('<a id="w2p-aui-filter-btn" class="button <?php echo esc_attr( $btn_class ); ?>" style="margin-left:6px;"><i class="<?php echo esc_attr( $icon_class ); ?>"></i> <?php echo esc_js( $btn_text ); ?></a>')
+				var $btn = $('<a id="w2p-aui-filter-btn" class="button <?php echo esc_attr( $btn_class ); ?>"><i class="<?php echo esc_attr( $icon_class ); ?>"></i> <?php echo esc_js( $btn_text ); ?></a>')
 					.attr('href', url.toString());
 				$('#search-submit').after($btn);
 			}
@@ -166,7 +166,7 @@ class W2P_SmartAUI_Post_List_Filter {
 			? "( p.post_content LIKE '%<img%' OR p.post_content LIKE '%<video%' OR p.post_content LIKE '%[video%' )"
 			: "p.post_content LIKE '%<img%'";
 
-		// 3. Query candidate posts excluding already verified clean posts
+		// 3. Query candidate posts excluding already verified clean posts (limit to 150 to keep memory footprint bounded)
 		$posts = $wpdb->get_results(
 			"SELECT p.ID, p.post_content
 			FROM {$wpdb->posts} p
@@ -176,7 +176,7 @@ class W2P_SmartAUI_Post_List_Filter {
 			  AND {$content_clause}
 			  AND pm.meta_value IS NULL
 			ORDER BY p.ID DESC
-			LIMIT 500"
+			LIMIT 150"
 		);
 
 		if ( empty( $posts ) ) {
@@ -194,14 +194,14 @@ class W2P_SmartAUI_Post_List_Filter {
 			}
 		}
 
-		// 4. Batch mark clean posts to avoid re-inspection on subsequent loads
+		// 4. Mark clean posts to avoid re-inspection on subsequent loads
 		if ( ! empty( $clean_ids ) ) {
-			$value_rows = array();
 			foreach ( $clean_ids as $cid ) {
-				$value_rows[] = $wpdb->prepare( '(%d, %s, %s)', $cid, '_w2p_smart_aui_clean', '1' );
+				update_post_meta( $cid, '_w2p_smart_aui_clean', '1' );
 			}
-			$wpdb->query( "INSERT IGNORE INTO {$wpdb->postmeta} (post_id, meta_key, meta_value) VALUES " . implode( ', ', $value_rows ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		}
+
+		unset( $posts, $clean_ids );
 
 		return $matched_ids;
 	}
