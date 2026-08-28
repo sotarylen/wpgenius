@@ -56,12 +56,13 @@ class W2P_SmartAUI_UI {
 		// Use the WP_GENIUS_FILE constant to compute the plugin root URL
 		$plugin_url = plugin_dir_url( WP_GENIUS_FILE );
 
-		// If on settings page, load the settings manager JS, scanner JS & styles
-		if ( $is_settings_page ) {
-			$admin_css_path = plugin_dir_path( WP_GENIUS_FILE ) . 'includes/modules/smart-aui/assets/css/smart-aui-admin.css';
-			$admin_css_ver  = file_exists( $admin_css_path ) ? filemtime( $admin_css_path ) : W2P_VERSION;
-			wp_enqueue_style( 'w2p-smart-aui-admin', $plugin_url . 'includes/modules/smart-aui/assets/css/smart-aui-admin.css', array( 'w2p-core-css' ), $admin_css_ver );
+		// Always enqueue module styles on all supported pages (editor, post list, settings)
+		$admin_css_path = plugin_dir_path( WP_GENIUS_FILE ) . 'includes/modules/smart-aui/assets/css/smart-aui-admin.css';
+		$admin_css_ver  = file_exists( $admin_css_path ) ? filemtime( $admin_css_path ) : W2P_VERSION;
+		wp_enqueue_style( 'w2p-smart-aui-admin', $plugin_url . 'includes/modules/smart-aui/assets/css/smart-aui-admin.css', array( 'w2p-core-css' ), $admin_css_ver );
 
+		// If on settings page, load the settings manager JS & scanner JS
+		if ( $is_settings_page ) {
 			wp_enqueue_script( 'w2p-smart-aui-settings', $plugin_url . 'includes/modules/smart-aui/assets/js/smart-aui-settings.js', array( 'jquery' ), W2P_VERSION, true );
 
 			wp_localize_script(
@@ -215,5 +216,8 @@ class W2P_SmartAUI_UI {
 		}
 
 		$template_path = dirname( __DIR__ ) . '/views/progress-template.php';
-}
+		if ( file_exists( $template_path ) ) {
+			include $template_path;
+		}
+	}
 }

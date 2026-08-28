@@ -61,8 +61,9 @@
         bindEventHandlers: function () {
             var self = this;
 
-            // 1. Intercept the post publish/update button (Post Edit Screen)
-            $(document).on('click', '#publish, .editor-post-publish-button, .editor-post-publish-panel__toggle', function (e) {
+            // 1. Intercept the post publish/update button (Post Edit Screen: Classic & Gutenberg)
+            var publishSelector = '#publish, #save-post, .editor-post-publish-button, .editor-post-publish-button__button, .editor-post-publish-panel__toggle, .editor-post-publish-panel__header-publish-button, button[class*="editor-post-publish-button"]';
+            $(document).on('click', publishSelector, function (e) {
                 if (progressUI.isProcessing || $(this).data('smart-aui-processed')) {
                     return;
                 }
@@ -93,38 +94,30 @@
                 }
             });
 
-            // 2. Intercept the bulk-edit Apply button (Post List Screen)
-            document.addEventListener('click', function (e) {
-                var target = e.target;
-                var bulkBtn = null;
-                // Walk up to check whether bulk_edit was clicked
-                while (target && target !== document) {
-                    if (target.id === 'bulk_edit') {
-                        bulkBtn = target;
-                        break;
-                    }
-                    target = target.parentNode;
-                }
-
-                if (!bulkBtn) return;
+            // 2. Intercept the bulk-edit Update button (Post List Screen: edit.php)
+            $(document).on('click', '#bulk_edit', function (e) {
+                var bulkBtn = this;
 
                 // Check whether any posts are selected
-                var checkedPosts = jQuery('input[name="post[]"]:checked');
-                if (checkedPosts.length === 0) return;
+                var checkedPosts = $('input[name="post[]"]:checked');
+                if (checkedPosts.length === 0) {
+                    return;
+                }
 
-                // Already processed - allow through
-                if (jQuery(bulkBtn).data('smart-aui-processed')) return;
+                // Already processed - allow native submission
+                if ($(bulkBtn).data('smart-aui-processed')) {
+                    return;
+                }
 
                 // Prevent the default submit
                 e.preventDefault();
-                e.stopPropagation();
                 e.stopImmediatePropagation();
 
-                progressUI.originalButton = jQuery(bulkBtn);
+                progressUI.originalButton = $(bulkBtn);
 
                 var postIds = [];
                 checkedPosts.each(function () {
-                    postIds.push(jQuery(this).val());
+                    postIds.push($(this).val());
                 });
 
                 // Check whether to show the progress UI (default true)
@@ -133,14 +126,13 @@
                     showProgressUI = self.settings.show_progress_ui;
                 }
 
-
                 if (showProgressUI) {
                     progressUI.startBulkProcessing(postIds);
                 } else {
                     progressUI.processBulkWithoutProgress(postIds);
                 }
                 return false;
-            }, true);
+            });
         },
 
         // ==========================================
@@ -160,11 +152,10 @@
             });
         },
 
-        cancel: function () {
-            if (confirm(w2pSmartAuiParams.i18n.confirmCancel)) {
-                this.isProcessing = false;
-                this.hide();
-            }
+        cancel: function (force) {
+            // Direct stop without alert / confirm modal
+            this.isProcessing = false;
+            this.hide();
         },
 
         /**
