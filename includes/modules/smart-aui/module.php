@@ -98,6 +98,7 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 		// Load delegated handler classes.
 		require_once __DIR__ . '/includes/class-settings.php';
 		require_once __DIR__ . '/includes/class-content-processor.php';
+		require_once __DIR__ . '/includes/class-scanner.php';
 		require_once __DIR__ . '/includes/class-ajax.php';
 		require_once __DIR__ . '/includes/class-ui.php';
 
@@ -133,6 +134,10 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 		add_action( 'wp_ajax_w2p_smart_aui_download_image', array( $this->ajax, 'ajax_download_image' ) );
 		// Video download endpoint
 		add_action( 'wp_ajax_w2p_smart_aui_download_video', array( $this->ajax, 'ajax_download_video' ) );
+
+		// External Media Scanner endpoints
+		add_action( 'wp_ajax_w2p_smart_aui_scanner_scan', array( $this->ajax, 'ajax_scanner_scan' ) );
+		add_action( 'wp_ajax_w2p_smart_aui_scanner_process_batch', array( $this->ajax, 'ajax_scanner_process_batch' ) );
 
 		// Bulk processing helper endpoints
 		add_action( 'wp_ajax_w2p_smart_aui_get_post_details', array( $this->ajax, 'ajax_get_post_details' ) );
@@ -431,6 +436,24 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 	 */
 	public function ajax_get_attachment_id() {
 		$this->ajax->ajax_get_attachment_id();
+	}
+
+	/**
+	 * AJAX: Scan Posts for External Media.
+	 *
+	 * @return void
+	 */
+	public function ajax_scanner_scan() {
+		$this->ajax->ajax_scanner_scan();
+	}
+
+	/**
+	 * AJAX: Batch Process Posts for External Media.
+	 *
+	 * @return void
+	 */
+	public function ajax_scanner_process_batch() {
+		$this->ajax->ajax_scanner_process_batch();
 	}
 }
 

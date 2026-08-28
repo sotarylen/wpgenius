@@ -1,0 +1,145 @@
+/**
+ * Smart AUI — Admin Styles
+ * Strictly inherit design tokens from core.css & align with Media Engine
+ *
+ * @package WP_Genius
+ * @subpackage Modules/SmartAUI
+ */
+
+/* ========== Panel Container ========== */
+.w2p-smart-aui-scanner-panel {
+	margin-top: var(--w2p-spacing-md, 16px);
+}
+
+/* ========== Media Engine Queue Stats Grid ========== */
+.w2p-queue-stats-grid {
+	display: grid;
+	grid-template-columns: repeat(5, 1fr);
+	gap: var(--w2p-spacing-md, 16px);
+	margin-top: var(--w2p-spacing-md, 16px);
+	margin-bottom: var(--w2p-spacing-lg, 20px);
+}
+
+@media (max-width: 960px) {
+	.w2p-queue-stats-grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+.w2p-queue-stat-card {
+	background: var(--w2p-bg-surface-secondary);
+	border: 1px solid var(--w2p-border-color-light);
+	border-radius: var(--w2p-radius-lg);
+	padding: var(--w2p-spacing-md);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--w2p-spacing-xs);
+	cursor: pointer;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+	user-select: none;
+}
+
+.w2p-queue-stat-card:hover {
+	border-color: var(--w2p-color-primary);
+	box-shadow: 0 0 0 1px var(--w2p-color-primary);
+}
+
+.w2p-queue-stat-card .label {
+	font-size: var(--w2p-font-size-xs, 12px);
+	font-weight: var(--w2p-font-weight-bold, 700);
+	color: var(--w2p-text-muted);
+	text-transform: uppercase;
+	text-align: center;
+	letter-spacing: 0.5px;
+}
+
+.w2p-queue-stat-card .value {
+	font-family: var(--w2p-font-family-value, inherit);
+	font-size: var(--w2p-font-size-2xl, 28px);
+	font-weight: var(--w2p-font-weight-bold, 700);
+	line-height: 1;
+}
+
+/* Colors for stat card values */
+.w2p-queue-stat-total .value { color: var(--w2p-text-primary); }
+.w2p-queue-stat-pending .value { color: var(--w2p-color-warning); }
+.w2p-queue-stat-processing .value { color: var(--w2p-color-info); }
+.w2p-queue-stat-completed .value { color: var(--w2p-color-success); }
+.w2p-queue-stat-failed .value { color: var(--w2p-color-error); }
+
+/* ========== Scanner Results Table ========== */
+.w2p-scanner-table td {
+	vertical-align: middle;
+	padding: var(--w2p-spacing-sm, 10px) var(--w2p-spacing-md, 12px);
+}
+
+.w2p-scanner-url-list {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	max-width: 450px;
+}
+
+.w2p-scanner-preview-item {
+	font-family: var(--w2p-font-mono, monospace);
+	font-size: 11px;
+	color: var(--w2p-text-secondary);
+	background: var(--w2p-bg-surface-secondary);
+	padding: 3px 6px;
+	border-radius: 4px;
+	border: 1px solid var(--w2p-border-color-light);
+	word-break: break-all;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.w2p-status-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 8px;
+	border-radius: 9999px;
+	font-size: 11px;
+	font-weight: var(--w2p-font-weight-semibold, 600);
+	line-height: 1.4;
+}
+
+.w2p-status-success {
+	background: rgba(16, 185, 129, 0.15);
+	color: #059669;
+}
+
+.w2p-status-warning {
+	background: rgba(245, 158, 11, 0.15);
+	color: #d97706;
+}
+
+.w2p-status-info {
+	background: rgba(59, 130, 246, 0.15);
+	color: #2563eb;
+}
+
+.w2p-status-danger {
+	background: rgba(239, 68, 68, 0.15);
+	color: #dc2626;
+}
+
+.w2p-status-secondary {
+	background: var(--w2p-bg-surface-secondary);
+	color: var(--w2p-text-muted);
+}
+
+/* ========== Log Viewer Modal Specifics ========== */
+.w2p-log-viewer {
+	width: 90%;
+	max-width: 800px;
+}
+
+.w2p-log-viewer pre.w2p-terminal {
+	max-height: 400px;
+	min-height: 200px;
+	overflow-y: auto;
+	margin: 0;
+}

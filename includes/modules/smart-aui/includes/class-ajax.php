@@ -33,6 +33,13 @@ class W2P_SmartAUI_Ajax {
 	private $processor;
 
 	/**
+	 * Scanner service instance.
+	 *
+	 * @var W2P_SmartAUI_Scanner_Service
+	 */
+	private $scanner;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param W2P_SmartAUIModule $module Parent module.
@@ -40,6 +47,11 @@ class W2P_SmartAUI_Ajax {
 	public function __construct( $module ) {
 		$this->module    = $module;
 		$this->processor = new W2P_SmartAUI_Content_Processor( $module );
+
+		if ( ! class_exists( 'W2P_SmartAUI_Scanner_Service' ) ) {
+			require_once __DIR__ . '/class-scanner.php';
+		}
+		$this->scanner = new W2P_SmartAUI_Scanner_Service( $module );
 	}
 
 	/**
@@ -810,4 +822,61 @@ class W2P_SmartAUI_Ajax {
 			)
 		);
 	}
+
+	/**
+	 * AJAX: Scan posts for external media
+	 *
+	 * @return void
+	 */
+	public function ajax_scanner_scan() {
+		if ( session_status() === PHP_SESSION_ACTIVE ) {
+			session_write_close();
+		}
+
+		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( __( 'Permission denied', 'wp-genius' ) );
+		}
+
+		$limit   = isset( $_POST['limit'] ) ? absint( $_POST['limit'] ) : 100;
+		$last_id = isset( $_POST['last_id'] ) ? absint( $_POST['last_id'] ) : 0;
+
+		$result = $this->scanner->scan_posts( $limit, $last_id );
+
+		wp_send_json_success( $result );
+	}
+
+	/**
+	 * AJAX: Batch process posts with external media
+	 *
+	 * @return void
+	 */
+	public function ajax_scanner_process_batch() {
+		if ( session_status() === PHP_SESSION_ACTIVE ) {
+			session_write_close();
+		}
+
+		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( __( 'Permission denied', 'wp-genius' ) );
+		}
+
+		$post_ids_raw = isset( $_POST['post_ids'] ) ? wp_unslash( $_POST['post_ids'] ) : '';
+		if ( is_string( $post_ids_raw ) ) {
+			$post_ids = json_decode( $post_ids_raw, true );
+		} else {
+			$post_ids = (array) $post_ids_raw;
+		}
+
+		if ( empty( $post_ids ) || ! is_array( $post_ids ) ) {
+			wp_send_json_error( __( 'No valid post IDs provided', 'wp-genius' ) );
+		}
+
+		$result = $this->scanner->process_posts_batch( $post_ids );
+
+		wp_send_json_success( $result );
+	}
 }
+

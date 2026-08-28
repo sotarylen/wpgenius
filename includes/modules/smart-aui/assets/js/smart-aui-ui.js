@@ -623,7 +623,7 @@
             });
         },
 
-        startBulkProcessing: function (postIds) {
+        startBulkProcessing: function (postIds, onAllComplete, onPostDone) {
             this.show();
 
             var self = this;
@@ -632,7 +632,7 @@
             var processedPosts = 0;
 
             // Detect the status field in the bulk-edit form
-            // In the WordPress bulk-edit form, the status field is named \"_status\"
+            // In the WordPress bulk-edit form, the status field is named "_status"
             var newStatus = jQuery('select[name="_status"]').val();
             var shouldPublish = false;
             var targetStatus = null;
@@ -663,6 +663,9 @@
             var processNextPost = function () {
                 if (!self.isProcessing) {
                     // User cancelled
+                    if (typeof onAllComplete === 'function') {
+                        onAllComplete(false);
+                    }
                     return;
                 }
 
@@ -686,9 +689,12 @@
 
                     setTimeout(function () {
                         self.hide();
-                        // Do not click the original button again; refresh the page directly
-                        location.reload();
-                    }, 1500);
+                        if (typeof onAllComplete === 'function') {
+                            onAllComplete(true);
+                        } else {
+                            location.reload();
+                        }
+                    }, 1200);
                     return;
                 }
 
@@ -828,22 +834,31 @@
                                     type: 'POST',
                                     data: saveData,
                                     success: function (response) {
-                                        var action = shouldPublish ? 'saved and published' : 'saved';
-                                        if (response.success && response.data) {
+                                        if (typeof onPostDone === 'function') {
+                                            onPostDone(postId, true);
                                         }
                                         processNextPost();
                                     },
                                     error: function () {
+                                        if (typeof onPostDone === 'function') {
+                                            onPostDone(postId, false);
+                                        }
                                         processNextPost();
                                     }
                                 });
                             });
 
                         } else {
+                            if (typeof onPostDone === 'function') {
+                                onPostDone(postId, false);
+                            }
                             processNextPost();
                         }
                     },
                     error: function () {
+                        if (typeof onPostDone === 'function') {
+                            onPostDone(postId, false);
+                        }
                         processNextPost(); // Skip on error
                     }
                 });
