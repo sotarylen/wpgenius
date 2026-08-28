@@ -1,6 +1,6 @@
 /**
  * Smart AUI — Admin Styles
- * Strictly inherit design tokens from core.css & align with Media Engine
+ * Inherits design tokens, base components, and progress modal from core.css
  *
  * @package WP_Genius
  * @subpackage Modules/SmartAUI
@@ -11,7 +11,7 @@
 	margin-top: var(--w2p-spacing-md, 16px);
 }
 
-/* ========== Media Engine Queue Stats Grid ========== */
+/* ========== Scanner Queue Stats Grid ========== */
 .w2p-queue-stats-grid {
 	display: grid;
 	grid-template-columns: repeat(5, 1fr);
@@ -87,7 +87,7 @@
 	color: var(--w2p-text-secondary);
 	background: var(--w2p-bg-surface-secondary);
 	padding: 3px 6px;
-	border-radius: 4px;
+	border-radius: var(--w2p-radius-sm, 4px);
 	border: 1px solid var(--w2p-border-color-light);
 	word-break: break-all;
 	white-space: nowrap;
@@ -95,43 +95,7 @@
 	text-overflow: ellipsis;
 }
 
-.w2p-status-badge {
-	display: inline-flex;
-	align-items: center;
-	gap: 4px;
-	padding: 2px 8px;
-	border-radius: 9999px;
-	font-size: 11px;
-	font-weight: var(--w2p-font-weight-semibold, 600);
-	line-height: 1.4;
-}
-
-.w2p-status-success {
-	background: rgba(16, 185, 129, 0.15);
-	color: #059669;
-}
-
-.w2p-status-warning {
-	background: rgba(245, 158, 11, 0.15);
-	color: #d97706;
-}
-
-.w2p-status-info {
-	background: rgba(59, 130, 246, 0.15);
-	color: #2563eb;
-}
-
-.w2p-status-danger {
-	background: rgba(239, 68, 68, 0.15);
-	color: #dc2626;
-}
-
-.w2p-status-secondary {
-	background: var(--w2p-bg-surface-secondary);
-	color: var(--w2p-text-muted);
-}
-
-/* ========== Log Viewer Modal Specifics (Media Engine Match) ========== */
+/* ========== Log Viewer Modal Specifics ========== */
 #w2p-aui-log-modal {
 	position: fixed;
 	top: 0;
@@ -207,114 +171,7 @@
 	width: 160px;
 }
 
-/* ========== Multi-Thread Image Preview Grid Styling ========== */
-.w2p-smart-aui-preview-area {
-	margin-top: 15px;
-	padding: 12px;
-	border: 1px dashed var(--w2p-border-color-light, #dcdcde);
-	border-radius: var(--w2p-radius-md, 6px);
-	min-height: 120px;
-	max-height: 280px;
-	overflow-y: auto;
-	background: var(--w2p-bg-surface-secondary, #f6f7f7);
-}
-
-.w2p-smart-aui-preview-area.grid-mode {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-	gap: 10px;
-}
-
-.w2p-smart-aui-grid-item {
-	aspect-ratio: 1;
-	overflow: hidden;
-	border-radius: var(--w2p-radius-sm, 4px);
-	position: relative;
-	background: #fff;
-	border: 1px solid var(--w2p-border-color-light, #dcdcde);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-
-.w2p-smart-aui-grid-item img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
-	display: block;
-}
-
-.w2p-smart-aui-grid-item .w2p-smart-aui-grid-placeholder {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background: var(--w2p-bg-surface-secondary, #f0f2f5);
-	color: var(--w2p-text-muted, #8c8f94);
-	z-index: 1;
-}
-
-.w2p-smart-aui-grid-item .w2p-smart-aui-grid-placeholder .dashicons {
-	font-size: 28px;
-	width: 28px;
-	height: 28px;
-	opacity: 0.6;
-}
-
-.w2p-smart-aui-grid-item.loading {
-	border-color: var(--w2p-color-info, #2271b1);
-}
-
-.w2p-smart-aui-grid-item.success {
-	border: 2px solid var(--w2p-color-success, #00a32a);
-}
-
-.w2p-smart-aui-grid-item.error {
-	border: 2px solid var(--w2p-color-error, #d63638);
-}
-
-.w2p-smart-aui-grid-item .status-overlay {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	background: rgba(0, 0, 0, 0.35);
-	display: none;
-	align-items: center;
-	justify-content: center;
-	z-index: 3;
-}
-
-.w2p-smart-aui-grid-item.success .status-overlay,
-.w2p-smart-aui-grid-item.error .status-overlay {
-	display: flex;
-}
-
-.w2p-smart-aui-grid-item .status-overlay .status-line {
-	font-size: 32px;
-	color: #fff;
-	width: auto;
-	height: auto;
-}
-
-.w2p-smart-aui-grid-item .status-overlay .status-line.dashicons-yes {
-	color: #10b981;
-}
-
-.w2p-smart-aui-grid-item .status-overlay .status-line.dashicons-warning {
-	color: #ef4444;
-}
-
-@keyframes w2p-spin {
-	0% { transform: rotate(0deg); }
-	100% { transform: rotate(360deg); }
-}
-
+/* Spin Utility Helper (Uses @keyframes w2p-spin from core.css) */
 .w2p-spin {
 	animation: w2p-spin 1.2s infinite linear;
 }
