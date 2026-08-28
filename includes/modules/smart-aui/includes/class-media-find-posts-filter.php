@@ -254,127 +254,41 @@ class W2P_SmartAUI_Media_FindPosts_Filter {
 			. '<input type="hidden" name="ac_exclude_chapter" value="1">'
 			. '</div>';
 
-		$html_json = wp_json_encode( $html );
-
 		// Localized UI strings.
 		$i18n = array(
 			'searching' => __( 'Searching...', 'wp-genius' ),
 			'no_items'  => __( 'No items found.', 'wp-genius' ),
 			'error'     => __( 'Request failed. Please try again.', 'wp-genius' ),
 		);
-		$i18n_json = wp_json_encode( $i18n );
-		?>
-		<style id="w2p-find-posts-extras-css">
-			.w2p-find-posts-extras {
-				margin: 8px 0;
-				padding: 8px;
-				background: #f6f7f7;
-				border: 1px solid #c3c4c7;
-				display: flex;
-				gap: 12px;
-				flex-wrap: wrap;
-				align-items: center;
-				font-size: 13px;
-			}
-			.w2p-find-posts-extras select[name="ac_post_type"] {
-				min-width: 120px;
-			}
-			.w2p-find-posts-extras input[name="ac_post_id_range"] {
-				width: 160px;
-			}
-		</style>
-		<script type="text/javascript">
-		( function ( $ ) {
-			// Idempotence guard: Prevent duplicate injection.
-			if ( window.w2pFindPostsInjected ) {
-				return;
-			}
-			window.w2pFindPostsInjected = true;
 
-			var w2pI18n = <?php echo $i18n_json; ?>;
+		$plugin_url = plugin_dir_url( dirname( __FILE__ ) );
+		$css_path   = dirname( __DIR__ ) . '/assets/css/smart-aui-admin.css';
+		$css_ver    = file_exists( $css_path ) ? filemtime( $css_path ) : W2P_VERSION;
+		$js_path    = dirname( __DIR__ ) . '/assets/js/smart-aui-find-posts.js';
+		$js_ver     = file_exists( $js_path ) ? filemtime( $js_path ) : W2P_VERSION;
 
-			function w2pInjectExtras() {
-				var $search = $( '#find-posts .find-box-search' );
-				if ( ! $search.length ) {
-					return false;
-				}
-				if ( ! $search.next( '.w2p-find-posts-extras' ).length ) {
-					$search.after( <?php echo $html_json; ?> );
-				}
-				// Remove findPosts.send click handler attached by media.js on #find-posts-search
-				// so our capturing event listener takes over the search logic.
-				$( '#find-posts-search' ).off( 'click' );
-				return true;
-			}
+		wp_enqueue_style(
+			'w2p-smart-aui-admin',
+			$plugin_url . 'assets/css/smart-aui-admin.css',
+			array( 'w2p-core-css' ),
+			$css_ver
+		);
 
-			// MutationObserver fallback if modal is injected dynamically.
-			$( function () {
-				if ( ! w2pInjectExtras() ) {
-					var target = document.getElementById( 'find-posts' ) || document.body;
-					var obs = new MutationObserver( function () {
-						if ( w2pInjectExtras() ) {
-							obs.disconnect();
-						}
-					} );
-					obs.observe( target, { childList: true, subtree: true } );
-				}
-			} );
+		wp_enqueue_script(
+			'w2p-smart-aui-find-posts',
+			$plugin_url . 'assets/js/smart-aui-find-posts.js',
+			array( 'jquery' ),
+			$js_ver,
+			true
+		);
 
-			// Intercept Search button click (#find-posts-search); leave Select (#find-posts-submit) untouched.
-			document.addEventListener( 'click', function ( e ) {
-				var target = e.target;
-				if ( ! target || target.id !== 'find-posts-search' ) {
-					return;
-				}
-				var $box = $( '#find-posts' );
-				if ( ! $box.length ) {
-					return;
-				}
-
-				e.preventDefault();
-				e.stopImmediatePropagation();
-
-				var nonce       = $box.find( 'input[name="_ajax_nonce"]' ).val() || '';
-				var ps          = $box.find( '#find-posts-input' ).val() || '';
-				var foundAction = $box.find( 'input[name="found_action"]' ).val() || '';
-				var affected    = $box.find( '#affected' ).val() || '';
-
-				var data = {
-					action:       'find_posts',
-					_ajax_nonce:  nonce,
-					ps:           ps,
-					found_action: foundAction,
-					affected:     affected
-				};
-
-				data['ac_post_type']       = $box.find( 'select[name="ac_post_type"]' ).val() || 'all';
-				data['ac_post_id_range']   = $box.find( 'input[name="ac_post_id_range"]' ).val() || '';
-				data['ac_post_status']     = $box.find( 'select[name="ac_post_status"]' ).val() || 'any';
-				data['ac_exclude_chapter'] = $box.find( 'input[name="ac_exclude_chapter"]' ).val() || '1';
-
-				var $resp    = $( '#find-posts-response' );
-				var $spinner = $box.find( '.spinner' );
-				$spinner.addClass( 'is-active' );
-				$resp.html( '<p>' + w2pI18n.searching + '</p>' );
-
-				$.ajax( ajaxurl, {
-					type: 'POST',
-					data: data,
-					dataType: 'json'
-				} ).always( function () {
-					$spinner.removeClass( 'is-active' );
-				} ).done( function ( x ) {
-					if ( ! x || ! x.success ) {
-						$resp.html( '<div class="error"><p>' + w2pI18n.no_items + '</p></div>' );
-						return;
-					}
-					$resp.html( x.data );
-				} ).fail( function () {
-					$resp.html( '<div class="error"><p>' + w2pI18n.error + '</p></div>' );
-				} );
-			}, true );
-		} )( jQuery );
-		</script>
-		<?php
+		wp_localize_script(
+			'w2p-smart-aui-find-posts',
+			'w2pFindPostsParams',
+			array(
+				'html' => $html,
+				'i18n' => $i18n,
+			)
+		);
 	}
 }

@@ -167,12 +167,12 @@ class ImageProcessorExtended {
 				continue;
 			}
 
-			// Flush the output buffer every 5 images to prevent timeouts
-			if ( $index % 5 === 0 ) {
+			// Only flush output buffer in CLI environment to prevent corrupting AJAX/REST responses
+			if ( php_sapi_name() === 'cli' && $index % 5 === 0 ) {
 				if ( function_exists( 'wp_ob_end_flush_all' ) ) {
-					wp_ob_end_flush_all();
+					@wp_ob_end_flush_all();
 				}
-				flush();
+				@flush();
 			}
 
 			// [FIX 2] Built-in retry mechanism
@@ -225,7 +225,6 @@ class ImageProcessorExtended {
 						),
 						$index
 					);
-					++$success_count;
 					++$processed_count;
 					continue;
 				}
@@ -240,8 +239,8 @@ class ImageProcessorExtended {
 					)
 				);
 
-				// Failed images also count as processed; keep the original URL, no replacement needed
-				++$success_count;
+				// Failed images count towards failed_count; original URL is kept
+				++$failed_count;
 				++$processed_count;
 
 				// Fire action for failed image

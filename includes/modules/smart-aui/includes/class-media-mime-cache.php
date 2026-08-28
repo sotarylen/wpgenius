@@ -334,7 +334,7 @@ class W2P_SmartAUI_Media_Mime_Cache {
 	 * @return bool
 	 */
 	private function debug_enabled() {
-		return defined( 'W2P_DEBUG_LOGGING' ) ? (bool) W2P_DEBUG_LOGGING : true;
+		return defined( 'W2P_DEBUG_LOGGING' ) ? (bool) W2P_DEBUG_LOGGING : false;
 	}
 }
 

@@ -173,54 +173,6 @@ class ImageProcessor {
 	}
 
 	/**
-	 * Extract URLs from srcset attribute
-	 *
-	 * @param string $srcset Srcset attribute value.
-	 * @return array Array of URLs.
-	 */
-	private function extract_urls_from_srcset( string $srcset ): array {
-		$urls    = [];
-		$entries = preg_split( '/\s*,\s*/', trim( $srcset ) );
-
-		foreach ( $entries as $entry ) {
-			// Extract URL (everything before the first space).
-			if ( preg_match( '/^([^\s]+)/', trim( $entry ), $matches ) ) {
-				$url = $matches[1];
-				// Handle protocol-relative URLs.
-				if ( str_starts_with( $url, '//' ) ) {
-					$url = 'https:' . $url;
-				}
-				$urls[] = $url;
-			}
-		}
-
-		return $urls;
-	}
-
-	/**
-	 * Get the full img tag from the HTML processor
-	 *
-	 * @param \WP_HTML_Tag_Processor $processor HTML processor.
-	 * @return string Full img tag.
-	 */
-	private function get_full_img_tag( \WP_HTML_Tag_Processor $processor ): string {
-		$tag = '<img';
-
-		foreach ( $processor->get_attribute_names_with_prefix( '' ) as $name ) {
-			$value = $processor->get_attribute( $name );
-			if ( null !== $value ) {
-				$tag .= sprintf( ' %s="%s"', $name, esc_attr( $value ) );
-			} else {
-				$tag .= ' ' . $name;
-			}
-		}
-
-		$tag .= '>';
-
-		return $tag;
-	}
-
-	/**
 	 * Decode JSON-encoded content if necessary
 	 *
 	 * @param string $content Content that might be JSON-encoded.
@@ -270,33 +222,5 @@ class ImageProcessor {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Replace image URL in content
-	 *
-	 * @param string $content Content to modify.
-	 * @param array  $image Original image data.
-	 * @param array  $result Download result.
-	 * @return string Modified content.
-	 */
-	private function replace_image_url( string $content, array $image, array $result ): string {
-		$settings = \SmartAutoUploadImages\Plugin::get_settings();
-		$base_url = trim( $settings['base_url'], '/' );
-
-		$new_url_parts = wp_parse_url( $result['url'] );
-		$new_url       = $base_url . $new_url_parts['path'];
-
-		$content = str_replace( $image['url'], $new_url, $content );
-
-		if ( ! empty( $image['alt'] ) ) {
-			$old_alt_pattern = 'alt=["\']' . preg_quote( $image['alt'], '/' ) . '["\']';
-			$new_alt         = $result['alt_text'] ?? $image['alt'];
-			$new_alt_pattern = 'alt="' . esc_attr( $new_alt ) . '"';
-
-			$content = preg_replace( '/' . $old_alt_pattern . '/i', $new_alt_pattern, $content );
-		}
-
-		return $content;
 	}
 }

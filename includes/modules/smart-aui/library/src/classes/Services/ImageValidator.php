@@ -167,32 +167,6 @@ class ImageValidator {
 	}
 
 	/**
-	 * Validate image file content (Deprecated, use validate_image_file instead)
-	 *
-	 * @param string $file_content File content.
-	 * @param array  $image_data Image data.
-	 * @return true|\WP_Error True if valid, \WP_Error on failure.
-	 */
-	public function validate_image_content( string $file_content, array $image_data ) {
-		if ( empty( $file_content ) ) {
-			return new \WP_Error( 'corrupted_image', esc_html__( 'Image content is empty.', 'wp-genius' ) );
-		}
-
-		if ( ! function_exists( 'wp_tempnam' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-		}
-
-		$temp_file = wp_tempnam();
-		file_put_contents( $temp_file, $file_content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-		
-		$result = $this->validate_image_file( $temp_file, $image_data );
-		
-		wp_delete_file( $temp_file );
-
-		return $result;
-	}
-
-	/**
 	 * Check if URL is external
 	 *
 	 * @param string $url URL to check.

@@ -143,3 +143,26 @@
 	overflow-y: auto;
 	margin: 0;
 }
+
+/* ========== Find Posts Extras Modal Filter ========== */
+.w2p-find-posts-extras {
+	margin: 8px 0;
+	padding: 8px 12px;
+	background: var(--w2p-bg-surface-secondary, #f6f7f7);
+	border: 1px solid var(--w2p-border-color-light, #c3c4c7);
+	border-radius: var(--w2p-radius-md, 6px);
+	display: flex;
+	gap: 12px;
+	flex-wrap: wrap;
+	align-items: center;
+	font-size: 13px;
+}
+
+.w2p-find-posts-extras select[name="ac_post_type"] {
+	min-width: 120px;
+}
+
+.w2p-find-posts-extras input[name="ac_post_id_range"] {
+	width: 160px;
+}
+

@@ -258,7 +258,7 @@
                     '<div class="w2p-smart-aui-grid-placeholder">' +
                     '<span class="dashicons dashicons-image-rotate"></span>' +
                     '</div>' +
-                    '<img src="" style="display:none;" />' +
+                    '<img src="" class="w2p-hidden" />' +
                     '</div>';
             }
 
@@ -1082,66 +1082,6 @@
             }
 
             return localImages;
-        },
-
-        /**
-         * Inject attachment IDs for local images
-         */
-        injectLocalImageIDs: function (content, postId, callback) {
-            var self = this;
-            var localImages = this.findLocalImagesWithoutID(content);
-
-            if (localImages.length === 0) {
-                if (callback) callback(content);
-                return;
-            }
-
-            var processedCount = 0;
-            var updatedContent = content;
-
-            // Process each local image
-            localImages.forEach(function (imageInfo) {
-                $.ajax({
-                    url: w2pSmartAuiParams.ajax_url,
-                    type: 'POST',
-                    data: {
-                        action: 'w2p_smart_aui_get_attachment_id',
-                        nonce: w2pSmartAuiParams.nonce,
-                        image_url: imageInfo.src
-                    },
-                    success: function (response) {
-                        if (response && response.success && response.data && response.data.attachment_id) {
-                            var attachmentId = response.data.attachment_id;
-                            var idClass = 'wp-image-' + attachmentId;
-                            var oldTag = imageInfo.tag;
-                            var newTag = oldTag;
-
-                            // Add or update class attribute
-                            if (oldTag.toLowerCase().indexOf('class=') !== -1) {
-                                // Has class, add to it
-                                newTag = oldTag.replace(/class=(["'])/i, 'class=$1' + idClass + ' size-full ');
-                            } else {
-                                // No class, add it
-                                newTag = oldTag.replace(/<img/i, '<img class="' + idClass + ' size-full"');
-                            }
-
-                            // Replace in content
-                            updatedContent = updatedContent.replace(oldTag, newTag);
-                        }
-
-                        processedCount++;
-                        if (processedCount === localImages.length) {
-                            if (callback) callback(updatedContent);
-                        }
-                    },
-                    error: function () {
-                        processedCount++;
-                        if (processedCount === localImages.length) {
-                            if (callback) callback(updatedContent);
-                        }
-                    }
-                });
-            });
         },
         findExternalVideos: function (content) {
             var videos = [];

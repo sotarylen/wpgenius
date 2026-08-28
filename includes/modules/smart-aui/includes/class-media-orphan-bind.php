@@ -121,6 +121,7 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 					array( 'post_content' => $updated_content ),
 					array( 'ID' => $post_id )
 				);
+				clean_post_cache( $post_id );
 				wp_cache_delete( $post_id, 'posts' );
 				$content = $updated_content;
 			}
@@ -518,6 +519,7 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 				array( 'post_content' => $new_content ),
 				array( 'ID' => $post_id )
 			);
+			clean_post_cache( $post_id );
 			wp_cache_delete( $post_id, 'posts' );
 			wp_cache_delete( $post_id, 'post_meta' );
 
@@ -544,16 +546,18 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 	 * @return array [pattern:string, replacement:string]
 	 */
 	private function get_pattern_parts( $old_url, $new_url ) {
-		$rel_old  = wp_make_link_relative( $old_url );
-		$rel_new  = wp_make_link_relative( $new_url );
+		$old_path = wp_parse_url( $old_url, PHP_URL_PATH );
+		$new_path = wp_parse_url( $new_url, PHP_URL_PATH );
+		$rel_old  = wp_make_link_relative( $old_path ? $old_path : $old_url );
+		$rel_new  = wp_make_link_relative( $new_path ? $new_path : $new_url );
 		$old_info = pathinfo( $rel_old );
 		$new_info = pathinfo( $rel_new );
 
-		$old_dir  = trailingslashit( $old_info['dirname'] );
-		$new_dir  = trailingslashit( $new_info['dirname'] );
-		$filename = $old_info['filename'];
-		$old_ext  = $old_info['extension'];
-		$new_ext  = $new_info['extension'];
+		$old_dir  = trailingslashit( $old_info['dirname'] ?? '' );
+		$new_dir  = trailingslashit( $new_info['dirname'] ?? '' );
+		$filename = $old_info['filename'] ?? '';
+		$old_ext  = $old_info['extension'] ?? '';
+		$new_ext  = $new_info['extension'] ?? '';
 
 		$pattern = '/'
 			. '(https?:\/\/[^\/]+)?'

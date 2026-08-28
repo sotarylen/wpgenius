@@ -38,13 +38,7 @@ class Plugin {
 		// Post processing hooks.
 		add_filter( 'wp_insert_post_data', [ $this, 'process_post_images' ], 10, 2 );
 		add_action( 'init', [ $this, 'register_custom_post_fields' ] );
-
-		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_scripts' ] );
-		add_action( 'enqueue_block_editor_assets', [ $this, 'enqueue_editor_scripts' ] );
-		add_action( 'admin_menu', [ $this, 'register_admin_menu' ] );
-
 		add_action( 'rest_api_init', [ $this, 'register_rest_routes' ] );
-		add_filter( 'plugin_action_links_' . SMART_AUI_PLUGIN_BASENAME, [ $this, 'add_settings_link' ] );
 	}
 
 	/**
@@ -177,90 +171,11 @@ class Plugin {
 	}
 
 	/**
-	 * Enqueue admin scripts
-	 *
-	 * @param string $hook_suffix The current admin page hook suffix.
-	 */
-	public function enqueue_admin_scripts( string $hook_suffix ): void {
-		// Only load on our settings page.
-		if ( 'settings_page_smart-auto-upload-images' !== $hook_suffix ) {
-			return;
-		}
-
-		$asset_file = include SMART_AUI_PLUGIN_DIR . 'dist/js/admin-settings.asset.php';
-		wp_enqueue_script(
-			'smart-aui-admin-settings',
-			SMART_AUI_PLUGIN_URL . 'dist/js/admin-settings.js',
-			$asset_file['dependencies'],
-			$asset_file['version'],
-			true
-		);
-
-		$asset_file = include SMART_AUI_PLUGIN_DIR . 'dist/css/admin-settings-style.asset.php';
-		wp_enqueue_style(
-			'smart-aui-admin-settings-style',
-			SMART_AUI_PLUGIN_URL . 'dist/css/admin-settings-style.css',
-			[ 'wp-components' ],
-			$asset_file['version'],
-		);
-	}
-
-	/**
-	 * Enqueue editor scripts
-	 */
-	public function enqueue_editor_scripts(): void {
-		wp_enqueue_script(
-			'smart-aui-editor',
-			SMART_AUI_PLUGIN_URL . 'dist/js/admin-editor.js',
-			\SmartAutoUploadImages\Utils\get_asset_info( 'admin-editor', 'dependencies' ),
-			\SmartAutoUploadImages\Utils\get_asset_info( 'admin-editor', 'version' ),
-			true
-		);
-	}
-
-	/**
-	 * Register admin menu
-	 */
-	public function register_admin_menu(): void {
-		add_options_page(
-			__( 'Smart Auto Upload Images Settings', 'smart-auto-upload-images' ),
-			__( 'Smart Auto Upload Images', 'smart-auto-upload-images' ),
-			'manage_options',
-			'smart-auto-upload-images',
-			[ $this, 'render_admin_page' ]
-		);
-	}
-
-	/**
-	 * Render admin page
-	 */
-	public function render_admin_page(): void {
-		echo '<div id="smart-aui-admin-root"></div>';
-	}
-
-	/**
 	 * Register REST API routes
 	 */
 	public function register_rest_routes(): void {
 		$rest_api = new \SmartAutoUploadImages\Admin\RestApi();
 		$rest_api->register_routes();
-	}
-
-	/**
-	 * Add settings link to plugin actions
-	 *
-	 * @param array $links Plugin action links.
-	 * @return array Modified plugin action links.
-	 */
-	public function add_settings_link( array $links ): array {
-		$settings_link = sprintf(
-			'<a href="%s">%s</a>',
-			admin_url( 'options-general.php?page=smart-auto-upload-images' ),
-			esc_html__( 'Settings', 'smart-auto-upload-images' )
-		);
-
-		array_unshift( $links, $settings_link );
-		return $links;
 	}
 
 	/**

@@ -165,11 +165,12 @@ class W2P_SmartAUI_Content_Processor {
 		if ( ! $attachment_id ) {
 			// Try looking up by filename (handles scaled or resized images)
 			global $wpdb;
-			$filename = basename( $image_url );
+			$url_path = wp_parse_url( $image_url, PHP_URL_PATH );
+			$filename = basename( $url_path ? $url_path : $image_url );
 
 			// If pathinfo is available, extract the filename
 			$path_info = pathinfo( $filename );
-			if ( ! empty( $path_info['filename'] ) ) {
+			if ( ! empty( $path_info['filename'] ) && ! empty( $path_info['extension'] ) ) {
 				$base_name_only = preg_replace( '/(-\d+x\d+|-scaled)$/i', '', $path_info['filename'] );
 
 				// Aliyun OSS may append style processing to the filename, e.g. !style
@@ -177,7 +178,7 @@ class W2P_SmartAUI_Content_Processor {
 
 				// [NEW] Try to get the path context (YYYY/MM)
 				$path_prefix = '';
-				if ( preg_match( '/(\d{4}\/\d{2})\//', $image_url, $path_matches ) ) {
+				if ( preg_match( '/(\d{4}\/\d{2})\//', $url_path ? $url_path : $image_url, $path_matches ) ) {
 					$path_prefix = $path_matches[1] . '/';
 				}
 

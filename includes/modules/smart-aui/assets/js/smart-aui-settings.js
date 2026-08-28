@@ -13,18 +13,21 @@ jQuery(document).ready(function ($) {
             },
             success: function (response) {
                 if (response.success && response.data && response.data.length > 0) {
-                    var html = '<ul class="w2p-log-list">';
+                    var $list = $('<ul class="w2p-log-list"></ul>');
                     $.each(response.data, function (index, item) {
-                        html += '<li><span class="w2p-badge w2p-badge-warning">' + item.time + '</span> <code>' + item.url + '</code></li>';
+                        var $li = $('<li></li>');
+                        $('<span></span>').addClass('w2p-badge w2p-badge-warning').text(item.time || '').appendTo($li);
+                        $li.append(' ');
+                        $('<code></code>').text(item.url || '').appendTo($li);
+                        $list.append($li);
                     });
-                    html += '</ul>';
-                    $container.html(html);
+                    $container.empty().append($list);
                 } else {
-                    $container.html('<p>' + w2pSmartAuiSettings.strings.no_logs + '</p>');
+                    $container.empty().append($('<p></p>').text(w2pSmartAuiSettings.strings.no_logs));
                 }
             },
             error: function () {
-                $container.html('<p class="w2p-error">' + w2pSmartAuiSettings.strings.error_loading + '</p>');
+                $container.empty().append($('<p class="w2p-error"></p>').text(w2pSmartAuiSettings.strings.error_loading));
             }
         });
     }

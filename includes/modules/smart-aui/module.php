@@ -237,6 +237,8 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 		$container->set( 'image_processor', new \SmartAutoUploadImages\Services\ImageProcessorExtended() );
 
 		$container->set( 'image_downloader', new \SmartAutoUploadImages\Services\ImageDownloader() );
+		$container->set( 'image_validator', new \SmartAutoUploadImages\Services\ImageValidator() );
+		$container->set( 'pattern_resolver', new \SmartAutoUploadImages\Services\PatternResolver() );
 	}
 
 	/**

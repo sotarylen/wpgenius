@@ -69,7 +69,12 @@ class W2P_SmartAUI_Scanner_Service {
 			);
 		}
 
+		$capture_videos    = ! empty( $settings['smart_aui_capture_videos'] );
 		$type_placeholders = implode( ', ', array_fill( 0, count( $target_types ), '%s' ) );
+
+		$content_clause = $capture_videos
+			? "AND (post_content LIKE '%<img%' OR post_content LIKE '%<video%' OR post_content LIKE '%[video%')"
+			: "AND post_content LIKE '%<img%'";
 
 		// Build SQL with cursor pagination
 		$query_args = array_merge( array( $last_id ), $target_types, array( $limit ) );
@@ -79,7 +84,7 @@ class W2P_SmartAUI_Scanner_Service {
 				WHERE ID > %d
 				  AND post_status IN ('publish', 'draft', 'pending', 'future', 'private')
 				  AND post_type IN ({$type_placeholders})
-				  AND post_content LIKE '%<img%'
+				  {$content_clause}
 				ORDER BY ID ASC
 				LIMIT %d";
 
@@ -104,8 +109,7 @@ class W2P_SmartAUI_Scanner_Service {
 		$base_host   = strtolower( (string) wp_parse_url( $base_url, PHP_URL_HOST ) );
 		$site_host   = strtolower( (string) wp_parse_url( $site_url, PHP_URL_HOST ) );
 
-		// Validator for exclusions and domain checks
-		$validator = new \SmartAutoUploadImages\Services\ImageValidator();
+		$validator = \SmartAutoUploadImages\get_container()->get( 'image_validator' );
 
 		foreach ( $rows as $row ) {
 			$post_id     = (int) $row->ID;
@@ -116,54 +120,69 @@ class W2P_SmartAUI_Scanner_Service {
 				continue;
 			}
 
-			$post_data = array(
-				'ID'          => $post_id,
-				'post_title'  => $row->post_title,
-				'post_type'   => $row->post_type,
-				'post_status' => $row->post_status,
-			);
-
 			$external_images = array();
 			$seen_urls       = array();
+			$post_data       = array(
+				'ID'        => $post_id,
+				'post_type' => $row->post_type,
+			);
 
-			// Use WP_HTML_Tag_Processor for fast, robust parsing
-			$processor = new \WP_HTML_Tag_Processor( $content );
-			while ( $processor->next_tag( 'img' ) ) {
-				$src = $processor->get_attribute( 'src' );
-				if ( empty( $src ) ) {
-					continue;
-				}
-
-				$src = trim( $src );
-
-				// Skip relative paths or data URIs
-				if ( ! preg_match( '/^(https?:)?\/\//i', $src ) || substr( $src, 0, 5 ) === 'data:' ) {
-					continue;
-				}
-
-				// Check host
-				$img_host = strtolower( (string) wp_parse_url( $src, PHP_URL_HOST ) );
-				if ( empty( $img_host ) || $img_host === $site_host || $img_host === $base_host ) {
-					continue;
-				}
-
-				// Check if already in our base_url / site_url
-				if ( strpos( $src, $base_url ) === 0 || strpos( $src, $site_url ) === 0 ) {
-					continue;
-				}
-
-				// Check exclusion rules via ImageValidator
-				$validation = $validator->validate_image_url( $src, $post_data );
-				if ( is_wp_error( $validation ) ) {
-					$err_code = $validation->get_error_code();
-					if ( in_array( $err_code, array( 'excluded_domain', 'internal_url', 'invalid_url' ), true ) ) {
+			// Fast parse images with WP_HTML_Tag_Processor
+			if ( class_exists( 'WP_HTML_Tag_Processor' ) ) {
+				$processor = new \WP_HTML_Tag_Processor( $content );
+				while ( $processor->next_tag( 'img' ) ) {
+					$src = (string) $processor->get_attribute( 'src' );
+					if ( empty( $src ) || strpos( $src, 'data:' ) === 0 ) {
 						continue;
+					}
+
+					// Protocol-relative URL normalize
+					if ( strpos( $src, '//' ) === 0 ) {
+						$src = 'https:' . $src;
+					}
+
+					// Fast host check
+					$src_host = strtolower( (string) wp_parse_url( $src, PHP_URL_HOST ) );
+					if ( empty( $src_host ) || $src_host === $site_host || $src_host === $base_host ) {
+						continue;
+					}
+
+					// Check if already in our base_url / site_url
+					if ( strpos( $src, $base_url ) === 0 || strpos( $src, $site_url ) === 0 ) {
+						continue;
+					}
+
+					// Check exclusion rules via ImageValidator
+					$validation = $validator->validate_image_url( $src, $post_data );
+					if ( is_wp_error( $validation ) ) {
+						$err_code = $validation->get_error_code();
+						if ( in_array( $err_code, array( 'excluded_domain', 'internal_url', 'invalid_url' ), true ) ) {
+							continue;
+						}
+					}
+
+					if ( ! isset( $seen_urls[ $src ] ) ) {
+						$seen_urls[ $src ]  = true;
+						$external_images[] = $src;
 					}
 				}
 
-				if ( ! isset( $seen_urls[ $src ] ) ) {
-					$seen_urls[ $src ]  = true;
-					$external_images[] = $src;
+				// Check videos if video capturing is active
+				if ( $capture_videos ) {
+					$video_processor = new \WP_HTML_Tag_Processor( $content );
+					while ( $video_processor->next_tag( array( 'tag_name' => 'video' ) ) ) {
+						$src = (string) $video_processor->get_attribute( 'src' );
+						if ( ! empty( $src ) && strpos( $src, 'data:' ) !== 0 ) {
+							if ( strpos( $src, '//' ) === 0 ) {
+								$src = 'https:' . $src;
+							}
+							$src_host = strtolower( (string) wp_parse_url( $src, PHP_URL_HOST ) );
+							if ( ! empty( $src_host ) && $src_host !== $site_host && $src_host !== $base_host && ! isset( $seen_urls[ $src ] ) ) {
+								$seen_urls[ $src ]  = true;
+								$external_images[] = $src;
+							}
+						}
+					}
 				}
 			}
 

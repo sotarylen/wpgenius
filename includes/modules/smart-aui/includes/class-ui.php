@@ -50,6 +50,9 @@ class W2P_SmartAUI_UI {
 			return;
 		}
 
+		// Read module settings directly
+		$global_settings = $this->module->get_settings();
+
 		// Use the WP_GENIUS_FILE constant to compute the plugin root URL
 		$plugin_url = plugin_dir_url( WP_GENIUS_FILE );
 
@@ -128,9 +131,6 @@ class W2P_SmartAUI_UI {
 				)
 			);
 		}
-
-		// [Refactor] Read from global settings directly
-		$global_settings = $this->module->get_settings();
 
 		$settings = array(
 			'show_progress_ui'   => isset( $global_settings['smart_aui_show_progress_ui'] ) ? (bool) $global_settings['smart_aui_show_progress_ui'] : true,

@@ -49,30 +49,43 @@ class W2P_Video_Downloader {
 			return new WP_Error( 'internal_url', __( 'Video is already hosted locally.', 'wp-genius' ) );
 		}
 
-		// Download video
-		$download = $this->download_file( $video_url );
-		if ( is_wp_error( $download ) ) {
-			return $download;
+		if ( ! function_exists( 'download_url' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+		if ( ! function_exists( 'media_handle_sideload' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/media.php';
+			require_once ABSPATH . 'wp-admin/includes/image.php';
+		}
+
+		// Stream download video directly to temp file (prevents OOM)
+		$temp_file = download_url( $video_url, 300 );
+		if ( is_wp_error( $temp_file ) ) {
+			return $temp_file;
 		}
 
 		// Get file info
-		$file_path = $download['file'];
-		$file_size = filesize( $file_path );
+		$file_size = @filesize( $temp_file );
 
 		// Check file size (limit to 100MB by default)
 		$max_size = 100 * 1024 * 1024; // 100MB
 		if ( $file_size > $max_size ) {
-			unlink( $file_path );
+			@unlink( $temp_file );
 			return new WP_Error( 'file_too_large', __( 'Video file is too large (max 100MB).', 'wp-genius' ) );
 		}
 
 		// Get MIME type
-		$finfo     = finfo_open( FILEINFO_MIME_TYPE );
-		$mime_type = finfo_file( $finfo, $file_path );
-		finfo_close( $finfo );
+		$mime_type = '';
+		if ( function_exists( 'finfo_open' ) ) {
+			$finfo     = finfo_open( FILEINFO_MIME_TYPE );
+			$mime_type = finfo_file( $finfo, $temp_file );
+			finfo_close( $finfo );
+		}
+		if ( empty( $mime_type ) && function_exists( 'mime_content_type' ) ) {
+			$mime_type = mime_content_type( $temp_file );
+		}
 
 		if ( ! isset( $this->allowed_mime_types[ $mime_type ] ) ) {
-			unlink( $file_path );
+			@unlink( $temp_file );
 			return new WP_Error( 'invalid_mime_type', __( 'Video file type is not supported.', 'wp-genius' ) );
 		}
 
@@ -80,32 +93,43 @@ class W2P_Video_Downloader {
 		$extension = $this->allowed_mime_types[ $mime_type ];
 		$filename  = $this->generate_filename( $video_url, $post_data, $extension );
 
-		// Prepare upload directory
-		$upload = wp_upload_bits( $filename, null, file_get_contents( $file_path ) );
-		unlink( $file_path ); // Clean up temp file
+		$file_array = array(
+			'name'     => $filename,
+			'tmp_name' => $temp_file,
+		);
 
-		if ( $upload['error'] ) {
+		// Sideload file directly into uploads folder without memory overhead
+		$upload = wp_handle_sideload(
+			$file_array,
+			array( 'test_form' => false )
+		);
+
+		if ( ! empty( $upload['error'] ) ) {
+			@unlink( $temp_file );
 			return new WP_Error( 'upload_error', $upload['error'] );
 		}
+
+		$post_id = ! empty( $post_data['ID'] ) ? absint( $post_data['ID'] ) : 0;
 
 		// Create attachment
 		$attachment = array(
 			'post_mime_type' => $mime_type,
-			'post_title'     => sanitize_file_name( $filename ),
+			'post_title'     => sanitize_file_name( pathinfo( $filename, PATHINFO_FILENAME ) ),
 			'post_content'   => '',
 			'post_status'    => 'inherit',
 		);
 
-		$attach_id = wp_insert_attachment( $attachment, $upload['file'] );
+		$attach_id = wp_insert_attachment( $attachment, $upload['file'], $post_id );
 
 		if ( is_wp_error( $attach_id ) ) {
 			return $attach_id;
 		}
 
 		// Generate attachment metadata
-		require_once ABSPATH . 'wp-admin/includes/image.php';
 		$attach_data = wp_generate_attachment_metadata( $attach_id, $upload['file'] );
-		wp_update_attachment_metadata( $attach_id, $attach_data );
+		if ( ! empty( $attach_data ) ) {
+			wp_update_attachment_metadata( $attach_id, $attach_data );
+		}
 
 		// Get video URL
 		$video_url_local = wp_get_attachment_url( $attach_id );
@@ -117,46 +141,6 @@ class W2P_Video_Downloader {
 			'mime_type'     => $mime_type,
 			'filename'      => $filename,
 		);
-	}
-
-	/**
-	 * Download file to temp location
-	 *
-	 * @param string $url The URL to download.
-	 * @return array|WP_Error Array with 'file' path or WP_Error on failure.
-	 */
-	private function download_file( $url ) {
-		// Increase timeout for large files
-		$timeout = 300; // 5 minutes
-
-		$response = wp_remote_get(
-			$url,
-			array(
-				'timeout'   => $timeout,
-				'sslverify' => false,
-			)
-		);
-
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
-
-		if ( wp_remote_retrieve_response_code( $response ) !== 200 ) {
-			return new WP_Error( 'download_failed', __( 'Failed to download video file.', 'wp-genius' ) );
-		}
-
-		$content = wp_remote_retrieve_body( $response );
-		if ( empty( $content ) ) {
-			return new WP_Error( 'empty_content', __( 'Downloaded file is empty.', 'wp-genius' ) );
-		}
-
-		// Save to temp file
-		$temp_file = tempnam( sys_get_temp_dir(), 'w2p_video_' );
-		if ( file_put_contents( $temp_file, $content ) === false ) {
-			return new WP_Error( 'write_failed', __( 'Failed to write video file.', 'wp-genius' ) );
-		}
-
-		return array( 'file' => $temp_file );
 	}
 
 	/**

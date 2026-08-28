@@ -45,7 +45,11 @@ class Sanitizer {
 		foreach ( $lines as $line ) {
 			$line = trim( $line );
 			if ( ! empty( $line ) ) {
-				$sanitized_lines[] = self::sanitize_url( $line );
+				// Sanitize while preserving wildcard (*), dots, dashes, colons, slashes
+				$sanitized = preg_replace( '/[^a-zA-Z0-9\.\-\_\*\:\/]/', '', $line );
+				if ( ! empty( $sanitized ) ) {
+					$sanitized_lines[] = $sanitized;
+				}
 			}
 		}
 
