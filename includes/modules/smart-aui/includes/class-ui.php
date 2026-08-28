@@ -214,6 +214,9 @@ class W2P_SmartAUI_UI {
 			return;
 		}
 
-		include plugin_dir_path( __DIR__ ) . 'progress-template.php';
+		$template_path = dirname( __DIR__ ) . '/views/progress-template.php';
+		if ( file_exists( $template_path ) ) {
+			include $template_path;
+		}
 	}
 }

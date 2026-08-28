@@ -211,19 +211,19 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 		require_once SMART_AUI_PLUGIN_DIR . 'src/utils.php';
 
 		// Load the container helper functions
-		require_once __DIR__ . '/container-helper.php';
+		require_once __DIR__ . '/includes/container-helper.php';
 
 		// Load the config hooks
-		require_once __DIR__ . '/config-hooks.php';
+		require_once __DIR__ . '/includes/config-hooks.php';
 
 		// Load the progress tracker
-		require_once __DIR__ . '/progress-tracker.php';
+		require_once __DIR__ . '/includes/class-progress-tracker.php';
 
 		// Load the extended ImageProcessor
-		require_once __DIR__ . '/ImageProcessorExtended.php';
+		require_once __DIR__ . '/includes/class-image-processor-extended.php';
 
 		// Load the video downloader
-		require_once __DIR__ . '/VideoDownloader.php';
+		require_once __DIR__ . '/includes/class-video-downloader.php';
 
 		// Initialize plugin components
 		$container = \SmartAutoUploadImages\get_container();
