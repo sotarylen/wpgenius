@@ -243,13 +243,13 @@
             var gridHtml = '';
             for (var i = 0; i < count; i++) {
                 gridHtml += '<div class="w2p-smart-aui-grid-item" data-slot-id="' + i + '">' +
-                    '<div class="status-overlay">' +
+                    '<div class="status-overlay" style="display:none;">' +
                     '<span class="status-line dashicons"></span>' +
                     '</div>' +
                     '<div class="w2p-smart-aui-grid-placeholder">' +
-                    '<span class="dashicons dashicons-image-rotate"></span>' +
+                    '<span class="dashicons dashicons-image-rotate w2p-spin"></span>' +
                     '</div>' +
-                    '<img src="" class="w2p-hidden" />' +
+                    '<img referrerpolicy="no-referrer" style="display:none;" />' +
                     '</div>';
             }
 
@@ -276,39 +276,43 @@
 
                     if (status === 'loading') {
                         $slot.addClass('loading');
-                        $placeholder.hide();
+                        $placeholder.show();
+                        $overlay.hide();
 
-                        // Show remote URL immediately
-                        var img = new Image();
-                        img.onload = function () {
-                            $img.attr('src', url).show();
-                        };
-                        img.onerror = function () {
-                            // If remote image fails to load, show placeholder
-                            $placeholder.show();
-                            $img.hide();
-                        };
-                        img.src = url;
+                        if (url) {
+                            // Show remote URL immediately with no-referrer policy
+                            var imgObj = new Image();
+                            imgObj.referrerPolicy = 'no-referrer';
+                            imgObj.onload = function () {
+                                $img.attr('src', url).css('display', 'block');
+                                $placeholder.hide();
+                            };
+                            imgObj.onerror = function () {
+                                // Fallback: still set the src so browser attempts rendering or shows broken image box
+                                $img.attr('src', url).css('display', 'block');
+                                $placeholder.hide();
+                            };
+                            imgObj.src = url;
+                        }
                     } else if (status === 'success') {
                         $slot.addClass('success done');
-                        // Keep the image visible, just add success icon overlay
                         $icon.addClass('dashicons-yes');
+                        $overlay.css('display', 'flex');
+                        $placeholder.hide();
 
-                        // If URL changed (downloaded to new location), update image
-                        if ($img.attr('src') !== url) {
-                            var img = new Image();
-                            img.onload = function () { $img.attr('src', url).show(); };
-                            img.src = url;
+                        var displayUrl = url || $img.attr('src');
+                        if (displayUrl) {
+                            $img.attr('src', displayUrl).css('display', 'block');
                         }
                     } else if (status === 'error') {
                         $slot.addClass('error done');
-                        $placeholder.hide();
                         $icon.addClass('dashicons-warning');
-                        // Keep the image visible to show what failed
-                        // $img.hide(); // Don't hide, let user see what failed
+                        $overlay.css('display', 'flex');
+                        $placeholder.hide();
                     }
                 });
             } catch (e) {
+                console.warn('[Smart AUI Preview Error]', e);
             }
         },
 

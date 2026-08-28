@@ -207,3 +207,115 @@
 	width: 160px;
 }
 
+/* ========== Multi-Thread Image Preview Grid Styling ========== */
+.w2p-smart-aui-preview-area {
+	margin-top: 15px;
+	padding: 12px;
+	border: 1px dashed var(--w2p-border-color-light, #dcdcde);
+	border-radius: var(--w2p-radius-md, 6px);
+	min-height: 120px;
+	max-height: 280px;
+	overflow-y: auto;
+	background: var(--w2p-bg-surface-secondary, #f6f7f7);
+}
+
+.w2p-smart-aui-preview-area.grid-mode {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+	gap: 10px;
+}
+
+.w2p-smart-aui-grid-item {
+	aspect-ratio: 1;
+	overflow: hidden;
+	border-radius: var(--w2p-radius-sm, 4px);
+	position: relative;
+	background: #fff;
+	border: 1px solid var(--w2p-border-color-light, #dcdcde);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.w2p-smart-aui-grid-item img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+.w2p-smart-aui-grid-item .w2p-smart-aui-grid-placeholder {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--w2p-bg-surface-secondary, #f0f2f5);
+	color: var(--w2p-text-muted, #8c8f94);
+	z-index: 1;
+}
+
+.w2p-smart-aui-grid-item .w2p-smart-aui-grid-placeholder .dashicons {
+	font-size: 28px;
+	width: 28px;
+	height: 28px;
+	opacity: 0.6;
+}
+
+.w2p-smart-aui-grid-item.loading {
+	border-color: var(--w2p-color-info, #2271b1);
+}
+
+.w2p-smart-aui-grid-item.success {
+	border: 2px solid var(--w2p-color-success, #00a32a);
+}
+
+.w2p-smart-aui-grid-item.error {
+	border: 2px solid var(--w2p-color-error, #d63638);
+}
+
+.w2p-smart-aui-grid-item .status-overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(0, 0, 0, 0.35);
+	display: none;
+	align-items: center;
+	justify-content: center;
+	z-index: 3;
+}
+
+.w2p-smart-aui-grid-item.success .status-overlay,
+.w2p-smart-aui-grid-item.error .status-overlay {
+	display: flex;
+}
+
+.w2p-smart-aui-grid-item .status-overlay .status-line {
+	font-size: 32px;
+	color: #fff;
+	width: auto;
+	height: auto;
+}
+
+.w2p-smart-aui-grid-item .status-overlay .status-line.dashicons-yes {
+	color: #10b981;
+}
+
+.w2p-smart-aui-grid-item .status-overlay .status-line.dashicons-warning {
+	color: #ef4444;
+}
+
+@keyframes w2p-spin {
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
+}
+
+.w2p-spin {
+	animation: w2p-spin 1.2s infinite linear;
+}
+
