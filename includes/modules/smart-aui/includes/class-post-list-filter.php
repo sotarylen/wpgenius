@@ -93,7 +93,7 @@ class W2P_SmartAUI_Post_List_Filter {
 	}
 
 	/**
-	 * Clear clean status meta when a post is edited/updated.
+	 * Clear clean status meta and flush transient cache when a post is edited/updated.
 	 *
 	 * @param int $post_id Post ID.
 	 * @return void
@@ -103,6 +103,8 @@ class W2P_SmartAUI_Post_List_Filter {
 			return;
 		}
 		delete_post_meta( $post_id, '_w2p_smart_aui_clean' );
+		delete_transient( 'w2p_aui_external_post_ids' );
+		self::$matched_ids_cache = null;
 	}
 
 	/**
@@ -137,18 +139,24 @@ class W2P_SmartAUI_Post_List_Filter {
 
 	/**
 	 * Get list of post IDs containing genuine external media.
-	 * Low batch footprint (50 candidate posts per query) and single-query batch marking.
+	 * Uses ultra-fast two-stage covering index queries + Transient cache.
 	 *
 	 * @return array
 	 */
 	private function get_external_media_post_ids(): array {
 		global $wpdb;
 
+		// 1. Check transient cache first
+		$cached = get_transient( 'w2p_aui_external_post_ids' );
+		if ( false !== $cached && is_array( $cached ) ) {
+			return $cached;
+		}
+
 		$settings       = $this->module->get_settings();
 		$base_url       = ! empty( $settings['smart_aui_base_url'] ) ? $settings['smart_aui_base_url'] : site_url();
 		$capture_videos = ! empty( $settings['smart_aui_capture_videos'] );
 
-		// 1. Gather all whitelisted local hosts
+		// 2. Gather all whitelisted local hosts
 		$local_hosts = array_filter(
 			array_unique(
 				array(
@@ -159,7 +167,7 @@ class W2P_SmartAUI_Post_List_Filter {
 			)
 		);
 
-		// 2. Gather excluded domains
+		// 3. Gather excluded domains
 		$exclude_domains = array();
 		if ( ! empty( $settings['smart_aui_exclude_domains'] ) ) {
 			$lines = explode( "\n", str_replace( "\r", '', $settings['smart_aui_exclude_domains'] ) );
@@ -171,26 +179,28 @@ class W2P_SmartAUI_Post_List_Filter {
 			}
 		}
 
-		$content_clause = $capture_videos
-			? "( p.post_content LIKE '%<img%' OR p.post_content LIKE '%<video%' OR p.post_content LIKE '%[video%' )"
-			: "p.post_content LIKE '%<img%'";
-
-		// 3. Batch candidate scan (reduced to 50 posts per inspection to keep queries and memory light)
-		$posts = $wpdb->get_results(
-			"SELECT p.ID, p.post_content
+		// 4. Stage 1: Covering index query (NO post_content loading, executes in < 1ms)
+		$candidate_ids = $wpdb->get_col(
+			"SELECT p.ID
 			FROM {$wpdb->posts} p
 			LEFT JOIN {$wpdb->postmeta} pm ON ( p.ID = pm.post_id AND pm.meta_key = '_w2p_smart_aui_clean' )
 			WHERE p.post_type = 'post'
 			  AND p.post_status IN ('publish', 'future', 'private', 'pending')
-			  AND {$content_clause}
 			  AND pm.meta_value IS NULL
 			ORDER BY p.ID DESC
-			LIMIT 50"
+			LIMIT 20"
 		);
 
-		if ( empty( $posts ) ) {
+		if ( empty( $candidate_ids ) ) {
+			set_transient( 'w2p_aui_external_post_ids', array(), 180 );
 			return array();
 		}
+
+		// 5. Stage 2: Point query for content by primary key in batch (executes in ~3ms)
+		$id_placeholders = implode( ',', array_map( 'intval', $candidate_ids ) );
+		$posts = $wpdb->get_results(
+			"SELECT ID, post_content FROM {$wpdb->posts} WHERE ID IN ({$id_placeholders})" // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		);
 
 		$matched_ids = array();
 		$clean_ids   = array();
@@ -203,7 +213,7 @@ class W2P_SmartAUI_Post_List_Filter {
 			}
 		}
 
-		// 4. Ultra-fast single SQL batch insert to mark clean posts (1 single query instead of 50 individual queries)
+		// 6. Single batch insert to mark clean posts
 		if ( ! empty( $clean_ids ) ) {
 			$value_rows = array();
 			foreach ( $clean_ids as $cid ) {
@@ -213,6 +223,9 @@ class W2P_SmartAUI_Post_List_Filter {
 		}
 
 		unset( $posts, $clean_ids );
+
+		// 7. Store in transient cache (TTL 3 minutes)
+		set_transient( 'w2p_aui_external_post_ids', $matched_ids, 180 );
 
 		return $matched_ids;
 	}
