@@ -27,6 +27,13 @@ class W2P_SmartAUI_Post_List_Filter {
 	private $module;
 
 	/**
+	 * Request-level in-memory cache for matched post IDs.
+	 *
+	 * @var array|null
+	 */
+	private static $matched_ids_cache = null;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param W2P_SmartAUIModule $module Parent module.
@@ -76,7 +83,7 @@ class W2P_SmartAUI_Post_List_Filter {
 					url.searchParams.set('w2p_external_filter', '1');
 					url.searchParams.delete('paged');
 				}
-				var $btn = $('<a id="w2p-aui-filter-btn" class="button <?php echo esc_attr( $btn_class ); ?>"><i class="<?php echo esc_attr( $icon_class ); ?>"></i> <?php echo esc_js( $btn_text ); ?></a>')
+				var $btn = $('<a id="w2p-aui-filter-btn" class="button <?php echo esc_attr( $btn_class ); ?>" style="margin-left:6px;"><i class="<?php echo esc_attr( $icon_class ); ?>"></i> <?php echo esc_js( $btn_text ); ?></a>')
 					.attr('href', url.toString());
 				$('#search-submit').after($btn);
 			}
@@ -117,18 +124,20 @@ class W2P_SmartAUI_Post_List_Filter {
 		// Strictly exclude draft, auto-draft, trash (only active/published posts)
 		$query->set( 'post_status', array( 'publish', 'future', 'private', 'pending' ) );
 
-		$matched_post_ids = $this->get_external_media_post_ids();
+		if ( null === self::$matched_ids_cache ) {
+			self::$matched_ids_cache = $this->get_external_media_post_ids();
+		}
 
-		if ( empty( $matched_post_ids ) ) {
+		if ( empty( self::$matched_ids_cache ) ) {
 			$query->set( 'post__in', array( 0 ) );
 		} else {
-			$query->set( 'post__in', $matched_post_ids );
+			$query->set( 'post__in', self::$matched_ids_cache );
 		}
 	}
 
 	/**
 	 * Get list of post IDs containing genuine external media.
-	 * Inspects candidate posts, skips local/Base URL images, and marks clean posts.
+	 * Low batch footprint (50 candidate posts per query) and single-query batch marking.
 	 *
 	 * @return array
 	 */
@@ -166,7 +175,7 @@ class W2P_SmartAUI_Post_List_Filter {
 			? "( p.post_content LIKE '%<img%' OR p.post_content LIKE '%<video%' OR p.post_content LIKE '%[video%' )"
 			: "p.post_content LIKE '%<img%'";
 
-		// 3. Query candidate posts excluding already verified clean posts (limit to 150 to keep memory footprint bounded)
+		// 3. Batch candidate scan (reduced to 50 posts per inspection to keep queries and memory light)
 		$posts = $wpdb->get_results(
 			"SELECT p.ID, p.post_content
 			FROM {$wpdb->posts} p
@@ -176,7 +185,7 @@ class W2P_SmartAUI_Post_List_Filter {
 			  AND {$content_clause}
 			  AND pm.meta_value IS NULL
 			ORDER BY p.ID DESC
-			LIMIT 150"
+			LIMIT 50"
 		);
 
 		if ( empty( $posts ) ) {
@@ -194,11 +203,13 @@ class W2P_SmartAUI_Post_List_Filter {
 			}
 		}
 
-		// 4. Mark clean posts to avoid re-inspection on subsequent loads
+		// 4. Ultra-fast single SQL batch insert to mark clean posts (1 single query instead of 50 individual queries)
 		if ( ! empty( $clean_ids ) ) {
+			$value_rows = array();
 			foreach ( $clean_ids as $cid ) {
-				update_post_meta( $cid, '_w2p_smart_aui_clean', '1' );
+				$value_rows[] = $wpdb->prepare( '(%d, %s, %s)', $cid, '_w2p_smart_aui_clean', '1' );
 			}
+			$wpdb->query( "INSERT IGNORE INTO {$wpdb->postmeta} (post_id, meta_key, meta_value) VALUES " . implode( ', ', $value_rows ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		}
 
 		unset( $posts, $clean_ids );
