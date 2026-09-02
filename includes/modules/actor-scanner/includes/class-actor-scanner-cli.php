@@ -97,48 +97,6 @@ class W2P_ActorScannerCLI {
 	}
 
 	/**
-	 * Deduplicate repeating Humans terms and migrate post relationships.
-	 *
-	 * ## EXAMPLES
-	 *
-	 *     wp w2p actor-dedupe
-	 *
-	 * @param array $args       Positional args.
-	 * @param array $assoc_args Associative args.
-	 * @return void
-	 */
-	public function dedupe( $args, $assoc_args ) {
-		require_once __DIR__ . '/class-gfriends-client.php';
-		require_once __DIR__ . '/class-actor-matcher.php';
-		require_once __DIR__ . '/class-actor-deduplicator.php';
-
-		$gf           = new W2P_Gfriends_Client();
-		$matcher      = new W2P_Actor_Matcher( $gf );
-		$deduplicator = new W2P_Actor_Deduplicator( $gf, $matcher );
-
-		WP_CLI::log( 'Scanning Humans taxonomy for duplicate clusters...' );
-		$clusters = $deduplicator->scan_duplicates();
-
-		if ( empty( $clusters ) ) {
-			WP_CLI::success( 'No duplicate actors found in database.' );
-			return;
-		}
-
-		WP_CLI::log( sprintf( 'Found %d duplicate clusters. Starting merge...', count( $clusters ) ) );
-
-		$stats = $deduplicator->merge_all();
-
-		WP_CLI::success(
-			sprintf(
-				'Deduplication complete: %d clusters merged, %d posts migrated, %d duplicate terms deleted.',
-				$stats['clusters_merged'],
-				$stats['posts_migrated'],
-				$stats['deleted_terms']
-			)
-		);
-	}
-
-	/**
 	 * Refresh Gfriends official actor index.
 	 *
 	 * ## EXAMPLES
@@ -160,5 +118,4 @@ class W2P_ActorScannerCLI {
 }
 
 WP_CLI::add_command( 'w2p actor-scan', array( 'W2P_ActorScannerCLI', 'scan' ) );
-WP_CLI::add_command( 'w2p actor-dedupe', array( 'W2P_ActorScannerCLI', 'dedupe' ) );
 WP_CLI::add_command( 'w2p actor-refresh-index', array( 'W2P_ActorScannerCLI', 'refresh_index' ) );

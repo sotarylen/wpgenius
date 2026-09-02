@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-02T14:57:49+08:00\n"
+"POT-Creation-Date: 2026-09-02T15:03:11+08:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: wp-genius\n"
@@ -457,92 +457,64 @@ msgid "Actor Scanner"
 msgstr ""
 
 #: includes/modules/actor-scanner/module.php:28
-msgid "Scan posts for actress mentions from the first line, auto-create and enrich Humans taxonomy entries with Gfriends data, and deduplicate repeating actors."
+msgid "Scan posts for actress mentions from the first line, auto-create and enrich Humans taxonomy entries with Gfriends data."
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:90
-#: includes/modules/actor-scanner/module.php:304
+#: includes/modules/actor-scanner/module.php:87
+#: includes/modules/actor-scanner/module.php:249
 #: includes/modules/frontend-enhancement/module.php:479
 #: includes/modules/novel-manager/module.php:656
 #: includes/modules/novel-manager/module.php:675
 msgid "Permission denied."
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:122
-msgid "Scanning for duplicate actors..."
-msgstr ""
-
-#: includes/modules/actor-scanner/module.php:123
-msgid "Great! No duplicate actor terms found."
-msgstr ""
-
-#: includes/modules/actor-scanner/module.php:124
-msgid "Scan complete. Found "
-msgstr ""
-
-#: includes/modules/actor-scanner/module.php:125
-msgid " duplicate actor clusters."
-msgstr ""
-
-#: includes/modules/actor-scanner/module.php:126
-msgid "Merging duplicate actors and remapping posts..."
-msgstr ""
-
-#: includes/modules/actor-scanner/module.php:127
-msgid "Duplicate actor merge complete!"
-msgstr ""
-
-#: includes/modules/actor-scanner/module.php:128
-msgid "Are you sure you want to merge these duplicate actors? Post associations will be migrated and extra terms deleted."
-msgstr ""
-
-#: includes/modules/actor-scanner/module.php:129
+#: includes/modules/actor-scanner/module.php:119
 msgid "Syncing Gfriends official index..."
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:130
+#: includes/modules/actor-scanner/module.php:120
 msgid "Gfriends index sync complete!"
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:209
+#: includes/modules/actor-scanner/module.php:154
 msgid "Identify Actor (Selected Only)"
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:282
+#: includes/modules/actor-scanner/module.php:227
 #: includes/modules/actor-scanner/views/modal-bulk-detect.php:18
 msgid "Identify Actor"
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:283
+#: includes/modules/actor-scanner/module.php:228
 msgid "Identifying..."
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:284
+#: includes/modules/actor-scanner/module.php:229
 msgid "Identified:"
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:285
+#: includes/modules/actor-scanner/module.php:230
 msgid "Failed to identify actor"
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:286
+#: includes/modules/actor-scanner/module.php:231
 msgid "Please select posts to identify actors!"
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:287
+#: includes/modules/actor-scanner/module.php:232
 msgid "Identifying actors..."
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:288
+#: includes/modules/actor-scanner/module.php:233
 msgid "Actor identification completed!"
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:289
+#: includes/modules/actor-scanner/module.php:234
 msgid "Are you sure you want to stop? Processed posts will be kept."
 msgstr ""
 
 #: includes/modules/actor-scanner/options.php:27
-msgid "Actor Governance"
+msgid "Gfriends Index"
 msgstr ""
 
 #: includes/modules/actor-scanner/options.php:39
@@ -621,59 +593,6 @@ msgstr ""
 #: includes/modules/actor-scanner/views/tab-scanner.php:38
 #, php-format
 msgid "Currently indexed official actors: %d"
-msgstr ""
-
-#: includes/modules/actor-scanner/views/tab-scanner.php:47
-msgid "Duplicate Actor Scan & Merge"
-msgstr ""
-
-#: includes/modules/actor-scanner/views/tab-scanner.php:50
-msgid "Scan Duplicate Actors"
-msgstr ""
-
-#: includes/modules/actor-scanner/views/tab-scanner.php:53
-msgid "Merge All Duplicate Actors"
-msgstr ""
-
-#: includes/modules/actor-scanner/views/tab-scanner.php:59
-msgid "Follows a 4-step algorithm: cluster duplicate terms -> pick Japanese canonical term -> remap attached posts -> delete redundant terms."
-msgstr ""
-
-#: includes/modules/actor-scanner/views/tab-scanner.php:63
-msgid "Click \"Scan Duplicate Actors\" above to begin scanning."
-msgstr ""
-
-#: includes/modules/actor-scanner/views/tab-scanner.php:68
-msgid "Detected Duplicate Actor Clusters (Preview)"
-msgstr ""
-
-#: includes/modules/actor-scanner/views/tab-scanner.php:73
-msgid "No."
-msgstr ""
-
-#: includes/modules/actor-scanner/views/tab-scanner.php:74
-#: includes/modules/ai-engine/templates/tab-prompts-inline.php:24
-#: includes/modules/ai-engine/templates/tab-prompts.php:30
-#: includes/modules/ai-engine/templates/tab-prompts.php:110
-#: includes/modules/media-engine/views/turbo-settings.php:256
-#: includes/modules/smart-aui/includes/class-media-find-posts-filter.php:242
-msgid "Type"
-msgstr ""
-
-#: includes/modules/actor-scanner/views/tab-scanner.php:75
-msgid "Keep (Winner)"
-msgstr ""
-
-#: includes/modules/actor-scanner/views/tab-scanner.php:76
-msgid "To Delete"
-msgstr ""
-
-#: includes/modules/actor-scanner/views/tab-scanner.php:77
-msgid "Merged Aliases"
-msgstr ""
-
-#: includes/modules/actor-scanner/views/tab-scanner.php:88
-msgid "Merge Execution Report"
 msgstr ""
 
 #: includes/modules/ai-engine/classes/class-prompt-engine.php:201
@@ -1041,6 +960,14 @@ msgstr ""
 #: includes/modules/ai-engine/templates/tab-schedules-inline.php:40
 #: includes/modules/ai-engine/templates/tab-schedules.php:46
 msgid "Name"
+msgstr ""
+
+#: includes/modules/ai-engine/templates/tab-prompts-inline.php:24
+#: includes/modules/ai-engine/templates/tab-prompts.php:30
+#: includes/modules/ai-engine/templates/tab-prompts.php:110
+#: includes/modules/media-engine/views/turbo-settings.php:256
+#: includes/modules/smart-aui/includes/class-media-find-posts-filter.php:242
+msgid "Type"
 msgstr ""
 
 #: includes/modules/ai-engine/templates/tab-prompts-inline.php:25

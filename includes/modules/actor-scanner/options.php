@@ -22,10 +22,10 @@ return array(
 			'id'   => 'actor_scanner_tabs',
 			'type' => 'tabbed',
 			'tabs' => array(
-				// Tab 1: Deduplication & Governance Tool
+				// Tab 1: Gfriends Data Source Status & Sync
 				array(
-					'title'  => __( 'Actor Governance', 'wp-genius' ),
-					'icon'   => 'fa-solid fa-code-merge',
+					'title'  => __( 'Gfriends Index', 'wp-genius' ),
+					'icon'   => 'fa-solid fa-cloud-arrow-down',
 					'fields' => array(
 						array(
 							'type'    => 'content',
@@ -42,7 +42,7 @@ return array(
 					),
 				),
 
-				// Tab 2: Settings
+				// Tab 2: General Settings
 				array(
 					'title'  => __( 'General Settings', 'wp-genius' ),
 					'icon'   => 'fa-solid fa-gear',

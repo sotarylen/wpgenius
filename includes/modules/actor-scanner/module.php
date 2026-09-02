@@ -25,14 +25,13 @@ class W2P_ActorScannerModule extends W2P_Abstract_Module {
 	}
 
 	public static function description() {
-		return __( 'Scan posts for actress mentions from the first line, auto-create and enrich Humans taxonomy entries with Gfriends data, and deduplicate repeating actors.', 'wp-genius' );
+		return __( 'Scan posts for actress mentions from the first line, auto-create and enrich Humans taxonomy entries with Gfriends data.', 'wp-genius' );
 	}
 
 	public function init() {
 		require_once __DIR__ . '/includes/class-gfriends-client.php';
 		require_once __DIR__ . '/includes/class-actor-matcher.php';
 		require_once __DIR__ . '/includes/class-actor-sync.php';
-		require_once __DIR__ . '/includes/class-actor-deduplicator.php';
 		require_once __DIR__ . '/includes/class-actor-scanner-cli.php'; // WP-CLI
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
@@ -40,12 +39,10 @@ class W2P_ActorScannerModule extends W2P_Abstract_Module {
 		// Whitelist Gfriends CDN / raw GitHub hosts in container environments.
 		add_filter( 'http_request_host_is_external', array( $this, 'allow_gfriends_hosts' ), 10, 3 );
 
-		// AJAX Endpoints: Deduplication governance.
-		add_action( 'wp_ajax_w2p_actor_dedupe_scan', array( $this, 'ajax_dedupe_scan' ) );
-		add_action( 'wp_ajax_w2p_actor_dedupe_merge', array( $this, 'ajax_dedupe_merge' ) );
+		// AJAX Endpoints: Gfriends index synchronization.
 		add_action( 'wp_ajax_w2p_actor_prepare_index', array( $this, 'ajax_prepare_index' ) );
 
-		// Manual / Auto actor detection on post editor and post list screens.
+		// Manual actor detection on post editor and post list screens.
 		$settings      = W2P_Settings::tab( 'actor_scanner_tabs' );
 		$manual_detect = isset( $settings['actor_manual_detect'] ) ? (bool) $settings['actor_manual_detect'] : true;
 
@@ -119,13 +116,6 @@ class W2P_ActorScannerModule extends W2P_Abstract_Module {
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( 'w2p_actor_scanner_nonce' ),
 				'i18n'    => array(
-					'scanning'       => __( 'Scanning for duplicate actors...', 'wp-genius' ),
-					'noDuplicates'   => __( 'Great! No duplicate actor terms found.', 'wp-genius' ),
-					'foundPrefix'    => __( 'Scan complete. Found ', 'wp-genius' ),
-					'foundSuffix'    => __( ' duplicate actor clusters.', 'wp-genius' ),
-					'merging'        => __( 'Merging duplicate actors and remapping posts...', 'wp-genius' ),
-					'mergeSuccess'   => __( 'Duplicate actor merge complete!', 'wp-genius' ),
-					'confirmMerge'   => __( 'Are you sure you want to merge these duplicate actors? Post associations will be migrated and extra terms deleted.', 'wp-genius' ),
 					'preparingIndex' => __( 'Syncing Gfriends official index...', 'wp-genius' ),
 					'indexReady'     => __( 'Gfriends index sync complete!', 'wp-genius' ),
 				),
@@ -152,51 +142,6 @@ class W2P_ActorScannerModule extends W2P_Abstract_Module {
 				'information' => isset( $content['Information'] ) ? $content['Information'] : array(),
 			)
 		);
-	}
-
-	/**
-	 * AJAX: Scan duplicate terms in Humans taxonomy.
-	 *
-	 * @return void
-	 */
-	public function ajax_dedupe_scan() {
-		$this->ajax_guard();
-
-		$gf           = new W2P_Gfriends_Client();
-		$matcher      = new W2P_Actor_Matcher( $gf );
-		$deduplicator = new W2P_Actor_Deduplicator( $gf, $matcher );
-
-		$clusters = $deduplicator->scan_duplicates();
-
-		wp_send_json_success(
-			array(
-				'total_clusters' => count( $clusters ),
-				'clusters'       => $clusters,
-			)
-		);
-	}
-
-	/**
-	 * AJAX: Execute merge for duplicate terms.
-	 *
-	 * @return void
-	 */
-	public function ajax_dedupe_merge() {
-		$this->ajax_guard();
-
-		$gf           = new W2P_Gfriends_Client();
-		$matcher      = new W2P_Actor_Matcher( $gf );
-		$deduplicator = new W2P_Actor_Deduplicator( $gf, $matcher );
-
-		$single_cluster = isset( $_POST['cluster'] ) ? (array) $_POST['cluster'] : null;
-
-		if ( ! empty( $single_cluster ) ) {
-			$res = $deduplicator->merge_cluster( $single_cluster );
-			wp_send_json_success( $res );
-		} else {
-			$stats = $deduplicator->merge_all();
-			wp_send_json_success( $stats );
-		}
 	}
 
 	/**
