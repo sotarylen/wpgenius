@@ -22,10 +22,10 @@ return array(
 			'id'   => 'actor_scanner_tabs',
 			'type' => 'tabbed',
 			'tabs' => array(
-				// Tab 1: Scan tool
+				// Tab 1: Deduplication & Governance Tool
 				array(
-					'title'  => __( 'Scan Tool', 'wp-genius' ),
-					'icon'   => 'fa-solid fa-magnifying-glass',
+					'title'  => __( 'Actor Governance', 'wp-genius' ),
+					'icon'   => 'fa-solid fa-code-merge',
 					'fields' => array(
 						array(
 							'type'    => 'content',
@@ -44,60 +44,14 @@ return array(
 
 				// Tab 2: Settings
 				array(
-					'title'  => __( 'Settings', 'wp-genius' ),
+					'title'  => __( 'General Settings', 'wp-genius' ),
 					'icon'   => 'fa-solid fa-gear',
 					'fields' => array(
 						array(
-							'id'         => 'actor_scan_post_types',
-							'type'       => 'select',
-							'title'      => __( 'Scan Content Types', 'wp-genius' ),
-							'subtitle'   => __( 'Which post types to scan for actress mentions.', 'wp-genius' ),
-							'options'    => 'post_types',
-							'query_args' => array(
-								'public' => true,
-							),
-							'default'    => 'post',
-							'multiple'   => true,
-							'chosen'     => true,
-							'attributes' => array(
-								'style' => 'width: 100%;',
-							),
-						),
-						array(
-							'id'       => 'actor_batch_size',
-							'type'     => 'number',
-							'title'    => __( 'Batch Size', 'wp-genius' ),
-							'subtitle' => __( 'Posts processed per AJAX request.', 'wp-genius' ),
-							'default'  => 20,
-							'min'      => 1,
-							'max'      => 200,
-						),
-						array(
-							'id'       => 'actor_create_new',
+							'id'       => 'actor_manual_detect',
 							'type'     => 'switcher',
-							'title'    => __( 'Auto-create New Actors', 'wp-genius' ),
-							'subtitle' => __( 'Create a Humans term when an actress is mentioned but does not exist yet.', 'wp-genius' ),
-							'default'  => true,
-						),
-						array(
-							'id'       => 'actor_download_avatar',
-							'type'     => 'switcher',
-							'title'    => __( 'Download Avatars', 'wp-genius' ),
-							'subtitle' => __( 'Fetch the actress avatar from Gfriends into the Media Library when missing.', 'wp-genius' ),
-							'default'  => true,
-						),
-						array(
-							'id'       => 'actor_only_unassigned',
-							'type'     => 'switcher',
-							'title'    => __( 'Only Unassigned Content', 'wp-genius' ),
-							'subtitle' => __( 'Only scan posts that have no Humans term yet (faster, avoids re-scanning).', 'wp-genius' ),
-							'default'  => true,
-						),
-						array(
-							'id'       => 'actor_append_existing',
-							'type'     => 'switcher',
-							'title'    => __( 'Append to Existing Terms', 'wp-genius' ),
-							'subtitle' => __( 'Add matched actresses to posts that already have Humans terms (instead of replacing).', 'wp-genius' ),
+							'title'    => __( 'Enable Actor Detection', 'wp-genius' ),
+							'subtitle' => __( 'Add an "Identify Actor" button in the post editor Humans meta box and bulk actions in post list screens.', 'wp-genius' ),
 							'default'  => true,
 						),
 					),

@@ -61,6 +61,12 @@ return array(
 							'desc'    => __( 'Pattern for alt text of uploaded images. Available variables: %image_alt%, %filename%, %post_title%.', 'wp-genius' ),
 							'default' => '%image_alt%',
 						),
+						// === Functions ===
+						array(
+							'id'      => '_subheading_functions',
+							'type'    => 'subheading',
+							'content' => __( 'Functions', 'wp-genius' ),
+						),
 						array(
 							'id'      => 'smart_aui_auto_set_featured_image',
 							'type'    => 'switcher',
@@ -88,6 +94,53 @@ return array(
 							'title'   => __( 'Capture Videos', 'wp-genius' ),
 							'label'   => __( 'Automatically download and import remote videos from &lt;video&gt; tags to media library.', 'wp-genius' ),
 							'default' => false,
+						),
+						array(
+							'id'      => 'smart_aui_skip_duplicates',
+							'type'    => 'switcher',
+							'title'   => __( 'Skip Duplicate Images', 'wp-genius' ),
+							'label'   => __( 'If enabled, existing images will be reused. If disabled, all images will be redownloaded.', 'wp-genius' ),
+							'default' => true,
+						),
+						array(
+							'id'      => 'smart_aui_show_progress_ui',
+							'type'    => 'switcher',
+							'title'   => __( 'Show Upload Progress', 'wp-genius' ),
+							'label'   => __( 'Display a progress bar when saving posts with external images.', 'wp-genius' ),
+							'default' => true,
+						),
+						array(
+							'id'      => 'smart_aui_enable_post_filter',
+							'type'    => 'switcher',
+							'title'   => __( 'Post List External Filter', 'wp-genius' ),
+							'label'   => __( 'Add an "External Media Filter" button next to "Search Posts" on edit.php to filter posts containing external images.', 'wp-genius' ),
+							'default' => true,
+						),
+
+						// === Performance & Advanced ===
+						array(
+							'id'      => '_subheading_performance_advanced',
+							'type'    => 'subheading',
+							'content' => __( 'Performance & Advanced', 'wp-genius' ),
+						),
+						array(
+							'id'       => 'smart_aui_concurrent_threads',
+							'type'     => 'slider',
+							'title'    => __( 'Concurrent Threads', 'wp-genius' ),
+							'subtitle' => __( 'Maximum number of concurrent image downloads per post.', 'wp-genius' ),
+							'min'      => 1,
+							'max'      => 16,
+							'unit'     => __( 'threads', 'wp-genius' ),
+							'default'  => 4,
+						),
+						array(
+							'id'       => 'smart_aui_max_retries',
+							'type'     => 'slider',
+							'title'    => __( 'Max Retries', 'wp-genius' ),
+							'subtitle' => __( 'Maximum retry attempts when an image download fails.', 'wp-genius' ),
+							'min'      => 0,
+							'max'      => 10,
+							'default'  => 3,
 						),
 
 						// === Filtering Rules ===
@@ -131,52 +184,8 @@ return array(
 							'desc'    => __( 'Post types that should skip automatic image processing.', 'wp-genius' ),
 						),
 
-						// === Performance & Advanced ===
-						array(
-							'id'      => '_subheading_performance_advanced',
-							'type'    => 'subheading',
-							'content' => __( 'Performance & Advanced', 'wp-genius' ),
-						),
-						array(
-							'id'       => 'smart_aui_concurrent_threads',
-							'type'     => 'slider',
-							'title'    => __( 'Concurrent Threads', 'wp-genius' ),
-							'subtitle' => __( 'Maximum number of concurrent image downloads per post.', 'wp-genius' ),
-							'min'      => 1,
-							'max'      => 16,
-							'unit'     => __( 'threads', 'wp-genius' ),
-							'default'  => 4,
-						),
-						array(
-							'id'       => 'smart_aui_max_retries',
-							'type'     => 'slider',
-							'title'    => __( 'Max Retries', 'wp-genius' ),
-							'subtitle' => __( 'Maximum retry attempts when an image download fails.', 'wp-genius' ),
-							'min'      => 0,
-							'max'      => 10,
-							'default'  => 3,
-						),
-						array(
-							'id'      => 'smart_aui_skip_duplicates',
-							'type'    => 'switcher',
-							'title'   => __( 'Skip Duplicate Images', 'wp-genius' ),
-							'label'   => __( 'If enabled, existing images will be reused. If disabled, all images will be redownloaded.', 'wp-genius' ),
-							'default' => true,
-						),
-						array(
-							'id'      => 'smart_aui_show_progress_ui',
-							'type'    => 'switcher',
-							'title'   => __( 'Show Upload Progress', 'wp-genius' ),
-							'label'   => __( 'Display a progress bar when saving posts with external images.', 'wp-genius' ),
-							'default' => true,
-						),
-						array(
-							'id'      => 'smart_aui_enable_post_filter',
-							'type'    => 'switcher',
-							'title'   => __( 'Post List External Filter', 'wp-genius' ),
-							'label'   => __( 'Add an "External Media Filter" button next to "Search Posts" on edit.php to filter posts containing external images.', 'wp-genius' ),
-							'default' => true,
-						),
+						
+						
 
 						// === Media Enhancements ===
 						array(
@@ -205,12 +214,12 @@ return array(
 							'label'   => __( 'Extracts media IDs (wp-image-{ID}, wp-video-{ID}, data-id) from post content on save, binds orphan attachments (post_parent=0) to the post, and rewrites /wp-content/uploads/ to bucket /wp-media/ URLs. CLI: wp media-bind-orphans.', 'wp-genius' ),
 							'default' => true,
 						),
-						array(
-							'id'      => '_submessage_media_enhance_migration',
-							'type'    => 'submessage',
-							'style'   => 'warning',
-							'content' => __( 'Media enhancement tools migrated from child theme. If duplicated with child theme functions, the earlier loaded one takes effect.', 'wp-genius' ),
-						),
+						// array(
+						// 	'id'      => '_submessage_media_enhance_migration',
+						// 	'type'    => 'submessage',
+						// 	'style'   => 'warning',
+						// 	'content' => __( 'Media enhancement tools migrated from child theme. If duplicated with child theme functions, the earlier loaded one takes effect.', 'wp-genius' ),
+						// ),
 					),
 				),
 				// Tab 2: Logs
@@ -218,11 +227,11 @@ return array(
 					'title'  => __( 'Capture Failure Logs', 'wp-genius' ),
 					'icon'   => 'fa fa-history',
 					'fields' => array(
-						array(
-							'id'      => '_subheading_capture_failure_logs',
-							'type'    => 'subheading',
-							'content' => __( 'Capture Failure Logs', 'wp-genius' ),
-						),
+						// array(
+						// 	'id'      => '_subheading_capture_failure_logs',
+						// 	'type'    => 'subheading',
+						// 	'content' => __( 'Capture Failure Logs', 'wp-genius' ),
+						// ),
 						array(
 							'id'      => '_submessage_capture_failure_logs',
 							'type'    => 'submessage',
@@ -233,7 +242,7 @@ return array(
 							'type'    => 'content',
 							'content' => '
 								<div class="w2p-log-toolbar">
-									<button type="button" id="w2p-smart-aui-clear-logs" class="button button-secondary">
+									<button type="button" id="w2p-smart-aui-clear-logs" class="w2p-btn w2p-btn-primary">
 										<i class="fa-solid fa-trash"></i> ' . esc_html__( 'Clear All Logs', 'wp-genius' ) . '
 									</button>
 								</div>

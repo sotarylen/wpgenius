@@ -1059,11 +1059,18 @@
 }
 
 /* 5.3 Media Engine & Turbo */
+.w2p-log-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--w2p-spacing-md);
+}
 .w2p-scan-results,
 .w2p-log-container {
     background: var(--w2p-bg-surface-secondary);
     border-radius: var(--w2p-radius-lg);
     border: 1px solid var(--w2p-border-color);
+    min-height: 200px;
     max-height: 500px;
     overflow-y: auto;
 }

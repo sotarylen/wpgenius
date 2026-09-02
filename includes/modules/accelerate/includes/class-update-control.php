@@ -89,10 +89,6 @@ class W2P_Accelerate_UpdateControl {
 			}
 		}
 
-		// 6. Custom HTTP Blocker
-		if ( ! empty( $s['accelerate_blind_http_requests'] ) ) {
-			add_filter( 'http_request_args', array( $this, 'block_custom_http_requests' ), 10, 2 );
-		}
 	}
 	/**
 	 * Force No Plugin Updates
@@ -125,28 +121,5 @@ class W2P_Accelerate_UpdateControl {
 		$current->updates         = array();
 		$current->version_checked = get_bloginfo( 'version' );
 		return $current;
-	}
-	/**
-	 * Block Custom HTTP Requests
-	 */
-	public function block_custom_http_requests( $r, $url ) {
-		$settings = $this->module->get_settings();
-		$patterns = ! empty( $settings['accelerate_blind_http_requests'] ) ? $settings['accelerate_blind_http_requests'] : array();
-
-		$url_string = is_array( $url ) ? ( isset( $url['url'] ) ? $url['url'] : '' ) : $url;
-
-		foreach ( $patterns as $item ) {
-			if ( empty( $item['url_pattern'] ) ) {
-				continue;
-			}
-
-			// Case-insensitive sub-string match
-			if ( stripos( $url_string, $item['url_pattern'] ) !== false ) {
-				$r['blocked'] = true;
-				break;
-			}
-		}
-
-		return $r;
 	}
 }

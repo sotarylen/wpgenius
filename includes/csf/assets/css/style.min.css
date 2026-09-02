@@ -573,7 +573,7 @@
     background-color: var(--w2p-color-primary-light);
     border-left: 4px solid var(--w2p-color-primary);
     transition: all .3s ease;
-    transform: translateX(1px);
+    /* transform: translateX(1px); */
 }
 
 .csf-theme-light .csf-nav ul ul li a {
@@ -3603,7 +3603,7 @@
     padding: 5px 15px;
     margin-right: 4px;
     font-size: 11px;
-    line-height: 30px;
+    line-height: 1.8;
     user-select: none;
     border-radius: 50px
 }

@@ -174,8 +174,7 @@ class W2P_Gfriends_Client {
 	 * @return string
 	 */
 	protected function index_file_path() {
-		$upload_dir = wp_upload_dir();
-		return trailingslashit( $upload_dir['basedir'] ) . 'w2p-actor-scanner/gfriends-index.json';
+		return dirname( __DIR__ ) . '/data/gfriends-index.json';
 	}
 
 	/**

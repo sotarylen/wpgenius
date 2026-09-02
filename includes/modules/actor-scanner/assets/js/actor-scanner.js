@@ -1,237 +1,195 @@
-(function ($) {
-    'use strict';
+/**
+ * Actor Scanner: Deduplication & Governance Tool Controller
+ *
+ * @package WP_Genius
+ * @subpackage Modules\ActorScanner
+ */
 
-    const ActorScanner = {
-        isRunning: false,
-        total: 0,
-        processed: 0,
-        offset: 0,
-        batchSize: 20,
-        stats: { matched: 0, created: 0, avatars: 0 },
+( function ( $ ) {
+	'use strict';
 
-        getVal: function (fieldId) {
-            let $el = $('[name*="[' + fieldId + ']"]');
-            if ($el.length === 0) {
-                $el = $('#' + fieldId);
-            }
-            if ($el.length === 0) return '';
-            if ($el.length > 1) {
-                if ($el.is(':radio') || $el.is(':checkbox')) {
-                    return $el.filter(':checked').val() || 0;
-                }
-                $el = $el.first();
-            }
-            if ($el.is(':checkbox')) return $el.is(':checked') ? 1 : 0;
-            return $el.val();
-        },
+	var ActorGovernance = {
+		clusters: [],
 
-        getSettings: function () {
-            let types = this.getVal('actor_scan_post_types');
-            // CSF multi-select returns comma-separated values
-            if (typeof types === 'string' && types.indexOf(',') !== -1) {
-                types = types.split(',');
-            } else {
-                types = types ? [types] : ['post'];
-            }
-            return {
-                post_types: types,
-                batch_size: parseInt(this.getVal('actor_batch_size'), 10) || 20,
-                create_new: !!parseInt(this.getVal('actor_create_new'), 10),
-                only_unassigned: !!parseInt(this.getVal('actor_only_unassigned'), 10),
-                append_existing: !!parseInt(this.getVal('actor_append_existing'), 10)
-            };
-        },
+		init: function () {
+			if ( ! window.w2pActorScanner ) {
+				return;
+			}
 
-        post: function (action, data) {
-            data = $.extend({
-                action: action,
-                nonce: $('#actor_scanner_nonce').val()
-            }, data || {});
-            return $.post(ajaxurl, data);
-        },
+			$( document ).ready( function () {
+				ActorGovernance.bindEvents();
+			} );
+		},
 
-        init: function () {
-            this.bindEvents();
-            this.loadStats();
-        },
+		bindEvents: function () {
+			$( '#actor-refresh-gf-btn' ).on( 'click', ActorGovernance.handleRefreshGf );
+			$( '#actor-scan-dupes-btn' ).on( 'click', ActorGovernance.handleScanDupes );
+			$( '#actor-merge-dupes-btn' ).on( 'click', ActorGovernance.handleMergeDupes );
+		},
 
-        bindEvents: function () {
-            $('#actor-prepare-btn').on('click', this.prepareIndex.bind(this));
-            $('#actor-scan-btn').on('click', this.startScan.bind(this));
-            $('#actor-stop-btn').on('click', this.stopScan.bind(this));
-            $('#actor-reset-btn').on('click', this.resetProgress.bind(this));
-        },
+		handleRefreshGf: function ( e ) {
+			e.preventDefault();
+			var $btn = $( '#actor-refresh-gf-btn' );
+			$btn.prop( 'disabled', true ).find( 'i' ).addClass( 'fa-spin' );
 
-        prepareIndex: function (e) {
-            e.preventDefault();
-            const btn = $('#actor-prepare-btn');
-            btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> ' + 'Preparing…');
+			$.ajax( {
+				url: window.w2pActorScanner.ajaxUrl,
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					action: 'w2p_actor_prepare_index',
+					nonce: window.w2pActorScanner.nonce,
+					force: 1,
+				},
+				success: function ( res ) {
+					$btn.prop( 'disabled', false ).find( 'i' ).removeClass( 'fa-spin' );
+					if ( res && res.success && res.data ) {
+						$( '#actor-gf-status .w2p-status-label' ).html(
+							'<i class="fa-solid fa-circle-check" style="color:var(--w2p-color-success);"></i> ' +
+							'官方女优/演员索引已刷新：' + res.data.actors + ' 位'
+						);
+						alert( window.w2pActorScanner.i18n.indexReady || 'Gfriends 索引同步完成！' );
+					}
+				},
+				error: function () {
+					$btn.prop( 'disabled', false ).find( 'i' ).removeClass( 'fa-spin' );
+					alert( '网络错误，刷新索引失败。' );
+				},
+			} );
+		},
 
-            this.post('w2p_actor_prepare', { force: 1 })
-                .done((res) => {
-                    if (res.success) {
-                        const info = res.data.information || {};
-                        $('#actor-gf-status').html(
-                            '<span class="w2p-status-label" style="color:#00a32a;">✓ ' +
-                            'Actors: ' + res.data.actors.toLocaleString() +
-                            ' | Files: ' + (info.TotalNum || '?') +
-                            ' | Updated: ' + (info.Timestamp ? new Date(info.Timestamp * 1000).toLocaleDateString() : '?') +
-                            '</span>'
-                        );
-                    } else {
-                        $('#actor-gf-status').html('<span class="w2p-status-label" style="color:#d63638;">✗ ' + (res.data && res.data.message || 'Failed') + '</span>');
-                    }
-                })
-                .fail(() => {
-                    $('#actor-gf-status').html('<span class="w2p-status-label" style="color:#d63638;">✗ Network error</span>');
-                })
-                .always(() => {
-                    btn.prop('disabled', false).html('<i class="fa fa-cloud-download"></i> ' + 'Prepare Index');
-                });
-        },
+		handleScanDupes: function ( e ) {
+			e.preventDefault();
+			var $btn = $( '#actor-scan-dupes-btn' );
+			var $status = $( '#actor-dedupe-status-text' );
 
-        loadStats: function () {
-            this.post('w2p_actor_stats').done((res) => {
-                if (res.success && res.data.progress && res.data.progress.total) {
-                    const p = res.data.progress;
-                    this.total = p.total;
-                    this.processed = p.processed || 0;
-                    $('#actor-progress-text').text(this.processed + ' / ' + this.total);
-                    $('#actor-progress-bar').css('width', (this.total ? (this.processed / this.total * 100) : 0) + '%');
-                }
-            });
-        },
+			$btn.prop( 'disabled', true ).find( 'i' ).addClass( 'fa-spin' );
+			$status.html( '<i class="fa-solid fa-spinner fa-spin"></i> ' + ( window.w2pActorScanner.i18n.scanning || '正在扫描全库重复人物...' ) );
+			$( '#actor-dupes-table-wrapper' ).hide();
+			$( '#actor-merge-log-wrapper' ).hide();
+			$( '#actor-merge-dupes-btn' ).hide();
 
-        startScan: function (e) {
-            e.preventDefault();
-            if (this.isRunning) return;
+			$.ajax( {
+				url: window.w2pActorScanner.ajaxUrl,
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					action: 'w2p_actor_dedupe_scan',
+					nonce: window.w2pActorScanner.nonce,
+				},
+				success: function ( res ) {
+					$btn.prop( 'disabled', false ).find( 'i' ).removeClass( 'fa-spin' );
+					if ( res && res.success && res.data ) {
+						ActorGovernance.clusters = res.data.clusters || [];
+						var count = res.data.total_clusters || 0;
 
-            this.isRunning = true;
-            this.processed = 0;
-            this.offset = 0;
-            this.stats = { matched: 0, created: 0, avatars: 0 };
+						if ( count === 0 ) {
+							$status.html( '<i class="fa-solid fa-circle-check" style="color:var(--w2p-color-success);"></i> ' + ( window.w2pActorScanner.i18n.noDuplicates || '太棒了！全库未发现重复的人物条目。' ) );
+						} else {
+							$status.html(
+								'<i class="fa-solid fa-triangle-exclamation" style="color:var(--w2p-color-warning);"></i> ' +
+								( window.w2pActorScanner.i18n.foundPrefix || '扫描完成，共发现 ' ) +
+								'<strong>' + count + '</strong>' +
+								( window.w2pActorScanner.i18n.foundSuffix || ' 组重复人物条目。' )
+							);
+							ActorGovernance.renderDupesTable( ActorGovernance.clusters );
+							$( '#actor-merge-dupes-btn' ).show();
+						}
+					} else {
+						$status.text( '扫描失败：' + ( ( res && res.data && res.data.message ) ? res.data.message : '未知错误' ) );
+					}
+				},
+				error: function ( jqXHR, status, errorThrown ) {
+					$btn.prop( 'disabled', false ).find( 'i' ).removeClass( 'fa-spin' );
+					$status.text( '网络请求失败：' + ( errorThrown || status ) );
+				},
+			} );
+		},
 
-            $('#actor-scan-btn').hide();
-            $('#actor-stop-btn').show();
-            $('#actor-reset-btn').hide();
-            $('#actor-logs-tbody').empty();
-            $('#actor-progress-label').text('Scanning…');
+		renderDupesTable: function ( clusters ) {
+			var $tbody = $( '#actor-dupes-tbody' );
+			$tbody.empty();
 
-            const settings = this.getSettings();
-            this.batchSize = settings.batch_size;
+			clusters.forEach( function ( c, idx ) {
+				var typeLabel = ( c.type === 'exact_name' ) ? '同名重复' : '同人别名';
+				var winnerStr = '[' + c.winner.term_id + '] <strong>' + c.winner.name + '</strong> (文章数: ' + c.winner.count + ')';
 
-            // Count total first
-            this.post('w2p_actor_get_total', settings).done((res) => {
-                if (res.success) {
-                    this.total = res.data.total;
-                    $('#actor-progress-text').text('0 / ' + this.total.toLocaleString());
-                    if (this.total === 0) {
-                        this.finishScan();
-                        return;
-                    }
-                    this.scanBatch();
-                } else {
-                    this.finishScan();
-                }
-            }).fail(() => this.finishScan());
-        },
+				var dupsStr = c.duplicates.map( function ( d ) {
+					return '[' + d.term_id + '] ' + d.name + ' (文章数: ' + d.count + ')';
+				} ).join( '<br>' );
 
-        scanBatch: function () {
-            if (!this.isRunning) return;
-            if (this.offset >= this.total) {
-                this.finishScan();
-                return;
-            }
+				var nickStr = c.plan.merged_nickname || '—';
 
-            const settings = this.getSettings();
-            settings.offset = this.offset;
+				var $tr = $( '<tr />' )
+					.append( $( '<td />', { text: idx + 1 } ) )
+					.append( $( '<td />', { text: typeLabel } ) )
+					.append( $( '<td />', { html: winnerStr } ) )
+					.append( $( '<td />', { html: dupsStr, style: 'color:var(--w2p-color-error);' } ) )
+					.append( $( '<td />', { text: nickStr } ) );
 
-            this.post('w2p_actor_scan_batch', settings)
-                .done((res) => {
-                    if (res.success) {
-                        this.offset += res.data.count;
-                        this.processed += res.data.count;
-                        this.appendLogs(res.data.log || []);
-                        this.updateUI();
+				$tbody.append( $tr );
+			} );
 
-                        if (res.data.log) {
-                            res.data.log.forEach(l => {
-                                this.stats.matched += l.names ? l.names.length : 0;
-                            });
-                        }
-                        setTimeout(() => this.scanBatch(), 50);
-                    } else {
-                        alert(res.data && res.data.message || 'Scan failed');
-                        this.finishScan();
-                    }
-                })
-                .fail(() => {
-                    alert('Network error');
-                    this.finishScan();
-                });
-        },
+			$( '#actor-dupes-table-wrapper' ).show();
+		},
 
-        stopScan: function (e) {
-            e.preventDefault();
-            this.isRunning = false;
-            $('#actor-progress-label').text('Stopped');
-            $('#actor-stop-btn').hide();
-            $('#actor-scan-btn').show();
-            $('#actor-reset-btn').show();
-        },
+		handleMergeDupes: function ( e ) {
+			e.preventDefault();
 
-        finishScan: function () {
-            this.isRunning = false;
-            $('#actor-progress-label').text('Done');
-            $('#actor-progress-bar').css('width', '100%');
-            $('#actor-scan-btn').show();
-            $('#actor-stop-btn').hide();
-            $('#actor-reset-btn').show();
-        },
+			if ( ! confirm( window.w2pActorScanner.i18n.confirmMerge || '确定要对扫描出的重复人物执行一键合并吗？此操作将自动迁移文章关联并删除多余条目。' ) ) {
+				return;
+			}
 
-        resetProgress: function (e) {
-            e.preventDefault();
-            if (!confirm('Reset scan progress?')) return;
-            this.post('w2p_actor_reset').done(() => {
-                this.processed = 0;
-                this.offset = 0;
-                $('#actor-progress-text').text('0 / 0');
-                $('#actor-progress-bar').css('width', '0%');
-                $('#actor-logs-tbody').html('<tr><td colspan="4" style="text-align:center;color:#999;">Ready</td></tr>');
-                $('#actor-stats-row').hide();
-            });
-        },
+			var $btn = $( '#actor-merge-dupes-btn' );
+			var $status = $( '#actor-dedupe-status-text' );
 
-        updateUI: function () {
-            const pct = this.total ? Math.min(100, this.processed / this.total * 100) : 0;
-            $('#actor-progress-text').text(this.processed.toLocaleString() + ' / ' + this.total.toLocaleString());
-            $('#actor-progress-bar').css('width', pct + '%');
-        },
+			$btn.prop( 'disabled', true ).find( 'i' ).addClass( 'fa-spin' );
+			$status.html( '<i class="fa-solid fa-spinner fa-spin"></i> ' + ( window.w2pActorScanner.i18n.merging || '正在合并重复人物并重挂载文章...' ) );
 
-        appendLogs: function (logs) {
-            if (!logs.length) return;
-            const tbody = $('#actor-logs-tbody');
-            if (tbody.find('td[colspan]').length) tbody.empty();
+			$.ajax( {
+				url: window.w2pActorScanner.ajaxUrl,
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					action: 'w2p_actor_dedupe_merge',
+					nonce: window.w2pActorScanner.nonce,
+				},
+				success: function ( res ) {
+					$btn.prop( 'disabled', false ).find( 'i' ).removeClass( 'fa-spin' );
+					if ( res && res.success && res.data ) {
+						var d = res.data;
+						$status.html(
+							'<i class="fa-solid fa-circle-check" style="color:var(--w2p-color-success);"></i> ' +
+							( window.w2pActorScanner.i18n.mergeSuccess || '重复人物合并完成！' ) +
+							' 共合并 <strong>' + d.clusters_merged + '</strong> 组人物，' +
+							'平滑重挂载 <strong>' + d.posts_migrated + '</strong> 篇文章，' +
+							'彻底清理删除 <strong>' + d.deleted_terms + '</strong> 个冗余分类项。'
+						);
 
-            logs.forEach((l) => {
-                tbody.append(
-                    '<tr>' +
-                    '<td>' + l.id + '</td>' +
-                    '<td>' + $('<div>').text(l.title).html() + '</td>' +
-                    '<td>' + $('<div>').text((l.names || []).join(', ')).html() + '</td>' +
-                    '<td>' + (l.terms || []).length + '</td>' +
-                    '</tr>'
-                );
-            });
+						$( '#actor-dupes-table-wrapper' ).hide();
+						$( '#actor-merge-dupes-btn' ).hide();
 
-            // Keep the log bounded
-            while (tbody.children().length > 100) {
-                tbody.children().first().remove();
-            }
-        }
-    };
+						// Render Detailed Report
+						if ( Array.isArray( d.log ) && d.log.length ) {
+							var $list = $( '#actor-merge-log-list' ).empty();
+							d.log.forEach( function ( l ) {
+								$list.append( $( '<li />', {
+									text: '已合并至 [' + l.winner_id + '] ' + l.winner_name + '：重挂载 ' + l.posts_migrated + ' 篇文章，清理删除：' + ( l.deleted_names || [] ).join( ', ' ),
+								} ) );
+							} );
+							$( '#actor-merge-log-wrapper' ).show();
+						}
+					} else {
+						$status.text( '合并失败：' + ( ( res && res.data && res.data.message ) ? res.data.message : '未知错误' ) );
+					}
+				},
+				error: function ( jqXHR, status, errorThrown ) {
+					$btn.prop( 'disabled', false ).find( 'i' ).removeClass( 'fa-spin' );
+					$status.text( '网络请求失败：' + ( errorThrown || status ) );
+				},
+			} );
+		},
+	};
 
-    $(function () {
-        ActorScanner.init();
-    });
-})(jQuery);
+	ActorGovernance.init();
+} )( jQuery );

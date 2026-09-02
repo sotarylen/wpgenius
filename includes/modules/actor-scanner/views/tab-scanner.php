@@ -1,94 +1,95 @@
-<?php if ( ! defined( 'ABSPATH' ) ) {
-	exit; } // Direct access guard. ?>
-<div id="w2p-tab-actor-scanner" class="w2p-wrapper">
+<?php
+/**
+ * Actor Deduplication & Governance Tool View
+ *
+ * @package WP_Genius
+ * @subpackage Modules\ActorScanner
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+require_once dirname( __DIR__ ) . '/includes/class-gfriends-client.php';
+
+$gf           = new W2P_Gfriends_Client();
+$cached_count = $gf->count_actors();
+?>
+<div id="w2p-tab-actor-dedupe" class="w2p-wrapper">
 	<input type="hidden" id="actor_scanner_nonce" value="<?php echo esc_attr( wp_create_nonce( 'w2p_actor_scanner_nonce' ) ); ?>">
 
-	<!-- Data Source Status -->
+	<!-- Gfriends Index Status Card -->
 	<div class="w2p-section">
 		<div class="w2p-section-header">
-			<h4><?php esc_html_e( 'Gfriends Data Source', 'wp-genius' ); ?></h4>
+			<h4><i class="fa-solid fa-cloud-arrow-down"></i> <?php esc_html_e( 'Gfriends Official Data Source', 'wp-genius' ); ?></h4>
 			<div class="w2p-section-actions">
-				<button type="button" id="actor-prepare-btn" class="w2p-btn w2p-btn-primary">
-					<i class="fa fa-cloud-download"></i> <?php esc_html_e( 'Prepare Index', 'wp-genius' ); ?>
+				<button type="button" id="actor-refresh-gf-btn" class="w2p-btn w2p-btn-secondary">
+					<i class="fa-solid fa-rotate"></i> <?php esc_html_e( 'Force Refresh Local Index', 'wp-genius' ); ?>
 				</button>
 			</div>
 		</div>
 		<div class="w2p-section-body">
 			<p class="w2p-hint">
-				<?php esc_html_e( 'Downloads and caches the Gfriends Filetree index (actress names + avatar files) from the remote repository. Run this once before scanning.', 'wp-genius' ); ?>
+				<?php esc_html_e( 'Locally cached in the plugin data directory. New actors are automatically matched with official Japanese names and aliases, with HD avatars downloaded from CDN.', 'wp-genius' ); ?>
 			</p>
-			<div id="actor-gf-status" class="w2p-status-box">
-				<span class="w2p-status-label"><?php esc_html_e( 'Index not prepared yet.', 'wp-genius' ); ?></span>
+			<div id="actor-gf-status" class="w2p-status-box" style="margin-top: 10px; font-weight: 500;">
+				<span class="w2p-status-label"><i class="fa-solid fa-circle-check" style="color:var(--w2p-color-success);"></i> <?php
+				/* translators: %d: number of indexed actors */
+				echo esc_html( sprintf( __( 'Currently indexed official actors: %d', 'wp-genius' ), $cached_count ) );
+				?></span>
 			</div>
 		</div>
 	</div>
 
-	<!-- Scan Tool -->
+	<!-- Duplicate Actor Governance Card -->
 	<div class="w2p-section">
 		<div class="w2p-section-header">
-			<h4><?php esc_html_e( 'Scan &amp; Assign', 'wp-genius' ); ?></h4>
+			<h4><i class="fa-solid fa-code-merge"></i> <?php esc_html_e( 'Duplicate Actor Scan & Merge', 'wp-genius' ); ?></h4>
 			<div class="w2p-section-actions">
-				<button type="button" id="actor-scan-btn" class="w2p-btn w2p-btn-success">
-					<i class="fa fa-search"></i> <?php esc_html_e( 'Start Scan', 'wp-genius' ); ?>
+				<button type="button" id="actor-scan-dupes-btn" class="w2p-btn w2p-btn-primary">
+					<i class="fa-solid fa-magnifying-glass"></i> <?php esc_html_e( 'Scan Duplicate Actors', 'wp-genius' ); ?>
 				</button>
-				<button type="button" id="actor-stop-btn" class="w2p-btn w2p-btn-stop" style="display:none;">
-					<i class="fa fa-stop"></i> <?php esc_html_e( 'Stop', 'wp-genius' ); ?>
-				</button>
-				<button type="button" id="actor-reset-btn" class="w2p-btn w2p-btn-secondary" style="display:none;">
-					<i class="fa fa-undo"></i> <?php esc_html_e( 'Reset', 'wp-genius' ); ?>
+				<button type="button" id="actor-merge-dupes-btn" class="w2p-btn w2p-btn-stop" style="display:none;">
+					<i class="fa-solid fa-code-merge"></i> <?php esc_html_e( 'Merge All Duplicate Actors', 'wp-genius' ); ?>
 				</button>
 			</div>
 		</div>
 		<div class="w2p-section-body">
-			<div class="w2p-progress-container">
-				<div class="w2p-progress-info">
-					<span id="actor-progress-text">0 / 0</span>
-					<span class="w2p-status-label" id="actor-progress-label"><?php esc_html_e( 'Ready', 'wp-genius' ); ?></span>
-				</div>
-				<div class="w2p-progress-bar-bg">
-					<div id="actor-progress-bar" class="w2p-progress-bar-fill" style="width: 0%;"></div>
-				</div>
-				<div id="actor-stats-row" style="margin-top: 10px; font-size: 12px; color: #666; display:none;">
-					<span id="actor-stats-text"></span>
-				</div>
+			<p class="w2p-hint">
+				<?php esc_html_e( 'Follows a 4-step algorithm: cluster duplicate terms -> pick Japanese canonical term -> remap attached posts -> delete redundant terms.', 'wp-genius' ); ?>
+			</p>
+
+			<div id="actor-dedupe-status" class="w2p-status-box" style="margin-top: 10px;">
+				<span id="actor-dedupe-status-text" class="w2p-status-label"><?php esc_html_e( 'Click "Scan Duplicate Actors" above to begin scanning.', 'wp-genius' ); ?></span>
 			</div>
 
-			<!-- Log Table -->
-			<div class="w2p-log-section" style="margin-top: 20px;">
-				<h5><?php esc_html_e( 'Process Log', 'wp-genius' ); ?></h5>
-				<div class="w2p-log-container">
+			<!-- Duplicate Clusters Preview Table -->
+			<div id="actor-dupes-table-wrapper" class="w2p-log-section" style="margin-top: 20px; display:none;">
+				<h5><?php esc_html_e( 'Detected Duplicate Actor Clusters (Preview)', 'wp-genius' ); ?></h5>
+				<div class="w2p-log-container" style="max-height: 400px; overflow-y: auto;">
 					<table class="w2p-log-table widefat striped">
 						<thead>
 							<tr>
-								<th width="10%"><?php esc_html_e( 'ID', 'wp-genius' ); ?></th>
-								<th width="45%"><?php esc_html_e( 'Title', 'wp-genius' ); ?></th>
-								<th><?php esc_html_e( 'Matched Actresses', 'wp-genius' ); ?></th>
-								<th width="12%"><?php esc_html_e( 'Terms', 'wp-genius' ); ?></th>
+								<th width="8%"><?php esc_html_e( 'No.', 'wp-genius' ); ?></th>
+								<th width="15%"><?php esc_html_e( 'Type', 'wp-genius' ); ?></th>
+								<th width="30%"><?php esc_html_e( 'Keep (Winner)', 'wp-genius' ); ?></th>
+								<th width="32%"><?php esc_html_e( 'To Delete', 'wp-genius' ); ?></th>
+								<th width="15%"><?php esc_html_e( 'Merged Aliases', 'wp-genius' ); ?></th>
 							</tr>
 						</thead>
-						<tbody id="actor-logs-tbody">
-							<tr>
-								<td colspan="4" style="text-align:center;color:#999;"><?php esc_html_e( 'No activity logged yet.', 'wp-genius' ); ?></td>
-							</tr>
+						<tbody id="actor-dupes-tbody">
 						</tbody>
 					</table>
 				</div>
 			</div>
-		</div>
-	</div>
 
-	<!-- Matching Notes -->
-	<div class="w2p-section">
-		<div class="w2p-section-header">
-			<h4><?php esc_html_e( 'How Matching Works', 'wp-genius' ); ?></h4>
-		</div>
-		<div class="w2p-section-body">
-			<ul style="list-style: disc; padding-left: 18px; line-height: 1.8;">
-				<li><?php esc_html_e( 'Japanese names containing kana (e.g. 伊奈美いずな) are extracted verbatim from the post and matched exactly against the Gfriends index and existing Humans terms.', 'wp-genius' ); ?></li>
-				<li><?php esc_html_e( 'Chinese names (simplified / traditional) are matched against existing Humans term names and their nickname aliases first.', 'wp-genius' ); ?></li>
-				<li><?php esc_html_e( 'When no exact term exists, the best fuzzy Gfriends candidate is used (highest similarity score) and a new Humans term is created.', 'wp-genius' ); ?></li>
-				<li><?php esc_html_e( 'Existing terms are enriched: role is set to 演员, missing aliases are appended, and the Gfriends avatar is downloaded when the term has none.', 'wp-genius' ); ?></li>
-			</ul>
+			<!-- Execution Log -->
+			<div id="actor-merge-log-wrapper" class="w2p-log-section" style="margin-top: 20px; display:none;">
+				<h5><?php esc_html_e( 'Merge Execution Report', 'wp-genius' ); ?></h5>
+				<div class="w2p-log-container">
+					<ul id="actor-merge-log-list" style="margin:0; padding:10px; list-style:disc; padding-left:20px; font-size:12px; line-height:1.8;"></ul>
+				</div>
+			</div>
 		</div>
 	</div>
 </div>

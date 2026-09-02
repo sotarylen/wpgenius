@@ -1,0 +1,259 @@
+/**
+ * WP-Genius: Actor Scanner Editor & Bulk List Styles
+ * Inherits design tokens, typography, and modal styling from core.css
+ *
+ * @package WP_Genius
+ * @subpackage Modules/ActorScanner
+ */
+
+/* Post Editor Inline Trigger */
+.wpg-actor-detect-container {
+	display: inline-flex;
+	align-items: center;
+	margin-left: 8px;
+	vertical-align: middle;
+}
+
+.wpg-actor-detect-btn {
+	cursor: pointer;
+	font-size: 12px;
+	line-height: 2;
+	height: auto;
+	padding: 0 8px;
+}
+
+.wpg-actor-detect-spinner {
+	float: none;
+	margin: 0 4px;
+	vertical-align: middle;
+	visibility: hidden;
+}
+
+.wpg-actor-detect-spinner.is-active {
+	visibility: visible;
+}
+
+.wpg-actor-detect-feedback {
+	font-size: 12px;
+	margin-top: 4px;
+	display: block;
+}
+
+.wpg-actor-detect-feedback.wpg-feedback-success {
+	color: var(--w2p-color-success, #10b981);
+}
+
+.wpg-actor-detect-feedback.wpg-feedback-error {
+	color: var(--w2p-color-error, #ef4444);
+}
+
+/* Post List (edit.php) Action Button */
+.wpg-actor-bulk-btn {
+	margin-left: 4px;
+	cursor: pointer;
+}
+
+/* Progress Modal — Structure & Design (Reusing smart-aui / core.css system) */
+#w2p-actor-backdrop {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(0, 0, 0, 0.5);
+	backdrop-filter: blur(5px);
+	-webkit-backdrop-filter: blur(5px);
+	z-index: var(--w2p-z-index-overlay, 999999);
+	display: block;
+}
+
+#w2p-actor-backdrop.w2p-hidden {
+	display: none !important;
+}
+
+#w2p-actor-progress-container {
+	font-family: var(--w2p-font-family-base, sans-serif);
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: 680px;
+	max-width: 95%;
+	background: var(--w2p-bg-surface, #ffffff);
+	border-radius: var(--w2p-radius-lg, 8px);
+	box-shadow: var(--w2p-shadow-overlay, 0 5px 15px rgba(0, 0, 0, 0.2));
+	z-index: var(--w2p-z-index-overlay, 999999);
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}
+
+.w2p-actor-header {
+	padding: var(--w2p-spacing-lg, 20px) var(--w2p-spacing-xl, 32px);
+	background: var(--w2p-bg-surface, #ffffff);
+	border-bottom: 1px solid var(--w2p-border-color-light, #f1f5f9);
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.w2p-actor-header h3 {
+	margin: 0;
+	font-size: var(--w2p-font-size-xl, 1.5rem);
+	font-weight: var(--w2p-font-weight-medium, 600);
+	color: var(--w2p-color-primary, #10b981);
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+#w2p-actor-close-btn {
+	background: none;
+	border: none;
+	color: var(--w2p-text-muted, #94a3b8);
+	cursor: pointer;
+	transition: color 0.2s;
+	font-size: 24px;
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#w2p-actor-close-btn:hover {
+	color: var(--w2p-color-error, #ef4444);
+}
+
+.w2p-actor-body {
+	padding: var(--w2p-spacing-lg, 20px) var(--w2p-spacing-xl, 32px);
+	flex: 1;
+}
+
+.w2p-actor-progress-bar {
+	height: 15px;
+	background: var(--w2p-bg-surface-secondary, #f1f5f9);
+	border-radius: var(--w2p-radius-sm, 2px);
+	overflow: hidden;
+	margin-bottom: var(--w2p-spacing-md, 16px);
+}
+
+.w2p-actor-progress-fill {
+	height: 100%;
+	background: var(--w2p-gradient-primary, linear-gradient(45deg, #024240 0%, #10b981 100%));
+	width: 0%;
+	transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.w2p-actor-status-bar {
+	background: var(--w2p-bg-surface-secondary, #f1f5f9);
+	border-radius: var(--w2p-radius-lg, 8px);
+	display: flex;
+	padding: var(--w2p-spacing-md, 16px);
+	margin: 0 0 var(--w2p-spacing-lg, 20px) 0;
+	justify-content: space-between;
+	align-items: center;
+	min-height: 48px;
+	color: var(--w2p-text-primary, #0f172a);
+	font-size: var(--w2p-font-size-sm, 12px);
+}
+
+.w2p-actor-stats-row {
+	display: grid;
+	grid-template-columns: repeat(5, 1fr);
+	gap: var(--w2p-spacing-md, 16px);
+	margin-bottom: var(--w2p-spacing-lg, 20px);
+}
+
+.w2p-actor-stats-row .stat-item {
+	background: var(--w2p-bg-surface-secondary, #f1f5f9);
+	padding: var(--w2p-spacing-md, 16px);
+	border-radius: var(--w2p-radius-lg, 8px);
+	align-items: center;
+	display: flex;
+	flex-direction: column;
+}
+
+.w2p-actor-stats-row .label {
+	font-size: var(--w2p-font-size-xs, 10px);
+	font-weight: var(--w2p-font-weight-bold, 900);
+	color: var(--w2p-text-muted, #94a3b8);
+	text-transform: uppercase;
+}
+
+.w2p-actor-stats-row .value {
+	font-family: var(--w2p-font-family-value, "DIN Condensed", monospace);
+	font-size: var(--w2p-font-size-2xl, 3rem);
+	line-height: 1;
+	margin-top: var(--w2p-spacing-xs, 8px);
+}
+
+.w2p-actor-stats-row .success .value {
+	color: var(--w2p-color-success, #10b981);
+}
+
+.w2p-actor-stats-row .skipped .value {
+	color: var(--w2p-color-warning, #f59e0b);
+}
+
+.w2p-actor-stats-row .failed .value {
+	color: var(--w2p-color-error, #ef4444);
+}
+
+.w2p-actor-stats-row .threads .value {
+	color: var(--w2p-color-info, #0284c7);
+}
+
+.w2p-actor-preview-area {
+	background: var(--w2p-bg-body, #f8fafc);
+	border: 1px dashed var(--w2p-border-color, #e2e8f0);
+	border-radius: var(--w2p-radius-lg, 8px);
+	padding: var(--w2p-spacing-md, 16px);
+	min-height: 120px;
+	max-height: 220px;
+	overflow-y: auto;
+}
+
+.w2p-actor-log-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: var(--w2p-font-size-sm, 12px);
+}
+
+.w2p-actor-log-list li {
+	margin-bottom: 6px;
+	padding-bottom: 6px;
+	border-bottom: 1px dashed var(--w2p-border-color-light, #f1f5f9);
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--w2p-text-secondary, #475569);
+}
+
+.w2p-actor-log-list li:last-child {
+	border-bottom: none;
+	margin-bottom: 0;
+	padding-bottom: 0;
+}
+
+.w2p-actor-log-list .dashicons-yes {
+	color: var(--w2p-color-success, #10b981);
+}
+
+.w2p-actor-log-list .dashicons-warning {
+	color: var(--w2p-color-warning, #f59e0b);
+}
+
+.w2p-actor-log-list .dashicons-no {
+	color: var(--w2p-color-error, #ef4444);
+}
+
+.w2p-actor-footer {
+	padding: var(--w2p-spacing-md, 16px) var(--w2p-spacing-xl, 32px);
+	background: var(--w2p-bg-body, #f8fafc);
+	border-top: 1px solid var(--w2p-border-color-light, #f1f5f9);
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--w2p-spacing-md, 16px);
+}

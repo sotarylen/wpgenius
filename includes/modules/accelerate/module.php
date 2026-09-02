@@ -108,7 +108,7 @@ class W2P_AccelerateModule extends W2P_Abstract_Module {
 		add_action( 'admin_init', array( $this, 'migrate_months_dropdown_setting' ), 5 );
 
 		// Update Behavior Hooks
-		add_action( 'init', array( $this->update_control, 'apply_update_behavior' ), 1 );
+		$this->update_control->apply_update_behavior();
 
 		// Local Avatar Management Hooks
 		$this->local_avatar->init_local_avatar();

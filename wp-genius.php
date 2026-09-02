@@ -25,6 +25,10 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-logger.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-security.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-settings.php';
 
+// -----------------------------------------------------------------
+// Early Performance Optimizations (must run before theme setup)
+// -----------------------------------------------------------------
+
 // ---------- Activation / Deactivation lifecycle (G2/G3) ----------
 
 /**

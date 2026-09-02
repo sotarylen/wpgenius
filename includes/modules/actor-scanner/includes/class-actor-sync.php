@@ -357,4 +357,99 @@ class W2P_Actor_Sync {
 
 		return ! is_wp_error( $result );
 	}
+
+	/**
+	 * Detect actor from post's first line and assign/enrich Humans taxonomy terms.
+	 *
+	 * @param int    $post_id          Post ID.
+	 * @param string $content_override Optional content override (e.g. from editor AJAX).
+	 * @return array Result summary: [ 'success' => bool, 'terms' => array, 'message' => string ]
+	 */
+	public function detect_and_assign_post( $post_id, $content_override = '' ) {
+		$post_id = absint( $post_id );
+		$post    = $post_id > 0 ? get_post( $post_id ) : null;
+
+		$content = '' !== $content_override ? $content_override : ( $post ? $post->post_content : '' );
+		$title   = $post ? $post->post_title : '';
+
+		if ( empty( $content ) && empty( $title ) ) {
+			return array(
+				'success' => false,
+				'message' => __( 'Post content is empty; cannot detect actors.', 'wp-genius' ),
+				'terms'   => array(),
+			);
+		}
+
+		$actors = $this->matcher->extract_from_first_line( $content, $title );
+		if ( empty( $actors ) ) {
+			return array(
+				'success' => false,
+				'message' => __( 'No valid actor recognized (must be an existing term or indexed in Gfriends).', 'wp-genius' ),
+			);
+		}
+
+		$assigned_terms = array();
+		$term_ids       = array();
+
+		foreach ( $actors as $actor ) {
+			$term_id = 0;
+
+			if ( ! empty( $actor['term_id'] ) ) {
+				$term_id = (int) $actor['term_id'];
+				$this->enrich_existing( $term_id, $actor );
+			} else {
+				$term_id = $this->ensure_term( $actor );
+			}
+
+			if ( $term_id > 0 ) {
+				$term      = get_term( $term_id, 'humans' );
+				$term_name = $term ? $term->name : ( ! empty( $actor['name'] ) ? $actor['name'] : '' );
+
+				// Ensure description has alias / nickname if description is currently empty
+				if ( ! empty( $actor['aliases'] ) && $term ) {
+					$desc = (string) $term->description;
+					if ( '' === trim( $desc ) ) {
+						$nick_str = implode( ', ', $actor['aliases'] );
+						wp_update_term( $term_id, 'humans', array( 'description' => $nick_str ) );
+					}
+				}
+
+				$term_ids[]       = $term_id;
+				$assigned_terms[] = array(
+					'id'      => $term_id,
+					'name'    => $term_name,
+					'slug'    => $term ? $term->slug : '',
+					'aliases' => isset( $actor['aliases'] ) ? $actor['aliases'] : array(),
+				);
+			}
+		}
+
+		$term_ids = array_values( array_unique( array_filter( $term_ids ) ) );
+
+		if ( empty( $term_ids ) ) {
+			return array(
+				'success' => false,
+				'message' => __( 'Failed to create or match actor terms.', 'wp-genius' ),
+				'terms'   => array(),
+			);
+		}
+
+		// Assign to post if post_id exists
+		if ( $post_id > 0 ) {
+			$this->assign_to_post( $post_id, $term_ids );
+		}
+
+		$names = wp_list_pluck( $assigned_terms, 'name' );
+		$msg   = sprintf(
+			/* translators: %s: actor name(s) */
+			__( 'Successfully identified actor(s): %s', 'wp-genius' ),
+			implode( '、', $names )
+		);
+
+		return array(
+			'success' => true,
+			'message' => $msg,
+			'terms'   => $assigned_terms,
+		);
+	}
 }

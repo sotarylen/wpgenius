@@ -1,9 +1,17 @@
 <?php
+/**
+ * Actor Scanner Module Main Controller
+ *
+ * @package WP_Genius
+ * @subpackage Modules\ActorScanner
+ */
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 class W2P_ActorScannerModule extends W2P_Abstract_Module {
+
 	public static function id() {
 		return 'actor-scanner';
 	}
@@ -17,41 +25,48 @@ class W2P_ActorScannerModule extends W2P_Abstract_Module {
 	}
 
 	public static function description() {
-		return __( 'Scan posts and albums for actress mentions, auto-create / enrich Humans taxonomy entries, and fetch avatars from the Gfriends repository.', 'wp-genius' );
+		return __( 'Scan posts for actress mentions from the first line, auto-create and enrich Humans taxonomy entries with Gfriends data, and deduplicate repeating actors.', 'wp-genius' );
 	}
 
 	public function init() {
 		require_once __DIR__ . '/includes/class-gfriends-client.php';
 		require_once __DIR__ . '/includes/class-actor-matcher.php';
 		require_once __DIR__ . '/includes/class-actor-sync.php';
-		require_once __DIR__ . '/includes/class-actor-scanner-cli.php'; // WP-CLI (no-op on web)
+		require_once __DIR__ . '/includes/class-actor-deduplicator.php';
+		require_once __DIR__ . '/includes/class-actor-scanner-cli.php'; // WP-CLI
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 
-		// Allow outbound requests to Gfriends CDN / raw GitHub even when the
-		// container DNS resolves to a reserved (198.18.x.x) benchmark range that
-		// wp_http_validate_url() would otherwise block.
+		// Whitelist Gfriends CDN / raw GitHub hosts in container environments.
 		add_filter( 'http_request_host_is_external', array( $this, 'allow_gfriends_hosts' ), 10, 3 );
 
-		// AJAX endpoints for the scan tool.
-		add_action( 'wp_ajax_w2p_actor_prepare', array( $this, 'ajax_prepare' ) );
-		add_action( 'wp_ajax_w2p_actor_get_total', array( $this, 'ajax_get_total' ) );
-		add_action( 'wp_ajax_w2p_actor_scan_batch', array( $this, 'ajax_scan_batch' ) );
-		add_action( 'wp_ajax_w2p_actor_reset', array( $this, 'ajax_reset' ) );
-		add_action( 'wp_ajax_w2p_actor_stats', array( $this, 'ajax_stats' ) );
+		// AJAX Endpoints: Deduplication governance.
+		add_action( 'wp_ajax_w2p_actor_dedupe_scan', array( $this, 'ajax_dedupe_scan' ) );
+		add_action( 'wp_ajax_w2p_actor_dedupe_merge', array( $this, 'ajax_dedupe_merge' ) );
+		add_action( 'wp_ajax_w2p_actor_prepare_index', array( $this, 'ajax_prepare_index' ) );
+
+		// Manual / Auto actor detection on post editor and post list screens.
+		$settings      = W2P_Settings::tab( 'actor_scanner_tabs' );
+		$manual_detect = isset( $settings['actor_manual_detect'] ) ? (bool) $settings['actor_manual_detect'] : true;
+
+		if ( $manual_detect ) {
+			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_post_editor_scripts' ) );
+			add_action( 'admin_footer', array( $this, 'render_bulk_detect_modal' ) );
+			add_action( 'wp_ajax_w2p_actor_detect_post', array( $this, 'ajax_detect_post' ) );
+
+			// Register bulk actions for post types supporting 'humans'.
+			foreach ( array( 'post', 'novel', 'albums' ) as $pt ) {
+				add_filter( "bulk_actions-edit-{$pt}", array( $this, 'register_bulk_actions' ) );
+			}
+		}
 	}
 
 	/**
-	 * Allow outbound HTTP requests to Gfriends data sources.
+	 * Whitelist external Gfriends hosts.
 	 *
-	 * Gfriends Filetree / avatars are fetched from jsDelivr CDN and
-	 * raw.githubusercontent.com. In containerized dev environments these hosts
-	 * may resolve to the 198.18.0.0/15 benchmarking range, which WordPress
-	 * treats as internal; whitelist them so download_url() works.
-	 *
-	 * @param bool   $external Whether the host is considered external.
-	 * @param string $host     Host name.
-	 * @param string $url      Request URL.
+	 * @param bool   $external External flag.
+	 * @param string $host     Host.
+	 * @param string $url      URL.
 	 * @return bool
 	 */
 	public function allow_gfriends_hosts( $external, $host, $url ) {
@@ -65,16 +80,29 @@ class W2P_ActorScannerModule extends W2P_Abstract_Module {
 	}
 
 	/**
-	 * Enqueue admin assets on the module settings page.
+	 * Common AJAX guard.
 	 *
-	 * @param string $hook Current admin page hook.
+	 * @return void
+	 */
+	protected function ajax_guard() {
+		check_ajax_referer( 'w2p_actor_scanner_nonce', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'wp-genius' ) ), 403 );
+		}
+	}
+
+	/**
+	 * Enqueue admin scripts for settings page.
+	 *
+	 * @param string $hook Admin page hook.
 	 * @return void
 	 */
 	public function enqueue_admin_scripts( $hook ) {
-		// CSF options page for this module lives under tools.php?page=wp-genius-settings.
 		if ( false === strpos( $hook, 'wp-genius-settings' ) ) {
 			return;
 		}
+
+		wp_enqueue_style( 'w2p-core-css' );
 
 		wp_enqueue_script(
 			'w2p-actor-scanner',
@@ -90,32 +118,30 @@ class W2P_ActorScannerModule extends W2P_Abstract_Module {
 			array(
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( 'w2p_actor_scanner_nonce' ),
+				'i18n'    => array(
+					'scanning'       => __( 'Scanning for duplicate actors...', 'wp-genius' ),
+					'noDuplicates'   => __( 'Great! No duplicate actor terms found.', 'wp-genius' ),
+					'foundPrefix'    => __( 'Scan complete. Found ', 'wp-genius' ),
+					'foundSuffix'    => __( ' duplicate actor clusters.', 'wp-genius' ),
+					'merging'        => __( 'Merging duplicate actors and remapping posts...', 'wp-genius' ),
+					'mergeSuccess'   => __( 'Duplicate actor merge complete!', 'wp-genius' ),
+					'confirmMerge'   => __( 'Are you sure you want to merge these duplicate actors? Post associations will be migrated and extra terms deleted.', 'wp-genius' ),
+					'preparingIndex' => __( 'Syncing Gfriends official index...', 'wp-genius' ),
+					'indexReady'     => __( 'Gfriends index sync complete!', 'wp-genius' ),
+				),
 			)
 		);
 	}
 
 	/**
-	 * Common AJAX guard: nonce + capability.
+	 * AJAX: Prepare / Refresh Gfriends Index.
 	 *
 	 * @return void
 	 */
-	protected function ajax_guard() {
-		check_ajax_referer( 'w2p_actor_scanner_nonce', 'nonce' );
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'wp-genius' ) ), 403 );
-		}
-	}
-
-	/**
-	 * AJAX: prepare the Gfriends index (refresh + cache) and report actor counts.
-	 *
-	 * @return void
-	 */
-	public function ajax_prepare() {
+	public function ajax_prepare_index() {
 		$this->ajax_guard();
 
-		$force = isset( $_POST['force'] ) ? (bool) $_POST['force'] : false;
-
+		$force   = isset( $_POST['force'] ) ? (bool) $_POST['force'] : false;
 		$gf      = new W2P_Gfriends_Client();
 		$actors  = $gf->get_actor_index( $force );
 		$content = $gf->get_filetree( $force );
@@ -129,212 +155,179 @@ class W2P_ActorScannerModule extends W2P_Abstract_Module {
 	}
 
 	/**
-	 * AJAX: count posts to scan.
+	 * AJAX: Scan duplicate terms in Humans taxonomy.
 	 *
 	 * @return void
 	 */
-	public function ajax_get_total() {
+	public function ajax_dedupe_scan() {
 		$this->ajax_guard();
 
-		$post_types = $this->requested_post_types();
-		$total      = $this->count_scan_targets( $post_types );
+		$gf           = new W2P_Gfriends_Client();
+		$matcher      = new W2P_Actor_Matcher( $gf );
+		$deduplicator = new W2P_Actor_Deduplicator( $gf, $matcher );
+
+		$clusters = $deduplicator->scan_duplicates();
 
 		wp_send_json_success(
 			array(
-				'total' => $total,
+				'total_clusters' => count( $clusters ),
+				'clusters'       => $clusters,
 			)
 		);
 	}
 
 	/**
-	 * AJAX: scan one batch of posts, assign actor terms.
+	 * AJAX: Execute merge for duplicate terms.
 	 *
 	 * @return void
 	 */
-	public function ajax_scan_batch() {
+	public function ajax_dedupe_merge() {
 		$this->ajax_guard();
 
-		$offset     = isset( $_POST['offset'] ) ? absint( $_POST['offset'] ) : 0;
-		$batch_size = isset( $_POST['batch_size'] ) ? min( absint( $_POST['batch_size'] ), 200 ) : 20;
-		$post_types = $this->requested_post_types();
-		$dry_run    = isset( $_POST['dry_run'] ) ? (bool) $_POST['dry_run'] : false;
-		$create_new = isset( $_POST['create_new'] ) ? (bool) $_POST['create_new'] : true;
+		$gf           = new W2P_Gfriends_Client();
+		$matcher      = new W2P_Actor_Matcher( $gf );
+		$deduplicator = new W2P_Actor_Deduplicator( $gf, $matcher );
 
-		// Whether to assign only when the post has NO humans term yet, or always append.
-		$only_unassigned = isset( $_POST['only_unassigned'] ) ? (bool) $_POST['only_unassigned'] : false;
+		$single_cluster = isset( $_POST['cluster'] ) ? (array) $_POST['cluster'] : null;
 
-		$gf      = new W2P_Gfriends_Client();
-		$matcher = new W2P_Actor_Matcher( $gf );
-		$sync    = new W2P_Actor_Sync( $gf, $matcher );
-
-		$posts = $this->get_scan_batch( $post_types, $offset, $batch_size, $only_unassigned );
-
-		$log = array();
-
-		foreach ( $posts as $post ) {
-			$post_id = (int) $post->ID;
-			$text    = $post->post_title . "\n" . $post->post_content;
-
-			$candidates = $matcher->extract_candidates( $text );
-			if ( empty( $candidates ) ) {
-				continue;
-			}
-
-			$resolved = $matcher->resolve_all( $candidates );
-			if ( empty( $resolved ) ) {
-				continue;
-			}
-
-			$term_ids    = array();
-			$found_names = array();
-
-			foreach ( $resolved as $actor ) {
-				$term_id = 0;
-
-				if ( ! empty( $actor['term_id'] ) ) {
-					$term_id = (int) $actor['term_id'];
-					// Enrich existing terms (role, nickname, avatar) unless dry run.
-					if ( ! $dry_run ) {
-						$sync->enrich_existing( $term_id, $actor );
-					}
-				} elseif ( $create_new && ! $dry_run ) {
-					$term_id = $sync->ensure_term( $actor );
-				}
-
-				if ( $term_id > 0 ) {
-					$term_ids[]    = $term_id;
-					$found_names[] = $actor['name'];
-				}
-			}
-
-			$term_ids = array_values( array_unique( array_filter( $term_ids ) ) );
-
-			if ( empty( $term_ids ) ) {
-				continue;
-			}
-
-			if ( ! $dry_run ) {
-				$sync->assign_to_post( $post_id, $term_ids );
-			}
-
-			$log[] = array(
-				'id'    => $post_id,
-				'title' => mb_substr( $post->post_title, 0, 60 ),
-				'names' => $found_names,
-				'terms' => $term_ids,
-			);
-		}
-
-		wp_send_json_success(
-			array(
-				'count'  => count( $posts ),
-				'log'    => $log,
-				'offset' => $offset,
-			)
-		);
-	}
-
-	/**
-	 * AJAX: reset module progress options.
-	 *
-	 * @return void
-	 */
-	public function ajax_reset() {
-		$this->ajax_guard();
-		delete_option( 'w2p_actor_scan_progress' );
-		wp_send_json_success( array( 'message' => 'reset' ) );
-	}
-
-	/**
-	 * AJAX: current stats (terms created, avatars synced, matched posts).
-	 *
-	 * @return void
-	 */
-	public function ajax_stats() {
-		$this->ajax_guard();
-
-		$progress = get_option( 'w2p_actor_scan_progress', array() );
-
-		wp_send_json_success(
-			array(
-				'progress' => $progress,
-			)
-		);
-	}
-
-	/**
-	 * Parse requested post types from POST.
-	 *
-	 * @return array
-	 */
-	protected function requested_post_types() {
-		$types = isset( $_POST['post_types'] ) ? (array) wp_unslash( $_POST['post_types'] ) : array( 'post' );
-		$types = array_map( 'sanitize_key', $types );
-		$types = array_filter( $types );
-		return array_values( $types );
-	}
-
-	/**
-	 * Count scan targets.
-	 *
-	 * @param array $post_types Post types.
-	 * @return int
-	 */
-	protected function count_scan_targets( $post_types ) {
-		global $wpdb;
-
-		if ( empty( $post_types ) ) {
-			return 0;
-		}
-
-		$placeholders = implode( ',', array_fill( 0, count( $post_types ), '%s' ) );
-		$sql          = $wpdb->prepare(
-			"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status = 'publish' AND post_type IN ({$placeholders})",
-			$post_types
-		);
-
-		return (int) $wpdb->get_var( $sql );
-	}
-
-	/**
-	 * Get one batch of posts to scan.
-	 *
-	 * @param array $post_types      Post types.
-	 * @param int   $offset          Offset.
-	 * @param int   $limit           Batch size.
-	 * @param bool  $only_unassigned Only posts without any humans term.
-	 * @return array
-	 */
-	protected function get_scan_batch( $post_types, $offset, $limit, $only_unassigned ) {
-		global $wpdb;
-
-		if ( empty( $post_types ) ) {
-			return array();
-		}
-
-		$offset = absint( $offset );
-		$limit  = max( 1, absint( $limit ) );
-
-		if ( $only_unassigned ) {
-			$placeholders = implode( ',', array_fill( 0, count( $post_types ), '%s' ) );
-			$sql          = $wpdb->prepare(
-				"SELECT p.* FROM {$wpdb->posts} p
-				 LEFT JOIN {$wpdb->term_relationships} tr ON tr.object_id = p.ID
-				 LEFT JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = 'humans'
-				 WHERE p.post_status = 'publish' AND p.post_type IN ({$placeholders}) AND tt.term_taxonomy_id IS NULL
-				 GROUP BY p.ID ORDER BY p.ID ASC LIMIT %d OFFSET %d",
-				array_merge( $post_types, array( $limit, $offset ) )
-			);
+		if ( ! empty( $single_cluster ) ) {
+			$res = $deduplicator->merge_cluster( $single_cluster );
+			wp_send_json_success( $res );
 		} else {
-			$placeholders = implode( ',', array_fill( 0, count( $post_types ), '%s' ) );
-			$sql          = $wpdb->prepare(
-				"SELECT p.* FROM {$wpdb->posts} p
-				 WHERE p.post_status = 'publish' AND p.post_type IN ({$placeholders})
-				 ORDER BY p.ID ASC LIMIT %d OFFSET %d",
-				array_merge( $post_types, array( $limit, $offset ) )
-			);
+			$stats = $deduplicator->merge_all();
+			wp_send_json_success( $stats );
+		}
+	}
+
+	/**
+	 * Register "Identify Actor" in bulk actions dropdown.
+	 *
+	 * @param array $bulk_actions Existing bulk actions.
+	 * @return array
+	 */
+	public function register_bulk_actions( $bulk_actions ) {
+		$bulk_actions['w2p_actor_detect'] = __( 'Identify Actor (Selected Only)', 'wp-genius' );
+		return $bulk_actions;
+	}
+
+	/**
+	 * Render bulk progress modal on edit.php.
+	 *
+	 * @return void
+	 */
+	public function render_bulk_detect_modal() {
+		$screen = get_current_screen();
+		if ( ! $screen || 'edit' !== $screen->base ) {
+			return;
 		}
 
-		return $wpdb->get_results( $sql );
+		$post_type = $screen->post_type;
+		if ( empty( $post_type ) || ! is_object_in_taxonomy( $post_type, 'humans' ) ) {
+			return;
+		}
+
+		$view_file = __DIR__ . '/views/modal-bulk-detect.php';
+		if ( file_exists( $view_file ) ) {
+			include $view_file;
+		}
 	}
+
+	/**
+	 * Enqueue post editor and list assets.
+	 *
+	 * @param string $hook Page hook.
+	 * @return void
+	 */
+	public function enqueue_post_editor_scripts( $hook ) {
+		if ( ! in_array( $hook, array( 'post.php', 'post-new.php', 'edit.php' ), true ) ) {
+			return;
+		}
+
+		$screen    = get_current_screen();
+		$post_type = $screen ? $screen->post_type : '';
+		if ( empty( $post_type ) || ! is_object_in_taxonomy( $post_type, 'humans' ) ) {
+			return;
+		}
+
+		$css_path = __DIR__ . '/assets/css/actor-editor.css';
+		$js_path  = __DIR__ . '/assets/js/actor-editor.js';
+
+		$css_ver = file_exists( $css_path ) ? filemtime( $css_path ) : W2P_VERSION;
+		$js_ver  = file_exists( $js_path ) ? filemtime( $js_path ) : W2P_VERSION;
+
+		wp_enqueue_style(
+			'w2p-actor-editor',
+			plugin_dir_url( __FILE__ ) . 'assets/css/actor-editor.css',
+			array( 'w2p-core-css' ),
+			$css_ver
+		);
+
+		wp_enqueue_script(
+			'w2p-actor-editor',
+			plugin_dir_url( __FILE__ ) . 'assets/js/actor-editor.js',
+			array( 'jquery' ),
+			$js_ver,
+			true
+		);
+
+		wp_localize_script(
+			'w2p-actor-editor',
+			'w2pActorEditor',
+			array(
+				'ajaxUrl'  => admin_url( 'admin-ajax.php' ),
+				'nonce'    => wp_create_nonce( 'w2p_actor_editor_nonce' ),
+				'pageType' => ( 'edit.php' === $hook ) ? 'list' : 'editor',
+				'postType' => $post_type,
+				'i18n'     => array(
+					'buttonText'    => __( 'Identify Actor', 'wp-genius' ),
+					'loading'       => __( 'Identifying...', 'wp-genius' ),
+					'success'       => __( 'Identified:', 'wp-genius' ),
+					'error'         => __( 'Failed to identify actor', 'wp-genius' ),
+					'noSelection'   => __( 'Please select posts to identify actors!', 'wp-genius' ),
+					'processing'    => __( 'Identifying actors...', 'wp-genius' ),
+					'completed'     => __( 'Actor identification completed!', 'wp-genius' ),
+					'confirmCancel' => __( 'Are you sure you want to stop? Processed posts will be kept.', 'wp-genius' ),
+				),
+			)
+		);
+	}
+
+	/**
+	 * AJAX: detect actor from post's first line and assign/enrich Humans taxonomy.
+	 *
+	 * @return void
+	 */
+	public function ajax_detect_post() {
+		check_ajax_referer( 'w2p_actor_editor_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'wp-genius' ) ), 403 );
+		}
+
+		$post_id          = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+		$content_override = isset( $_POST['content'] ) ? (string) wp_unslash( $_POST['content'] ) : '';
+
+		$result = w2p_actor_detect_post( $post_id, $content_override );
+
+		if ( ! empty( $result['success'] ) ) {
+			wp_send_json_success( $result );
+		} else {
+			wp_send_json_error( $result );
+		}
+	}
+}
+
+/**
+ * Global API: Detect and assign actor from post's first line into Humans taxonomy.
+ *
+ * @param int    $post_id          Post ID.
+ * @param string $content_override Optional HTML or text content override.
+ * @return array Standard result structure: [ 'success' => bool, 'message' => string, 'terms' => array ]
+ */
+function w2p_actor_detect_post( $post_id, $content_override = '' ) {
+	$gf      = new W2P_Gfriends_Client();
+	$matcher = new W2P_Actor_Matcher( $gf );
+	$sync    = new W2P_Actor_Sync( $gf, $matcher );
+
+	return $sync->detect_and_assign_post( $post_id, $content_override );
 }
