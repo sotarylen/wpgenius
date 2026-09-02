@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-02T15:03:11+08:00\n"
+"POT-Creation-Date: 2026-09-02T15:15:16+08:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: wp-genius\n"
@@ -31,12 +31,16 @@ msgstr ""
 msgid "Sotary"
 msgstr ""
 
-#: includes/class-admin-settings.php:90
+#: includes/class-admin-settings.php:95
 msgid "No modules found or Loader not ready."
 msgstr ""
 
-#: includes/class-admin-settings.php:97
+#: includes/class-admin-settings.php:102
 msgid "Module Management"
+msgstr ""
+
+#: includes/class-admin-settings.php:198
+msgid "WP Genius Notice:"
 msgstr ""
 
 #: includes/modules/accelerate/includes/class-image-cleanup.php:106
@@ -460,56 +464,64 @@ msgstr ""
 msgid "Scan posts for actress mentions from the first line, auto-create and enrich Humans taxonomy entries with Gfriends data."
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:87
-#: includes/modules/actor-scanner/module.php:249
+#: includes/modules/actor-scanner/module.php:43
+msgid "Cannot enable Actor Scanner: Advanced Custom Fields (ACF) plugin is not active. Please install and activate ACF first."
+msgstr ""
+
+#: includes/modules/actor-scanner/module.php:50
+msgid "Cannot enable Actor Scanner: Custom taxonomy \"humans\" is not registered. Please create the \"humans\" taxonomy in ACF first."
+msgstr ""
+
+#: includes/modules/actor-scanner/module.php:118
+#: includes/modules/actor-scanner/module.php:280
 #: includes/modules/frontend-enhancement/module.php:479
 #: includes/modules/novel-manager/module.php:656
 #: includes/modules/novel-manager/module.php:675
 msgid "Permission denied."
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:119
+#: includes/modules/actor-scanner/module.php:150
 msgid "Syncing Gfriends official index..."
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:120
+#: includes/modules/actor-scanner/module.php:151
 msgid "Gfriends index sync complete!"
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:154
+#: includes/modules/actor-scanner/module.php:185
 msgid "Identify Actor (Selected Only)"
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:227
+#: includes/modules/actor-scanner/module.php:258
 #: includes/modules/actor-scanner/views/modal-bulk-detect.php:18
 msgid "Identify Actor"
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:228
+#: includes/modules/actor-scanner/module.php:259
 msgid "Identifying..."
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:229
+#: includes/modules/actor-scanner/module.php:260
 msgid "Identified:"
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:230
+#: includes/modules/actor-scanner/module.php:261
 msgid "Failed to identify actor"
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:231
+#: includes/modules/actor-scanner/module.php:262
 msgid "Please select posts to identify actors!"
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:232
+#: includes/modules/actor-scanner/module.php:263
 msgid "Identifying actors..."
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:233
+#: includes/modules/actor-scanner/module.php:264
 msgid "Actor identification completed!"
 msgstr ""
 
-#: includes/modules/actor-scanner/module.php:234
+#: includes/modules/actor-scanner/module.php:265
 msgid "Are you sure you want to stop? Processed posts will be kept."
 msgstr ""
 

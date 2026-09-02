@@ -28,7 +28,38 @@ class W2P_ActorScannerModule extends W2P_Abstract_Module {
 		return __( 'Scan posts for actress mentions from the first line, auto-create and enrich Humans taxonomy entries with Gfriends data.', 'wp-genius' );
 	}
 
+	/**
+	 * Check if module requirements are met.
+	 *
+	 * 1. ACF (Advanced Custom Fields) plugin must be active.
+	 * 2. Custom taxonomy 'humans' must be registered.
+	 *
+	 * @return true|WP_Error
+	 */
+	public function check_requirements() {
+		if ( ! class_exists( 'ACF' ) && ! function_exists( 'acf' ) ) {
+			return new WP_Error(
+				'missing_acf',
+				__( 'Cannot enable Actor Scanner: Advanced Custom Fields (ACF) plugin is not active. Please install and activate ACF first.', 'wp-genius' )
+			);
+		}
+
+		if ( ! taxonomy_exists( 'humans' ) ) {
+			return new WP_Error(
+				'missing_humans_taxonomy',
+				__( 'Cannot enable Actor Scanner: Custom taxonomy "humans" is not registered. Please create the "humans" taxonomy in ACF first.', 'wp-genius' )
+			);
+		}
+
+		return true;
+	}
+
 	public function init() {
+		$req = $this->check_requirements();
+		if ( is_wp_error( $req ) ) {
+			return;
+		}
+
 		require_once __DIR__ . '/includes/class-gfriends-client.php';
 		require_once __DIR__ . '/includes/class-actor-matcher.php';
 		require_once __DIR__ . '/includes/class-actor-sync.php';

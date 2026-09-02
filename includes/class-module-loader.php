@@ -99,11 +99,21 @@ class W2P_Module_Loader {
 			// [Fix] Relaxed check for boolean/integer/string '1'
 			$is_enabled = ! empty( $settings[ $module_key ] );
 
-			if ( $is_enabled && method_exists( $module, 'init' ) ) {
-				try {
-					$module->init();
-				} catch ( Exception $e ) {
-					W2P_Logger::error( 'Module init error (' . $id . '): ' . $e->getMessage(), 'module-loader' );
+			if ( $is_enabled ) {
+				if ( method_exists( $module, 'check_requirements' ) ) {
+					$req = $module->check_requirements();
+					if ( is_wp_error( $req ) ) {
+						W2P_Logger::warning( 'Module requirement check failed (' . $id . '): ' . $req->get_error_message(), 'module-loader' );
+						continue;
+					}
+				}
+
+				if ( method_exists( $module, 'init' ) ) {
+					try {
+						$module->init();
+					} catch ( Exception $e ) {
+						W2P_Logger::error( 'Module init error (' . $id . '): ' . $e->getMessage(), 'module-loader' );
+					}
 				}
 			}
 		}
@@ -128,6 +138,13 @@ class W2P_Module_Loader {
 		$old_state = isset( $settings[ $module_key ] ) ? (bool) $settings[ $module_key ] : false;
 		$new_state = (bool) $state;
 
+		if ( $new_state && isset( $this->modules[ $id ] ) && method_exists( $this->modules[ $id ], 'check_requirements' ) ) {
+			$req = $this->modules[ $id ]->check_requirements();
+			if ( is_wp_error( $req ) ) {
+				return $req;
+			}
+		}
+
 		if ( $old_state !== $new_state ) {
 			$settings[ $module_key ] = $new_state;
 			update_option( 'w2p_settings', $settings );
@@ -141,5 +158,7 @@ class W2P_Module_Loader {
 				}
 			}
 		}
+
+		return true;
 	}
 }
