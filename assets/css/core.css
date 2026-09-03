@@ -316,7 +316,10 @@
 .w2p-font-medium {
     font-weight: var(--w2p-font-weight-medium);
 }
-
+.w2p-font-chapter-index {
+    color: var(--w2p-color-primary);
+    font-family: var(--w2p-font-family-base);
+}
 .w2p-font-mono {
     font-family: var(--w2p-font-family-value);
 }
@@ -1074,7 +1077,7 @@
     background: var(--w2p-bg-surface-secondary);
     border-radius: var(--w2p-radius-lg);
     border: 1px solid var(--w2p-border-color);
-    min-height: 200px;
+    min-height: 80px;
     max-height: 500px;
     overflow-y: auto;
 }
@@ -1088,7 +1091,12 @@
     border-collapse: separate;
     border-spacing: 0;
 }
-
+.w2p-log-container table tbody tr {
+    background: var(--w2p-bg-surface);
+}
+.w2p-log-container table tbody tr:hover {
+    background: var(--w2p-color-primary-light);
+}
 .w2p-log-container table thead th {
     position: sticky;
     top: 0;

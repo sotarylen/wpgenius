@@ -2,7 +2,7 @@
 /**
  * Novel Manager — Tab Fix Chapter Index View
  *
- * 章节顺序重构与分卷识别视图
+ * 章节顺序重构与分卷识别视图 (工作台双模式切换：全自动全量扫描 + 单书精准检查修复)
  *
  * @package WP_Genius
  * @subpackage Modules/NovelManager
@@ -12,118 +12,161 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$novels = get_posts(
-	array(
-		'post_type'      => 'novel',
-		'posts_per_page' => 50,
-		'post_status'    => 'publish',
-		'orderby'        => 'ID',
-		'order'          => 'DESC',
-	)
-);
+$finished_books = get_option( 'w2p_fix_index_finished_books', array() );
+$finished_count = is_array( $finished_books ) ? count( $finished_books ) : 0;
 ?>
 
 <div id="w2p-tab-fix-index" class="w2p-wrapper">
-	<div class="w2p-section">
-		<div class="w2p-section-header w2p-flex-between">
-			<h4><i class="fa-solid fa-list-ol"></i> <?php esc_html_e( 'Chapter Index & Volume Rebuilder', 'wp-genius' ); ?></h4>
-			<div class="w2p-section-actions">
-				<button type="button" id="w2p-fix-scan-btn" class="w2p-btn w2p-btn-primary">
-					<i class="fa-solid fa-magnifying-glass"></i> <?php esc_html_e( 'Scan & Preview', 'wp-genius' ); ?>
-				</button>
-				<button type="button" id="w2p-fix-execute-btn" class="w2p-btn w2p-btn-danger" style="display:none;">
-					<i class="fa-solid fa-bolt"></i> <?php esc_html_e( 'Apply Updates', 'wp-genius' ); ?>
-				</button>
-				<button type="button" id="w2p-fix-auto-btn" class="w2p-btn w2p-btn-success">
-					<i class="fa-solid fa-wand-magic-sparkles"></i> <?php esc_html_e( 'Auto Rebuild All', 'wp-genius' ); ?>
-				</button>
-				<button type="button" id="w2p-fix-stop-btn" class="w2p-btn w2p-btn-secondary" style="display:none;">
-					<i class="fa-solid fa-stop"></i> <?php esc_html_e( 'Stop', 'wp-genius' ); ?>
-				</button>
-				<button type="button" id="w2p-fix-reset-btn" class="w2p-btn w2p-btn-secondary" style="display:none;">
-					<i class="fa-solid fa-arrow-rotate-left"></i> <?php esc_html_e( 'Reset', 'wp-genius' ); ?>
-				</button>
-			</div>
-		</div>
 
+	<!-- 工作流步骤卡片导航 (复用 Media Engine 经典卡片设计系统) -->
+	<div class="w2p-workflow-steps-nav w2p-fix-steps-nav">
+		<button type="button" class="w2p-workflow-step-btn active" data-mode="auto">
+			<span class="w2p-step-num">1</span>
+			<span class="w2p-step-info">
+				<span class="w2p-step-title"><?php esc_html_e( 'Auto Rebuild All', 'wp-genius' ); ?></span>
+				<span class="w2p-step-desc"><?php esc_html_e( 'Batch scan and rebuild chapter indexes automatically', 'wp-genius' ); ?></span>
+			</span>
+		</button>
+		<button type="button" class="w2p-workflow-step-btn" data-mode="single">
+			<span class="w2p-step-num">2</span>
+			<span class="w2p-step-info">
+				<span class="w2p-step-title"><?php esc_html_e( 'Inspect Single Novel', 'wp-genius' ); ?></span>
+				<span class="w2p-step-desc"><?php esc_html_e( 'Search novel, preview and rebuild chapter indexes manually', 'wp-genius' ); ?></span>
+			</span>
+		</button>
+	</div>
+
+	<!-- ===================================================================== -->
+	<!-- 模式 1: 全自动全量扫描 (Auto Rebuild All) -->
+	<!-- ===================================================================== -->
+	<div id="w2p-fix-pane-auto" class="w2p-section w2p-fix-mode-pane">
 		<div class="w2p-section-body">
-			<!-- 重构扫描配置区 -->
-			<div class="w2p-grid w2p-grid-cols-3 w2p-gap-md" style="margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0;">
-				<div>
-					<label for="w2p_fix_scan_mode"><strong><?php esc_html_e( 'Scan Scope', 'wp-genius' ); ?></strong></label>
-					<select id="w2p_fix_scan_mode" class="w2p-input-full" style="margin-top: 5px;">
-						<option value="all"><?php esc_html_e( 'All Novels & Chapters', 'wp-genius' ); ?></option>
-						<option value="by_novel"><?php esc_html_e( 'Specific Novel', 'wp-genius' ); ?></option>
-					</select>
+			<!-- 统计指示与操作工具栏（清理与全自动处理按钮置于同一行） -->
+			<div class="w2p-fix-stats-bar">
+				<div class="w2p-fix-stat-item">
+					<span class="w2p-fix-stat-label"><?php esc_html_e( 'Processed Novels:', 'wp-genius' ); ?></span>
+					<strong id="w2p-fix-stat-finished"><?php echo absint( $finished_count ); ?></strong>
 				</div>
-
-				<div id="w2p_fix_novel_selector_box" style="display:none;">
-					<label for="w2p_fix_novel_id"><strong><?php esc_html_e( 'Select Novel', 'wp-genius' ); ?></strong></label>
-					<select id="w2p_fix_novel_id" class="w2p-input-full" style="margin-top: 5px;">
-						<option value="0"><?php esc_html_e( '-- Choose Novel --', 'wp-genius' ); ?></option>
-						<?php if ( ! empty( $novels ) ) : ?>
-							<?php foreach ( $novels as $n ) : ?>
-								<option value="<?php echo esc_attr( $n->ID ); ?>"><?php echo esc_html( $n->post_title ); ?> (ID: <?php echo esc_html( $n->ID ); ?>)</option>
-							<?php endforeach; ?>
-						<?php endif; ?>
-					</select>
+				<div class="w2p-fix-stat-item">
+					<span class="w2p-fix-stat-label"><?php esc_html_e( 'Remaining Pending:', 'wp-genius' ); ?></span>
+					<strong id="w2p-fix-stat-unfixed">-</strong>
 				</div>
-
-				<div>
-					<label for="w2p_fix_index_format"><strong><?php esc_html_e( 'Index Format Template', 'wp-genius' ); ?></strong></label>
-					<input type="text" id="w2p_fix_index_format" class="w2p-input-full" value="01-00001" style="margin-top: 5px;" placeholder="01-00001">
-				</div>
-
-				<div>
-					<label><strong><?php esc_html_e( 'Volume Auto-Identification', 'wp-genius' ); ?></strong></label>
-					<div style="margin-top: 8px;">
-						<label>
-							<input type="checkbox" id="w2p_fix_auto_volume" value="1" checked> <?php esc_html_e( 'Auto identify volumes from chapter titles', 'wp-genius' ); ?>
-						</label>
-					</div>
+				<div class="w2p-fix-stat-action">
+					<button type="button" id="w2p-fix-clear-progress-btn" class="w2p-btn w2p-btn-secondary">
+						<i class="fa-solid fa-trash-can"></i> <?php esc_html_e( 'Clear Processed', 'wp-genius' ); ?>
+					</button>
+					<button type="button" id="w2p-fix-auto-start-btn" class="w2p-btn w2p-btn-primary">
+						<i class="fa-solid fa-play"></i> <?php esc_html_e( 'Start Auto Rebuild', 'wp-genius' ); ?>
+					</button>
+					<button type="button" id="w2p-fix-auto-stop-btn" class="w2p-btn w2p-btn-danger w2p-hidden">
+						<i class="fa-solid fa-stop"></i> <?php esc_html_e( 'Stop', 'wp-genius' ); ?>
+					</button>
 				</div>
 			</div>
 
-			<!-- 进度指示区 -->
-			<div class="w2p-progress-container">
+			<!-- 全自动执行进度条 (初始化隐藏) -->
+			<div id="w2p-fix-auto-progress" class="w2p-progress-container w2p-fix-progress-box w2p-hidden">
 				<div class="w2p-progress-info">
-					<span id="w2p-fix-progress-status"><?php esc_html_e( 'Ready to scan', 'wp-genius' ); ?></span>
-					<span id="w2p-fix-progress-text">0 / 0</span>
+					<span id="w2p-fix-auto-status"><?php esc_html_e( 'Ready for auto rebuild', 'wp-genius' ); ?></span>
+					<span id="w2p-fix-auto-count">0 / 0</span>
 				</div>
 				<div class="w2p-progress-bar-bg">
-					<div id="w2p-fix-progress-bar" class="w2p-progress-bar-fill" style="width: 0%;"></div>
-				</div>
-				
-				<?php
-				$finished_books = get_option( 'w2p_fix_index_finished_books', array() );
-				$finished_count = count( $finished_books );
-				?>
-				<div id="w2p-fix-finished-row" style="<?php echo ( $finished_count > 0 ) ? '' : 'display:none;'; ?> margin-top: 10px; font-size: 12px; color: #64748b;">
-					<span id="w2p-fix-finished-text"><?php /* translators: %d: number of processed novels. */ printf( esc_html__( 'Processed Novels: %d', 'wp-genius' ), absint( $finished_count ) ); ?></span> 
-					| <a href="#" id="w2p-fix-clear-history-btn" style="color: #ef4444; text-decoration: none;"><?php esc_html_e( 'Clear Progress History', 'wp-genius' ); ?></a>
+					<div id="w2p-fix-auto-bar" class="w2p-progress-bar-fill"></div>
 				</div>
 			</div>
 
-			<!-- 扫描日志与差异对比表 -->
-			<div class="w2p-log-section" style="margin-top: 20px;">
-				<h5><?php esc_html_e( 'Scan & Fix Log Table', 'wp-genius' ); ?></h5>
-				<div class="w2p-log-container" style="max-height: 450px; overflow-y: auto; border: 1px solid #ccd0d4; border-radius: 4px;">
-					<table class="w2p-log-table widefat striped">
+			<!-- 全自动执行日志表格 (初始化隐藏，复用单体搜索结果表格样式，无 Action 列) -->
+			<div id="w2p-fix-auto-log-box" class="w2p-fix-results-table-wrap w2p-hidden">
+				<table class="w2p-results-table widefat striped">
+					<thead>
+						<tr>
+							<th width="90"><?php esc_html_e( 'Novel ID', 'wp-genius' ); ?></th>
+							<th><?php esc_html_e( 'Novel Title', 'wp-genius' ); ?></th>
+							<th width="130"><?php esc_html_e( 'Chapters', 'wp-genius' ); ?></th>
+							<th width="120"><?php esc_html_e( 'Status', 'wp-genius' ); ?></th>
+						</tr>
+					</thead>
+					<tbody id="w2p-fix-auto-log-tbody">
+						<!-- 运行时动态追加各书籍处理结果 -->
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+
+	<!-- ===================================================================== -->
+	<!-- 模式 2: 单体小说章节排序与分卷修复 (Inspect Single Novel) -->
+	<!-- ===================================================================== -->
+	<div id="w2p-fix-pane-single" class="w2p-section w2p-fix-mode-pane w2p-hidden">
+		<div class="w2p-section-body">
+			<!-- 1. 搜索与定位输入栏 (输入即触发，无搜索按钮，保留清空小叉号) -->
+			<div class="w2p-fix-search-bar">
+				<div class="w2p-fix-search-input-wrap">
+					<i class="fa-solid fa-magnifying-glass w2p-fix-search-icon"></i>
+					<input type="text" id="w2p-fix-search-input" class="w2p-input-full" placeholder="<?php esc_attr_e( 'Enter novel title keyword or exact Novel ID (e.g. 102)...', 'wp-genius' ); ?>" autocomplete="off">
+					<button type="button" id="w2p-fix-search-clear-btn" class="w2p-fix-clear-btn" title="<?php esc_attr_e( 'Clear', 'wp-genius' ); ?>">&times;</button>
+				</div>
+			</div>
+
+			<!-- 2. 搜索结果列表 (即使只有一条记录也显示为标准列表，初始状态隐藏) -->
+			<div id="w2p-fix-search-results-box" class="w2p-log-container w2p-fix-results-table-wrap w2p-hidden">
+				<table class="w2p-preview-table">
+					<thead>
+						<tr>
+							<th width="90"><?php esc_html_e( 'Novel ID', 'wp-genius' ); ?></th>
+							<th><?php esc_html_e( 'Novel Title', 'wp-genius' ); ?></th>
+							<th width="140"><?php esc_html_e( 'Chapters', 'wp-genius' ); ?></th>
+							<th width="130"><?php esc_html_e( 'Status', 'wp-genius' ); ?></th>
+							<th width="110"><?php esc_html_e( 'Action', 'wp-genius' ); ?></th>
+						</tr>
+					</thead>
+					<tbody id="w2p-fix-search-results-tbody">
+						<!-- 动态渲染搜索匹配的小说 -->
+					</tbody>
+				</table>
+			</div>
+
+			<!-- 3. 待处理章节列表与工作台 (点击 Rebuild 后展开，初始状态隐藏) -->
+			<div id="w2p-fix-novel-workbench" class="w2p-fix-workbench-container w2p-hidden">
+				<!-- 表头可操作按钮 -->
+				<div class="w2p-preview-toolbar w2p-fix-chapter-toolbar">
+					<div class="w2p-toolbar-left">
+						<button type="button" id="w2p-fix-batch-vol-btn" class="w2p-btn w2p-btn-secondary w2p-btn-sm">
+							<i class="fa-solid fa-pen-to-square"></i> <?php esc_html_e( 'Batch Set Volume', 'wp-genius' ); ?>
+						</button>
+						<button type="button" id="w2p-fix-regen-index-btn" class="w2p-btn w2p-btn-secondary w2p-btn-sm">
+							<i class="fa-solid fa-list-ol"></i> <?php esc_html_e( 'Regenerate Chapter Index', 'wp-genius' ); ?>
+						</button>
+					</div>
+					<div class="w2p-toolbar-right">
+						<button type="button" id="w2p-fix-save-novel-btn" class="w2p-btn w2p-btn-primary">
+							<i class="fa-solid fa-floppy-disk"></i> <?php esc_html_e( 'Save', 'wp-genius' ); ?>
+						</button>
+					</div>
+				</div>
+
+				<!-- 待处理章节表格：复选框，序号，旧index，推荐的index，旧分卷，推荐的分卷，章节标题，字符数 -->
+				<div class="w2p-log-container w2p-preview-table-wrapper w2p-fix-table-wrapper">
+					<table class="w2p-preview-table">
 						<thead>
 							<tr>
-								<th width="140"><?php esc_html_e( 'Index (New / Old)', 'wp-genius' ); ?></th>
-								<th width="160"><?php esc_html_e( 'Volume (New / Old)', 'wp-genius' ); ?></th>
+								<th width="40"><input type="checkbox" id="w2p-check-all-fix-chapters"></th>
+								<th width="50"><?php esc_html_e( '#', 'wp-genius' ); ?></th>
+								<th width="120"><?php esc_html_e( 'Old Index', 'wp-genius' ); ?></th>
+								<th width="140"><?php esc_html_e( 'Recommended Index', 'wp-genius' ); ?></th>
+								<th width="130"><?php esc_html_e( 'Old Volume', 'wp-genius' ); ?></th>
+								<th width="150"><?php esc_html_e( 'Recommended Volume', 'wp-genius' ); ?></th>
 								<th><?php esc_html_e( 'Chapter Title', 'wp-genius' ); ?></th>
+								<th width="90"><?php esc_html_e( 'Words', 'wp-genius' ); ?></th>
 							</tr>
 						</thead>
-						<tbody id="w2p-fix-logs-tbody">
-							<tr>
-								<td colspan="3" style="text-align:center;color:#94a3b8;"><?php esc_html_e( 'Click "Scan & Preview" to start checking chapter indexes.', 'wp-genius' ); ?></td>
-							</tr>
+						<tbody id="w2p-fix-chapters-tbody">
+							<!-- 动态渲染待处理章节 -->
 						</tbody>
 					</table>
 				</div>
 			</div>
 		</div>
 	</div>
+
 </div>

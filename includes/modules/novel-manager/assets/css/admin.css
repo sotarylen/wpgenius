@@ -240,6 +240,20 @@
 	vertical-align: middle !important;
 	padding: 8px 10px !important;
 }
+.w2p-sortable-th {
+	cursor: pointer;
+	user-select: none;
+	transition: background-color 0.15s ease;
+}
+.w2p-sortable-th:hover {
+	background-color: #f1f5f9 !important;
+	color: #2563eb;
+}
+.w2p-sortable-th .w2p-sort-icon {
+	margin-left: 4px;
+	font-size: 11px;
+	opacity: 0.7;
+}
 .w2p-edit-vol-input, .w2p-edit-title-input {
 	width: 100%;
 	padding: 4px 8px;
@@ -329,4 +343,309 @@
 
 .w2p-form-actions {
 	margin-top: 20px;
+}
+
+/* 导入成功模态弹窗 */
+.w2p-success-modal-card {
+	width: 460px;
+	text-align: center;
+}
+.w2p-success-modal-body {
+	height: auto;
+	max-height: none;
+	padding: 30px 24px 20px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+.w2p-success-icon-wrapper {
+	width: 64px;
+	height: 64px;
+	border-radius: 50%;
+	background: #ecfdf5;
+	color: #10b981;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 36px;
+	margin-bottom: 16px;
+	animation: w2p-scale-up 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes w2p-scale-up {
+	0% {
+		transform: scale(0.5);
+		opacity: 0;
+	}
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
+}
+.w2p-success-title {
+	font-size: 18px;
+	font-weight: 600;
+	color: #0f172a;
+	margin: 0 0 8px;
+}
+.w2p-success-desc {
+	font-size: 14px;
+	color: #64748b;
+	line-height: 1.5;
+	margin: 0;
+}
+.w2p-success-modal-footer {
+	justify-content: center;
+	gap: 12px;
+	padding: 16px 24px 20px;
+}
+
+/* ==========================================================================
+   Fix Chapter Index 视图专属样式 (零内联样式)
+   ========================================================================== */
+/* ========== Workflow Step Navigation (复用 Media Engine 经典设计系统) ========== */
+.w2p-workflow-steps-nav {
+	display: flex;
+	gap: 16px;
+	margin-bottom: 20px;
+	border-bottom: 1px solid #e2e8f0;
+	padding-bottom: 16px;
+}
+
+.w2p-workflow-step-btn {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 14px 18px;
+	background: #f8fafc;
+	border: 1px solid #e2e8f0;
+	border-radius: 8px;
+	cursor: pointer;
+	text-align: left;
+	transition: all 0.2s ease;
+}
+
+.w2p-workflow-step-btn:hover {
+	border-color: #10b981;
+	background: #ffffff;
+}
+
+.w2p-workflow-step-btn.active {
+	border-color: #10b981;
+	background: #ffffff;
+	box-shadow: 0 0 0 2px #10b981;
+}
+
+.w2p-workflow-step-btn .w2p-step-num {
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	background: #cbd5e1;
+	color: #64748b;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: bold;
+	font-size: 14px;
+	flex-shrink: 0;
+	transition: all 0.2s ease;
+}
+
+.w2p-workflow-step-btn.active .w2p-step-num {
+	background: #10b981;
+	color: #ffffff;
+}
+
+.w2p-workflow-step-btn .w2p-step-info {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.w2p-workflow-step-btn .w2p-step-title {
+	font-weight: 600;
+	font-size: 13px;
+	color: #0f172a;
+}
+
+.w2p-workflow-step-btn .w2p-step-desc {
+	font-size: 12px;
+	color: #64748b;
+}
+
+.w2p-fix-mode-pane {
+	animation: w2p-fade-in 0.25s ease;
+}
+@keyframes w2p-fade-in {
+	from {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* 搜索定位栏 */
+.w2p-fix-search-bar {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	margin-bottom: 15px;
+}
+
+.w2p-fix-search-input-wrap {
+	position: relative;
+	flex: 1;
+	max-width: 600px;
+}
+.w2p-fix-search-icon {
+	position: absolute;
+	left: 12px;
+	top: 50%;
+	transform: translateY(-50%);
+	color: #94a3b8;
+	font-size: 14px;
+}
+.w2p-fix-search-input-wrap input {
+	padding-left: 36px !important;
+	padding-right: 32px !important;
+	height: 38px;
+	border-radius: 6px;
+	border: 1px solid #cbd5e1;
+	font-size: 13px;
+}
+.w2p-fix-clear-btn {
+	position: absolute;
+	right: 10px;
+	top: 50%;
+	transform: translateY(-50%);
+	background: none;
+	border: none;
+	color: #94a3b8;
+	font-size: 18px;
+	cursor: pointer;
+	line-height: 1;
+	display: none;
+}
+.w2p-fix-clear-btn:hover {
+	color: #ef4444;
+}
+
+/* 搜索结果列表表格 */
+.w2p-fix-results-table-wrap {
+	margin-bottom: 20px;
+	max-height: 280px;
+	overflow-y: auto;
+}
+
+/* 待处理章节工作台容器 */
+.w2p-fix-workbench-container {
+	margin-top: 20px;
+}
+.w2p-fix-chapter-toolbar {
+	margin-bottom: 12px;
+	padding: 10px 14px;
+	background: #f8fafc;
+	border: 1px solid #e2e8f0;
+	border-radius: 6px;
+}
+
+/* 表格包装 */
+.w2p-fix-table-wrapper {
+	max-height: 460px;
+	overflow-y: auto;
+}
+.w2p-fix-empty-row td {
+	text-align: center;
+	padding: 30px 15px !important;
+}
+.w2p-fix-empty-text {
+	color: #94a3b8;
+	font-size: 13px;
+}
+
+/* Part 2: 统计条与全自动进度 */
+.w2p-fix-stats-bar {
+	display: flex;
+	align-items: center;
+	gap: 24px;
+	background: #f8fafc;
+	border: 1px solid #e2e8f0;
+	border-radius: 6px;
+	padding: 12px 16px;
+	margin-bottom: 16px;
+}
+.w2p-fix-stat-item {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 13px;
+	color: #475569;
+}
+.w2p-fix-stat-item strong {
+	color: #0f172a;
+	font-size: 15px;
+}
+.w2p-fix-stat-action {
+	margin-left: auto;
+}
+.w2p-fix-clear-history-link {
+	color: #ef4444;
+	text-decoration: none;
+	font-size: 12px;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+.w2p-fix-clear-history-link:hover {
+	color: #dc2626;
+	text-decoration: underline;
+}
+.w2p-fix-progress-box {
+	margin-bottom: 20px;
+}
+.w2p-fix-log-section {
+	margin-top: 15px;
+}
+.w2p-fix-log-title {
+	margin: 0 0 8px 0;
+	font-size: 14px;
+	font-weight: 600;
+	color: #334155;
+}
+.w2p-fix-log-container {
+	max-height: 320px;
+	overflow-y: auto;
+}
+
+/* JS 动态渲染辅助类 (杜绝内联样式) */
+.w2p-fix-loading-row {
+	text-align: center;
+	padding: 30px 15px !important;
+	color: #64748b;
+}
+.w2p-fix-id-badge {
+	margin-left: 8px;
+	font-size: 12px;
+	color: #64748b;
+}
+.w2p-fix-diff-old {
+	/* font-size: 11px; */
+	color: #ef4444;
+}
+.w2p-fix-diff-same {
+	font-size: 11px;
+	color: #94a3b8;
+}
+.w2p-fix-error-text {
+	color: #ef4444 !important;
+}
+.w2p-badge-sm {
+	font-size: 11px !important;
+}
+.w2p-fix-empty-box {
+	padding: 12px;
+	text-align: center;
 }

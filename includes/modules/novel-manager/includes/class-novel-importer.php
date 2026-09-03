@@ -68,14 +68,41 @@ class W2P_Novel_Importer {
 	}
 
 	/**
-	 * 放弃并清除未完成的导入任务
+	 * 自动清理过期临时文件 (默认清理超过 12 小时的文件)
 	 *
+	 * @param int $max_age 过期秒数
+	 */
+	public static function clean_expired_temp_files( $max_age = 43200 ) {
+		$temp_dir = self::get_temp_dir();
+		$files    = glob( $temp_dir . '/*' );
+		if ( ! empty( $files ) ) {
+			$now = time();
+			foreach ( $files as $file ) {
+				if ( is_file( $file ) && ( $now - filemtime( $file ) ) > $max_age ) {
+					@unlink( $file );
+				}
+			}
+		}
+	}
+
+	/**
+	 * 放弃并清除导入任务及对应的临时文件
+	 *
+	 * @param string $specified_task_id 可选指定要删除的 task_id
 	 * @return bool
 	 */
-	public static function discard_active_task() {
+	public static function discard_active_task( $specified_task_id = '' ) {
+		$temp_dir = self::get_temp_dir();
+
+		if ( ! empty( $specified_task_id ) ) {
+			$json_file = $temp_dir . '/task_' . sanitize_file_name( $specified_task_id ) . '.json';
+			if ( file_exists( $json_file ) ) {
+				@unlink( $json_file );
+			}
+		}
+
 		$task = get_option( 'w2p_novel_active_import_task', null );
 		if ( ! empty( $task ) && ! empty( $task['task_id'] ) ) {
-			$temp_dir  = self::get_temp_dir();
 			$json_file = $temp_dir . '/task_' . sanitize_file_name( $task['task_id'] ) . '.json';
 			if ( file_exists( $json_file ) ) {
 				@unlink( $json_file );
@@ -91,6 +118,8 @@ class W2P_Novel_Importer {
 	 * @return array|WP_Error 成功返回预览数据数组，失败返回 WP_Error
 	 */
 	public function parse_uploaded_file( $file_array ) {
+		self::clean_expired_temp_files();
+
 		if ( empty( $file_array ) || ! isset( $file_array['tmp_name'] ) || ! is_uploaded_file( $file_array['tmp_name'] ) ) {
 			return new WP_Error( 'no_file', __( 'No file was uploaded or file upload failed.', 'wp-genius' ) );
 		}
@@ -172,7 +201,7 @@ class W2P_Novel_Importer {
 		$novel_intro     = '';
 
 		foreach ( $lines as $raw_line ) {
-			$line = trim( $raw_line );
+			$line = W2P_Novel_Helper::clean_line( $raw_line );
 			if ( $line === '' ) {
 				continue;
 			}
@@ -271,7 +300,7 @@ class W2P_Novel_Importer {
 					continue;
 				}
 
-				$clean_text = trim( wp_strip_all_tags( $text ) );
+				$clean_text = W2P_Novel_Helper::clean_line( wp_strip_all_tags( $text ) );
 				if ( $clean_text === '' ) {
 					continue;
 				}
@@ -598,7 +627,6 @@ class W2P_Novel_Importer {
 		$created_count = 0;
 		$failed_count  = 0;
 		$current_time  = current_time( 'mysql' );
-		$time_base     = strtotime( $current_time );
 
 		foreach ( $chapters as $chap ) {
 			$title         = ! empty( $chap['title'] ) ? sanitize_text_field( $chap['title'] ) : '';
@@ -612,9 +640,6 @@ class W2P_Novel_Importer {
 				continue;
 			}
 
-			// 时间微增量保持自然时间排序
-			$post_date = date( 'Y-m-d H:i:s', $time_base + $menu_order );
-
 			$chapter_id = wp_insert_post(
 				array(
 					'post_type'    => 'chapter',
@@ -623,7 +648,7 @@ class W2P_Novel_Importer {
 					'post_status'  => 'publish',
 					'post_author'  => $author_id,
 					'menu_order'   => $menu_order,
-					'post_date'    => $post_date,
+					'post_date'    => $current_time,
 				)
 			);
 

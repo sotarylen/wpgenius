@@ -225,6 +225,9 @@ $novel_tags = get_terms(
 					<button type="button" id="w2p-preview-batch-vol-btn" class="w2p-btn w2p-btn-secondary w2p-btn-sm">
 						<i class="fa-solid fa-pen-to-square"></i> <?php esc_html_e( 'Batch Set Volume', 'wp-genius' ); ?>
 					</button>
+					<button type="button" id="w2p-preview-regen-index-btn" class="w2p-btn w2p-btn-secondary w2p-btn-sm">
+						<i class="fa-solid fa-list-ol"></i> <?php esc_html_e( 'Regenerate Chapter Index', 'wp-genius' ); ?>
+					</button>
 					<button type="button" id="w2p-preview-batch-del-btn" class="w2p-btn w2p-btn-danger w2p-btn-sm">
 						<i class="fa-solid fa-trash-can"></i> <?php esc_html_e( 'Delete Selected', 'wp-genius' ); ?>
 					</button>
@@ -252,12 +255,14 @@ $novel_tags = get_terms(
 
 			<!-- 章节预览与微调表格 -->
 			<div class="w2p-log-container w2p-preview-table-wrapper">
-				<table class="w2p-preview-table widefat striped">
+				<table class="w2p-preview-table">
 					<thead>
 						<tr>
 							<th width="40"><input type="checkbox" id="w2p-check-all-chapters"></th>
 							<th width="60"><?php esc_html_e( '#', 'wp-genius' ); ?></th>
-							<th width="120"><?php esc_html_e( 'Index', 'wp-genius' ); ?></th>
+							<th width="120" class="w2p-sortable-th" data-sort="index" title="<?php esc_attr_e( 'Click to sort by index', 'wp-genius' ); ?>">
+								<?php esc_html_e( 'Index', 'wp-genius' ); ?> <i class="fa-solid fa-sort w2p-sort-icon"></i>
+							</th>
 							<th width="160"><?php esc_html_e( 'Volume', 'wp-genius' ); ?></th>
 							<th><?php esc_html_e( 'Chapter Title', 'wp-genius' ); ?></th>
 							<th width="90"><?php esc_html_e( 'Words', 'wp-genius' ); ?></th>
@@ -268,6 +273,31 @@ $novel_tags = get_terms(
 						<!-- 动态渲染 -->
 					</tbody>
 				</table>
+			</div>
+		</div>
+	</div>
+
+	<!-- 导入完成仪式感成功模态弹出层 -->
+	<div id="w2p-import-success-modal" class="w2p-modal-overlay">
+		<div class="w2p-confirm-modal w2p-success-modal-card">
+			<div class="w2p-modal-header">
+				<h3 class="w2p-modal-title"><?php esc_html_e( 'Import Complete', 'wp-genius' ); ?></h3>
+				<button type="button" class="w2p-modal-close dashicons dashicons-no-alt" id="w2p-success-modal-close" title="<?php esc_attr_e( 'Close', 'wp-genius' ); ?>"></button>
+			</div>
+			<div class="w2p-modal-body w2p-success-modal-body">
+				<div class="w2p-success-icon-wrapper">
+					<i class="fa-solid fa-circle-check"></i>
+				</div>
+				<h3 class="w2p-success-title"><?php esc_html_e( 'Import Successful!', 'wp-genius' ); ?></h3>
+				<p class="w2p-success-desc"><?php esc_html_e( 'Import complete! Successfully published novel and all chapters.', 'wp-genius' ); ?></p>
+			</div>
+			<div class="w2p-modal-footer w2p-success-modal-footer">
+				<a href="<?php echo esc_url( admin_url( 'admin.php?page=w2p-novel-manager' ) ); ?>" class="w2p-btn w2p-btn-secondary">
+					<i class="fa-solid fa-list"></i> <?php esc_html_e( 'View Novels', 'wp-genius' ); ?>
+				</a>
+				<button type="button" id="w2p-import-another-btn" class="w2p-btn w2p-btn-primary">
+					<i class="fa-solid fa-rotate-right"></i> <?php esc_html_e( 'Continue Importing', 'wp-genius' ); ?>
+				</button>
 			</div>
 		</div>
 	</div>

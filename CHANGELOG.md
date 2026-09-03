@@ -4,6 +4,34 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased] - 2.1 积攒中
+
+### 新增 (Added)
+
+- **Novel Manager 修复交互升级**：新增「按小说检索/预览/单本应用」流程 ——
+  - 小说搜索（支持 ID 精准定位 + 标题模糊匹配，附章节数与完成状态）
+  - 单书章节预览（防 OOM，不读取正文仅统计字数）与新老索引对比
+  - 单本应用（支持前端微调章节 new_index / new_volume 后保存）
+  - 未处理小说队列 + 分步自动修复（书粒度无状态循环，替代旧有状态批量扫描）
+  - 一键重建章节索引端点（import/fix 双 nonce 白名单，供两个页签复用）
+
+### 变更 (Changed)
+
+- **Novel Manager Fixer 重构为「聚合根 + 权威计算」**：全面复用 W2P_Novel_Helper 权威算法（含「卷/部/回」「卷部集册」新规则），删除旧 scan_batch/execute_batch 有状态上下文循环；JS 统一扩至约 1300 行并移除旧扫描控件 ID。
+- **架构图重绘**：docs/wpgenius-architecture.html 节点 15→16，Novel Manager 独立上主图并标注 ACF / novel+chapter CPT 依赖；Archify showcase 9/9 校验 + 四视口视觉检查通过（5 处源码证据均核实行号）。
+
+### 修复 (Fixed)
+
+- **数据完整性**（Ponytail 强制审核闭环产出）：
+  - save_novel_chapters_custom 空 new_index 不再覆盖已有章节索引（与 new_volume 守卫对称）
+  - fix_single_novel 无章节时不再误标「已完成」，避免数据缺失的小说被永久跳过
+  - 自定义章节写入前校验 post_type === 'chapter'，补回旧 execute_batch 的归属检查
+- 级联删除弹窗样式随 enqueue 覆盖 edit-novel 屏一并修正（上一版本遗留的裸奔问题）。
+
+### 工程 (Engineering)
+
+- PHP lint / phpcs（WPCS）全部通过；JS node --check 通过；phpcbf 自动修复对齐。
+
 ## [2.0.20260903] - 2026-09-03
 
 ### 新增 (Added)
