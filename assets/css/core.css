@@ -478,6 +478,10 @@
 .w2p-settings-tabs-content select {
     width: 75%;
 }
+.w2p-input-half,
+.w2p-textarea-half {
+    width: 75%;
+}
 
 .w2p-input-large,
 .w2p-textarea-large {

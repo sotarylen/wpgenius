@@ -1,12 +1,288 @@
 /**
  * Novel Manager — Admin Styles
  *
- * 从 PHP 模板内嵌 <style> 提取（规范整改）：独立 CSS 文件，经 wp_enqueue_style 加载。
- *
  * @package WP_Genius
  */
 
-/* ========== 删除弹窗（原 module.php 内嵌）========== */
+/* ========== 断点续传提示卡片 ========== */
+.w2p-active-task-card {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	background: #fffbeb;
+	border: 1px solid #fde68a;
+	border-left: 4px solid #f59e0b;
+	border-radius: 6px;
+	padding: 16px 20px;
+	margin-bottom: 24px;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.w2p-active-task-icon {
+	font-size: 28px;
+	color: #d97706;
+}
+.w2p-active-task-content {
+	flex: 1;
+}
+.w2p-active-task-title {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	font-size: 15px;
+	color: #92400e;
+	margin-bottom: 4px;
+}
+.w2p-active-task-time {
+	font-size: 12px;
+	color: #b45309;
+	font-weight: normal;
+}
+.w2p-active-task-desc {
+	font-size: 13px;
+	color: #78350f;
+	margin: 0 0 10px 0;
+}
+.w2p-active-task-actions {
+	display: flex;
+	gap: 10px;
+}
+
+/* ========== 小说标签输入 (精简 WordPress 风格) ========== */
+.w2p-tag-group {
+	display: flex;
+	gap: 8px;
+	max-width: 440px;
+}
+.w2p-tags-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 10px;
+	margin: 8px 0;
+}
+.w2p-tag-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 3px 8px 3px 6px;
+	background: #f0f0f1;
+	border: 1px solid #c3c4c7;
+	border-radius: 3px;
+	font-size: 13px;
+	line-height: 1.5;
+	/* color: #2c3338; */
+}
+.w2p-tag-del {
+	background: none;
+	border: none;
+	padding: 0;
+	color: #298bdb;
+	font-weight: bold;
+	font-size: 14px;
+	cursor: pointer;
+	line-height: 1;
+}
+.w2p-tag-del:hover {
+	color: #d63638;
+}
+.w2p-quick-tags {
+	margin-top: 8px;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+.w2p-quick-tag {
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	color: #2271b1;
+	border-radius: 3px;
+	font-size: 12px;
+	padding: 2px 8px;
+	cursor: pointer;
+	transition: all 0.15s;
+}
+.w2p-quick-tag:hover {
+	background: #2271b1;
+	color: #fff;
+	border-color: #2271b1;
+}
+
+/* ========== 拖拽上传与文件框 ========== */
+.w2p-file-dropzone {
+	position: relative;
+	border: 2px dashed #cbd5e1;
+	border-radius: 8px;
+	padding: 25px 20px;
+	text-align: center;
+	background: #f8fafc;
+	transition: all 0.2s ease;
+	cursor: pointer;
+}
+.w2p-file-dropzone:hover {
+	border-color: #3b82f6;
+	background: #eff6ff;
+}
+.w2p-file-dropzone input[type="file"] {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	opacity: 0;
+	cursor: pointer;
+	z-index: 2;
+}
+.w2p-dropzone-icon {
+	font-size: 32px;
+	color: #64748b;
+	margin-bottom: 8px;
+}
+.w2p-dropzone-text {
+	font-size: 14px;
+	color: #475569;
+	margin: 0;
+}
+.w2p-filename-tag {
+	display: inline-block;
+	margin-top: 10px;
+	padding: 4px 12px;
+	background: #dbeafe;
+	color: #1e40af;
+	border-radius: 20px;
+	font-size: 13px;
+	font-weight: 500;
+}
+
+/* ========== 封面上传预览 ========== */
+.w2p-cover-uploader-box {
+	display: flex;
+	align-items: center;
+	gap: 15px;
+}
+.w2p-cover-preview {
+	position: relative;
+	width: 80px;
+	height: 110px;
+	border-radius: 6px;
+	overflow: hidden;
+	border: 1px solid #cbd5e1;
+	box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.w2p-cover-preview img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.w2p-cover-remove {
+	position: absolute;
+	top: 4px;
+	right: 4px;
+	background: rgba(239, 68, 68, 0.85);
+	color: #fff;
+	border: none;
+	border-radius: 50%;
+	width: 20px;
+	height: 20px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 10px;
+	cursor: pointer;
+	padding: 0;
+}
+.w2p-cover-remove:hover {
+	background: #dc2626;
+}
+
+/* ========== 预览微调工具栏与徽章 ========== */
+.w2p-preview-summary-badges {
+	display: flex;
+	gap: 10px;
+}
+.w2p-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 4px 10px;
+	border-radius: 6px;
+	font-size: 12px;
+	font-weight: 500;
+}
+.w2p-badge-primary { background: #e0e7ff; color: #3730a3; }
+.w2p-badge-info    { background: #e0f2fe; color: #0369a1; }
+.w2p-badge-success { background: #dcfce7; color: #15803d; }
+
+.w2p-preview-toolbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 12px 15px;
+	background: #f1f5f9;
+	border-radius: 6px;
+	border: 1px solid #e2e8f0;
+	margin-bottom: 12px;
+}
+.w2p-toolbar-left, .w2p-toolbar-right {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.w2p-btn-sm {
+	padding: 4px 10px !important;
+	font-size: 12px !important;
+	height: 28px !important;
+	line-height: 20px !important;
+}
+
+/* ========== 预览表格微调输入框 ========== */
+.w2p-preview-table th, .w2p-preview-table td {
+	vertical-align: middle !important;
+	padding: 8px 10px !important;
+}
+.w2p-edit-vol-input, .w2p-edit-title-input {
+	width: 100%;
+	padding: 4px 8px;
+	border: 1px solid #cbd5e1;
+	border-radius: 4px;
+	font-size: 13px;
+	background: #fff;
+}
+.w2p-edit-vol-input:focus, .w2p-edit-title-input:focus {
+	border-color: #3b82f6;
+	outline: none;
+	box-shadow: 0 0 0 1px #3b82f6;
+}
+
+/* ========== 进度条 ========== */
+.w2p-progress-container {
+	background: #f8fafc;
+	padding: 15px;
+	border-radius: 6px;
+	border: 1px solid #e2e8f0;
+}
+.w2p-progress-info {
+	display: flex;
+	justify-content: space-between;
+	font-size: 13px;
+	color: #475569;
+	margin-bottom: 8px;
+	font-weight: 500;
+}
+.w2p-progress-bar-bg {
+	background: #e2e8f0;
+	height: 12px;
+	border-radius: 6px;
+	overflow: hidden;
+}
+.w2p-progress-bar-fill {
+	background: var(--w2p-gradient-primary);
+	height: 100%;
+	width: 0%;
+	transition: width 0.25s ease;
+}
+
+/* ========== 删除弹窗 ========== */
 #w2p-novel-delete-modal {
 	position: fixed;
 	top: 0;
@@ -15,12 +291,9 @@
 	height: 100%;
 	background: rgba(0, 0, 0, 0.6);
 	z-index: 999999;
-	display: none;
+	display: flex;
 	justify-content: center;
 	align-items: center;
-}
-#w2p-novel-delete-modal.active {
-	display: flex;
 }
 #w2p-novel-delete-modal .w2p-nd-box {
 	background: #fff;
@@ -36,20 +309,9 @@
 	margin: 0 0 10px;
 	font-size: 16px;
 }
-#w2p-novel-delete-modal .w2p-nd-count-row {
-	margin: 0 0 8px;
-	color: #1d2327;
-}
-#w2p-novel-delete-modal .w2p-nd-count-row span {
-	color: #50575e;
-}
 #w2p-novel-delete-modal .w2p-nd-count-row strong {
 	font-size: 18px;
 	color: #b32d2e;
-}
-#w2p-novel-delete-modal .w2p-nd-text {
-	margin: 0 0 12px;
-	color: #50575e;
 }
 #w2p-novel-delete-modal .w2p-nd-progress-bg {
 	height: 10px;
@@ -65,27 +327,6 @@
 	transition: width 0.25s ease;
 }
 
-/* ========== 进度条与日志（原 fix-index-tools.php 内嵌）========== */
-.w2p-progress-wrapper .w2p-progress-bar {
-	background: #f1f1f1;
-	height: 20px;
-	border-radius: 3px;
-	overflow: hidden;
-	box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-.w2p-progress-fill {
-	background: #2271b1;
-	height: 100%;
-	transition: width 0.3s ease;
-}
-.w2p-progress-status {
-	margin-top: 5px;
-	font-size: 13px;
-	color: #444;
-}
-.w2p-log-container {
-	max-height: 400px;
-	overflow-y: auto;
-	border: 1px solid #ccd0d4;
-	margin-top: 15px;
+.w2p-form-actions {
+	margin-top: 20px;
 }

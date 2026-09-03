@@ -19,7 +19,6 @@ class W2P_Admin_Settings {
 		$this->loader = $loader;
 		// No more manual menu registration. CSF handles it.
 		$this->register_settings();
-		add_action( 'admin_notices', array( $this, 'display_admin_notices' ) );
 	}
 
 	/**
@@ -83,7 +82,7 @@ class W2P_Admin_Settings {
 					);
 
 					if ( ! empty( $req_error ) ) {
-						$field_config['subtitle'] .= '<div class="w2p-req-error" style="color:#d63638; margin-top:6px; font-weight:500;"><i class="fa-solid fa-triangle-exclamation"></i> ' . esc_html( $req_error ) . '</div>';
+						$field_config['subtitle']  .= '<div class="w2p-req-error" style="color:#d63638; margin-top:6px; font-weight:500;"><i class="fa-solid fa-triangle-exclamation"></i> ' . esc_html( $req_error ) . '</div>';
 						$field_config['attributes'] = array( 'disabled' => 'disabled' );
 					}
 
@@ -166,10 +165,6 @@ class W2P_Admin_Settings {
 			}
 		}
 
-		if ( ! empty( $errors ) ) {
-			set_transient( 'w2p_admin_settings_errors', $errors, 45 );
-		}
-
 		foreach ( $old_value as $key => $value ) {
 			// If key existed in old but missing in new
 			if ( ! array_key_exists( $key, $new_value ) ) {
@@ -178,25 +173,5 @@ class W2P_Admin_Settings {
 		}
 
 		return $new_value;
-	}
-
-	/**
-	 * Display admin error notices if module requirement checks fail on save.
-	 *
-	 * @return void
-	 */
-	public function display_admin_notices() {
-		$screen = get_current_screen();
-		if ( ! $screen || false === strpos( $screen->id, 'wp-genius' ) ) {
-			return;
-		}
-
-		$errors = get_transient( 'w2p_admin_settings_errors' );
-		if ( ! empty( $errors ) && is_array( $errors ) ) {
-			delete_transient( 'w2p_admin_settings_errors' );
-			foreach ( $errors as $err ) {
-				echo '<div class="notice notice-error is-dismissible"><p><strong>' . esc_html__( 'WP Genius Notice:', 'wp-genius' ) . '</strong> ' . esc_html( $err ) . '</p></div>';
-			}
-		}
 	}
 }

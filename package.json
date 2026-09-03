@@ -1,6 +1,6 @@
 {
   "name": "wpgenius",
-  "version": "1.2.0",
+  "version": "2.0.20260903",
   "description": "A powerful WordPress content management and site optimization toolkit plugin.",
   "main": "index.js",
   "scripts": {

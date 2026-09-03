@@ -93,15 +93,6 @@ abstract class W2P_Abstract_Module {
 		return 'w2p_settings';
 	}
 
-	/**
-	 * Check if module requirements/dependencies are satisfied.
-	 *
-	 * @return true|WP_Error Returns true if satisfied, or WP_Error with user-facing message.
-	 */
-	public function check_requirements() {
-		return true;
-	}
-
 	// Activation/deactivation hooks (optional)
 	public function activate() {}
 	public function deactivate() {}
