@@ -112,6 +112,120 @@ class W2P_Novel_Importer {
 	}
 
 	/**
+	 * 安全彻底清空指定小说的所有关联章节文章及相关元数据
+	 *
+	 * @param int $novel_id 小说文章 ID
+	 * @return int 清理的章节总数
+	 */
+	public static function truncate_novel_chapters( $novel_id ) {
+		global $wpdb;
+
+		$novel_id = absint( $novel_id );
+		if ( $novel_id <= 0 || 'novel' !== get_post_type( $novel_id ) ) {
+			return 0;
+		}
+
+		// 查询属于该小说的所有章节 ID
+		$sql = $wpdb->prepare(
+			"SELECT p.ID FROM {$wpdb->posts} p
+			 INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = 'related_novel_id'
+			 WHERE p.post_type = 'chapter' AND pm.meta_value = %d",
+			$novel_id
+		);
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$chapter_ids = $wpdb->get_col( $sql );
+		if ( empty( $chapter_ids ) ) {
+			return 0;
+		}
+
+		$deleted_count = 0;
+		foreach ( $chapter_ids as $chap_id ) {
+			$chap_id = absint( $chap_id );
+			if ( $chap_id > 0 ) {
+				// force_delete = true 跳过回收站彻底删除
+				wp_delete_post( $chap_id, true );
+				++$deleted_count;
+
+				if ( 0 === $deleted_count % 50 ) {
+					clean_post_cache( $chap_id );
+				}
+			}
+		}
+
+		if ( function_exists( 'gc_collect_cycles' ) ) {
+			gc_collect_cycles();
+		}
+
+		return $deleted_count;
+	}
+
+	/**
+	 * 获取指定小说最后一章的信息（包含最大 menu_order、总章节数、最后章节索引及分卷名）
+	 *
+	 * @param int $novel_id 小说文章 ID
+	 * @return array 包含章节统计与末章元数据的数组
+	 */
+	public static function get_novel_last_chapter_info( $novel_id ) {
+		global $wpdb;
+
+		$novel_id = absint( $novel_id );
+		if ( $novel_id <= 0 || 'novel' !== get_post_type( $novel_id ) ) {
+			return array(
+				'total_chapters' => 0,
+				'max_order'      => 0,
+				'last_index'     => '',
+				'last_volume'    => '',
+				'last_title'     => '',
+			);
+		}
+
+		// 1. 获取现有章节总数（使用 %s 字符串类型匹配走 postmeta 索引，避免类型转换）
+		$count_sql = $wpdb->prepare(
+			"SELECT COUNT(p.ID) FROM {$wpdb->posts} p
+			 INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = 'related_novel_id'
+			 WHERE p.post_type = 'chapter' AND p.post_status != 'trash' AND pm.meta_value = %s",
+			(string) $novel_id
+		);
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$total_chapters = intval( $wpdb->get_var( $count_sql ) );
+
+		// 2. 获取 menu_order 最大的一章（单表联查迅速定位末章记录，杜绝三重 JOIN 临时表排序卡死）
+		$last_sql = $wpdb->prepare(
+			"SELECT p.ID, p.post_title, p.menu_order
+			 FROM {$wpdb->posts} p
+			 INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+			 WHERE pm.meta_key = 'related_novel_id' AND pm.meta_value = %s
+			   AND p.post_type = 'chapter' AND p.post_status != 'trash'
+			 ORDER BY p.menu_order DESC, p.ID DESC
+			 LIMIT 1",
+			(string) $novel_id
+		);
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$last_row = $wpdb->get_row( $last_sql );
+
+		$last_index  = '';
+		$last_volume = '';
+		$last_title  = '';
+		$max_order   = $total_chapters;
+
+		if ( $last_row ) {
+			$max_order   = intval( $last_row->menu_order );
+			$last_title  = (string) $last_row->post_title;
+			$last_index  = (string) get_post_meta( $last_row->ID, 'chapter_index', true );
+			$last_volume = (string) get_post_meta( $last_row->ID, 'volume_name', true );
+		}
+
+		return array(
+			'total_chapters' => $total_chapters,
+			'max_order'      => $max_order,
+			'last_index'     => $last_index,
+			'last_volume'    => $last_volume,
+			'last_title'     => $last_title,
+		);
+	}
+
+	/**
 	 * 处理文件上传并执行初步解析（生成预览数据，不写入数据库）
 	 *
 	 * @param array $file_array $_FILES 数组中的文件项
@@ -199,6 +313,7 @@ class W2P_Novel_Importer {
 		$current_content = array();
 		$chap_counter    = 1;
 		$novel_intro     = '';
+		$novel_author    = '';
 
 		foreach ( $lines as $raw_line ) {
 			$line = W2P_Novel_Helper::clean_line( $raw_line );
@@ -216,7 +331,7 @@ class W2P_Novel_Importer {
 
 			// 2. 检查是否为章节标题行
 			if ( W2P_Novel_Helper::is_chapter_heading( $line ) ) {
-				$this->flush_current_chapter( $chapters, $current_chapter, $current_content, $novel_intro );
+				$this->flush_current_chapter( $chapters, $current_chapter, $current_content, $novel_intro, $novel_author, $raw_filename, $novel_title );
 				$this->open_chapter( $chapters, $current_chapter, $current_vol, $current_vol_idx, $chap_counter, $line, $vol_info );
 			} else {
 				$current_content[] = $line;
@@ -224,7 +339,7 @@ class W2P_Novel_Importer {
 		}
 
 		// 保存最后一章；无章节时以文件名兜底为单章
-		$this->flush_current_chapter( $chapters, $current_chapter, $current_content, $novel_intro );
+		$this->flush_current_chapter( $chapters, $current_chapter, $current_content, $novel_intro, $novel_author, $raw_filename, $novel_title );
 		if ( empty( $chapters ) && ! empty( $current_content ) ) {
 			$body_text  = implode( "\n\n", $current_content );
 			$chapters[] = array(
@@ -239,7 +354,18 @@ class W2P_Novel_Importer {
 			);
 		}
 
-		return $this->finalize_result( $chapters, $novel_intro, $novel_title );
+		// 若作者仍未提取到，兜底通过文件名尝试识别
+		if ( empty( $novel_author ) ) {
+			$fn_extracted = W2P_Novel_Helper::extract_author_and_intro( array(), $raw_filename );
+			if ( ! empty( $fn_extracted['author'] ) ) {
+				$novel_author = $fn_extracted['author'];
+			}
+			if ( ! empty( $fn_extracted['title'] ) && $novel_title === pathinfo( $raw_filename, PATHINFO_FILENAME ) ) {
+				$novel_title = $fn_extracted['title'];
+			}
+		}
+
+		return $this->finalize_result( $chapters, $novel_intro, $novel_title, $novel_author );
 	}
 
 	/**
@@ -276,6 +402,7 @@ class W2P_Novel_Importer {
 		$current_content = array();
 		$chap_counter    = 1;
 		$novel_intro     = '';
+		$novel_author    = '';
 
 		foreach ( $phpWord->getSections() as $section ) {
 			foreach ( $section->getElements() as $element ) {
@@ -316,7 +443,7 @@ class W2P_Novel_Importer {
 				}
 
 				if ( $is_heading ) {
-					$this->flush_current_chapter( $chapters, $current_chapter, $current_content, $novel_intro );
+					$this->flush_current_chapter( $chapters, $current_chapter, $current_content, $novel_intro, $novel_author, $raw_filename, $novel_title );
 					$this->open_chapter( $chapters, $current_chapter, $current_vol, $current_vol_idx, $chap_counter, $clean_text, $vol_info );
 				} else {
 					$current_content[] = $text;
@@ -325,21 +452,35 @@ class W2P_Novel_Importer {
 		}
 
 		// 保存最后一章
-		$this->flush_current_chapter( $chapters, $current_chapter, $current_content, $novel_intro );
+		$this->flush_current_chapter( $chapters, $current_chapter, $current_content, $novel_intro, $novel_author, $raw_filename, $novel_title );
 
-		return $this->finalize_result( $chapters, $novel_intro, $novel_title );
+		// 若作者仍未提取到，兜底通过文件名尝试识别
+		if ( empty( $novel_author ) ) {
+			$fn_extracted = W2P_Novel_Helper::extract_author_and_intro( array(), $raw_filename );
+			if ( ! empty( $fn_extracted['author'] ) ) {
+				$novel_author = $fn_extracted['author'];
+			}
+			if ( ! empty( $fn_extracted['title'] ) && $novel_title === pathinfo( $raw_filename, PATHINFO_FILENAME ) ) {
+				$novel_title = $fn_extracted['title'];
+			}
+		}
+
+		return $this->finalize_result( $chapters, $novel_intro, $novel_title, $novel_author );
 	}
 
 	/**
-	 * 将当前章节刷入章节列表；无当前章节时把前置文本作为小说简介
+	 * 将当前章节刷入章节列表；无当前章节时把前置文本作为小说简介并智能提取作者
 	 *
 	 * @param array      $chapters        章节列表（引用）
 	 * @param array|null $current_chapter 当前章节（引用）
 	 * @param array      $current_content 当前章节内容行（引用）
 	 * @param string     $novel_intro     小说简介（引用）
+	 * @param string     $novel_author    小说作者（引用）
+	 * @param string     $raw_filename    原始文件名
+	 * @param string     $novel_title     小说名称（引用）
 	 * @return void
 	 */
-	private function flush_current_chapter( &$chapters, &$current_chapter, &$current_content, &$novel_intro ) {
+	private function flush_current_chapter( &$chapters, &$current_chapter, &$current_content, &$novel_intro, &$novel_author = '', $raw_filename = '', &$novel_title = '' ) {
 		if ( $current_chapter !== null ) {
 			$body_text                     = implode( "\n\n", $current_content );
 			$current_chapter['content']    = $this->format_paragraphs( $body_text );
@@ -348,8 +489,15 @@ class W2P_Novel_Importer {
 			$current_chapter               = null;
 			$current_content               = array();
 		} elseif ( empty( $chapters ) && ! empty( $current_content ) ) {
-			// 章节前的文本作为小说简介
-			$novel_intro     = implode( "\n\n", $current_content );
+			// 首章前积累的前置文本：调用 Helper 智能识别作者与纯净简介
+			$extracted = W2P_Novel_Helper::extract_author_and_intro( $current_content, $raw_filename );
+			if ( ! empty( $extracted['author'] ) ) {
+				$novel_author = $extracted['author'];
+			}
+			$novel_intro = $extracted['intro'];
+			if ( ! empty( $extracted['title'] ) && ( empty( $novel_title ) || $novel_title === pathinfo( $raw_filename, PATHINFO_FILENAME ) ) ) {
+				$novel_title = $extracted['title'];
+			}
 			$current_content = array();
 		}
 	}
@@ -398,12 +546,13 @@ class W2P_Novel_Importer {
 	/**
 	 * 过滤无效章节并汇总解析结果统计
 	 *
-	 * @param array  $chapters    章节列表
-	 * @param string $novel_intro 小说简介
-	 * @param string $novel_title 小说名称
+	 * @param array  $chapters     章节列表
+	 * @param string $novel_intro  小说简介
+	 * @param string $novel_title  小说名称
+	 * @param string $novel_author 小说作者
 	 * @return array 汇总后的解析结果
 	 */
-	private function finalize_result( $chapters, $novel_intro, $novel_title ) {
+	private function finalize_result( $chapters, $novel_intro, $novel_title, $novel_author = '' ) {
 		// 过滤无效伪章节（如首条为书名且字数为0，或纯空内容伪章节）
 		$chapters = $this->filter_invalid_chapters( $chapters, $novel_title );
 
@@ -416,6 +565,7 @@ class W2P_Novel_Importer {
 
 		return array(
 			'novel_title'    => $novel_title,
+			'novel_author'   => $novel_author,
 			'novel_intro'    => $novel_intro,
 			'total_chapters' => count( $chapters ),
 			'total_words'    => $total_words,
@@ -499,17 +649,29 @@ class W2P_Novel_Importer {
 		}
 
 		// 检查是否传入了已有 novel_id
-		$existing_id = ! empty( $novel_data['novel_id'] ) ? absint( $novel_data['novel_id'] ) : 0;
+		$existing_id     = ! empty( $novel_data['novel_id'] ) ? absint( $novel_data['novel_id'] ) : 0;
+		$import_strategy = ! empty( $novel_data['import_strategy'] ) ? sanitize_key( $novel_data['import_strategy'] ) : 'append';
+
 		if ( $existing_id > 0 && get_post_type( $existing_id ) === 'novel' ) {
 			$novel_id = $existing_id;
-			wp_update_post(
-				array(
-					'ID'           => $novel_id,
-					'post_title'   => $title,
-					'post_excerpt' => $intro,
-					'post_content' => $intro,
-				)
-			);
+
+			// 如果指定清空重导策略，执行安全彻底清空旧章节
+			if ( 'truncate' === $import_strategy ) {
+				self::truncate_novel_chapters( $novel_id );
+			}
+
+			// 如果前端显式提供了标题或简介，才更新小说主体文章
+			$update_args = array( 'ID' => $novel_id );
+			if ( ! empty( $title ) && $title !== get_the_title( $novel_id ) ) {
+				$update_args['post_title'] = $title;
+			}
+			if ( ! empty( $intro ) ) {
+				$update_args['post_excerpt'] = $intro;
+				$update_args['post_content'] = $intro;
+			}
+			if ( count( $update_args ) > 1 ) {
+				wp_update_post( $update_args );
+			}
 		} else {
 			$novel_id = wp_insert_post(
 				array(
@@ -564,22 +726,33 @@ class W2P_Novel_Importer {
 			}
 		}
 
-		// 5. 设置人物 (humans) - 存在复用，不存在新建
-		$author_name = ! empty( $novel_data['author_name'] ) ? sanitize_text_field( $novel_data['author_name'] ) : '';
-		if ( ! empty( $author_name ) ) {
-			$term = get_term_by( 'name', $author_name, 'humans' );
-			if ( $term ) {
-				$human_id = $term->term_id;
-			} else {
-				$new_term = wp_insert_term( $author_name, 'humans' );
-				if ( ! is_wp_error( $new_term ) && isset( $new_term['term_id'] ) ) {
-					$human_id = $new_term['term_id'];
+		// 5. 设置人物 (humans) - 支持中英文逗号多作者，存在复用，不存在新建
+		$author_raw = ! empty( $novel_data['author_name'] ) ? sanitize_text_field( $novel_data['author_name'] ) : '';
+		if ( ! empty( $author_raw ) ) {
+			$author_names = preg_split( '/[,，]/u', $author_raw );
+			$human_ids    = array();
+			foreach ( $author_names as $name ) {
+				$name = trim( $name );
+				if ( '' === $name ) {
+					continue;
+				}
+				$existing_term = term_exists( $name, 'humans' );
+				if ( $existing_term ) {
+					$term_id = is_array( $existing_term ) ? intval( $existing_term['term_id'] ) : intval( $existing_term );
 				} else {
-					$human_id = 0;
+					$new_term = wp_insert_term( $name, 'humans' );
+					if ( ! is_wp_error( $new_term ) && isset( $new_term['term_id'] ) ) {
+						$term_id = intval( $new_term['term_id'] );
+					} else {
+						$term_id = 0;
+					}
+				}
+				if ( $term_id > 0 && ! in_array( $term_id, $human_ids, true ) ) {
+					$human_ids[] = $term_id;
 				}
 			}
-			if ( $human_id > 0 ) {
-				wp_set_object_terms( $novel_id, array( $human_id ), 'humans' );
+			if ( ! empty( $human_ids ) ) {
+				wp_set_object_terms( $novel_id, $human_ids, 'humans' );
 			}
 		}
 
@@ -628,48 +801,52 @@ class W2P_Novel_Importer {
 		$failed_count  = 0;
 		$current_time  = current_time( 'mysql' );
 
-		foreach ( $chapters as $chap ) {
-			$title         = ! empty( $chap['title'] ) ? sanitize_text_field( $chap['title'] ) : '';
-			$content       = ! empty( $chap['content'] ) ? wp_kses_post( $chap['content'] ) : '';
-			$volume        = ! empty( $chap['volume'] ) ? sanitize_text_field( $chap['volume'] ) : '正文';
-			$chapter_index = ! empty( $chap['chapter_index'] ) ? sanitize_text_field( $chap['chapter_index'] ) : '';
-			$menu_order    = isset( $chap['index'] ) ? intval( $chap['index'] ) : 0;
+		add_filter( 'smart_aui_skip_post_processing', '__return_true' );
+		try {
+			foreach ( $chapters as $chap ) {
+				$title         = ! empty( $chap['title'] ) ? sanitize_text_field( $chap['title'] ) : '';
+				$content       = ! empty( $chap['content'] ) ? wp_kses_post( $chap['content'] ) : '';
+				$volume        = ! empty( $chap['volume'] ) ? sanitize_text_field( $chap['volume'] ) : '正文';
+				$chapter_index = ! empty( $chap['chapter_index'] ) ? sanitize_text_field( $chap['chapter_index'] ) : '';
+				$menu_order    = isset( $chap['index'] ) ? intval( $chap['index'] ) : 0;
 
-			if ( empty( $title ) ) {
-				++$failed_count;
-				continue;
-			}
-
-			$chapter_id = wp_insert_post(
-				array(
-					'post_type'    => 'chapter',
-					'post_title'   => $title,
-					'post_content' => $content,
-					'post_status'  => 'publish',
-					'post_author'  => $author_id,
-					'menu_order'   => $menu_order,
-					'post_date'    => $current_time,
-				)
-			);
-
-			if ( $chapter_id && ! is_wp_error( $chapter_id ) ) {
-				update_post_meta( $chapter_id, 'related_novel_id', $novel_id );
-				update_post_meta( $chapter_id, 'volume_name', $volume );
-				update_post_meta( $chapter_id, 'chapter_index', $chapter_index );
-
-				if ( function_exists( 'update_field' ) ) {
-					update_field( 'related_novel_id', $novel_id, $chapter_id );
-					update_field( 'volume_name', $volume, $chapter_id );
-					update_field( 'chapter_index', $chapter_index, $chapter_id );
+				if ( empty( $title ) ) {
+					++$failed_count;
+					continue;
 				}
 
-				clean_post_cache( $chapter_id );
-				++$created_count;
-			} else {
-				++$failed_count;
-			}
-		}
+				$chapter_id = wp_insert_post(
+					array(
+						'post_type'    => 'chapter',
+						'post_title'   => $title,
+						'post_content' => $content,
+						'post_status'  => 'publish',
+						'post_author'  => $author_id,
+						'menu_order'   => $menu_order,
+						'post_date'    => $current_time,
+					)
+				);
 
+				if ( $chapter_id && ! is_wp_error( $chapter_id ) ) {
+					update_post_meta( $chapter_id, 'related_novel_id', $novel_id );
+					update_post_meta( $chapter_id, 'volume_name', $volume );
+					update_post_meta( $chapter_id, 'chapter_index', $chapter_index );
+
+					if ( function_exists( 'update_field' ) ) {
+						update_field( 'related_novel_id', $novel_id, $chapter_id );
+						update_field( 'volume_name', $volume, $chapter_id );
+						update_field( 'chapter_index', $chapter_index, $chapter_id );
+					}
+
+					clean_post_cache( $chapter_id );
+					++$created_count;
+				} else {
+					++$failed_count;
+				}
+			}
+		} finally {
+			remove_filter( 'smart_aui_skip_post_processing', '__return_true' );
+		}
 		// 同步推进断点续传进度
 		$active_task = get_option( 'w2p_novel_active_import_task', null );
 		if ( ! empty( $active_task ) && is_array( $active_task ) && intval( $active_task['novel_id'] ) === intval( $novel_id ) ) {

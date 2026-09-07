@@ -52,13 +52,13 @@ class W2P_Novel_Helper {
 		);
 		$str       = strtr( $str, $upper_map );
 
-		// 特殊词转换
-		if ( $str === '廿' ) {
-			return 20;
-		}
-		if ( $str === '卅' ) {
-			return 30;
-		}
+		// 特殊数词归一化：廿 (20), 卅 (30), 卌 (40)
+		$special_map = array(
+			'廿' => '二十',
+			'卅' => '三十',
+			'卌' => '四十',
+		);
+		$str         = strtr( $str, $special_map );
 
 		// 以 "十" 开头补 "一"，如 "十五" -> "一十五"
 		if ( mb_substr( $str, 0, 1, 'UTF-8' ) === '十' ) {
@@ -99,14 +99,14 @@ class W2P_Novel_Helper {
 			return null;
 		}
 
-		// 遍历解析
+		// 遍历解析（支持进位单位词与直读数码流式解析）
 		$total   = 0;
 		$current = 0;
 		$chars   = preg_split( '//u', $str, -1, PREG_SPLIT_NO_EMPTY );
 
 		foreach ( $chars as $char ) {
 			if ( isset( $digits[ $char ] ) ) {
-				$current = $digits[ $char ];
+				$current = $current * 10 + $digits[ $char ];
 			} elseif ( isset( $units[ $char ] ) ) {
 				$unit_val = $units[ $char ];
 				if ( $current === 0 ) {
@@ -150,7 +150,7 @@ class W2P_Novel_Helper {
 		}
 
 		// 1. 复合形式：第X卷/卷X/第X部/部X [卷名] 第Y章 [章名]
-		if ( preg_match( '/(?:^|[\s(（【\[])(?:(?:第\s*)?([0-9零一二两三四五六七八九十百千万]+)\s*[卷部集册]|[卷部集册]\s*(?:第\s*)?([0-9零一二两三四五六七八九十百千万]+))\s*(.*?)(?=\s*第|\s*$)/u', $line, $m ) ) {
+		if ( preg_match( '/(?:^|[\s(（【\[])(?:(?:第\s*)?([0-9零一二两三四五六七八九十百千万廿卅卌]+)\s*[卷部集册]|[卷部集册]\s*(?:第\s*)?([0-9零一二两三四五六七八九十百千万廿卅卌]+))\s*(.*?)(?=\s*第|\s*$)/u', $line, $m ) ) {
 			$vol_num_str = ! empty( $m[1] ) ? $m[1] : ( ! empty( $m[2] ) ? $m[2] : '1' );
 			$vol_num     = self::chinese_to_arabic( $vol_num_str ) ?: 1;
 			$vol_title   = isset( $m[3] ) ? trim( $m[3] ) : '';
@@ -164,7 +164,7 @@ class W2P_Novel_Helper {
 		}
 
 		// 2. 独立分卷行：第X卷 / 卷X / 第X部 / 部X / Volume X / Vol.X
-		if ( preg_match( '/^(?:(?:第\s*)?([0-9零一二两三四五六七八九十百千万]+)\s*[卷部集册]|[卷部集册]\s*(?:第\s*)?([0-9零一二两三四五六七八九十百千万]+)|(?:Vol(?:ume)?\.?\s*([0-9]+)))\s*(.*?)$/ui', $line, $m ) ) {
+		if ( preg_match( '/^(?:(?:第\s*)?([0-9零一二两三四五六七八九十百千万廿卅卌]+)\s*[卷部集册]|[卷部集册]\s*(?:第\s*)?([0-9零一二两三四五六七八九十百千万廿卅卌]+)|(?:Vol(?:ume)?\.?\s*([0-9]+)))\s*(.*?)$/ui', $line, $m ) ) {
 			$vol_num_str = ! empty( $m[1] ) ? $m[1] : ( ! empty( $m[2] ) ? $m[2] : ( ! empty( $m[3] ) ? $m[3] : '1' ) );
 			$vol_num     = self::chinese_to_arabic( $vol_num_str ) ?: 1;
 			$vol_title   = isset( $m[4] ) ? trim( $m[4] ) : '';
@@ -210,7 +210,7 @@ class W2P_Novel_Helper {
 			if ( preg_match( '/番外\s*(\d+)/u', $test_title, $m ) ) {
 				return 99000 + intval( $m[1] );
 			}
-			if ( preg_match( '/番外\s*第\s*([0-9零一二两三四五六七八九十百千万]+)\s*[章节话回折集篇幕]/u', $test_title, $m ) ) {
+			if ( preg_match( '/番外\s*第\s*([0-9零一二两三四五六七八九十百千万廿卅卌]+)\s*[章节话回折集篇幕]/u', $test_title, $m ) ) {
 				$num = self::chinese_to_arabic( $m[1] );
 				return 99000 + ( $num ?: 1 );
 			}
@@ -218,7 +218,7 @@ class W2P_Novel_Helper {
 		}
 
 		// 4. 标准格式：第X章 / 第X节 / 第X回 / 第X话 / 第X折 / 第X集 / 第X篇 / 第X幕
-		if ( preg_match( '/第\s*([0-9零一二两三四五六七八九十百千万]+)\s*[章节回话折集篇幕]/u', $test_title, $m ) ) {
+		if ( preg_match( '/第\s*([0-9零一二两三四五六七八九十百千万廿卅卌]+)\s*[章节回话折集篇幕]/u', $test_title, $m ) ) {
 			return self::chinese_to_arabic( $m[1] );
 		}
 
@@ -228,7 +228,7 @@ class W2P_Novel_Helper {
 		}
 
 		// 6. 回X / 卷X / 篇X
-		if ( preg_match( '/^[回卷篇]\s*([0-9零一二两三四五六七八九十百千万]+)/u', $test_title, $m ) ) {
+		if ( preg_match( '/^[回卷篇]\s*([0-9零一二两三四五六七八九十百千万廿卅卌]+)/u', $test_title, $m ) ) {
 			return self::chinese_to_arabic( $m[1] );
 		}
 
@@ -288,13 +288,21 @@ class W2P_Novel_Helper {
 		// 容错前导装饰括号：如 【第一回】 或 [第一回]
 		$test_line = preg_replace( '/^[【\[（\(《\s]+/u', '', $line );
 
-		// 特殊章节名判断
-		if ( preg_match( '/^(楔子|序章|序言|前言|简介|内容简介|人物介绍|作品相关|引子|尾声|后记|完结感言|后续|终章|大结局|番外)/u', $test_line ) ) {
+		// 排除误判词根：当检测到以“第X节”开头紧跟常用量词/词素，或“第X部”开头紧跟分/队/门/位/长等，排除为非章节标题
+		if ( preg_match( '/^第\s*[0-9零一二两三四五六七八九十百千万廿卅卌]+\s*节\s*(课|点|日|天|次|步|个|分钟|秒|轮|期|名)/u', $test_line ) ) {
+			return false;
+		}
+		if ( preg_match( '/^第\s*[0-9零一二两三四五六七八九十百千万廿卅卌]+\s*部\s*(分|队|门|位|长)/u', $test_line ) ) {
+			return false;
+		}
+
+		// 特殊章节名判断（排除独立简介标记，使其归入小说简介提取）
+		if ( preg_match( '/^(楔子|序章|序言|前言|人物介绍|作品相关|引子|尾声|后记|完结感言|后续|终章|大结局|番外)/u', $test_line ) ) {
 			return true;
 		}
 
-		// 第X章 / 第X节 / 第X回 / 第X话 / 第X折 / 第X集 / 第X篇 / 第X幕
-		if ( preg_match( '/^第\s*[0-9零一二两三四五六七八九十百千万]+\s*[章节回话折集篇幕]/u', $test_line ) ) {
+		// 第X章 / 第X节 / 第X回 / 第X话 / 第X折 / 第X集 / 第X篇 / 第X幕 / 第X部
+		if ( preg_match( '/^第\s*[0-9零一二两三四五六七八九十百千万廿卅卌]+\s*[章节回话折集篇幕部]/u', $test_line ) ) {
 			return true;
 		}
 
@@ -304,7 +312,7 @@ class W2P_Novel_Helper {
 		}
 
 		// 回X / 卷X / 篇X 开头
-		if ( preg_match( '/^[回卷篇]\s*[0-9零一二两三四五六七八九十百千万]+/u', $test_line ) ) {
+		if ( preg_match( '/^[回卷篇]\s*[0-9零一二两三四五六七八九十百千万廿卅卌]+/u', $test_line ) ) {
 			return true;
 		}
 
@@ -314,6 +322,196 @@ class W2P_Novel_Helper {
 		}
 
 		return false;
+	}
+
+	/**
+	 * 清洗小说书名（去除作者名、版本修饰、状态括号与杂质符号）
+	 *
+	 * @param string $raw_name 原始名称或文件名
+	 * @param string $author   已知作者名（可选）
+	 * @return string 清洗后的纯净书名
+	 */
+	public static function clean_novel_title( $raw_name, $author = '' ) {
+		if ( empty( $raw_name ) ) {
+			return '';
+		}
+
+		$title = trim( (string) $raw_name );
+
+		// 0. 去除常见文件扩展名
+		$title = preg_replace( '/\.(?:txt|docx|doc|pdf|epub)$/iu', '', $title );
+
+		// 1. 优先提取《》内的纯书名（如《斗破苍穹》作者：天蚕土豆.txt -> 提取《斗破苍穹》）
+		if ( preg_match( '/《([^》]{1,50})》/u', $title, $m ) ) {
+			$title = trim( $m[1] );
+		}
+
+		// 2. 剥离前置分类/类型修饰括号块，如 【玄幻】、【都市修真】、[科幻] 等
+		$title = preg_replace( '/^[\[【(（][^\]】)）]{1,10}[\]】)）]\s*/u', '', $title );
+
+		// 3. 剥离版本/状态修饰括号块，如 (精校全本)、[完结]、【TXT精校】、(校对版)、(第1-500章)
+		$mod_pattern = '/[\(（\[【][^\)）\]】]*(?:Checked|checked|精校|校对|全本|全集|完结|完本|整理|未删减|更新|TXT|txt|分卷|第[0-9一二三四五六七八九十]+卷|[0-9]+-[0-9]+章)[^\)）\]】]*[\)）\]】]/u';
+		$title       = preg_replace( $mod_pattern, '', $title );
+
+		// 4. 剥离作者后缀或连字符分隔部分
+		if ( ! empty( $author ) ) {
+			$escaped_author = preg_quote( trim( $author ), '/' );
+			$title          = preg_replace( '/[-_\s]*(?:作者|著|文)?[:：\s]*' . $escaped_author . '.*$/u', '', $title );
+		}
+		// 常见通用作者剥离模式（如 " - 卖报小郎君"、" 作者：辰东"）
+		$title = preg_replace( '/[-_\s]+(?:作者|著|文)?[:：\s]*[^\s_\-\(\)\[\]（）【】]{2,20}$/u', '', $title );
+		$title = preg_replace( '/(?:作者|著|文)[:：\s]+[^\s_\-\(\)\[\]（）【】]{2,20}$/u', '', $title );
+
+		// 5. 剥离书名号、括号残留及多余首尾符号
+		$title = preg_replace( '/^[《【\[(（\s\-_]+|[》】\])）\s\-_]+$/u', '', $title );
+
+		return trim( $title );
+	}
+
+	/**
+	 * 从文档头部或前置文本行中提取作者、纯书名、分类与小说简介
+	 *
+	 * @param array|string $pre_chapter_lines 首章前文本行（数组或单文本）
+	 * @param string       $filename          文件名（用于辅助提取作者与书名）
+	 * @return array array( 'author' => string, 'intro' => string, 'title' => string, 'category' => string )
+	 */
+	public static function extract_author_and_intro( $pre_chapter_lines, $filename = '' ) {
+		if ( is_string( $pre_chapter_lines ) ) {
+			$lines = preg_split( '/\r\n|\r|\n/u', $pre_chapter_lines );
+			if ( ! is_array( $lines ) || empty( $lines ) ) {
+				$normalized = str_replace( array( "\r\n", "\r" ), "\n", $pre_chapter_lines );
+				$lines      = explode( "\n", $normalized );
+			}
+		} elseif ( is_array( $pre_chapter_lines ) ) {
+			$lines = $pre_chapter_lines;
+		} else {
+			$lines = array();
+		}
+
+		$author            = '';
+		$clean_title       = '';
+		$category          = '';
+		$intro_lines       = array();
+		$current_intro_len = 0;
+
+		// 1. 从文件名识别作者与书名（如《斗破苍穹》作者：天蚕土豆.txt、斗罗大陆(唐家三少著).txt、大奉打更人 - 卖报小郎君.txt 等）
+		if ( ! empty( $filename ) ) {
+			$raw_fn = pathinfo( $filename, PATHINFO_FILENAME );
+
+			// 提取文件名中的作者
+			if ( preg_match( '/(?:作者|著|文)[\s:：]+([^\s_\-\(\)\[\]（）【】]+)/u', $raw_fn, $m ) ) {
+				$author = trim( $m[1] );
+			} elseif ( preg_match( '/[\(（\[【]([^\s_\-\(\)\[\]（）【】]+)\s*(?:著|文|作品)[\)）\]】]/u', $raw_fn, $m ) ) {
+				$author = trim( $m[1] );
+			} elseif ( preg_match( '/^《?([^》]+)》?\s*[-_]\s*([^\s_\-\(\)\[\]（）【】]+)$/u', $raw_fn, $m ) ) {
+				$clean_title = trim( $m[1] );
+				$author      = trim( $m[2] );
+			}
+
+			// 如果书名尚未由上面确定，提取并清洗书名
+			if ( empty( $clean_title ) ) {
+				$clean_title = self::clean_novel_title( $raw_fn, $author );
+			}
+		}
+
+		// 2. 遍历前置行识别作者、分类、清洗元数据、精准定位简介
+		$in_intro_block   = false;
+		$explicit_intro   = array();
+		$metadata_pattern = '/(校对|精校|排版|制作|首发|字数|更新时间|最后更新|TXT下载|整理制作|更多精校|版权声明|录入|来源|首发网)/u';
+
+		foreach ( $lines as $raw_line ) {
+			$line = self::clean_line( $raw_line );
+			if ( $line === '' ) {
+				continue;
+			}
+
+			// 关键防护：一旦遇到章节标题或分卷标题，说明已进入正文阶段，立即终止头部与简介扫描！
+			if ( self::is_chapter_heading( $line ) || self::extract_volume( $line ) !== null ) {
+				break;
+			}
+
+			// A. 匹配文本中的作者行（支持 "作者：XXX"、"【作　者】XXX"、"著：XXX"、"文 / XXX"、"文：XXX"）
+			if ( empty( $author ) ) {
+				if ( preg_match( '/^(?:【?\s*(?:作\s*者|著\s*者|文\s*\/\s*|文\s*：|著)\s*】?)\s*[:：]?\s*([^\s,，。]+)/u', $line, $am ) ) {
+					$author = trim( preg_replace( '/^[【\[(（\s]+|[】\])）\s]+$/u', '', $am[1] ) );
+					continue;
+				} elseif ( preg_match( '/^([^:：\s]{2,10})\s+(?:著|编著|作品)$/u', $line, $am ) ) {
+					$author = trim( $am[1] );
+					continue;
+				}
+			} else {
+				// 已有作者时，跳过重复出现的作者行
+				if ( preg_match( '/^(?:【?\s*(?:作\s*者|著\s*者|文\s*\/\s*|文\s*：|著)\s*】?)\s*[:：]?/u', $line ) || preg_match( '/(?:著|编著|作品)$/u', $line ) ) {
+					continue;
+				}
+			}
+
+			// B. 识别分类/类型（如 "分类：玄幻魔法"、"类别：仙侠修真"、"类型：都市"）
+			if ( empty( $category ) ) {
+				if ( preg_match( '/^(?:【?\s*(?:分\s*类|类\s*别|类\s*型|属\s*性)\s*】?)\s*[:：]\s*([^\s,，。]+)/u', $line, $cm ) ) {
+					$category = trim( preg_replace( '/^[【\[(（\s]+|[】\])）\s]+$/u', '', $cm[1] ) );
+					continue;
+				}
+			}
+
+			// C. 排除纯书名行（如《书名》或 书名：XXX）
+			if ( preg_match( '/^(?:【?\s*书\s*名\s*】?)\s*[:：]?\s*(.+)$/u', $line, $tm ) ) {
+				if ( empty( $clean_title ) ) {
+					$clean_title = self::clean_novel_title( $tm[1], $author );
+				}
+				continue;
+			}
+			if ( preg_match( '/^《([^》]{1,40})》$/u', $line, $tm ) ) {
+				if ( empty( $clean_title ) ) {
+					$clean_title = self::clean_novel_title( $tm[1], $author );
+				}
+				continue;
+			}
+
+			// D. 排除校对/排版等元数据行（通常短于 50 字符）
+			if ( preg_match( $metadata_pattern, $line ) && mb_strlen( $line, 'UTF-8' ) < 50 ) {
+				continue;
+			}
+
+			// E. 检测显式简介标记（如 "内容简介"、"【作品简介】"、"简介："、"文案"）
+			if ( preg_match( '/^(?:【?\s*(?:内容简介|作品简介|书籍简介|文案|简介)\s*】?)\s*[:：]?\s*(.*)$/u', $line, $im ) ) {
+				$in_intro_block = true;
+				if ( ! empty( $im[1] ) ) {
+					$explicit_intro[]   = trim( $im[1] );
+					$current_intro_len += mb_strlen( $im[1], 'UTF-8' );
+				}
+				continue;
+			}
+
+			// F. 收集简介内容
+			if ( $in_intro_block ) {
+				$explicit_intro[]   = $line;
+				$current_intro_len += mb_strlen( $line, 'UTF-8' );
+			} else {
+				$intro_lines[]      = $line;
+				$current_intro_len += mb_strlen( $line, 'UTF-8' );
+			}
+
+			// 字数上限防膨胀兜底：简介长度达到或超过 1200 字符时立即终止扫描
+			if ( $current_intro_len >= 1200 ) {
+				break;
+			}
+		}
+
+		$final_intro_arr = ! empty( $explicit_intro ) ? $explicit_intro : $intro_lines;
+		$intro           = trim( implode( "\n\n", $final_intro_arr ) );
+
+		// 确保书名纯净无瑕
+		if ( ! empty( $clean_title ) ) {
+			$clean_title = self::clean_novel_title( $clean_title, $author );
+		}
+
+		return array(
+			'author'   => $author,
+			'intro'    => $intro,
+			'title'    => $clean_title,
+			'category' => $category,
+		);
 	}
 
 	/**

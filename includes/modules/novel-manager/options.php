@@ -22,16 +22,11 @@ return array(
 			'id'   => 'novel_manager_tabs',
 			'type' => 'tabbed',
 			'tabs' => array(
-				// Tab 1: Upload & Import Tool
+				// Tab 1: Novel Manager & Import
 				array(
-					'title'  => __( 'Upload & Import', 'wp-genius' ),
+					'title'  => __( 'Novel Manager & Import', 'wp-genius' ),
 					'icon'   => 'fa-solid fa-file-import',
 					'fields' => array(
-						array(
-							'id'      => '_subheading_novel_document_import',
-							'type'    => 'subheading',
-							'content' => __( 'Novel Document Import', 'wp-genius' ),
-						),
 						array(
 							'type'    => 'content',
 							'content' => ( function () use ( $module_dir ) {
@@ -47,16 +42,11 @@ return array(
 					),
 				),
 
-				// Tab 2: Fix Chapter Index
+				// Tab 2: Maintenance & Health Audit
 				array(
-					'title'  => __( 'Fix Chapter Index', 'wp-genius' ),
-					'icon'   => 'fa-solid fa-list-ol',
+					'title'  => __( 'Maintenance & Health Audit', 'wp-genius' ),
+					'icon'   => 'fa-solid fa-screwdriver-wrench',
 					'fields' => array(
-						array(
-							'id'      => '_subheading_chapter_index_fix',
-							'type'    => 'subheading',
-							'content' => __( 'Chapter Index Fix', 'wp-genius' ),
-						),
 						array(
 							'type'    => 'content',
 							'content' => ( function () use ( $module_dir ) {

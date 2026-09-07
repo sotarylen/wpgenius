@@ -109,6 +109,7 @@
 
 /* ========== 拖拽上传与文件框 ========== */
 .w2p-file-dropzone {
+	max-width: 70%;
 	position: relative;
 	border: 2px dashed #cbd5e1;
 	border-radius: 8px;
@@ -151,6 +152,14 @@
 	border-radius: 20px;
 	font-size: 13px;
 	font-weight: 500;
+	max-width: 90%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	vertical-align: middle;
+}
+.w2p-filename-tag:empty {
+	display: none !important;
 }
 
 /* ========== 封面上传预览 ========== */
@@ -254,15 +263,24 @@
 	font-size: 11px;
 	opacity: 0.7;
 }
-.w2p-edit-vol-input, .w2p-edit-title-input {
-	width: 100%;
+.w2p-edit-vol-input, .w2p-edit-title-input, .w2p-edit-index-input {
 	padding: 4px 8px;
 	border: 1px solid #cbd5e1;
 	border-radius: 4px;
 	font-size: 13px;
 	background: #fff;
+	box-sizing: border-box;
 }
-.w2p-edit-vol-input:focus, .w2p-edit-title-input:focus {
+.w2p-edit-vol-input, .w2p-edit-title-input {
+	width: 100%;
+}
+.w2p-edit-index-input {
+	width: 90px;
+	text-align: center;
+	font-family: Consolas, Monaco, "Courier New", monospace;
+	font-size: 12px;
+}
+.w2p-edit-vol-input:focus, .w2p-edit-title-input:focus, .w2p-edit-index-input:focus {
 	border-color: #3b82f6;
 	outline: none;
 	box-shadow: 0 0 0 1px #3b82f6;
@@ -343,6 +361,141 @@
 
 .w2p-form-actions {
 	margin-top: 20px;
+}
+
+/* ========== Novel Manager 模态框通用层 (Modal Overlay & Card) ========== */
+.w2p-novel-modal-overlay {
+	display: none;
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(0, 0, 0, 0.6);
+	z-index: var(--w2p-z-index-overlay, 100050);
+	justify-content: center;
+	align-items: center;
+}
+
+.w2p-novel-modal-overlay.active {
+	display: flex;
+}
+
+.w2p-novel-modal-card {
+	background: #fff;
+	border-radius: 8px;
+	width: 500px;
+	max-width: 90%;
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	animation: w2p-modal-scale 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes w2p-modal-scale {
+	from {
+		transform: scale(0.9);
+		opacity: 0;
+	}
+	to {
+		transform: scale(1);
+		opacity: 1;
+	}
+}
+
+.w2p-novel-modal-card .w2p-modal-header {
+	padding: 14px 20px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	border-bottom: 1px solid #e2e8f0;
+	background: #f8fafc;
+}
+
+.w2p-novel-modal-card .w2p-modal-title {
+	margin: 0;
+	font-size: 16px;
+	font-weight: 600;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.w2p-novel-modal-card .w2p-modal-close {
+	background: none;
+	border: none;
+	cursor: pointer;
+	font-size: 20px;
+	color: #64748b;
+	padding: 4px;
+	line-height: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: color 0.15s ease;
+}
+
+.w2p-novel-modal-card .w2p-modal-close:hover {
+	color: #0f172a;
+}
+
+.w2p-novel-modal-card .w2p-modal-body {
+	height: auto;
+	max-height: 70vh;
+	overflow-y: auto;
+	padding: 20px 24px;
+	font-size: 14px;
+	line-height: 1.6;
+	color: #334155;
+}
+
+.w2p-novel-modal-card .w2p-modal-footer {
+	padding: 14px 20px;
+	display: flex;
+	justify-content: center;
+	gap: 12px;
+	border-top: 1px solid #e2e8f0;
+	background: #f8fafc;
+}
+
+/* 二次确认高危警告框与通用状态样式补全 */
+.w2p-warning-box {
+	background: var(--w2p-color-warning-bg, #fff7ed);
+	border: 1px solid rgba(245, 158, 11, 0.2);
+	border-left: 4px solid var(--w2p-color-warning, #f59e0b);
+	padding: 12px 14px;
+	border-radius: 6px;
+	margin: 12px 0;
+	font-size: 13px;
+}
+
+.w2p-warning-box p {
+	margin: 4px 0;
+}
+
+.w2p-warning-note {
+	font-size: 13px;
+	color: var(--w2p-color-error, #ef4444);
+	font-weight: 500;
+	margin-top: 8px;
+}
+
+.w2p-btn-danger {
+	background: var(--w2p-color-error, #ef4444);
+	border-color: var(--w2p-color-error, #ef4444);
+	color: #fff;
+}
+
+.w2p-btn-danger:hover,
+.w2p-btn-danger:focus {
+	background: #dc2626;
+	border-color: #dc2626;
+	color: #fff;
+}
+
+.w2p-text-danger {
+	color: var(--w2p-color-error, #ef4444) !important;
 }
 
 /* 导入成功模态弹窗 */
@@ -512,6 +665,7 @@
 	padding-left: 36px !important;
 	padding-right: 32px !important;
 	height: 38px;
+	width: 100%;
 	border-radius: 6px;
 	border: 1px solid #cbd5e1;
 	font-size: 13px;
@@ -648,4 +802,300 @@
 .w2p-fix-empty-box {
 	padding: 12px;
 	text-align: center;
+}
+
+/* ==========================================================================
+   导入目标切换卡片与现有书籍增强样式
+   ========================================================================== */
+.w2p-target-steps-nav {
+	/* margin-bottom: 24px; */
+}
+
+.w2p-existing-novel-wrap,
+#w2p-manage-chapters-wrap {
+	display: none;
+}
+
+.w2p-strategy-cards {
+	display: flex;
+	gap: 16px;
+	width: 100%;
+}
+
+.w2p-strategy-card {
+	flex: 1;
+	display: block;
+	cursor: pointer;
+	border: 1px solid #e2e8f0;
+	border-radius: 8px;
+	background: #f8fafc;
+	padding: 12px 16px !important;
+	transition: all 0.2s ease;
+}
+
+.w2p-strategy-card:hover {
+	border-color: #10b981;
+	background: #ffffff;
+}
+
+.w2p-strategy-card.active {
+	border-color: #10b981;
+	background: #ffffff;
+	box-shadow: 0 0 0 2px #10b981;
+}
+
+.w2p-strategy-card.w2p-strategy-danger.active {
+	border-color: #ef4444;
+	background: #fff5f5;
+	box-shadow: 0 0 0 2px #ef4444;
+}
+
+.w2p-strategy-card-inner {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.w2p-strategy-icon {
+	font-size: 24px;
+	color: #10b981;
+	flex-shrink: 0;
+}
+
+.w2p-strategy-danger .w2p-strategy-icon {
+	color: #ef4444;
+}
+
+.w2p-strategy-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.w2p-strategy-text strong {
+	font-size: 14px;
+	color: #0f172a;
+}
+
+.w2p-strategy-text span {
+	font-size: 12px;
+	color: #64748b;
+}
+
+.w2p-hidden-radio {
+	position: absolute;
+	opacity: 0;
+	width: 0;
+	height: 0;
+}
+
+/* 现有书籍搜索与下拉结果 */
+.w2p-search-dropdown-results {
+	position: absolute;
+	left: 0;
+	top: 100%;
+	width: 100%;
+	max-width: 100%;
+	background: #ffffff;
+	border: 1px solid #cbd5e1;
+	border-radius: 6px;
+	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+	z-index: 100;
+	max-height: 240px;
+	overflow-y: auto;
+	margin-top: 4px;
+}
+
+.w2p-search-dropdown-item {
+	padding: 10px 14px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	cursor: pointer;
+	border-bottom: 1px solid #f1f5f9;
+	transition: background 0.15s ease;
+}
+
+.w2p-search-dropdown-item:last-child {
+	border-bottom: none;
+}
+
+.w2p-search-dropdown-item:hover {
+	background: #f8fafc;
+}
+
+.w2p-search-item-title {
+	font-weight: 600;
+	color: #0f172a;
+}
+
+.w2p-search-item-meta {
+	font-size: 12px;
+	color: #64748b;
+}
+
+/* 已选书籍展示卡片 */
+.w2p-selected-novel-card {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 12px 16px;
+	background: #ffffff;
+	border: 1px solid #10b981;
+	border-radius: 8px;
+	max-width: 650px;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.w2p-selected-novel-thumb {
+	width: 48px;
+	height: 64px;
+	border-radius: 4px;
+	background: #f1f5f9;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	color: #94a3b8;
+	font-size: 20px;
+	flex-shrink: 0;
+}
+
+.w2p-selected-novel-thumb img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.w2p-selected-novel-details {
+	flex: 1;
+}
+
+.w2p-selected-novel-title-wrap {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 4px;
+}
+
+.w2p-selected-novel-title-wrap h4 {
+	margin: 0;
+	font-size: 15px;
+	color: #0f172a;
+}
+
+.w2p-selected-novel-meta {
+	display: flex;
+	gap: 14px;
+	font-size: 12px;
+	color: #64748b;
+}
+
+/* 批量修改章节标题弹窗 */
+.w2p-batch-title-modal-card {
+	max-width: 520px;
+}
+
+.w2p-batch-title-tip {
+	font-size: 13px;
+	color: #64748b;
+	margin: 0 0 16px 0;
+	background: #f8fafc;
+	padding: 8px 12px;
+	border-radius: 6px;
+	border-left: 3px solid #10b981;
+}
+
+.w2p-batch-form-group {
+	margin-bottom: 16px;
+}
+
+.w2p-batch-form-group label {
+	display: block;
+	margin-bottom: 6px;
+	font-size: 13px;
+	color: #334155;
+}
+
+.w2p-batch-inputs-row {
+	display: flex;
+	gap: 10px;
+}
+
+.w2p-title-editable {
+	cursor: pointer;
+	border-bottom: 1px dashed #cbd5e1;
+	transition: all 0.2s;
+}
+
+.w2p-title-editable:hover {
+	color: #10b981;
+	border-bottom-color: #10b981;
+}
+
+.w2p-title-input-inline {
+	width: 100%;
+	height: 28px !important;
+	padding: 2px 6px !important;
+	font-size: 13px !important;
+}
+
+/* ========== 全库维护与健康体检面板样式 ========== */
+.w2p-text-success {
+	color: #16a34a !important;
+}
+
+.w2p-text-danger {
+	color: #dc2626 !important;
+}
+
+.w2p-status-box {
+	padding: 10px 14px;
+	background: #f8fafc;
+	border: 1px solid #e2e8f0;
+	border-radius: 6px;
+	margin-bottom: 14px;
+	font-size: 13px;
+	color: #475569;
+}
+
+.w2p-gap-tags-wrap {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	max-width: 420px;
+}
+
+.w2p-badge-gap {
+	display: inline-block;
+	background: #fff1f2;
+	color: #e11d48;
+	border: 1px solid #fecdd3;
+	border-radius: 3px;
+	padding: 1px 6px;
+	font-family: Consolas, Monaco, monospace;
+	font-size: 11px;
+	line-height: 1.4;
+}
+
+.w2p-badge-dup {
+	display: inline-block;
+	background: #fef3c7;
+	color: #b45309;
+	border: 1px solid #fde68a;
+	border-radius: 3px;
+	padding: 1px 6px;
+	font-family: Consolas, Monaco, monospace;
+	font-size: 11px;
+	line-height: 1.4;
+}
+
+.w2p-orphan-diag-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 4px;
+	font-size: 12px;
+	font-weight: 500;
+	background: #fee2e2;
+	color: #991b1b;
 }

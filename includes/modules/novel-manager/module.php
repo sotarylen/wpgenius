@@ -87,12 +87,15 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 	 */
 	public function init() {
 		// 注册 Ajax 动作：文档导入与预览
+		add_action( 'wp_ajax_w2p_novel_inspect_header', array( $this, 'ajax_inspect_header' ) );
 		add_action( 'wp_ajax_w2p_novel_parse_file', array( $this, 'ajax_parse_file' ) );
 		add_action( 'wp_ajax_w2p_novel_create_novel', array( $this, 'ajax_create_novel' ) );
 		add_action( 'wp_ajax_w2p_novel_import_batch', array( $this, 'ajax_import_batch' ) );
 		add_action( 'wp_ajax_w2p_novel_get_active_task', array( $this, 'ajax_get_active_task' ) );
 		add_action( 'wp_ajax_w2p_novel_discard_active_task', array( $this, 'ajax_discard_active_task' ) );
 		add_action( 'wp_ajax_w2p_novel_regen_indexes', array( $this, 'ajax_regenerate_indexes' ) );
+		add_action( 'wp_ajax_w2p_novel_get_target_novel_info', array( $this, 'ajax_get_target_novel_info' ) );
+		add_action( 'wp_ajax_w2p_novel_truncate_chapters', array( $this, 'ajax_truncate_chapters' ) );
 
 		// 注册 Ajax 动作：章节顺序重构与分卷识别
 		add_action( 'wp_ajax_w2p_novel_fix_search', array( $this, 'ajax_fix_search' ) );
@@ -101,6 +104,11 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 		add_action( 'wp_ajax_w2p_novel_fix_get_unfixed_novels', array( $this, 'ajax_fix_get_unfixed_novels' ) );
 		add_action( 'wp_ajax_w2p_novel_fix_auto_step', array( $this, 'ajax_fix_auto_step' ) );
 		add_action( 'wp_ajax_w2p_novel_fix_clear_progress', array( $this, 'ajax_fix_clear_progress' ) );
+
+		// 注册 Ajax 动作：全库维护中心（孤儿章节清理 + 章节完整性与断号体检）
+		add_action( 'wp_ajax_w2p_novel_scan_orphans', array( $this, 'ajax_scan_orphans' ) );
+		add_action( 'wp_ajax_w2p_novel_clean_orphans', array( $this, 'ajax_clean_orphans' ) );
+		add_action( 'wp_ajax_w2p_novel_audit_integrity', array( $this, 'ajax_audit_integrity' ) );
 
 		// 静态资源加载
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
@@ -185,6 +193,12 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 					'deletingChapters'    => __( 'Deleting chapters', 'wp-genius' ),
 					'deletingNovelItself' => __( 'Deleting the novel itself...', 'wp-genius' ),
 					'confirmDeleteNovel'  => __( 'Delete this novel AND all of its chapters? This cannot be undone.', 'wp-genius' ),
+					'confirmCleanOrphans' => __( 'Are you sure you want to permanently delete the selected orphan chapters? This cannot be undone.', 'wp-genius' ),
+					'noOrphansFound'      => __( 'No orphan chapters found. Database is clean!', 'wp-genius' ),
+					'orphansCleaned'      => __( 'Selected orphan chapters cleaned successfully.', 'wp-genius' ),
+					'auditCompleted'      => __( 'Chapter integrity audit completed.', 'wp-genius' ),
+					'rebuildSuccess'      => __( 'Chapter index rebuilt successfully.', 'wp-genius' ),
+					'docChangeDetected'   => __( 'Document change detected, please re-select and upload the document.', 'wp-genius' ),
 				),
 			)
 		);
@@ -215,6 +229,43 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 	}
 
 	/**
+	 * AJAX: 预览检查文档头部信息（即时提取书名、作者、简介与分类）
+	 */
+	public function ajax_inspect_header() {
+		check_ajax_referer( 'w2p_novel_import_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( __( 'Permission denied.', 'wp-genius' ) );
+		}
+
+		$header_text = isset( $_POST['header_text'] ) ? wp_unslash( $_POST['header_text'] ) : '';
+		$filename    = isset( $_POST['filename'] ) ? sanitize_text_field( wp_unslash( $_POST['filename'] ) ) : '';
+
+		$extracted = W2P_Novel_Helper::extract_author_and_intro( $header_text, $filename );
+
+		$category_id = 0;
+		if ( ! empty( $extracted['category'] ) ) {
+			$term = get_term_by( 'name', $extracted['category'], 'category' );
+			if ( ! $term ) {
+				$term = get_term_by( 'slug', sanitize_title( $extracted['category'] ), 'category' );
+			}
+			if ( $term && ! is_wp_error( $term ) ) {
+				$category_id = $term->term_id;
+			}
+		}
+
+		wp_send_json_success(
+			array(
+				'title'       => $extracted['title'],
+				'author'      => $extracted['author'],
+				'intro'       => $extracted['intro'],
+				'category'    => isset( $extracted['category'] ) ? $extracted['category'] : '',
+				'category_id' => $category_id,
+			)
+		);
+	}
+
+	/**
 	 * AJAX: 创建或更新 Novel 主文章（Phase 2 Step 1）
 	 */
 	public function ajax_create_novel() {
@@ -235,14 +286,15 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 			'content'        => isset( $_POST['content'] ) ? wp_kses_post( wp_unslash( $_POST['content'] ) ) : '',
 			'category_ids'   => isset( $_POST['category_ids'] ) ? array_map( 'absint', (array) $_POST['category_ids'] ) : array(),
 			'tag_ids'        => isset( $_POST['tag_ids'] ) ? array_map( 'absint', (array) $_POST['tag_ids'] ) : array(),
-			'tags'           => $tags,
-			'author_name'    => isset( $_POST['author_name'] ) ? sanitize_text_field( wp_unslash( $_POST['author_name'] ) ) : '',
-			'cover_id'       => isset( $_POST['cover_id'] ) ? absint( $_POST['cover_id'] ) : 0,
-			'author_id'      => isset( $_POST['author_id'] ) ? absint( $_POST['author_id'] ) : get_current_user_id(),
-			'novel_id'       => isset( $_POST['novel_id'] ) ? absint( $_POST['novel_id'] ) : 0,
-			'novel_status'   => isset( $_POST['novel_status'] ) ? sanitize_text_field( wp_unslash( $_POST['novel_status'] ) ) : '已完结',
-			'task_id'        => isset( $_POST['task_id'] ) ? sanitize_file_name( wp_unslash( $_POST['task_id'] ) ) : '',
-			'total_chapters' => isset( $_POST['total_chapters'] ) ? absint( $_POST['total_chapters'] ) : 0,
+			'tags'            => $tags,
+			'author_name'     => isset( $_POST['author_name'] ) ? sanitize_text_field( wp_unslash( $_POST['author_name'] ) ) : '',
+			'cover_id'        => isset( $_POST['cover_id'] ) ? absint( $_POST['cover_id'] ) : 0,
+			'author_id'       => isset( $_POST['author_id'] ) ? absint( $_POST['author_id'] ) : get_current_user_id(),
+			'novel_id'        => ! empty( $_POST['novel_id'] ) ? absint( $_POST['novel_id'] ) : ( ! empty( $_POST['existing_id'] ) ? absint( $_POST['existing_id'] ) : 0 ),
+			'novel_status'    => isset( $_POST['novel_status'] ) ? sanitize_text_field( wp_unslash( $_POST['novel_status'] ) ) : '已完结',
+			'import_strategy' => isset( $_POST['import_strategy'] ) ? sanitize_key( wp_unslash( $_POST['import_strategy'] ) ) : 'append',
+			'task_id'         => isset( $_POST['task_id'] ) ? sanitize_file_name( wp_unslash( $_POST['task_id'] ) ) : '',
+			'total_chapters'  => isset( $_POST['total_chapters'] ) ? absint( $_POST['total_chapters'] ) : 0,
 		);
 
 		$importer = new W2P_Novel_Importer();
@@ -252,7 +304,12 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 			wp_send_json_error( $novel_id->get_error_message() );
 		}
 
-		wp_send_json_success( array( 'novel_id' => $novel_id ) );
+		wp_send_json_success(
+			array(
+				'novel_id'  => $novel_id,
+				'permalink' => get_permalink( $novel_id ),
+			)
+		);
 	}
 
 	/**
@@ -365,10 +422,13 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 	}
 
 	/**
-	 * AJAX: 搜索小说（支持按 ID 或标题模糊查找）
+	 * AJAX: 搜索小说（支持按 ID 或标题模糊查找，同时兼容修复模块与导入模块）
 	 */
 	public function ajax_fix_search() {
-		check_ajax_referer( 'w2p_novel_fix_nonce', 'nonce' );
+		$nonce = isset( $_POST['nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) ) : '';
+		if ( ! wp_verify_nonce( $nonce, 'w2p_novel_fix_nonce' ) && ! wp_verify_nonce( $nonce, 'w2p_novel_import_nonce' ) ) {
+			wp_send_json_error( __( 'Security check failed.', 'wp-genius' ) );
+		}
 
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( __( 'Permission denied.', 'wp-genius' ) );
@@ -379,6 +439,82 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 		$list  = $fixer->search_novels( $query );
 
 		wp_send_json_success( array( 'novels' => $list ) );
+	}
+
+	/**
+	 * AJAX: 获取目标小说的现有信息与末章信息（供现有书籍导入、追加与重导使用）
+	 */
+	public function ajax_get_target_novel_info() {
+		$nonce = isset( $_POST['nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) ) : '';
+		if ( ! wp_verify_nonce( $nonce, 'w2p_novel_import_nonce' ) && ! wp_verify_nonce( $nonce, 'w2p_novel_fix_nonce' ) ) {
+			wp_send_json_error( __( 'Security check failed.', 'wp-genius' ) );
+		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( __( 'Permission denied.', 'wp-genius' ) );
+		}
+
+		$novel_id = isset( $_POST['novel_id'] ) ? absint( $_POST['novel_id'] ) : 0;
+		if ( ! $novel_id || 'novel' !== get_post_type( $novel_id ) ) {
+			wp_send_json_error( __( 'Invalid novel ID.', 'wp-genius' ) );
+		}
+
+		$novel = get_post( $novel_id );
+		$info  = W2P_Novel_Importer::get_novel_last_chapter_info( $novel_id );
+
+		// 封面与作者
+		$cover_url   = get_the_post_thumbnail_url( $novel_id, 'thumbnail' );
+		$human_terms = wp_get_post_terms( $novel_id, 'humans' );
+		$author_name = '';
+		if ( ! empty( $human_terms ) && ! is_wp_error( $human_terms ) ) {
+			$names       = wp_list_pluck( $human_terms, 'name' );
+			$author_name = implode( ', ', $names );
+		}
+
+		wp_send_json_success(
+			array(
+				'id'             => $novel_id,
+				'title'          => $novel->post_title,
+				'cover_url'      => $cover_url ? $cover_url : '',
+				'author_name'    => $author_name,
+				'total_chapters' => $info['total_chapters'],
+				'max_order'      => $info['max_order'],
+				'last_index'     => $info['last_index'],
+				'last_volume'    => $info['last_volume'],
+				'last_title'     => $info['last_title'],
+				'edit_link'      => get_edit_post_link( $novel_id ),
+			)
+		);
+	}
+
+	/**
+	 * AJAX: 彻底清空指定小说的所有章节（清空重导高危操作，严格鉴权）
+	 */
+	public function ajax_truncate_chapters() {
+		check_ajax_referer( 'w2p_novel_import_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( __( 'Permission denied.', 'wp-genius' ) );
+		}
+
+		$novel_id = isset( $_POST['novel_id'] ) ? absint( $_POST['novel_id'] ) : 0;
+		if ( ! $novel_id || 'novel' !== get_post_type( $novel_id ) ) {
+			wp_send_json_error( __( 'Invalid novel ID.', 'wp-genius' ) );
+		}
+
+		$count = W2P_Novel_Importer::truncate_novel_chapters( $novel_id );
+
+		wp_send_json_success(
+			array(
+				'novel_id'      => $novel_id,
+				'deleted_count' => $count,
+				'message'       => sprintf(
+					/* translators: %d: number of deleted chapters */
+					__( 'Successfully cleared %d existing chapters.', 'wp-genius' ),
+					$count
+				),
+			)
+		);
 	}
 
 	/**
@@ -418,6 +554,7 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 					if ( isset( $c['id'] ) ) {
 						$custom_chapters[] = array(
 							'id'         => absint( $c['id'] ),
+							'new_title'  => isset( $c['new_title'] ) ? sanitize_text_field( $c['new_title'] ) : '',
 							'new_index'  => isset( $c['new_index'] ) ? sanitize_text_field( $c['new_index'] ) : '',
 							'new_volume' => isset( $c['new_volume'] ) ? sanitize_text_field( $c['new_volume'] ) : '',
 						);
@@ -487,6 +624,58 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 		$fixer = new W2P_Novel_Fixer();
 		$fixer->clear_progress();
 		wp_send_json_success( array( 'message' => __( 'Progress records cleared.', 'wp-genius' ) ) );
+	}
+
+	/**
+	 * AJAX: 扫描孤儿章节
+	 */
+	public function ajax_scan_orphans() {
+		check_ajax_referer( 'w2p_novel_fix_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( __( 'Permission denied.', 'wp-genius' ) );
+		}
+
+		$fixer  = new W2P_Novel_Fixer();
+		$result = $fixer->scan_orphan_chapters();
+
+		wp_send_json_success( $result );
+	}
+
+	/**
+	 * AJAX: 清理指定的孤儿章节
+	 */
+	public function ajax_clean_orphans() {
+		check_ajax_referer( 'w2p_novel_fix_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( __( 'Permission denied.', 'wp-genius' ) );
+		}
+
+		$chapter_ids = isset( $_POST['chapter_ids'] ) ? (array) $_POST['chapter_ids'] : array();
+		$fixer       = new W2P_Novel_Fixer();
+		$result      = $fixer->clean_orphan_chapters( $chapter_ids );
+
+		wp_send_json_success( $result );
+	}
+
+	/**
+	 * AJAX: 章节完整性与断号体检
+	 */
+	public function ajax_audit_integrity() {
+		check_ajax_referer( 'w2p_novel_fix_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( __( 'Permission denied.', 'wp-genius' ) );
+		}
+
+		$offset = isset( $_POST['offset'] ) ? absint( $_POST['offset'] ) : 0;
+		$limit  = isset( $_POST['limit'] ) ? absint( $_POST['limit'] ) : 20;
+
+		$fixer  = new W2P_Novel_Fixer();
+		$result = $fixer->audit_novel_chapters_integrity( $offset, $limit );
+
+		wp_send_json_success( $result );
 	}
 
 	// =========================================================================
