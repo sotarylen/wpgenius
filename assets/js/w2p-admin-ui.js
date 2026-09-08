@@ -31,8 +31,9 @@
          * Create the modal overlay structure
          */
         createModalOverlay: function () {
-            if (!document.querySelector('.w2p-modal-overlay')) {
+            if (!document.getElementById('w2p-global-confirm-modal')) {
                 const overlay = document.createElement('div');
+                overlay.id = 'w2p-global-confirm-modal';
                 overlay.className = 'w2p-modal-overlay';
                 overlay.innerHTML = `
                     <div class="w2p-confirm-modal">
@@ -56,8 +57,10 @@
                 document.body.appendChild(overlay);
 
                 // Bind close events
-                overlay.querySelector('.w2p-modal-close').addEventListener('click', () => this.closeModal());
-                overlay.querySelector('.w2p-modal-cancel').addEventListener('click', () => this.closeModal());
+                const closeBtn = overlay.querySelector('.w2p-modal-close');
+                const cancelBtn = overlay.querySelector('.w2p-modal-cancel');
+                if (closeBtn) closeBtn.addEventListener('click', () => this.closeModal());
+                if (cancelBtn) cancelBtn.addEventListener('click', () => this.closeModal());
             }
         },
 
@@ -125,36 +128,51 @@
             // Ensure overlay exists (lazy load)
             this.createModalOverlay();
 
-            const overlay = document.querySelector('.w2p-modal-overlay');
+            const overlay = document.getElementById('w2p-global-confirm-modal');
+            if (!overlay) {
+                if (window.confirm(message)) {
+                    if (typeof onConfirm === 'function') onConfirm();
+                } else if (typeof onCancel === 'function') {
+                    onCancel();
+                }
+                return;
+            }
+
             const title = overlay.querySelector('.w2p-modal-title');
             const body = overlay.querySelector('.w2p-modal-body');
             const confirmBtn = overlay.querySelector('.w2p-modal-confirm');
             const cancelBtn = overlay.querySelector('.w2p-modal-cancel');
 
-            title.textContent = window.w2p_ui_i18n ? window.w2p_ui_i18n.confirm_title : 'Confirm Action';
-            body.textContent = message;
+            if (title) title.textContent = window.w2p_ui_i18n ? window.w2p_ui_i18n.confirm_title : 'Confirm Action';
+            if (body) body.textContent = message;
 
             // Reset clones to remove old listeners
-            const newConfirmBtn = confirmBtn.cloneNode(true);
-            const newCancelBtn = cancelBtn.cloneNode(true);
-            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+            if (confirmBtn) {
+                const newConfirmBtn = confirmBtn.cloneNode(true);
+                confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+                newConfirmBtn.addEventListener('click', () => {
+                    this.closeModal();
+                    if (typeof onConfirm === 'function') onConfirm();
+                });
+            }
 
-            newConfirmBtn.addEventListener('click', () => {
-                this.closeModal();
-                if (typeof onConfirm === 'function') onConfirm();
-            });
-
-            newCancelBtn.addEventListener('click', () => {
-                this.closeModal();
-                if (typeof onCancel === 'function') onCancel();
-            });
+            if (cancelBtn) {
+                const newCancelBtn = cancelBtn.cloneNode(true);
+                cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+                newCancelBtn.addEventListener('click', () => {
+                    this.closeModal();
+                    if (typeof onCancel === 'function') onCancel();
+                });
+            }
 
             overlay.classList.add('active');
         },
 
         closeModal: function () {
-            document.querySelector('.w2p-modal-overlay').classList.remove('active');
+            const overlay = document.getElementById('w2p-global-confirm-modal');
+            if (overlay) {
+                overlay.classList.remove('active');
+            }
         },
 
         /**

@@ -668,7 +668,7 @@
 
 .csf-field .csf-title {
     position: relative;
-    width: 25%;
+    width: 20%;
     float: left
 }
 
@@ -3517,7 +3517,7 @@
 
 .csf-subtitle-text {
     margin-top: 6px;
-    /* padding-left: 20px; */
+    padding-left: 20px;
     font-weight: 400;
     color: #999
 }

@@ -226,7 +226,7 @@
 	justify-content: space-between;
 	align-items: center;
 	padding: 12px 15px;
-	background: #f1f5f9;
+	/* background: #f1f5f9; */
 	border-radius: 6px;
 	border: 1px solid #e2e8f0;
 	margin-bottom: 12px;
@@ -1098,4 +1098,51 @@
 	font-weight: 500;
 	background: #fee2e2;
 	color: #991b1b;
+}
+
+/* 短章节异常过滤器与高亮 */
+.w2p-short-filter-wrap {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-left: 10px;
+	padding-left: 10px;
+	border-left: 1px solid #cbd5e1;
+}
+
+.w2p-short-filter-wrap .w2p-filter-label {
+	font-size: 12px;
+	color: #64748b;
+	white-space: nowrap;
+}
+
+.w2p-threshold-input {
+	width: 75px !important;
+	height: 30px !important;
+	padding: 2px 6px !important;
+	font-size: 13px !important;
+	border-radius: 4px !important;
+	border: 1px solid #cbd5e1 !important;
+	text-align: center;
+}
+
+.w2p-preview-table tr.w2p-row-warning {
+	background-color: #fff7ed !important;
+}
+
+.w2p-preview-table tr.w2p-row-warning td:first-child {
+	border-left: 4px solid #f97316 !important;
+}
+
+.w2p-row-warning .w2p-word-count-cell {
+	color: #c2410c !important;
+	font-weight: 600;
+}
+
+.w2p-word-warning-badge {
+	display: inline-flex;
+	align-items: center;
+	margin-left: 4px;
+	color: #ea580c;
+	font-size: 12px;
 }

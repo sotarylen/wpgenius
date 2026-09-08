@@ -199,6 +199,7 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 					'auditCompleted'      => __( 'Chapter integrity audit completed.', 'wp-genius' ),
 					'rebuildSuccess'      => __( 'Chapter index rebuilt successfully.', 'wp-genius' ),
 					'docChangeDetected'   => __( 'Document change detected, please re-select and upload the document.', 'wp-genius' ),
+					'volumeUpdated'       => __( 'Volume updated for %d chapters.', 'wp-genius' ),
 				),
 			)
 		);

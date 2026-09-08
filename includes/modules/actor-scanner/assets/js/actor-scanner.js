@@ -41,7 +41,7 @@
 					$btn.prop( 'disabled', false ).find( 'i' ).removeClass( 'fa-spin' );
 					if ( res && res.success && res.data ) {
 						$( '#actor-gf-status .w2p-status-label' ).html(
-							'<i class="fa-solid fa-circle-check" style="color:var(--w2p-color-success);"></i> ' +
+							'<i class="fa-solid fa-circle-check w2p-text-success"></i> ' +
 							'Currently indexed official actors: ' + res.data.actors
 						);
 						alert( window.w2pActorScanner.i18n.indexReady || 'Gfriends index sync complete!' );

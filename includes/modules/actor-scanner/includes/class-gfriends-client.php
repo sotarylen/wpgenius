@@ -147,25 +147,38 @@ class W2P_Gfriends_Client {
 
 		$index_file = $this->index_file_path();
 
+		// Offline-first: if not forced and local file exists, always use local file.
 		if ( ! $force && file_exists( $index_file ) ) {
-			$age = time() - filemtime( $index_file );
-			if ( $age < $this->cache_ttl ) {
-				$json = file_get_contents( $index_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions
-				$data = json_decode( $json, true );
-				if ( is_array( $data ) ) {
-					$this->actor_index = $data;
-					return $data;
-				}
+			$json = file_get_contents( $index_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+			$data = json_decode( $json, true );
+			if ( is_array( $data ) ) {
+				$this->actor_index = $data;
+				return $data;
 			}
 		}
 
-		$index = $this->build_actor_index();
-		if ( ! empty( $index ) ) {
-			$this->save_index_file( $index );
+		// Only trigger remote build if explicitly forced.
+		if ( $force ) {
+			$index = $this->build_actor_index();
+			if ( ! empty( $index ) ) {
+				$this->save_index_file( $index );
+				$this->actor_index = $index;
+				return $index;
+			}
 		}
 
-		$this->actor_index = $index;
-		return $index;
+		// Fallback: If local file exists, try reading it.
+		if ( file_exists( $index_file ) ) {
+			$json = file_get_contents( $index_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+			$data = json_decode( $json, true );
+			if ( is_array( $data ) ) {
+				$this->actor_index = $data;
+				return $data;
+			}
+		}
+
+		$this->actor_index = array();
+		return $this->actor_index;
 	}
 
 	/**
@@ -191,6 +204,7 @@ class W2P_Gfriends_Client {
 		}
 		// phpcs:ignore WordPress.WP.AlternativeFunctions
 		file_put_contents( $file, wp_json_encode( $index, JSON_UNESCAPED_UNICODE ) );
+		update_option( 'w2p_gfriends_actor_count', count( $index ), false );
 	}
 
 	/**
@@ -351,13 +365,21 @@ class W2P_Gfriends_Client {
 		return $this->avatar_url( $best['company'], $best['file'], $cdn );
 	}
 
-	/**
-	 * Count of actors in the index.
-	 *
-	 * @return int
-	 */
 	public function count_actors() {
-		return count( $this->get_actor_index() );
+		$cached_count = get_option( 'w2p_gfriends_actor_count', false );
+		if ( false !== $cached_count ) {
+			return (int) $cached_count;
+		}
+
+		$index_file = $this->index_file_path();
+		if ( file_exists( $index_file ) ) {
+			$index = $this->get_actor_index();
+			$count = count( $index );
+			update_option( 'w2p_gfriends_actor_count', $count, false );
+			return $count;
+		}
+
+		return 0;
 	}
 
 	/**

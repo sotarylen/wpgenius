@@ -157,6 +157,8 @@ class W2P_Novel_Importer {
 			gc_collect_cycles();
 		}
 
+		W2P_Novel_Helper::purge_novel_cache( $novel_id );
+
 		return $deleted_count;
 	}
 
@@ -323,10 +325,13 @@ class W2P_Novel_Importer {
 
 			// 1. 检查是否为分卷行
 			$vol_info = W2P_Novel_Helper::extract_volume( $line );
-			if ( $vol_info && ! W2P_Novel_Helper::is_chapter_heading( $line ) ) {
-				$current_vol     = $vol_info['vol_name'];
-				$current_vol_idx = $vol_info['vol_idx'];
-				continue;
+			if ( $vol_info ) {
+				$has_sub_chapter = preg_match( '/第\s*[0-9零一二两三四五六七八九十百千万廿卅卌]+\s*[章节回话折篇幕]|Chapter\s*\d+/ui', $line );
+				if ( ! $has_sub_chapter ) {
+					$current_vol     = $vol_info['vol_name'];
+					$current_vol_idx = $vol_info['vol_idx'];
+					continue;
+				}
 			}
 
 			// 2. 检查是否为章节标题行
@@ -436,10 +441,13 @@ class W2P_Novel_Importer {
 					|| W2P_Novel_Helper::is_chapter_heading( $clean_text );
 
 				$vol_info = W2P_Novel_Helper::extract_volume( $clean_text );
-				if ( $vol_info && ! W2P_Novel_Helper::is_chapter_heading( $clean_text ) ) {
-					$current_vol     = $vol_info['vol_name'];
-					$current_vol_idx = $vol_info['vol_idx'];
-					continue;
+				if ( $vol_info ) {
+					$has_sub_chapter = preg_match( '/第\s*[0-9零一二两三四五六七八九十百千万廿卅卌]+\s*[章节话回折篇幕]|Chapter\s*\d+/ui', $clean_text );
+					if ( ! $has_sub_chapter ) {
+						$current_vol     = $vol_info['vol_name'];
+						$current_vol_idx = $vol_info['vol_idx'];
+						continue;
+					}
 				}
 
 				if ( $is_heading ) {
@@ -520,13 +528,20 @@ class W2P_Novel_Importer {
 		if ( $chap_num === null ) {
 			$chap_num = $chap_counter;
 			++$chap_counter;
-		} elseif ( $chap_num > 0 ) {
+		} elseif ( $chap_num > 0 && $chap_num < 90000 ) {
 			$chap_counter = $chap_num + 1;
 		}
 
 		if ( $vol_info ) {
 			$current_vol     = $vol_info['vol_name'];
-			$current_vol_idx = $vol_info['vol_idx'];
+			$current_vol_idx = intval( $vol_info['vol_idx'] );
+		} elseif ( ! empty( $current_vol ) && preg_match( '/(?:番外|外传|后传|前传|别传|新传|特别篇|作品相关)/u', $current_vol ) ) {
+			$current_vol_idx = 99;
+		}
+
+		// 番外卷序号提升规则 (99-99001)
+		if ( 99 === $current_vol_idx && $chap_num > 0 && $chap_num < 90000 ) {
+			$chap_num = 99000 + $chap_num;
 		}
 
 		$index_str = W2P_Novel_Helper::format_chapter_index( $current_vol_idx, $chap_num );
@@ -854,8 +869,9 @@ class W2P_Novel_Importer {
 			$active_task['updated_at']     = current_time( 'mysql' );
 
 			if ( $active_task['imported_count'] >= intval( $active_task['total_chapters'] ) ) {
-				// 全部导入完成，自动清理任务记录与临时缓存文件
+				// 全部导入完成，自动清理任务记录与临时缓存文件并刷新前后台缓存
 				self::discard_active_task();
+				W2P_Novel_Helper::purge_novel_cache( $novel_id );
 			} else {
 				update_option( 'w2p_novel_active_import_task', $active_task );
 			}

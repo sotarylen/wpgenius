@@ -83,6 +83,16 @@ class Plugin {
 		if ( isset( $_POST['w2p_smart_aui_processed'] ) || isset( $_GET['w2p_smart_aui_processed'] ) ) {
 			return $data;
 		}
+
+		// Check if post type is excluded via user settings or standard filter hook
+		$post_type = isset( $postarr['post_type'] ) ? $postarr['post_type'] : ( isset( $data['post_type'] ) ? $data['post_type'] : '' );
+		if ( ! empty( $post_type ) ) {
+			$settings = self::get_settings();
+			$excluded = isset( $settings['exclude_post_types'] ) && is_array( $settings['exclude_post_types'] ) ? $settings['exclude_post_types'] : [];
+			if ( in_array( $post_type, $excluded, true ) || apply_filters( 'smart_aui_skip_post_processing', false, $post_type, $postarr ) ) {
+				return $data;
+			}
+		}
 		
 		// If forced processing is requested, we skip AJAX and Revision checks
 		$is_forced = ( defined( 'W2P_FORCE_IMAGE_PROCESS' ) && W2P_FORCE_IMAGE_PROCESS );

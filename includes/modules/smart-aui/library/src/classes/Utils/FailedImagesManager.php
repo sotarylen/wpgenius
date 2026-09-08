@@ -44,7 +44,7 @@ class FailedImagesManager {
 			$failed_logs = array_slice( $failed_logs, -500, null, true );
 		}
 
-		update_option( self::OPTION_NAME, $failed_logs );
+		update_option( self::OPTION_NAME, $failed_logs, false );
 	}
 
 	/**
@@ -78,5 +78,13 @@ class FailedImagesManager {
 	 */
 	public function clear_logs(): void {
 		delete_option( self::OPTION_NAME );
+		wp_cache_delete( self::OPTION_NAME, 'options' );
+
+		// Ensure alloptions cache in Redis/Object Cache is cleaned up
+		$alloptions = wp_load_alloptions( true );
+		if ( is_array( $alloptions ) && isset( $alloptions[ self::OPTION_NAME ] ) ) {
+			unset( $alloptions[ self::OPTION_NAME ] );
+			wp_cache_set( 'alloptions', $alloptions, 'options' );
+		}
 	}
 }

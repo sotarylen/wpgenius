@@ -393,7 +393,7 @@ jQuery(document).ready(function ($) {
             return;
         }
         const firstIdx = parseInt($selected.first().val(), 10);
-        const defaultVol = currentManageChapters[firstIdx] ? currentManageChapters[firstIdx].new_volume : '';
+        const defaultVol = currentManageChapters[firstIdx] ? (currentManageChapters[firstIdx].new_volume || currentManageChapters[firstIdx].volume || '') : '';
         const newVol = prompt('Enter new volume name for selected chapters:', defaultVol);
         if (newVol === null) return;
         const trimmed = $.trim(newVol);
@@ -403,10 +403,13 @@ jQuery(document).ready(function ($) {
             const idx = parseInt($(this).val(), 10);
             if (currentManageChapters[idx] !== undefined) {
                 currentManageChapters[idx].new_volume = trimmed;
+                currentManageChapters[idx].volume = trimmed;
             }
         });
+        renderManageChaptersTable();
         manageRecalculateIndexes(false);
-        showToast('Volume updated for ' + $selected.length + ' chapters. Indexes recalculated.', 'success');
+        const updateMsg = (i18n.volumeUpdated || 'Volume updated for %d chapters.').replace('%d', $selected.length);
+        showToast(updateMsg, 'success');
     });
 
     // 重建索引
@@ -425,7 +428,8 @@ jQuery(document).ready(function ($) {
         const $btn = $('#w2p-manage-regen-index-btn').prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Regenerating...');
 
         const payload = currentManageChapters.map(function (chap) {
-            return { volume: chap.new_volume || '', title: chap.title || '' };
+            const vol = (chap.new_volume !== undefined && chap.new_volume !== null && chap.new_volume !== '') ? chap.new_volume : (chap.volume || '正文');
+            return { volume: vol, title: chap.title || '' };
         });
 
         $.post(params.ajaxUrl, {
@@ -438,7 +442,10 @@ jQuery(document).ready(function ($) {
                 res.data.items.forEach(function (item, idx) {
                     if (currentManageChapters[idx] !== undefined) {
                         currentManageChapters[idx].new_index = item.chapter_index;
-                        currentManageChapters[idx].new_volume = item.volume;
+                        if (item.volume !== undefined && item.volume !== null && item.volume !== '') {
+                            currentManageChapters[idx].new_volume = item.volume;
+                            currentManageChapters[idx].volume = item.volume;
+                        }
                     }
                 });
                 renderManageChaptersTable();
@@ -810,6 +817,8 @@ jQuery(document).ready(function ($) {
         targetChap.word_count = (parseInt(targetChap.word_count, 10) || 0) + (parseInt(srcChap.word_count, 10) || 0);
     }
 
+    let isShortFilterOnly = false;
+
     // 渲染预览表格
     function renderChaptersTable() {
         const tbody = $('#w2p-chapters-preview-tbody');
@@ -820,7 +829,8 @@ jQuery(document).ready(function ($) {
 
         parsedChapters.forEach(function (chap, idx) {
             chap.index = idx + 1;
-            totalWords += parseInt(chap.word_count || 0, 10);
+            const words = parseInt(chap.word_count, 10) || 0;
+            totalWords += words;
             if (chap.volume) volSet.add(chap.volume);
 
             const tr = $('<tr></tr>').attr('data-idx', idx);
@@ -829,7 +839,7 @@ jQuery(document).ready(function ($) {
             tr.append('<td><input type="text" class="w2p-edit-index-input" data-idx="' + idx + '" value="' + escAttr(chap.chapter_index) + '"></td>');
             tr.append('<td><input type="text" class="w2p-edit-vol-input" data-idx="' + idx + '" value="' + escAttr(chap.volume) + '"></td>');
             tr.append('<td><input type="text" class="w2p-edit-title-input" data-idx="' + idx + '" value="' + escAttr(chap.title) + '"></td>');
-            tr.append('<td>' + (chap.word_count ? chap.word_count.toLocaleString() : '0') + '</td>');
+            tr.append('<td class="w2p-word-count-cell" data-words="' + words + '">' + (words ? words.toLocaleString() : '0') + '</td>');
             tr.append('<td><button type="button" class="w2p-btn w2p-btn-danger w2p-btn-sm w2p-del-row-btn" data-idx="' + idx + '"><i class="fa-solid fa-trash-can"></i></button></td>');
 
             tbody.append(tr);
@@ -838,7 +848,49 @@ jQuery(document).ready(function ($) {
         $('#w2p-stat-chapters').text(parsedChapters.length.toLocaleString());
         $('#w2p-stat-volumes').text(volSet.size);
         $('#w2p-stat-words').text(totalWords.toLocaleString());
+        updateShortChapterHighlights();
         clearCsfFormWarning();
+    }
+
+    // 更新短章节异常高亮与过滤
+    function updateShortChapterHighlights() {
+        const threshold = parseInt($('#w2p-word-threshold-input').val(), 10) || 0;
+        let shortCount = 0;
+
+        $('#w2p-chapters-preview-tbody tr').each(function () {
+            const $tr = $(this);
+            const $cell = $tr.find('.w2p-word-count-cell');
+            const words = parseInt($cell.attr('data-words'), 10) || 0;
+
+            if (threshold > 0 && words < threshold) {
+                shortCount++;
+                $tr.addClass('w2p-row-warning');
+                if ($cell.find('.w2p-word-warning-badge').length === 0) {
+                    $cell.append('<span class="w2p-word-warning-badge" title="Words below threshold"><i class="fa-solid fa-triangle-exclamation"></i></span>');
+                }
+            } else {
+                $tr.removeClass('w2p-row-warning');
+                $cell.find('.w2p-word-warning-badge').remove();
+            }
+
+            if (isShortFilterOnly) {
+                if ($tr.hasClass('w2p-row-warning')) {
+                    $tr.show();
+                } else {
+                    $tr.hide();
+                }
+            } else {
+                $tr.show();
+            }
+        });
+
+        const $badge = $('#w2p-short-count-badge');
+        $badge.text(shortCount);
+        if (shortCount > 0) {
+            $badge.removeClass('w2p-hidden').show();
+        } else {
+            $badge.addClass('w2p-hidden').hide();
+        }
     }
 
     // 监听实时修改
@@ -1213,6 +1265,37 @@ jQuery(document).ready(function ($) {
         }
     });
 
+    // 短章节异常过滤交互事件
+    $(document).on('input change', '#w2p-word-threshold-input', function (e) {
+        e.stopPropagation();
+        updateShortChapterHighlights();
+    });
+
+    $('#w2p-filter-short-toggle-btn').on('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        isShortFilterOnly = !isShortFilterOnly;
+        $(this).toggleClass('w2p-btn-warning active', isShortFilterOnly);
+        updateShortChapterHighlights();
+    });
+
+    $('#w2p-select-short-btn').on('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const $warningRows = $('#w2p-chapters-preview-tbody tr.w2p-row-warning');
+        if ($warningRows.length === 0) {
+            showToast(i18n.noShortChapters || 'No anomaly chapters found below threshold.', 'info');
+            return;
+        }
+        $('.w2p-chap-checkbox').prop('checked', false);
+        $warningRows.find('.w2p-chap-checkbox').prop('checked', true);
+
+        const totalCbs = $('.w2p-chap-checkbox').length;
+        const checkedCbs = $('.w2p-chap-checkbox:checked').length;
+        $('#w2p-check-all-chapters').prop('checked', totalCbs > 0 && totalCbs === checkedCbs);
+        showToast((i18n.selectedAnomalies || 'Selected anomalies: ') + $warningRows.length, 'success');
+    });
+
     $('#w2p-preview-reparse-btn').on('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
@@ -1220,6 +1303,8 @@ jQuery(document).ready(function ($) {
         $('#w2p-novel-step-preview').slideUp(200);
         $('#w2p-novel-step-upload').slideDown(300);
         parsedChapters = [];
+        isShortFilterOnly = false;
+        $('#w2p-filter-short-toggle-btn').removeClass('w2p-btn-warning active');
         $('#w2p_novel_file').val('');
         $('#w2p-selected-filename').text('').addClass('w2p-hidden').hide();
         clearCsfFormWarning();

@@ -10,7 +10,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$module_dir = plugin_dir_path( __FILE__ );
+if ( ! function_exists( 'w2p_actor_scanner_render_tab_scanner' ) ) {
+	/**
+	 * Render Actor Scanner Gfriends Index Tab.
+	 */
+	function w2p_actor_scanner_render_tab_scanner() {
+		$view_file = plugin_dir_path( __FILE__ ) . 'views/tab-scanner.php';
+		if ( file_exists( $view_file ) ) {
+			include $view_file;
+		}
+	}
+}
 
 return array(
 	'module_id' => 'actor-scanner',
@@ -28,16 +38,8 @@ return array(
 					'icon'   => 'fa-solid fa-cloud-arrow-down',
 					'fields' => array(
 						array(
-							'type'    => 'content',
-							'content' => ( function () use ( $module_dir ) {
-								$view_file = $module_dir . 'views/tab-scanner.php';
-								if ( file_exists( $view_file ) ) {
-									ob_start();
-									include $view_file;
-									return ob_get_clean();
-								}
-								return '<p class="w2p-error">' . __( 'View file not found: views/tab-scanner.php', 'wp-genius' ) . '</p>';
-							} )(),
+							'type'     => 'callback',
+							'function' => 'w2p_actor_scanner_render_tab_scanner',
 						),
 					),
 				),

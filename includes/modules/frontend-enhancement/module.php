@@ -53,6 +53,10 @@ class W2P_FrontendEnhancementModule extends W2P_Abstract_Module {
 		// Frontend asset loading (only on required pages)
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
 
+		// LX Music local dock: independent of the singular-only gate so the
+		// site owner's status bar works on any frontend page.
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_lx_assets' ), 20 );
+
 		// Lightbox functionality
 		if ( ! empty( $settings['lightbox_enabled'] ) ) {
 			$this->init_lightbox();
@@ -75,9 +79,9 @@ class W2P_FrontendEnhancementModule extends W2P_Abstract_Module {
 			$this->init_reader();
 		}
 
-		// Audio player (reserved)
-		if ( ! empty( $settings['audio_enabled'] ) ) {
-			$this->init_audio_player();
+		// Music capability line (playlists, tags, lyrics)
+		if ( ! empty( $settings['music_enabled'] ) ) {
+			$this->init_music( $settings );
 		}
 
 		// Code highlighting functionality
@@ -125,7 +129,30 @@ class W2P_FrontendEnhancementModule extends W2P_Abstract_Module {
 			$settings = array_merge( $settings, $settings['frontend_enhancement_tabs'] );
 		}
 
-		return $settings;
+		// Fill missing Music keys with defaults (CSF only persists on save).
+		return array_merge( self::music_defaults(), $settings );
+	}
+
+	/**
+	 * Music feature defaults (single source, matches CSF defaults).
+	 *
+	 * @return array
+	 */
+	public static function music_defaults() {
+		return array(
+			'music_enabled'                => true,
+			'music_player_mode'            => 'card',
+			'music_playlist_order'         => 'sequence',
+			'music_embed_default_platform' => 'netease',
+			'music_embed_autoplay'         => false,
+			'music_tag_extract'            => true,
+			'music_lyric_priority'         => 'file',
+			'music_lx_enabled'             => false,
+			'music_lx_port'                => 23330,
+			'music_lx_timeout'             => 2000,
+			'music_lx_sse'                 => true,
+			'music_lx_visible'             => 'admin',
+		);
 	}
 
 	/**
@@ -223,6 +250,32 @@ class W2P_FrontendEnhancementModule extends W2P_Abstract_Module {
 	}
 
 	/**
+	 * Check if current post has music content (playlists or audio).
+	 *
+	 * @return boolean
+	 */
+	private function has_music_content() {
+		if ( ! is_singular() ) {
+			return false;
+		}
+
+		global $post;
+		if ( ! $post instanceof WP_Post ) {
+			return false;
+		}
+
+		// Playlist shortcode, platform embeds, core audio block or raw audio tags.
+		if ( has_shortcode( $post->post_content, 'wpg_playlist' ) ||
+			has_shortcode( $post->post_content, 'wpg_music' ) ||
+			has_block( 'core/audio' ) ||
+			strpos( $post->post_content, '<audio' ) !== false ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
 	 * Frontend asset loading (on-demand)
 	 */
 	public function enqueue_frontend_assets() {
@@ -256,6 +309,11 @@ class W2P_FrontendEnhancementModule extends W2P_Abstract_Module {
 		// Reader enhancement assets (Strict Check: Only if container ID exists)
 		if ( ! empty( $settings['reader_enabled'] ) && $this->has_reader_container() ) {
 			$this->enqueue_reader_assets();
+		}
+
+		// Music assets (playlists / audio content)
+		if ( ! empty( $settings['music_enabled'] ) && $this->has_music_content() ) {
+			$this->enqueue_music_assets();
 		}
 	}
 
@@ -429,6 +487,130 @@ class W2P_FrontendEnhancementModule extends W2P_Abstract_Module {
 
 
 	/**
+	 * Enqueue Music assets (local APlayer vendor).
+	 *
+	 * @return void
+	 */
+	private function enqueue_music_assets() {
+		$settings = $this->get_settings();
+
+		// Guard: only load when enabled and music content exists.
+		if ( empty( $settings['music_enabled'] ) || ! $this->has_music_content() ) {
+			return;
+		}
+
+		$base = plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/';
+
+		wp_enqueue_style(
+			'wpg-aplayer-css',
+			$base . 'lib/aplayer/APlayer.min.css',
+			array(),
+			'1.10.1'
+		);
+		wp_enqueue_script(
+			'wpg-aplayer-js',
+			$base . 'lib/aplayer/APlayer.min.js',
+			array(),
+			'1.10.1',
+			true
+		);
+		// Version by file mtime so UI changes bust caches without bumping the plugin version.
+		$music_css_ver = filemtime( plugin_dir_path( __FILE__ ) . 'assets/css/music.css' ) ?: W2P_VERSION;
+		$music_js_ver  = filemtime( plugin_dir_path( __FILE__ ) . 'assets/js/wpg-music.js' ) ?: W2P_VERSION;
+
+		wp_enqueue_style(
+			'wpg-music-css',
+			plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/css/music.css',
+			array( 'wpg-aplayer-css' ),
+			$music_css_ver
+		);
+		wp_enqueue_script(
+			'wpg-music-js',
+			plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/js/wpg-music.js',
+			array( 'wpg-aplayer-js' ),
+			$music_js_ver,
+			true
+		);
+		wp_localize_script(
+			'wpg-music-js',
+			'wpgMusicConfig',
+			array(
+				'settings' => $settings,
+			)
+		);
+	}
+
+	/**
+	 * Enqueue LX Music local dock assets (site-owner tool, any frontend page).
+	 *
+	 * Only loads for users allowed by the visibility setting; the server never
+	 * proxies localhost (pod network is unreachable from the browser user's
+	 * desktop), so all LX traffic stays client-side.
+	 *
+	 * @return void
+	 */
+	public function enqueue_lx_assets() {
+		$settings = $this->get_settings();
+
+		if ( empty( $settings['music_lx_enabled'] ) || ! $this->lx_visible_for_current_user() ) {
+			return;
+		}
+
+		$js_ver = filemtime( plugin_dir_path( __FILE__ ) . 'assets/js/wpg-lx.js' ) ?: W2P_VERSION;
+
+		wp_enqueue_script(
+			'wpg-lx-js',
+			plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/js/wpg-lx.js',
+			array(),
+			$js_ver,
+			true
+		);
+		wp_localize_script(
+			'wpg-lx-js',
+			'wpgLxConfig',
+			array(
+				'port'        => absint( $settings['music_lx_port'] ),
+				'timeout'     => absint( $settings['music_lx_timeout'] ),
+				'useSse'      => ! empty( $settings['music_lx_sse'] ),
+				'canSee'      => true,
+				'i18n'        => array(
+					'offlineTitle'    => __( 'LX Music is not running', 'wp-genius' ),
+					'launch'          => __( 'Start LX Music', 'wp-genius' ),
+					'launching'       => __( 'Waiting for LX Music…', 'wp-genius' ),
+					'play'            => __( 'Play', 'wp-genius' ),
+					'pause'           => __( 'Pause', 'wp-genius' ),
+					'prev'            => __( 'Previous', 'wp-genius' ),
+					'next'            => __( 'Next', 'wp-genius' ),
+					'mute'            => __( 'Mute', 'wp-genius' ),
+					'unmute'          => __( 'Unmute', 'wp-genius' ),
+					'close'           => __( 'Close', 'wp-genius' ),
+					'ariaDock'        => __( 'LX Music player', 'wp-genius' ),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Whether the current user is allowed to see the LX Music dock.
+	 *
+	 * @return bool
+	 */
+	private function lx_visible_for_current_user() {
+		$settings = $this->get_settings();
+		$who      = isset( $settings['music_lx_visible'] ) ? $settings['music_lx_visible'] : 'admin';
+
+		switch ( $who ) {
+			case 'logged':
+				return is_user_logged_in();
+			case 'all':
+				return true;
+			case 'admin':
+			default:
+				return current_user_can( 'manage_options' );
+		}
+	}
+
+	/**
 	 * Initialize Lightbox functionality
 	 */
 	private function init_lightbox() {
@@ -463,10 +645,27 @@ class W2P_FrontendEnhancementModule extends W2P_Abstract_Module {
 	}
 
 	/**
-	 * Initialize audio player (reserved)
+	 * Initialize Music capability line
 	 */
-	private function init_audio_player() {
-		// Reserved interface
+	private function init_music( $settings = array() ) {
+		$handler_path = plugin_dir_path( __FILE__ ) . 'includes/class-music-handler.php';
+		$meta_path    = plugin_dir_path( __FILE__ ) . 'includes/class-music-meta.php';
+		$cpt_path     = plugin_dir_path( __FILE__ ) . 'includes/class-playlist-cpt.php';
+
+		if ( file_exists( $handler_path ) ) {
+			require_once $handler_path;
+			new WPG_Music_Handler( $settings );
+		}
+
+		if ( file_exists( $meta_path ) ) {
+			require_once $meta_path;
+			new WPG_Music_Meta( $settings );
+		}
+
+		if ( file_exists( $cpt_path ) ) {
+			require_once $cpt_path;
+			new WPG_Playlist_CPT( $this->get_settings() );
+		}
 	}
 
 	/**

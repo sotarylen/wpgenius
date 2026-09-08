@@ -287,15 +287,14 @@ class W2P_Novel_Fixer {
 				}
 
 				++$updated_count;
-				if ( 0 === $updated_count % 50 ) {
-					clean_post_cache( $chap_id );
-				}
+				clean_post_cache( $chap_id );
 			}
 		} finally {
 			remove_filter( 'smart_aui_skip_post_processing', '__return_true' );
 		}
 
 		$this->mark_novel_finished( $novel_id );
+		W2P_Novel_Helper::purge_novel_cache( $novel_id );
 
 		return array(
 			'success'       => true,
@@ -339,13 +338,12 @@ class W2P_Novel_Fixer {
 			}
 
 			++$updated_count;
-			if ( 0 === $updated_count % 50 ) {
-				clean_post_cache( $chap_id );
-			}
+			clean_post_cache( $chap_id );
 		}
 
-		// 将该小说自动标记为已完成
+		// 将该小说自动标记为已完成并主动刷新前后台缓存
 		$this->mark_novel_finished( $novel_id );
+		W2P_Novel_Helper::purge_novel_cache( $novel_id );
 
 		if ( function_exists( 'gc_collect_cycles' ) ) {
 			gc_collect_cycles();

@@ -79,6 +79,12 @@ class W2P_SmartAUI_Content_Processor {
 			return;
 		}
 
+		// Check whether post type is excluded via user settings or standard filter hook
+		$excluded_post_types = isset( $settings['smart_aui_exclude_post_types'] ) && is_array( $settings['smart_aui_exclude_post_types'] ) ? $settings['smart_aui_exclude_post_types'] : array();
+		if ( in_array( $post->post_type, $excluded_post_types, true ) || apply_filters( 'smart_aui_skip_post_processing', false, $post->post_type, $post ) ) {
+			return;
+		}
+
 		// Check REST API settings: skip if this is a REST API request and REST API support is disabled
 		if ( defined( 'REST_REQUEST' ) && REST_REQUEST && empty( $settings['smart_aui_process_images_on_rest_api'] ) ) {
 			return;

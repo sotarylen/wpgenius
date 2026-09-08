@@ -313,6 +313,10 @@
     color: var(--w2p-text-secondary);
 }
 
+.w2p-text-success {
+    color: var(--w2p-color-success);
+}
+
 .w2p-font-medium {
     font-weight: var(--w2p-font-weight-medium);
 }
@@ -337,7 +341,7 @@
 .fa-solid,
 .fa-brands,
 .fas {
-    margin-right: var(--w2p-spacing-xs);
+    /* margin-right: var(--w2p-spacing-xs); */
 }
 
 /* ==========================================================================
@@ -352,6 +356,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: var(--w2p-spacing-xs);
     padding: var(--w2p-spacing-xs) var(--w2p-spacing-md);
     height: auto;
     font-size: var(--w2p-font-size-sm);

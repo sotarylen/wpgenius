@@ -93,6 +93,13 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 		if ( 'attachment' === $post->post_type ) {
 			return;
 		}
+
+		// Check whether post type is excluded via user settings or standard filter hook
+		$aui_settings = get_option( 'smart_aui_settings', array() );
+		$excluded     = isset( $aui_settings['exclude_post_types'] ) && is_array( $aui_settings['exclude_post_types'] ) ? $aui_settings['exclude_post_types'] : array();
+		if ( in_array( $post->post_type, $excluded, true ) || apply_filters( 'smart_aui_skip_post_processing', false, $post->post_type, $post ) ) {
+			return;
+		}
 		if ( in_array( $post->post_status, array( 'auto-draft', 'trash' ), true ) ) {
 			return;
 		}

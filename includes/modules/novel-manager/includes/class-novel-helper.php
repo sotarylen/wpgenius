@@ -177,6 +177,17 @@ class W2P_Novel_Helper {
 			);
 		}
 
+		// 3. 番外/外传类独立分卷行
+		if ( preg_match( '/^[【\[（\(《\s]*(?:番外|番外篇|外传|后传|前传|别传|新传|特别篇|作品相关)[\s】\]）\)》]*(?:[\s:：·\-_]+(.*?))?$/u', $line, $m ) ) {
+			$vol_title = isset( $m[1] ) ? trim( $m[1] ) : '';
+			$vol_title = preg_replace( '/^[·\s\-_:：|]+|[·\s\-_:：|]+$/u', '', $vol_title );
+			$full_name = '番外' . ( $vol_title ? ' ' . $vol_title : '' );
+			return array(
+				'vol_idx'  => 99,
+				'vol_name' => $full_name,
+			);
+		}
+
 		return null;
 	}
 
@@ -205,15 +216,12 @@ class W2P_Novel_Helper {
 			return 99999;
 		}
 
-		// 3. 番外章节：番外1 / 番外篇 第X章 -> 99000 + 序号
-		if ( preg_match( '/番外/u', $test_title ) ) {
-			if ( preg_match( '/番外\s*(\d+)/u', $test_title, $m ) ) {
-				return 99000 + intval( $m[1] );
-			}
-			if ( preg_match( '/番外\s*第\s*([0-9零一二两三四五六七八九十百千万廿卅卌]+)\s*[章节话回折集篇幕]/u', $test_title, $m ) ) {
-				$num = self::chinese_to_arabic( $m[1] );
-				return 99000 + ( $num ?: 1 );
-			}
+		// 3. 番外/外传章节：番外1 / 番外篇·第一章 / 外传 第一章 -> 99000 + 序号
+		if ( preg_match( '/(?:番外|外传|后传|前传)(?:篇)?[\s·\-_:：]*第?\s*([0-9零一二两三四五六七八九十百千万廿卅卌]+)\s*[章节话回折集篇幕]?/u', $test_title, $m ) ) {
+			$num = self::chinese_to_arabic( $m[1] );
+			return 99000 + ( $num ?: 1 );
+		}
+		if ( preg_match( '/^(?:番外|外传|后传|前传)/u', $test_title ) ) {
 			return 99001;
 		}
 
@@ -537,32 +545,46 @@ class W2P_Novel_Helper {
 			$raw_volume = isset( $c['volume'] ) ? trim( sanitize_text_field( $c['volume'] ) ) : '';
 			$title      = isset( $c['title'] ) ? trim( sanitize_text_field( $c['title'] ) ) : '';
 
-			// 1. 判断分卷归属
-			// A. 如果章节指定了明确的非“正文”分卷（例如用户手动批量设置或已识别的分卷）
-			if ( ! empty( $raw_volume ) && '正文' !== $raw_volume && '-' !== $raw_volume ) {
-				$current_vol_name = $raw_volume;
-				$vol_info         = self::extract_volume( $raw_volume );
-				if ( $vol_info && ! empty( $vol_info['vol_idx'] ) ) {
-					$current_vol_idx = intval( $vol_info['vol_idx'] );
+			// 1. 判断分卷归属（显式分卷优先且独立识别，杜绝向后盲目串改未选章节）
+			if ( '' !== $raw_volume && '-' !== $raw_volume ) {
+				if ( '正文' === $raw_volume ) {
+					$current_vol_name = '正文';
+					$current_vol_idx  = 1;
 				} else {
-					if ( ! isset( $custom_vol_map[ $raw_volume ] ) ) {
-						$custom_vol_map[ $raw_volume ] = $auto_vol_idx++;
+					$current_vol_name = $raw_volume;
+					if ( preg_match( '/(?:番外|外传|后传|前传|别传|新传|特别篇|作品相关)/u', $raw_volume ) ) {
+						$current_vol_idx = 99;
+					} else {
+						$vol_info = self::extract_volume( $raw_volume );
+						if ( $vol_info && ! empty( $vol_info['vol_idx'] ) ) {
+							$current_vol_idx = intval( $vol_info['vol_idx'] );
+						} elseif ( ! preg_match( '/[0-9一二两三四五六七八九十百千万廿卅卌]/u', $raw_volume ) ) {
+							// 无明确分卷数字标号时，统一归入 99
+							$current_vol_idx = 99;
+						} else {
+							if ( ! isset( $custom_vol_map[ $raw_volume ] ) ) {
+								$custom_vol_map[ $raw_volume ] = $auto_vol_idx++;
+							}
+							$current_vol_idx = $custom_vol_map[ $raw_volume ];
+						}
 					}
-					$current_vol_idx = $custom_vol_map[ $raw_volume ];
 				}
 			} else {
-				// B. 如果分卷为空或默认“正文”，尝试从章节标题中流式识别分卷
+				// 分卷为空或 '-' 时，尝试从章节标题中流式识别分卷；若未识别且当前分卷为空则兜底为“正文”
 				$vol_info = self::extract_volume( $title );
 				if ( $vol_info && ! empty( $vol_info['vol_idx'] ) ) {
 					$current_vol_idx  = intval( $vol_info['vol_idx'] );
 					$current_vol_name = $vol_info['vol_name'];
+				} elseif ( empty( $current_vol_name ) ) {
+					$current_vol_name = '正文';
+					$current_vol_idx  = 1;
 				}
 			}
 
 			// 2. 提取章节号
 			$chap_num = self::extract_chapter_number( $title );
 			if ( 0 === $chap_num ) {
-				$use_vol_idx  = 0;
+				$use_vol_idx  = ( 99 === $current_vol_idx ) ? 99 : 0;
 				$use_chap_idx = 0;
 			} elseif ( 99999 === $chap_num ) {
 				$use_vol_idx  = $current_vol_idx;
@@ -578,6 +600,11 @@ class W2P_Novel_Helper {
 				$use_chap_idx = $chap_counter++;
 			}
 
+			// 特殊规则：当处于番外卷 (vol_idx === 99) 时，若章节号为普通正数序号 ( > 0 && < 90000 )，提升为 99000 + $chap_num
+			if ( 99 === $use_vol_idx && $use_chap_idx > 0 && $use_chap_idx < 90000 ) {
+				$use_chap_idx = 99000 + $use_chap_idx;
+			}
+
 			$c['vol_idx']       = $use_vol_idx;
 			$c['chap_num']      = $use_chap_idx;
 			$c['volume']        = $current_vol_name;
@@ -588,4 +615,32 @@ class W2P_Novel_Helper {
 
 		return $result;
 	}
+
+	/**
+	 * 刷新指定小说及前台静态页面缓存
+	 *
+	 * @param int $novel_id 小说文章 ID
+	 */
+	public static function purge_novel_cache( $novel_id ) {
+		$novel_id = absint( $novel_id );
+		if ( $novel_id <= 0 ) {
+			return;
+		}
+
+		// 1. 清除 WordPress 原生文章与对象缓存
+		clean_post_cache( $novel_id );
+
+		// 2. 刷新 WP Super Cache 页面静态文件缓存
+		if ( function_exists( 'wpsc_delete_post_cache' ) ) {
+			wpsc_delete_post_cache( $novel_id );
+		} elseif ( function_exists( 'wp_cache_post_change' ) ) {
+			wp_cache_post_change( $novel_id );
+		}
+
+		// 3. 兼容主流缓存插件（LiteSpeed Cache 等）
+		if ( has_action( 'litespeed_purge_post' ) ) {
+			do_action( 'litespeed_purge_post', $novel_id );
+		}
+	}
 }
+

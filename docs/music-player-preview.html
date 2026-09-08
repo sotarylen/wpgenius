@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WPG Music Player — Glass Deck Preview</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0;
+    padding: 48px 20px;
+    background: #eef1f5;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #0b0e12; }
+  }
+  .preview-title {
+    max-width: 720px;
+    margin: 0 auto 24px;
+    font-size: 13px;
+    color: #68748a;
+    letter-spacing: .03em;
+  }
+</style>
+<link rel="stylesheet" href="../includes/modules/frontend-enhancement/assets/lib/aplayer/APlayer.min.css">
+<link rel="stylesheet" href="../includes/modules/frontend-enhancement/assets/css/music.css?v=7">
+</head>
+<body>
+<p class="preview-title">WPG Music · 卡片模式（card）+ 歌词面板；缺失曲目降级卡（示例）</p>
+
+<div class="wpg-music-card">
+  <div class="wpg-music-playlist__header">
+    <h3 class="wpg-music-playlist__title">M2 冒烟播放列表</h3>
+    <span class="wpg-music-playlist__meta">2 tracks</span>
+  </div>
+  <div class="wpg-music-playlist" data-wpg-mode="card" data-wpg-order="sequence" data-wpg-config='[{"name":"海闊天空","artist":"Beyond","url":"https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3","cover":"https://picsum.photos/seed/wpg1/300/300","lrc":"[00:00.00]今天我 寒夜里看雪飘过\n[00:07.00]怀着冷却了的心窝飘远方"},{"name":"光輝歲月","artist":"Beyond","url":"https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3","cover":"https://picsum.photos/seed/wpg2/300/300","lrc":"[00:00.00]钟声响起归家的讯号\n[00:06.00]在他生命里 仿佛带点唏嘘"}]'></div>
+  <ul class="wpg-music-playlist__missing">
+    <li class="wpg-music-playlist__missing-item">
+      <span class="wpg-music-playlist__missing-name">A deleted track</span>
+      <span class="wpg-music-playlist__missing-note">Audio file is missing.</span>
+    </li>
+  </ul>
+</div>
+
+<script src="../includes/modules/frontend-enhancement/assets/lib/aplayer/APlayer.min.js"></script>
+<script>
+  function boot() {
+    if (typeof APlayer === 'undefined') return;
+    var containers = document.querySelectorAll('.wpg-music-playlist');
+    Array.prototype.forEach.call(containers, function (container) {
+      var tracks = [];
+      try { tracks = JSON.parse(container.getAttribute('data-wpg-config') || '[]'); } catch (e) {}
+      if (!tracks.length) return;
+      var order = container.getAttribute('data-wpg-order') || 'sequence';
+      var mini = container.getAttribute('data-wpg-mode') === 'mini';
+      new APlayer({
+        container: container,
+        audio: tracks,
+        lrcType: 3,
+        order: order === 'random' ? 'random' : 'list',
+        loop: order === 'sequence' ? 'none' : 'all',
+        mini: mini,
+        mutex: true,
+        theme: '#10b981'
+      });
+    });
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot); } else { boot(); }
+</script>
+</body>
+</html>

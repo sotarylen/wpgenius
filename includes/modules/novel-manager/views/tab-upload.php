@@ -188,13 +188,13 @@ $novel_tags = get_terms(
 						<div class="w2p-preview-toolbar">
 							<div class="w2p-toolbar-left">
 								<button type="button" id="w2p-manage-batch-vol-btn" class="w2p-btn w2p-btn-secondary w2p-btn-sm">
-									<i class="fa-solid fa-pen-to-square"></i> <?php esc_html_e( 'Batch Set Volume', 'wp-genius' ); ?>
+									<i class="fa-solid fa-pen-to-square"></i> <?php esc_html_e( 'Set Volume', 'wp-genius' ); ?>
 								</button>
 								<button type="button" id="w2p-manage-batch-title-btn" class="w2p-btn w2p-btn-secondary w2p-btn-sm">
-									<i class="fa-solid fa-i-cursor"></i> <?php esc_html_e( 'Batch Modify Titles', 'wp-genius' ); ?>
+									<i class="fa-solid fa-i-cursor"></i> <?php esc_html_e( 'Modify Titles', 'wp-genius' ); ?>
 								</button>
 								<button type="button" id="w2p-manage-regen-index-btn" class="w2p-btn w2p-btn-secondary w2p-btn-sm">
-									<i class="fa-solid fa-list-ol"></i> <?php esc_html_e( 'Regenerate Index', 'wp-genius' ); ?>
+									<i class="fa-solid fa-list-ol"></i> <?php esc_html_e( 'Regen Index', 'wp-genius' ); ?>
 								</button>
 							</div>
 							<div class="w2p-toolbar-right">
@@ -372,24 +372,34 @@ $novel_tags = get_terms(
 			<div class="w2p-preview-toolbar">
 				<div class="w2p-toolbar-left">
 					<button type="button" id="w2p-preview-batch-vol-btn" class="w2p-btn w2p-btn-secondary w2p-btn-sm">
-						<i class="fa-solid fa-pen-to-square"></i> <?php esc_html_e( 'Batch Set Volume', 'wp-genius' ); ?>
+						<i class="fa-solid fa-pen-to-square"></i> <?php esc_html_e( 'Set Volume', 'wp-genius' ); ?>
 					</button>
 					<button type="button" id="w2p-preview-batch-title-btn" class="w2p-btn w2p-btn-secondary w2p-btn-sm">
-						<i class="fa-solid fa-i-cursor"></i> <?php esc_html_e( 'Batch Modify Titles', 'wp-genius' ); ?>
+						<i class="fa-solid fa-i-cursor"></i> <?php esc_html_e( 'Modify Titles', 'wp-genius' ); ?>
 					</button>
 					<button type="button" id="w2p-preview-regen-index-btn" class="w2p-btn w2p-btn-secondary w2p-btn-sm">
-						<i class="fa-solid fa-list-ol"></i> <?php esc_html_e( 'Regenerate Chapter Index', 'wp-genius' ); ?>
+						<i class="fa-solid fa-list-ol"></i> <?php esc_html_e( 'Regen Index', 'wp-genius' ); ?>
 					</button>
 					<button type="button" id="w2p-preview-batch-del-btn" class="w2p-btn w2p-btn-danger w2p-btn-sm">
-						<i class="fa-solid fa-trash-can"></i> <?php esc_html_e( 'Delete Selected', 'wp-genius' ); ?>
+						<i class="fa-solid fa-trash-can"></i> <?php esc_html_e( 'Delete', 'wp-genius' ); ?>
 					</button>
+					<div class="w2p-short-filter-wrap">
+						<span class="w2p-filter-label"><i class="fa-solid fa-filter"></i> <?php esc_html_e( 'Words <', 'wp-genius' ); ?></span>
+						<input type="number" id="w2p-word-threshold-input" class="w2p-threshold-input" placeholder="500" min="0" step="50" value="500">
+						<button type="button" id="w2p-filter-short-toggle-btn" class="w2p-btn w2p-btn-secondary w2p-btn-sm" title="<?php esc_attr_e( 'Show only chapters below threshold', 'wp-genius' ); ?>">
+							<i class="fa-solid fa-eye-low-vision"></i> <?php esc_html_e( 'Filte', 'wp-genius' ); ?> <span id="w2p-short-count-badge" class="w2p-badge w2p-badge-warning w2p-hidden">0</span>
+						</button>
+						<button type="button" id="w2p-select-short-btn" class="w2p-btn w2p-btn-secondary w2p-btn-sm" title="<?php esc_attr_e( 'Select all chapters below threshold', 'wp-genius' ); ?>">
+							<i class="fa-solid fa-square-check"></i> <?php esc_html_e( 'Select', 'wp-genius' ); ?>
+						</button>
+					</div>
 				</div>
 				<div class="w2p-toolbar-right">
 					<button type="button" id="w2p-preview-reparse-btn" class="w2p-btn w2p-btn-secondary w2p-btn-sm">
-						<i class="fa-solid fa-arrow-rotate-left"></i> <?php esc_html_e( 'Cancel & Re-upload', 'wp-genius' ); ?>
+						<i class="fa-solid fa-arrow-rotate-left"></i> <?php esc_html_e( 'Reload', 'wp-genius' ); ?>
 					</button>
 					<button type="button" id="w2p-novel-commit-import-btn" class="w2p-btn w2p-btn-primary">
-						<i class="fa-solid fa-circle-check"></i> <?php esc_html_e( 'Confirm & Begin Import', 'wp-genius' ); ?>
+						<i class="fa-solid fa-circle-check"></i> <?php esc_html_e( 'Import', 'wp-genius' ); ?>
 					</button>
 				</div>
 			</div>
