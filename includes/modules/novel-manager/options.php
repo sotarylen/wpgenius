@@ -42,22 +42,17 @@ return array(
 					),
 				),
 
-				// Tab 2: Maintenance & Health Audit
+				// Tab 2: General Settings
 				array(
-					'title'  => __( 'Maintenance & Health Audit', 'wp-genius' ),
-					'icon'   => 'fa-solid fa-screwdriver-wrench',
+					'title'  => __( 'General Settings', 'wp-genius' ),
+					'icon'   => 'fa-solid fa-gear',
 					'fields' => array(
 						array(
-							'type'    => 'content',
-							'content' => ( function () use ( $module_dir ) {
-								$view_file = $module_dir . 'views/tab-fix-index.php';
-								if ( file_exists( $view_file ) ) {
-									ob_start();
-									include $view_file;
-									return ob_get_clean();
-								}
-								return '<p class="w2p-error">' . esc_html__( 'View file not found: views/tab-fix-index.php', 'wp-genius' ) . '</p>';
-							} )(),
+							'id'      => 'novel_delete_with_chapters',
+							'type'    => 'switcher',
+							'title'   => __( 'Delete with Chapters', 'wp-genius' ),
+							'label'   => __( 'Adds a "Delete w/ Chapters" action to the novel list to cascade delete novel and all its chapters.', 'wp-genius' ),
+							'default' => true,
 						),
 					),
 				),

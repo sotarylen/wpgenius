@@ -246,7 +246,7 @@ $novel_tags = get_terms(
 					<!-- 1. 小说标题 -->
 					<div class="w2p-form-row">
 						<div class="csf-title">
-							<label for="w2p_novel_title"><?php esc_html_e( 'Novel Title', 'wp-genius' ); ?> <span class="w2p-required">*</span></label>
+							<label for="w2p_novel_title"><?php esc_html_e( 'Title', 'wp-genius' ); ?> <span class="w2p-required">*</span></label>
 						</div>
 						<div class="w2p-form-control">
 							<input type="text" name="novel_title" id="w2p_novel_title" class="w2p-input-half" placeholder="<?php esc_attr_e( 'Auto-extracted from file or enter custom title', 'wp-genius' ); ?>">
@@ -256,7 +256,7 @@ $novel_tags = get_terms(
 					<!-- 2. 小说状态 -->
 					<div class="w2p-form-row">
 						<div class="csf-title">
-							<label for="w2p_novel_status"><?php esc_html_e( 'Novel Status', 'wp-genius' ); ?></label>
+							<label for="w2p_novel_status"><?php esc_html_e( 'Status', 'wp-genius' ); ?></label>
 						</div>
 						<div class="w2p-form-control">
 							<select name="novel_status" id="w2p_novel_status" class="w2p-input-half">
@@ -269,7 +269,7 @@ $novel_tags = get_terms(
 					<!-- 3. 小说分类 (默认选中 general-novels) -->
 					<div class="w2p-form-row">
 						<div class="csf-title">
-							<label for="w2p_novel_category"><?php esc_html_e( 'Novel Category', 'wp-genius' ); ?></label>
+							<label for="w2p_novel_category"><?php esc_html_e( 'Category', 'wp-genius' ); ?></label>
 						</div>
 						<div class="w2p-form-control">
 							<?php
@@ -312,7 +312,7 @@ $novel_tags = get_terms(
 					<!-- 5. 作者 / 人物 (文本输入，存在复用不存在新建) -->
 					<div class="w2p-form-row">
 						<div class="csf-title">
-							<label for="w2p_novel_author"><?php esc_html_e( 'Author / Human', 'wp-genius' ); ?></label>
+							<label for="w2p_novel_author"><?php esc_html_e( 'Author', 'wp-genius' ); ?></label>
 						</div>
 						<div class="w2p-form-control">
 							<input type="text" name="novel_author" id="w2p_novel_author" class="w2p-input-half" placeholder="<?php esc_attr_e( 'Enter author name (reuses if exists, creates if new)', 'wp-genius' ); ?>">
@@ -321,7 +321,7 @@ $novel_tags = get_terms(
 					<!-- 6. 小说简介 -->
 					<div class="w2p-form-row">
 						<div class="csf-title">
-							<label for="w2p_novel_intro"><?php esc_html_e( 'Novel Introduction / Summary', 'wp-genius' ); ?></label>
+							<label for="w2p_novel_intro"><?php esc_html_e( 'Introduction', 'wp-genius' ); ?></label>
 						</div>
 						<div class="w2p-form-control">
 							<textarea name="novel_intro" id="w2p_novel_intro" rows="4" class="w2p-input-half" placeholder="<?php esc_attr_e( 'Introduction or synopsis of the novel...', 'wp-genius' ); ?>"></textarea>
@@ -330,7 +330,7 @@ $novel_tags = get_terms(
 					<!-- 7. 小说封面 -->
 					<div class="w2p-form-row">
 						<div class="csf-title">
-							<label><?php esc_html_e( 'Novel Cover', 'wp-genius' ); ?></label>
+							<label><?php esc_html_e( 'Cover', 'wp-genius' ); ?></label>
 						</div>
 						<div class="w2p-form-control">
 							<input type="hidden" name="novel_cover_id" id="w2p_novel_cover_id" value="">
@@ -346,12 +346,9 @@ $novel_tags = get_terms(
 						</div>
 					</div>
 				</div>
-
-				
-
 				<div id="w2p-upload-actions" class="w2p-form-actions">
 					<button type="button" id="w2p-novel-parse-btn" class="w2p-btn w2p-btn-primary">
-						<i class="fa-solid fa-wand-magic-sparkles"></i> <?php esc_html_e( 'Upload & Parse Document', 'wp-genius' ); ?>
+						<i class="fa-solid fa-wand-magic-sparkles"></i> <?php esc_html_e( 'Parse Document', 'wp-genius' ); ?>
 					</button>
 				</div>
 			</div>

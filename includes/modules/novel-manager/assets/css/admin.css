@@ -314,50 +314,237 @@
 	transition: width 0.25s ease;
 }
 
-/* ========== 删除弹窗 ========== */
-#w2p-novel-delete-modal {
+/* ========== Novel Delete with Chapters (Smart AUI Style Floating Modal) ========== */
+.w2p-novel-delete-backdrop {
 	position: fixed;
 	top: 0;
 	left: 0;
 	width: 100%;
 	height: 100%;
-	background: rgba(0, 0, 0, 0.6);
-	z-index: 999999;
+	background: rgba(0, 0, 0, 0.5);
+	backdrop-filter: blur(5px);
+	-webkit-backdrop-filter: blur(5px);
+	z-index: var(--w2p-z-index-overlay, 100050);
 	display: flex;
+	align-items: center;
 	justify-content: center;
+	opacity: 0;
+	visibility: hidden;
+	transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.w2p-novel-delete-backdrop.active {
+	opacity: 1;
+	visibility: visible;
+}
+
+.w2p-novel-delete-container {
+	font-family: var(--w2p-font-family-base, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif);
+	width: 580px;
+	max-width: 92%;
+	background: var(--w2p-bg-surface, #ffffff);
+	border-radius: var(--w2p-radius-lg, 12px);
+	box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	transform: scale(0.95);
+	transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.w2p-novel-delete-backdrop.active .w2p-novel-delete-container {
+	transform: scale(1);
+}
+
+.w2p-novel-delete-header {
+	padding: 16px 24px;
+	background: var(--w2p-bg-surface, #ffffff);
+	border-bottom: 1px solid var(--w2p-border-color-light, #e2e8f0);
+	display: flex;
+	justify-content: space-between;
 	align-items: center;
 }
-#w2p-novel-delete-modal .w2p-nd-box {
-	background: #fff;
-	border-radius: 8px;
-	padding: 24px 28px;
-	width: 440px;
-	max-width: 92%;
-	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-	font-size: 14px;
-	color: #1d2327;
-}
-#w2p-novel-delete-modal .w2p-nd-box h4 {
-	margin: 0 0 10px;
+
+.w2p-novel-delete-header h3 {
+	margin: 0;
 	font-size: 16px;
+	font-weight: 600;
+	color: #1e293b;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
 }
-#w2p-novel-delete-modal .w2p-nd-count-row strong {
+
+.w2p-novel-delete-header h3 i {
+	color: #ef4444;
+}
+
+.w2p-novel-delete-close-btn {
+	background: none;
+	border: none;
+	color: #94a3b8;
+	cursor: pointer;
+	padding: 4px;
+	border-radius: 4px;
 	font-size: 18px;
-	color: #b32d2e;
+	line-height: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: color 0.2s, background-color 0.2s;
 }
-#w2p-novel-delete-modal .w2p-nd-progress-bg {
-	height: 10px;
-	background: #e5e7eb;
-	border-radius: 5px;
+
+.w2p-novel-delete-close-btn:hover {
+	color: #ef4444;
+	background-color: #fee2e2;
+}
+
+.w2p-novel-delete-progress-bar {
+	height: 12px;
+	background: var(--w2p-bg-surface-secondary, #f1f5f9);
 	overflow: hidden;
-	margin-top: 8px;
+	width: 100%;
 }
-#w2p-novel-delete-modal .w2p-nd-progress-fill {
+
+.w2p-novel-delete-progress-fill {
 	height: 100%;
+	background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
 	width: 0%;
-	background: #b32d2e;
-	transition: width 0.25s ease;
+	transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+.w2p-novel-delete-body {
+	padding: 20px 24px;
+	flex: 1;
+}
+
+.w2p-novel-delete-status-bar {
+	background: var(--w2p-bg-surface-secondary, #f8fafc);
+	border: 1px solid var(--w2p-border-color-light, #e2e8f0);
+	border-radius: var(--w2p-radius-md, 8px);
+	padding: 12px 16px;
+	margin-bottom: 16px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	min-height: 44px;
+}
+
+.w2p-novel-delete-status-text {
+	font-size: 13px;
+	font-weight: 500;
+	color: #334155;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.w2p-novel-delete-status-pct {
+	font-size: 13px;
+	font-weight: 700;
+	color: #dc2626;
+	background: #fee2e2;
+	padding: 2px 8px;
+	border-radius: 9999px;
+}
+
+.w2p-novel-delete-status-pct.w2p-success {
+	color: #059669;
+	background: #d1fae5;
+}
+
+.w2p-novel-delete-stats-row {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 12px;
+	margin-bottom: 16px;
+}
+
+.w2p-novel-delete-stat-card {
+	background: var(--w2p-bg-surface-secondary, #f8fafc);
+	border: 1px solid var(--w2p-border-color-light, #e2e8f0);
+	border-radius: var(--w2p-radius-md, 8px);
+	padding: 12px 10px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+}
+
+.w2p-novel-delete-stat-card .label {
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	color: #64748b;
+	letter-spacing: 0.5px;
+}
+
+.w2p-novel-delete-stat-card .value {
+	font-size: 22px;
+	font-weight: 700;
+	line-height: 1.2;
+	color: #1e293b;
+	transition: color 0.3s;
+}
+
+.w2p-novel-delete-stat-card.stat-deleted .value {
+	color: #dc2626;
+}
+
+.w2p-novel-delete-stat-card.stat-remaining .value {
+	color: #d97706;
+}
+
+.w2p-novel-delete-notice {
+	background: #fef2f2;
+	border: 1px solid #fecaca;
+	border-radius: var(--w2p-radius-md, 8px);
+	padding: 10px 14px;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 13px;
+	color: #991b1b;
+}
+
+.w2p-novel-delete-notice i {
+	font-size: 15px;
+	flex-shrink: 0;
+	color: #dc2626;
+}
+
+.w2p-novel-delete-footer {
+	padding: 14px 24px;
+	background: var(--w2p-bg-surface-secondary, #f8fafc);
+	border-top: 1px solid var(--w2p-border-color-light, #e2e8f0);
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
+}
+
+a.w2p-delete-novel-with-chapters-btn {
+	color: #dc2626;
+}
+
+a.w2p-delete-novel-with-chapters-btn:hover {
+	color: #b91c1c;
+}
+
+#delete-action #w2p-novel-edit-delete-wrap {
+	display: inline-block;
+	margin-left: 8px;
+	vertical-align: middle;
+}
+
+#delete-action .w2p-delete-novel-with-chapters-btn {
+	color: #b32d2e;
+	text-decoration: underline;
+}
+
+#delete-action .w2p-delete-novel-with-chapters-btn:hover {
+	color: #dc2626;
+}
+
 
 .w2p-form-actions {
 	margin-top: 20px;
@@ -1057,47 +1244,6 @@
 	margin-bottom: 14px;
 	font-size: 13px;
 	color: #475569;
-}
-
-.w2p-gap-tags-wrap {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 4px;
-	max-width: 420px;
-}
-
-.w2p-badge-gap {
-	display: inline-block;
-	background: #fff1f2;
-	color: #e11d48;
-	border: 1px solid #fecdd3;
-	border-radius: 3px;
-	padding: 1px 6px;
-	font-family: Consolas, Monaco, monospace;
-	font-size: 11px;
-	line-height: 1.4;
-}
-
-.w2p-badge-dup {
-	display: inline-block;
-	background: #fef3c7;
-	color: #b45309;
-	border: 1px solid #fde68a;
-	border-radius: 3px;
-	padding: 1px 6px;
-	font-family: Consolas, Monaco, monospace;
-	font-size: 11px;
-	line-height: 1.4;
-}
-
-.w2p-orphan-diag-badge {
-	display: inline-block;
-	padding: 2px 8px;
-	border-radius: 4px;
-	font-size: 12px;
-	font-weight: 500;
-	background: #fee2e2;
-	color: #991b1b;
 }
 
 /* 短章节异常过滤器与高亮 */

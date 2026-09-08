@@ -101,24 +101,22 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 		add_action( 'wp_ajax_w2p_novel_fix_search', array( $this, 'ajax_fix_search' ) );
 		add_action( 'wp_ajax_w2p_novel_fix_get_chapters', array( $this, 'ajax_fix_get_chapters' ) );
 		add_action( 'wp_ajax_w2p_novel_fix_apply_single', array( $this, 'ajax_fix_apply_single' ) );
-		add_action( 'wp_ajax_w2p_novel_fix_get_unfixed_novels', array( $this, 'ajax_fix_get_unfixed_novels' ) );
-		add_action( 'wp_ajax_w2p_novel_fix_auto_step', array( $this, 'ajax_fix_auto_step' ) );
-		add_action( 'wp_ajax_w2p_novel_fix_clear_progress', array( $this, 'ajax_fix_clear_progress' ) );
-
-		// 注册 Ajax 动作：全库维护中心（孤儿章节清理 + 章节完整性与断号体检）
-		add_action( 'wp_ajax_w2p_novel_scan_orphans', array( $this, 'ajax_scan_orphans' ) );
-		add_action( 'wp_ajax_w2p_novel_clean_orphans', array( $this, 'ajax_clean_orphans' ) );
-		add_action( 'wp_ajax_w2p_novel_audit_integrity', array( $this, 'ajax_audit_integrity' ) );
 
 		// 静态资源加载
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 
-		// 级联删除与行快捷操作
-		add_action( 'trashed_post', array( $this, 'cascade_trash_chapters' ) );
-		add_action( 'before_delete_post', array( $this, 'cascade_delete_chapters' ) );
-		add_filter( 'post_row_actions', array( $this, 'add_novel_delete_row_action' ), 10, 2 );
-		add_action( 'wp_ajax_w2p_novel_delete_batch', array( $this, 'ajax_novel_delete_batch' ) );
-		add_action( 'wp_ajax_w2p_novel_delete_final', array( $this, 'ajax_novel_delete_final' ) );
+		// 级联删除与行快捷操作 (受选项开关控制，默认开启)
+		$settings      = W2P_Settings::tab( 'novel_manager_tabs' );
+		$enable_delete = isset( $settings['novel_delete_with_chapters'] ) ? (bool) $settings['novel_delete_with_chapters'] : true;
+
+		if ( $enable_delete ) {
+			add_action( 'trashed_post', array( $this, 'cascade_trash_chapters' ) );
+			add_action( 'before_delete_post', array( $this, 'cascade_delete_chapters' ) );
+			add_filter( 'post_row_actions', array( $this, 'add_novel_delete_row_action' ), 10, 2 );
+			add_action( 'post_submitbox_start', array( $this, 'add_novel_edit_page_delete_action' ) );
+			add_action( 'wp_ajax_w2p_novel_delete_batch', array( $this, 'ajax_novel_delete_batch' ) );
+			add_action( 'wp_ajax_w2p_novel_delete_final', array( $this, 'ajax_novel_delete_final' ) );
+		}
 	}
 
 	/**
@@ -130,10 +128,18 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 			return;
 		}
 
-		$is_settings   = false !== strpos( $screen->id, 'wp-genius-settings' );
-		$is_edit_novel = 'edit-novel' === $screen->id;
+		$is_settings     = false !== strpos( $screen->id, 'wp-genius-settings' );
+		$is_edit_novel   = 'edit-novel' === $screen->id;
+		$is_single_novel = ( 'novel' === $screen->post_type && 'post' === $screen->base );
 
-		if ( ! $is_settings && ! $is_edit_novel ) {
+		if ( ! $is_settings && ! $is_edit_novel && ! $is_single_novel ) {
+			return;
+		}
+
+		$settings      = W2P_Settings::tab( 'novel_manager_tabs' );
+		$enable_delete = isset( $settings['novel_delete_with_chapters'] ) ? (bool) $settings['novel_delete_with_chapters'] : true;
+
+		if ( ( $is_edit_novel || $is_single_novel ) && ! $enable_delete ) {
 			return;
 		}
 
@@ -155,7 +161,7 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 		wp_enqueue_script(
 			'w2p-novel-manager-js',
 			$module_url . 'assets/js/novel-manager.js',
-			array( 'jquery' ),
+			array( 'jquery', 'w2p-admin-ui' ),
 			file_exists( $js_file ) ? filemtime( $js_file ) : W2P_VERSION,
 			true
 		);
@@ -164,11 +170,12 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 			'w2p-novel-manager-js',
 			'w2pNovelParams',
 			array(
-				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
-				'importNonce' => wp_create_nonce( 'w2p_novel_import_nonce' ),
-				'fixNonce'    => wp_create_nonce( 'w2p_novel_fix_nonce' ),
-				'deleteNonce' => wp_create_nonce( 'w2p_novel_manager_delete' ),
-				'i18n'        => array(
+				'ajaxUrl'                  => admin_url( 'admin-ajax.php' ),
+				'importNonce'              => wp_create_nonce( 'w2p_novel_import_nonce' ),
+				'fixNonce'                 => wp_create_nonce( 'w2p_novel_fix_nonce' ),
+				'deleteNonce'              => wp_create_nonce( 'w2p_novel_manager_delete' ),
+				'enableDeleteWithChapters' => $enable_delete,
+				'i18n'                     => array(
 					'parsing'             => __( 'Parsing document, please wait...', 'wp-genius' ),
 					'parseSuccess'        => __( 'File parsed successfully! You can review and adjust the chapter details below before importing.', 'wp-genius' ),
 					'importingNovel'      => __( 'Creating Novel record...', 'wp-genius' ),
@@ -179,25 +186,25 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 					'useImage'            => __( 'Use as Cover', 'wp-genius' ),
 					'confirmDelete'       => __( 'Are you sure you want to remove this chapter from the import list?', 'wp-genius' ),
 					'indexRegenerated'    => __( 'Chapter indexes regenerated successfully.', 'wp-genius' ),
-					'confirmAutoFix'      => __( 'Start automatic processing? This will scan and execute in batches until all chapters are processed.', 'wp-genius' ),
-					'confirmClear'        => __( 'Clear all processed book records? Next scan will start from the beginning.', 'wp-genius' ),
 					'stop'                => __( 'Stop', 'wp-genius' ),
 					'stopping'            => __( 'Stopping...', 'wp-genius' ),
 					'regenIndex'          => __( 'Regenerate Chapter Index', 'wp-genius' ),
 					'save'                => __( 'Save', 'wp-genius' ),
-					/* translators: %d: record count */
-					'scanComplete'        => __( 'Scan complete: %d records found.', 'wp-genius' ),
+					'deleteNovel'         => __( 'Delete Novel & Chapters', 'wp-genius' ),
 					'deletingNovel'       => __( 'Deleting Novel', 'wp-genius' ),
+					'totalChapters'       => __( 'Total Chapters', 'wp-genius' ),
+					'deletedChapters'     => __( 'Deleted', 'wp-genius' ),
+					'remainingChapters'   => __( 'Remaining', 'wp-genius' ),
 					'chaptersToDelete'    => __( 'Chapters to delete', 'wp-genius' ),
 					'countingChapters'    => __( 'Counting related chapters...', 'wp-genius' ),
 					'deletingChapters'    => __( 'Deleting chapters', 'wp-genius' ),
 					'deletingNovelItself' => __( 'Deleting the novel itself...', 'wp-genius' ),
 					'confirmDeleteNovel'  => __( 'Delete this novel AND all of its chapters? This cannot be undone.', 'wp-genius' ),
-					'confirmCleanOrphans' => __( 'Are you sure you want to permanently delete the selected orphan chapters? This cannot be undone.', 'wp-genius' ),
-					'noOrphansFound'      => __( 'No orphan chapters found. Database is clean!', 'wp-genius' ),
-					'orphansCleaned'      => __( 'Selected orphan chapters cleaned successfully.', 'wp-genius' ),
-					'auditCompleted'      => __( 'Chapter integrity audit completed.', 'wp-genius' ),
-					'rebuildSuccess'      => __( 'Chapter index rebuilt successfully.', 'wp-genius' ),
+					'confirmCancel'       => __( 'Deletion is in progress. Are you sure you want to stop?', 'wp-genius' ),
+					'done'                => __( 'Done', 'wp-genius' ),
+					'cancel'              => __( 'Cancel', 'wp-genius' ),
+					'keepWindowOpen'      => __( 'Please do not close this window until cleanup completes.', 'wp-genius' ),
+					'deleteSuccess'       => __( 'Novel and chapters deleted successfully.', 'wp-genius' ),
 					'docChangeDetected'   => __( 'Document change detected, please re-select and upload the document.', 'wp-genius' ),
 					'volumeUpdated'       => __( 'Volume updated for %d chapters.', 'wp-genius' ),
 				),
@@ -570,115 +577,6 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 		wp_send_json_success( $result );
 	}
 
-	/**
-	 * AJAX: 获取全量自动扫描待处理的小说列表
-	 */
-	public function ajax_fix_get_unfixed_novels() {
-		check_ajax_referer( 'w2p_novel_fix_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( __( 'Permission denied.', 'wp-genius' ) );
-		}
-
-		$fixer  = new W2P_Novel_Fixer();
-		$novels = $fixer->get_unfixed_novels();
-
-		$finished_ids   = get_option( 'w2p_fix_index_finished_books', array() );
-		$finished_count = is_array( $finished_ids ) ? count( $finished_ids ) : 0;
-
-		wp_send_json_success(
-			array(
-				'unfixed'        => $novels,
-				'unfixed_count'  => count( $novels ),
-				'finished_count' => $finished_count,
-			)
-		);
-	}
-
-	/**
-	 * AJAX: 全自动扫描步进执行单本小说重建
-	 */
-	public function ajax_fix_auto_step() {
-		check_ajax_referer( 'w2p_novel_fix_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( __( 'Permission denied.', 'wp-genius' ) );
-		}
-
-		$novel_id = isset( $_POST['novel_id'] ) ? absint( $_POST['novel_id'] ) : 0;
-		$fixer    = new W2P_Novel_Fixer();
-		$result   = $fixer->fix_single_novel( $novel_id );
-
-		wp_send_json_success( $result );
-	}
-
-	/**
-	 * AJAX: 清除已完成小说记录
-	 */
-	public function ajax_fix_clear_progress() {
-		check_ajax_referer( 'w2p_novel_fix_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( __( 'Permission denied.', 'wp-genius' ) );
-		}
-
-		$fixer = new W2P_Novel_Fixer();
-		$fixer->clear_progress();
-		wp_send_json_success( array( 'message' => __( 'Progress records cleared.', 'wp-genius' ) ) );
-	}
-
-	/**
-	 * AJAX: 扫描孤儿章节
-	 */
-	public function ajax_scan_orphans() {
-		check_ajax_referer( 'w2p_novel_fix_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( __( 'Permission denied.', 'wp-genius' ) );
-		}
-
-		$fixer  = new W2P_Novel_Fixer();
-		$result = $fixer->scan_orphan_chapters();
-
-		wp_send_json_success( $result );
-	}
-
-	/**
-	 * AJAX: 清理指定的孤儿章节
-	 */
-	public function ajax_clean_orphans() {
-		check_ajax_referer( 'w2p_novel_fix_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( __( 'Permission denied.', 'wp-genius' ) );
-		}
-
-		$chapter_ids = isset( $_POST['chapter_ids'] ) ? (array) $_POST['chapter_ids'] : array();
-		$fixer       = new W2P_Novel_Fixer();
-		$result      = $fixer->clean_orphan_chapters( $chapter_ids );
-
-		wp_send_json_success( $result );
-	}
-
-	/**
-	 * AJAX: 章节完整性与断号体检
-	 */
-	public function ajax_audit_integrity() {
-		check_ajax_referer( 'w2p_novel_fix_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( __( 'Permission denied.', 'wp-genius' ) );
-		}
-
-		$offset = isset( $_POST['offset'] ) ? absint( $_POST['offset'] ) : 0;
-		$limit  = isset( $_POST['limit'] ) ? absint( $_POST['limit'] ) : 20;
-
-		$fixer  = new W2P_Novel_Fixer();
-		$result = $fixer->audit_novel_chapters_integrity( $offset, $limit );
-
-		wp_send_json_success( $result );
-	}
-
 	// =========================================================================
 	// 级联删除与辅助方法
 	// =========================================================================
@@ -695,12 +593,29 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 		);
 
 		$actions['w2p_delete_novel_with_chapters'] = sprintf(
-			'<a href="%s" class="delete w2p-delete-novel-with-chapters-btn" style="color:#b32d2e;">%s</a>',
+			'<a href="%s" class="delete w2p-delete-novel-with-chapters-btn">%s</a>',
 			esc_url( $url ),
 			esc_html__( 'Delete w/ Chapters', 'wp-genius' )
 		);
 
 		return $actions;
+	}
+
+	/**
+	 * 在小说编辑页的发布框（Publish Box）中输出“Delete w/ Chapters”操作
+	 */
+	public function add_novel_edit_page_delete_action() {
+		global $post;
+		if ( ! $post || 'novel' !== $post->post_type || ! current_user_can( 'delete_post', $post->ID ) || 'trash' === $post->post_status ) {
+			return;
+		}
+		?>
+		<div id="w2p-novel-edit-delete-wrap" class="w2p-novel-edit-delete-wrap">
+			<a href="#" class="submitdelete w2p-delete-novel-with-chapters-btn" data-novel-id="<?php echo esc_attr( $post->ID ); ?>" data-novel-title="<?php echo esc_attr( get_the_title( $post->ID ) ); ?>" data-is-single="1">
+				<?php esc_html_e( 'Delete w/ Chapters', 'wp-genius' ); ?>
+			</a>
+		</div>
+		<?php
 	}
 
 	public function cascade_trash_chapters( $post_id ) {
