@@ -561,18 +561,20 @@ jQuery(document).ready(function ($) {
                 $('#w2p_novel_title').val($.trim(nameWithoutExt));
             }
 
-            // 若为 .txt 纯文本，使用 FileReader 极速预读前 32KB 即时识别书名、作者、简介与分类
+            // 若为 .txt 纯文本，使用 FileReader 极速预读前 32KB（Base64 二进制流）即时识别书名、作者、简介与分类
             if (/\.txt$/i.test(file.name) && typeof FileReader !== 'undefined') {
                 try {
                     const reader = new FileReader();
                     const slice = file.slice(0, 32768);
                     reader.onload = function (e) {
-                        const headerText = e.target.result;
-                        if (headerText) {
+                        const dataUrl = e.target.result;
+                        if (dataUrl) {
+                            const commaIdx = dataUrl.indexOf(',');
+                            const base64Str = commaIdx !== -1 ? dataUrl.substring(commaIdx + 1) : '';
                             $.post(params.ajaxUrl, {
                                 action: 'w2p_novel_inspect_header',
                                 nonce: params.importNonce,
-                                header_text: headerText,
+                                header_base64: base64Str,
                                 filename: file.name
                             }, function (res) {
                                 if (res.success && res.data) {
@@ -593,7 +595,7 @@ jQuery(document).ready(function ($) {
                             });
                         }
                     };
-                    reader.readAsText(slice);
+                    reader.readAsDataURL(slice);
                 } catch (err) {}
             }
         } else {

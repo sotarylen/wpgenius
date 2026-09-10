@@ -246,8 +246,38 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 			wp_send_json_error( __( 'Permission denied.', 'wp-genius' ) );
 		}
 
-		$header_text = isset( $_POST['header_text'] ) ? wp_unslash( $_POST['header_text'] ) : '';
-		$filename    = isset( $_POST['filename'] ) ? sanitize_text_field( wp_unslash( $_POST['filename'] ) ) : '';
+		$header_text = '';
+
+		// 1. 优先从 Base64 二进制切片解码（与全书导入保持权威一致的编码探测）
+		if ( ! empty( $_POST['header_base64'] ) ) {
+			$raw_bytes = base64_decode( wp_unslash( $_POST['header_base64'] ) );
+			if ( false !== $raw_bytes && '' !== $raw_bytes ) {
+				// 按换行符裁掉切片末尾可能残缺的多字节字符，杜绝末尾字节截断误判
+				$last_nl = max( strrpos( $raw_bytes, "\n" ), strrpos( $raw_bytes, "\r" ) );
+				if ( false !== $last_nl && $last_nl > 0 ) {
+					$raw_bytes = substr( $raw_bytes, 0, $last_nl );
+				}
+
+				$encoding = mb_detect_encoding( $raw_bytes, array( 'UTF-8', 'GB18030', 'GBK', 'BIG5', 'ASCII' ), true );
+				if ( $encoding && 'UTF-8' !== $encoding ) {
+					$header_text = mb_convert_encoding( $raw_bytes, 'UTF-8', $encoding );
+				} else {
+					$header_text = $raw_bytes;
+				}
+			}
+		}
+
+		// 2. 兼容纯文本回退
+		if ( empty( $header_text ) && isset( $_POST['header_text'] ) ) {
+			$header_text = wp_unslash( $_POST['header_text'] );
+		}
+
+		// 去除 UTF-8 BOM（若有）
+		if ( substr( $header_text, 0, 3 ) === "\xEF\xBB\xBF" ) {
+			$header_text = substr( $header_text, 3 );
+		}
+
+		$filename = isset( $_POST['filename'] ) ? sanitize_text_field( wp_unslash( $_POST['filename'] ) ) : '';
 
 		$extracted = W2P_Novel_Helper::extract_author_and_intro( $header_text, $filename );
 
