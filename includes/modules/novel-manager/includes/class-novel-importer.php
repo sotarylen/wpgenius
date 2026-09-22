@@ -13,6 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once __DIR__ . '/class-novel-helper.php';
+require_once __DIR__ . '/class-pdf-extractor.php';
 
 class W2P_Novel_Importer {
 
@@ -243,8 +244,9 @@ class W2P_Novel_Importer {
 		$filename = sanitize_file_name( $file_array['name'] );
 		$ext      = strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) );
 
-		if ( ! in_array( $ext, array( 'txt', 'docx' ), true ) ) {
-			return new WP_Error( 'invalid_format', __( 'Unsupported file format. Please upload a .txt or .docx file.', 'wp-genius' ) );
+		$allowed_exts = array( 'txt', 'docx', 'epub', 'html', 'htm', 'pdf' );
+		if ( ! in_array( $ext, $allowed_exts, true ) ) {
+			return new WP_Error( 'invalid_format', __( 'Unsupported file format. Please upload a .txt, .docx, .epub, .html, or .pdf file.', 'wp-genius' ) );
 		}
 
 		$temp_dir    = self::get_temp_dir();
@@ -255,11 +257,27 @@ class W2P_Novel_Importer {
 			return new WP_Error( 'move_failed', __( 'Failed to save uploaded temporary file.', 'wp-genius' ) );
 		}
 
-		// 解析文件内容
-		if ( $ext === 'txt' ) {
-			$result = $this->parse_txt_file( $target_file, $filename );
-		} else {
-			$result = $this->parse_docx_file( $target_file, $filename );
+		// 解析文件内容（按扩展名自动路由到对应解析器）
+		switch ( $ext ) {
+			case 'txt':
+				$result = $this->parse_txt_file( $target_file, $filename );
+				break;
+			case 'docx':
+				$result = $this->parse_docx_file( $target_file, $filename );
+				break;
+			case 'epub':
+				$result = $this->parse_epub_file( $target_file, $filename );
+				break;
+			case 'html':
+			case 'htm':
+				$result = $this->parse_html_file( $target_file, $filename );
+				break;
+			case 'pdf':
+				$result = $this->parse_pdf_file( $target_file, $filename );
+				break;
+			default:
+				$result = new WP_Error( 'invalid_format', __( 'Unsupported file format.', 'wp-genius' ) );
+				break;
 		}
 
 		if ( is_wp_error( $result ) ) {
@@ -305,8 +323,389 @@ class W2P_Novel_Importer {
 		$lines = preg_split( '/\r\n|\r|\n/u', $content );
 		unset( $content );
 
+		return $this->parse_lines_stream( $lines, $raw_filename );
+	}
+
+	/**
+	 * 解析 EPUB 电子书文件 (内存直读防 Zip Slip，LIBXML_NONET 防 XXE)
+	 *
+	 * @param string $file_path 临时文件绝对路径
+	 * @param string $raw_filename 原始文件名
+	 * @return array|WP_Error
+	 */
+	public function parse_epub_file( $file_path, $raw_filename ) {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			return new WP_Error( 'zip_missing', __( 'PHP ZipArchive extension is required to parse EPUB files.', 'wp-genius' ) );
+		}
+
+		$zip = new ZipArchive();
+		if ( true !== $zip->open( $file_path ) ) {
+			return new WP_Error( 'epub_open_failed', __( 'Failed to open EPUB archive.', 'wp-genius' ) );
+		}
+
+		// 1. 读取 META-INF/container.xml 定位 OPF 清单路径 (内存直读)
+		$container_xml = $zip->getFromName( 'META-INF/container.xml' );
+		if ( empty( $container_xml ) ) {
+			$zip->close();
+			return new WP_Error( 'epub_invalid', __( 'Invalid EPUB: missing META-INF/container.xml.', 'wp-genius' ) );
+		}
+
+		$prev_libxml = libxml_use_internal_errors( true );
+		$c_dom       = new DOMDocument();
+		$c_dom->loadXML( $container_xml, LIBXML_NONET );
+		$rootfiles = $c_dom->getElementsByTagName( 'rootfile' );
+		$opf_path  = '';
+		foreach ( $rootfiles as $rf ) {
+			if ( 'application/oebps-package+xml' === $rf->getAttribute( 'media-type' ) || empty( $opf_path ) ) {
+				$opf_path = $rf->getAttribute( 'full-path' );
+				if ( ! empty( $opf_path ) ) {
+					break;
+				}
+			}
+		}
+
+		if ( empty( $opf_path ) ) {
+			$zip->close();
+			libxml_use_internal_errors( $prev_libxml );
+			return new WP_Error( 'epub_no_opf', __( 'Invalid EPUB: rootfile not found in container.', 'wp-genius' ) );
+		}
+
+		// 2. 读取并解析 OPF 元数据与资源清单
+		$opf_content = $zip->getFromName( $opf_path );
+		if ( empty( $opf_content ) ) {
+			$zip->close();
+			libxml_use_internal_errors( $prev_libxml );
+			return new WP_Error( 'epub_read_opf_failed', __( 'Failed to read EPUB package document.', 'wp-genius' ) );
+		}
+
+		$opf_dir = dirname( $opf_path );
+		$opf_dir = ( '.' === $opf_dir || '/' === $opf_dir ) ? '' : rtrim( $opf_dir, '/' ) . '/';
+
+		$opf_dom = new DOMDocument();
+		$opf_dom->loadXML( $opf_content, LIBXML_NONET );
+
+		// 提取元数据 (Title, Creator, Description)
+		$novel_title  = '';
+		$novel_author = '';
+		$novel_intro  = '';
+
+		$titles = $opf_dom->getElementsByTagName( 'title' );
+		if ( $titles->length > 0 ) {
+			$novel_title = trim( $titles->item( 0 )->textContent );
+		}
+		$creators = $opf_dom->getElementsByTagName( 'creator' );
+		if ( $creators->length > 0 ) {
+			$novel_author = trim( $creators->item( 0 )->textContent );
+		}
+		$descriptions = $opf_dom->getElementsByTagName( 'description' );
+		if ( $descriptions->length > 0 ) {
+			$novel_intro = trim( $descriptions->item( 0 )->textContent );
+		}
+
+		if ( empty( $novel_title ) ) {
+			$novel_title = pathinfo( $raw_filename, PATHINFO_FILENAME );
+		}
+		$novel_title = W2P_Novel_Helper::clean_novel_title( $novel_title, $novel_author );
+
+		// 构建 manifest 字典: id => href
+		$manifest = array();
+		$items    = $opf_dom->getElementsByTagName( 'item' );
+		$ncx_href = '';
+		foreach ( $items as $it ) {
+			$id        = $it->getAttribute( 'id' );
+			$href      = $it->getAttribute( 'href' );
+			$mt        = $it->getAttribute( 'media-type' );
+			$full_href = $opf_dir . ltrim( rawurldecode( $href ), '/' );
+
+			$manifest[ $id ] = $full_href;
+			if ( 'application/x-dtbncx+xml' === $mt || 'ncx' === $id ) {
+				$ncx_href = $full_href;
+			}
+		}
+
+		// 提取 TOC 章节标题映射
+		$toc_titles = array();
+		if ( ! empty( $ncx_href ) ) {
+			$ncx_content = $zip->getFromName( $ncx_href );
+			if ( ! empty( $ncx_content ) ) {
+				$ncx_dom = new DOMDocument();
+				$ncx_dom->loadXML( $ncx_content, LIBXML_NONET );
+				$nav_points = $ncx_dom->getElementsByTagName( 'navPoint' );
+				$ncx_dir    = dirname( $ncx_href );
+				$ncx_dir    = ( '.' === $ncx_dir || '/' === $ncx_dir ) ? '' : rtrim( $ncx_dir, '/' ) . '/';
+
+				foreach ( $nav_points as $np ) {
+					$text_nodes    = $np->getElementsByTagName( 'text' );
+					$content_nodes = $np->getElementsByTagName( 'content' );
+					if ( $text_nodes->length > 0 && $content_nodes->length > 0 ) {
+						$t_val     = trim( $text_nodes->item( 0 )->textContent );
+						$src       = $content_nodes->item( 0 )->getAttribute( 'src' );
+						$src_clean = preg_replace( '/#.*$/', '', rawurldecode( $src ) );
+						$full_src  = $ncx_dir . ltrim( $src_clean, '/' );
+						if ( ! empty( $t_val ) && ! isset( $toc_titles[ $full_src ] ) ) {
+							$toc_titles[ $full_src ] = $t_val;
+						}
+					}
+				}
+			}
+		}
+
+		// 读取 spine 顺序
+		$spine_items = array();
+		$itemrefs    = $opf_dom->getElementsByTagName( 'itemref' );
+		foreach ( $itemrefs as $ir ) {
+			$idref = $ir->getAttribute( 'idref' );
+			if ( isset( $manifest[ $idref ] ) ) {
+				$spine_items[] = $manifest[ $idref ];
+			}
+		}
+
+		// 3. 遍历各 XHTML 章节提取内容
+		$chapters        = array();
+		$current_vol     = '正文';
+		$current_vol_idx = 1;
+		$chap_counter    = 1;
+
+		foreach ( $spine_items as $chap_path ) {
+			$html_src = $zip->getFromName( $chap_path );
+			if ( empty( $html_src ) ) {
+				continue;
+			}
+
+			$chap_dom = new DOMDocument();
+			@$chap_dom->loadHTML( '<?xml encoding="UTF-8">' . $html_src, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING );
+
+			$body = $chap_dom->getElementsByTagName( 'body' )->item( 0 );
+			if ( ! $body ) {
+				continue;
+			}
+
+			$lines = array();
+			$this->extract_dom_text_lines( $body, $lines );
+			if ( empty( $lines ) ) {
+				continue;
+			}
+
+			// 优先使用 TOC 标题，否则取首个 h1-h6 或首行
+			$chap_title = isset( $toc_titles[ $chap_path ] ) ? $toc_titles[ $chap_path ] : '';
+			if ( empty( $chap_title ) ) {
+				foreach ( array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ) as $htag ) {
+					$hnodes = $body->getElementsByTagName( $htag );
+					if ( $hnodes->length > 0 ) {
+						$candidate = trim( $hnodes->item( 0 )->textContent );
+						if ( ! empty( $candidate ) ) {
+							$chap_title = $candidate;
+							break;
+						}
+					}
+				}
+			}
+
+			if ( empty( $chap_title ) && ! empty( $lines ) ) {
+				if ( W2P_Novel_Helper::is_chapter_heading( $lines[0] ) ) {
+					$chap_title = array_shift( $lines );
+				}
+			}
+
+			if ( ! empty( $lines ) && ! empty( $chap_title ) && W2P_Novel_Helper::clean_line( $lines[0] ) === W2P_Novel_Helper::clean_line( $chap_title ) ) {
+				array_shift( $lines );
+			}
+
+			$body_text = trim( implode( "\n\n", $lines ) );
+			if ( empty( $body_text ) && empty( $chap_title ) ) {
+				continue;
+			}
+
+			// 前置简介识别
+			if ( empty( $novel_intro ) && mb_strlen( $body_text, 'UTF-8' ) < 800 && preg_match( '/(简介|文案|内容简介|作品简介)/u', $chap_title . ' ' . $body_text ) ) {
+				$intro_ex = W2P_Novel_Helper::extract_author_and_intro( $lines, $raw_filename );
+				if ( ! empty( $intro_ex['intro'] ) ) {
+					$novel_intro = $intro_ex['intro'];
+					continue;
+				}
+			}
+
+			// 分卷识别
+			$vol_info = W2P_Novel_Helper::extract_volume( $chap_title );
+			if ( $vol_info ) {
+				$current_vol     = $vol_info['vol_name'];
+				$current_vol_idx = intval( $vol_info['vol_idx'] );
+			}
+
+			// 章号与索引
+			$chap_num = W2P_Novel_Helper::extract_chapter_number( $chap_title );
+			if ( null === $chap_num ) {
+				$chap_num = $chap_counter++;
+			} elseif ( $chap_num > 0 && $chap_num < 90000 ) {
+				$chap_counter = $chap_num + 1;
+			}
+
+			if ( 99 === $current_vol_idx && $chap_num > 0 && $chap_num < 90000 ) {
+				$chap_num = 99000 + $chap_num;
+			}
+
+			$chap_idx_str = W2P_Novel_Helper::format_chapter_index( $current_vol_idx, $chap_num );
+			if ( empty( $chap_title ) ) {
+				$chap_title = sprintf( __( 'Chapter %d', 'wp-genius' ), count( $chapters ) + 1 );
+			}
+
+			$chapters[] = array(
+				'index'         => count( $chapters ) + 1,
+				'title'         => $chap_title,
+				'volume'        => $current_vol,
+				'vol_idx'       => $current_vol_idx,
+				'chap_num'      => $chap_num,
+				'chapter_index' => $chap_idx_str,
+				'content'       => $this->format_paragraphs( $body_text ),
+				'word_count'    => mb_strlen( strip_tags( $body_text ), 'UTF-8' ),
+			);
+		}
+
+		$zip->close();
+		libxml_use_internal_errors( $prev_libxml );
+
+		return $this->finalize_result( $chapters, $novel_intro, $novel_title, $novel_author );
+	}
+
+	/**
+	 * 解析单文件 HTML 小说文档 (字符集转码、危险标签剥离与结构化段落抽取)
+	 *
+	 * @param string $file_path 临时文件绝对路径
+	 * @param string $raw_filename 原始文件名
+	 * @return array|WP_Error
+	 */
+	public function parse_html_file( $file_path, $raw_filename ) {
+		$content = file_get_contents( $file_path );
+		if ( false === $content ) {
+			return new WP_Error( 'read_error', __( 'Failed to read HTML file.', 'wp-genius' ) );
+		}
+
+		// 1. 字符集检测与转码为 UTF-8
+		$charset = '';
+		if ( preg_match( '/<meta[^>]+charset=["\']?([a-zA-Z0-9_\-]+)/i', $content, $cm ) ) {
+			$charset = strtoupper( trim( $cm[1] ) );
+		} elseif ( preg_match( '/<meta[^>]+content=["\'][^"\']*charset=([a-zA-Z0-9_\-]+)/i', $content, $cm ) ) {
+			$charset = strtoupper( trim( $cm[1] ) );
+		}
+
+		if ( empty( $charset ) || 'UTF-8' !== $charset ) {
+			$encoding = ! empty( $charset ) ? $charset : mb_detect_encoding( $content, array( 'UTF-8', 'GB18030', 'GBK', 'BIG5', 'ASCII' ), true );
+			if ( $encoding && 'UTF-8' !== $encoding ) {
+				$content = mb_convert_encoding( $content, 'UTF-8', $encoding );
+			}
+		}
+
+		// 移除 UTF-8 BOM
+		if ( substr( $content, 0, 3 ) === "\xEF\xBB\xBF" ) {
+			$content = substr( $content, 3 );
+		}
+
+		// 2. 剥离危险标签 (<script>, <style>, <iframe>, <noscript>)
+		$content = preg_replace( '/<(?:script|style|iframe|noscript)[^>]*>.*?<\/(?:script|style|iframe|noscript)>/is', '', $content );
+
+		$prev_libxml = libxml_use_internal_errors( true );
+		$dom         = new DOMDocument();
+		@$dom->loadHTML( '<?xml encoding="UTF-8">' . $content, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING );
+
+		// 提取元数据
+		$novel_title  = '';
+		$novel_author = '';
+		$novel_intro  = '';
+
+		$titles = $dom->getElementsByTagName( 'title' );
+		if ( $titles->length > 0 ) {
+			$novel_title = trim( $titles->item( 0 )->textContent );
+		}
+
+		$metas = $dom->getElementsByTagName( 'meta' );
+		foreach ( $metas as $m ) {
+			$name = strtolower( $m->getAttribute( 'name' ) );
+			$pval = $m->getAttribute( 'content' );
+			if ( 'author' === $name && empty( $novel_author ) ) {
+				$novel_author = trim( $pval );
+			} elseif ( in_array( $name, array( 'description', 'intro' ), true ) && empty( $novel_intro ) ) {
+				$novel_intro = trim( $pval );
+			}
+		}
+
+		if ( empty( $novel_title ) ) {
+			$novel_title = pathinfo( $raw_filename, PATHINFO_FILENAME );
+		}
+		$novel_title = W2P_Novel_Helper::clean_novel_title( $novel_title, $novel_author );
+
+		// 3. 提取主体文本行序列
+		$body  = $dom->getElementsByTagName( 'body' )->item( 0 );
+		$lines = array();
+		if ( $body ) {
+			$this->extract_dom_text_lines( $body, $lines );
+		} else {
+			$plain = preg_replace( '/<(?:p|div|h[1-6]|br|tr)[^>]*>/i', "\n", $content );
+			$plain = wp_strip_all_tags( $plain );
+			$lines = preg_split( '/\r\n|\r|\n/u', $plain );
+		}
+
+		libxml_use_internal_errors( $prev_libxml );
+
+		// 4. 复用通用章节流处理管道
+		return $this->parse_lines_stream( $lines, $raw_filename, $novel_title, $novel_author, $novel_intro );
+	}
+
+	/**
+	 * 解析 PDF 电子书文档（双轨加速：CLI pdftotext 优先 -> 内置纯 PHP ToUnicode CMap 流解析兜底）
+	 *
+	 * @param string $file_path 临时文件绝对路径
+	 * @param string $raw_filename 原始文件名
+	 * @return array|WP_Error
+	 */
+	public function parse_pdf_file( $file_path, $raw_filename ) {
+		$text = '';
+
+		// 轨道 1：优先尝试系统 CLI pdftotext (安全调用 + 函数可用性检测)
+		if ( function_exists( 'exec' ) && ! in_array( 'exec', array_map( 'trim', explode( ',', (string) ini_get( 'disable_functions' ) ) ), true ) ) {
+			$which = @exec( 'which pdftotext 2>/dev/null' );
+			if ( ! empty( $which ) && is_executable( $which ) ) {
+				$out_file = $file_path . '.txt';
+				$cmd      = escapeshellcmd( $which ) . ' -enc UTF-8 -layout ' . escapeshellarg( $file_path ) . ' ' . escapeshellarg( $out_file ) . ' 2>&1';
+				@exec( $cmd );
+				if ( file_exists( $out_file ) ) {
+					$text = file_get_contents( $out_file );
+					@unlink( $out_file );
+				}
+			}
+		}
+
+		// 轨道 2：若无 CLI，无缝使用内置纯 PHP PDF 流提取器兜底
+		if ( empty( $text ) ) {
+			$extractor = new W2P_Pdf_Extractor();
+			$text      = $extractor->extract_text( $file_path );
+		}
+
+		if ( empty( $text ) ) {
+			return new WP_Error( 'pdf_empty', __( 'Failed to extract readable text from PDF or PDF is scanned/empty.', 'wp-genius' ) );
+		}
+
+		$lines       = preg_split( '/\r\n|\r|\n/u', $text );
 		$novel_title = pathinfo( $raw_filename, PATHINFO_FILENAME );
-		$novel_title = trim( $novel_title );
+		$novel_title = W2P_Novel_Helper::clean_novel_title( $novel_title );
+
+		return $this->parse_lines_stream( $lines, $raw_filename, $novel_title );
+	}
+
+	/**
+	 * 通用文本行流解析管道 (DRY 核心复用：TXT / HTML / PDF 共享)
+	 *
+	 * @param array  $lines 纯文本行数组
+	 * @param string $raw_filename 原始文件名
+	 * @param string $novel_title 初始书名 (可选)
+	 * @param string $novel_author 初始作者 (可选)
+	 * @param string $novel_intro 初始简介 (可选)
+	 * @return array
+	 */
+	public function parse_lines_stream( $lines, $raw_filename, $novel_title = '', $novel_author = '', $novel_intro = '' ) {
+		if ( empty( $novel_title ) ) {
+			$novel_title = pathinfo( $raw_filename, PATHINFO_FILENAME );
+			$novel_title = trim( $novel_title );
+		}
 
 		$chapters        = array();
 		$current_vol     = '正文';
@@ -314,8 +713,6 @@ class W2P_Novel_Importer {
 		$current_chapter = null;
 		$current_content = array();
 		$chap_counter    = 1;
-		$novel_intro     = '';
-		$novel_author    = '';
 
 		foreach ( $lines as $raw_line ) {
 			$line = W2P_Novel_Helper::clean_line( $raw_line );
@@ -323,13 +720,14 @@ class W2P_Novel_Importer {
 				continue;
 			}
 
-			// 1. 检查是否为分卷行
+			// 1. 检查是否为分卷行（支持 Extract & Peel 双重剥离）
 			$vol_info = W2P_Novel_Helper::extract_volume( $line );
 			if ( $vol_info ) {
-				$has_sub_chapter = preg_match( '/第\s*[0-9零一二两三四五六七八九十百千万廿卅卌]+\s*[章节回话折篇幕]|Chapter\s*\d+/ui', $line );
-				if ( ! $has_sub_chapter ) {
-					$current_vol     = $vol_info['vol_name'];
-					$current_vol_idx = $vol_info['vol_idx'];
+				$current_vol     = $vol_info['vol_name'];
+				$current_vol_idx = $vol_info['vol_idx'];
+				if ( ! empty( $vol_info['has_sub_chapter'] ) && ! empty( $vol_info['sub_chapter_line'] ) ) {
+					$line = $vol_info['sub_chapter_line'];
+				} else {
 					continue;
 				}
 			}
@@ -371,6 +769,50 @@ class W2P_Novel_Importer {
 		}
 
 		return $this->finalize_result( $chapters, $novel_intro, $novel_title, $novel_author );
+	}
+
+	/**
+	 * 递归遍历 DOM 节点并提取结构化段落文本行
+	 *
+	 * @param DOMNode $node DOM 节点
+	 * @param array   $lines 输出文本行数组（引用）
+	 */
+	private function extract_dom_text_lines( $node, &$lines ) {
+		if ( ! $node ) {
+			return;
+		}
+
+		if ( in_array( strtolower( $node->nodeName ), array( 'script', 'style', 'noscript', 'iframe' ), true ) ) {
+			return;
+		}
+
+		$is_block = in_array( strtolower( $node->nodeName ), array( 'p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'tr', 'li', 'blockquote', 'section', 'article' ), true );
+
+		if ( '#text' === $node->nodeName ) {
+			$val = W2P_Novel_Helper::clean_line( $node->textContent );
+			if ( '' !== $val ) {
+				$lines[] = $val;
+			}
+			return;
+		}
+
+		if ( 'br' === strtolower( $node->nodeName ) ) {
+			return;
+		}
+
+		if ( $node->hasChildNodes() ) {
+			if ( $is_block && ! in_array( strtolower( $node->nodeName ), array( 'div', 'section', 'article' ), true ) ) {
+				$t = W2P_Novel_Helper::clean_line( wp_strip_all_tags( $node->textContent ) );
+				if ( '' !== $t ) {
+					$lines[] = $t;
+					return;
+				}
+			}
+
+			foreach ( $node->childNodes as $child ) {
+				$this->extract_dom_text_lines( $child, $lines );
+			}
+		}
 	}
 
 	/**
@@ -442,10 +884,12 @@ class W2P_Novel_Importer {
 
 				$vol_info = W2P_Novel_Helper::extract_volume( $clean_text );
 				if ( $vol_info ) {
-					$has_sub_chapter = preg_match( '/第\s*[0-9零一二两三四五六七八九十百千万廿卅卌]+\s*[章节话回折篇幕]|Chapter\s*\d+/ui', $clean_text );
-					if ( ! $has_sub_chapter ) {
-						$current_vol     = $vol_info['vol_name'];
-						$current_vol_idx = $vol_info['vol_idx'];
+					$current_vol     = $vol_info['vol_name'];
+					$current_vol_idx = $vol_info['vol_idx'];
+					if ( ! empty( $vol_info['has_sub_chapter'] ) && ! empty( $vol_info['sub_chapter_line'] ) ) {
+						$clean_text = $vol_info['sub_chapter_line'];
+						$is_heading = true;
+					} else {
 						continue;
 					}
 				}
@@ -573,9 +1017,19 @@ class W2P_Novel_Importer {
 
 		$total_words = 0;
 		$volumes_map = array();
+		// 熔断与切碎风险检测 (Safety Breaker)
+		$count_chapters = count( $chapters );
+		$short_chaps    = 0;
+		$avg_words      = $count_chapters > 0 ? ( $total_words / $count_chapters ) : 0;
 		foreach ( $chapters as $c ) {
-			$total_words                += $c['word_count'];
-			$volumes_map[ $c['volume'] ] = true;
+			if ( isset( $c['word_count'] ) && $c['word_count'] < 30 ) {
+				$short_chaps++;
+			}
+		}
+
+		$safety_warning = null;
+		if ( $count_chapters >= 10 && ( $avg_words < 80 || ( $short_chaps / $count_chapters ) > 0.4 ) ) {
+			$safety_warning = __( 'Warning: Unusually high number of very short chapters detected. Your custom rules may be over-splitting content.', 'wp-genius' );
 		}
 
 		return array(
@@ -585,6 +1039,7 @@ class W2P_Novel_Importer {
 			'total_chapters' => count( $chapters ),
 			'total_words'    => $total_words,
 			'total_volumes'  => count( $volumes_map ),
+			'safety_warning' => $safety_warning,
 			'chapters'       => $chapters,
 		);
 	}

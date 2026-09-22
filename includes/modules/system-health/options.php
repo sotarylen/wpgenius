@@ -88,16 +88,6 @@ return array(
 						),
 					),
 				),
-				array(
-					'title'  => __( 'System Info', 'wp-genius' ),
-					'icon'   => 'fa-solid fa-circle-info',
-					'fields' => array(
-						array(
-							'type'    => 'content',
-							'content' => $render_tab( 'info' ),
-						),
-					),
-				),
 			),
 		),
 		// JS dynamically rendered templates (used by AJAX filling such as System Info).

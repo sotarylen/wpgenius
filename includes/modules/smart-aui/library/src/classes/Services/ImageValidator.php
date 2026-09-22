@@ -173,6 +173,11 @@ class ImageValidator {
 	 * @return bool True if external, false otherwise.
 	 */
 	private function is_external_url( string $url ): bool {
+		$migrate_albums = (bool) $this->settings_manager->get_setting( 'migrate_albums', false );
+		if ( $migrate_albums && strpos( $url, '/wp-content/uploads/albums/' ) !== false ) {
+			return true;
+		}
+
 		$site_host = wp_parse_url( site_url(), PHP_URL_HOST );
 		$url_host  = wp_parse_url( $url, PHP_URL_HOST );
 

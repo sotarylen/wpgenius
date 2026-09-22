@@ -201,12 +201,14 @@ class W2P_SmartAUI_Ajax {
 			'post_status'  => $post->post_status,
 		);
 
-		// Skip local images directly
-		$settings = \SmartAutoUploadImages\Plugin::get_settings();
-		$base_url = ! empty( $settings['base_url'] ) ? $settings['base_url'] : site_url();
-		$site_url = site_url();
+		// Skip local images directly (unless migrating albums)
+		$settings       = \SmartAutoUploadImages\Plugin::get_settings();
+		$base_url       = ! empty( $settings['base_url'] ) ? $settings['base_url'] : site_url();
+		$site_url       = site_url();
+		$migrate_albums = ! empty( $settings['migrate_albums'] );
+		$is_albums_path = ( strpos( $image_url, '/wp-content/uploads/albums/' ) !== false );
 
-		if ( strpos( $image_url, $base_url ) === 0 || strpos( $image_url, $site_url ) === 0 ) {
+		if ( ( strpos( $image_url, $base_url ) === 0 || strpos( $image_url, $site_url ) === 0 ) && ! ( $migrate_albums && $is_albums_path ) ) {
 			// If it is a local image, try to find its ID
 			$attachment_id = $this->processor->get_attachment_id_from_url( $image_url );
 
@@ -756,6 +758,11 @@ class W2P_SmartAUI_Ajax {
 			}
 		}
 
+		$update_post = ! empty( $_POST['update_post'] );
+		if ( $update_post && $post_id && ! empty( $result['attachment_id'] ) ) {
+			$this->update_post_video_content( $post_id, $video_url, $new_url, $result['attachment_id'] );
+		}
+
 		wp_send_json_success(
 			array(
 				'source_url'     => $video_url,
@@ -836,6 +843,212 @@ class W2P_SmartAUI_Ajax {
 				'post_parent' => $post_id,
 			)
 		);
+	}
+
+	/**
+	 * AJAX Remove Video
+	 *
+	 * Removes video attachment from media library and restores remote URL in post content.
+	 */
+	public function ajax_remove_video() {
+		if ( session_status() === PHP_SESSION_ACTIVE ) {
+			session_write_close();
+		}
+
+		check_ajax_referer( 'w2p_smart_aui_progress', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( __( 'Permission denied', 'wp-genius' ) );
+		}
+
+		$post_id       = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+		$video_url     = isset( $_POST['video_url'] ) ? esc_url_raw( wp_unslash( $_POST['video_url'] ) ) : '';
+		$attachment_id = isset( $_POST['attachment_id'] ) ? absint( $_POST['attachment_id'] ) : 0;
+
+		if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
+			wp_send_json_error( __( 'Permission denied for this post', 'wp-genius' ) );
+		}
+
+		if ( ! $attachment_id && ! empty( $video_url ) ) {
+			$attachment_id = attachment_url_to_postid( $video_url );
+			if ( ! $attachment_id ) {
+				$attachment_id = $this->module->get_attachment_id_from_url( $video_url );
+			}
+			if ( ! $attachment_id ) {
+				if ( ! class_exists( 'W2P_SmartAUI_Media_Orphan_Bind' ) ) {
+					require_once __DIR__ . '/class-media-orphan-bind.php';
+				}
+				$orphan_service = new W2P_SmartAUI_Media_Orphan_Bind();
+				$attachment_id  = $orphan_service->find_attachment_id_by_url( $video_url );
+			}
+		}
+
+		if ( ! $attachment_id ) {
+			wp_send_json_error( __( 'Attachment not found in media library', 'wp-genius' ) );
+		}
+
+		// Retrieve recorded original source URL
+		$original_source_url = get_post_meta( $attachment_id, '_w2p_original_source_url', true );
+		$local_url           = wp_get_attachment_url( $attachment_id );
+		if ( empty( $local_url ) ) {
+			$local_url = $video_url;
+		}
+
+		// Permanently delete the attachment
+		$deleted = wp_delete_attachment( $attachment_id, true );
+		if ( ! $deleted ) {
+			wp_send_json_error( __( 'Failed to delete attachment from media library', 'wp-genius' ) );
+		}
+
+		// Restore original URL or clean up post content if original source exists
+		if ( ! empty( $original_source_url ) ) {
+			$this->update_post_video_content( $post_id, $local_url, $original_source_url, 0 );
+		}
+
+		wp_send_json_success(
+			array(
+				'attachment_id' => $attachment_id,
+				'original_url'  => $original_source_url,
+				'message'       => __( 'Video removed from media library successfully', 'wp-genius' ),
+			)
+		);
+	}
+
+	/**
+	 * Helper: Replace video URL, Gutenberg block attributes, and class in post content.
+	 *
+	 * @param int    $post_id       Post ID.
+	 * @param string $old_url       Original video URL.
+	 * @param string $new_url       New video URL.
+	 * @param int    $attachment_id Attachment ID (0 if removing).
+	 * @return bool True if content was modified and saved.
+	 */
+	public function update_post_video_content( $post_id, $old_url, $new_url, $attachment_id = 0 ) {
+		$post = get_post( $post_id );
+		if ( ! $post ) {
+			return false;
+		}
+
+		$content = $post->post_content;
+		if ( empty( $content ) ) {
+			return false;
+		}
+
+		// 1. Direct URL replacement (including escaped / for JSON attributes)
+		$updated_content = str_replace( $old_url, $new_url, $content );
+		$old_url_escaped = str_replace( '/', '\/', $old_url );
+		$new_url_escaped = str_replace( '/', '\/', $new_url );
+		$updated_content = str_replace( $old_url_escaped, $new_url_escaped, $updated_content );
+
+		// 2. Handle Gutenberg <!-- wp:video ... --> blocks
+		$pattern         = '/(<!--\s*wp:video(?:\s+(\{[^}]*\}))?\s*-->)(.*?)(<!--\s*\/wp:video\s*-->)/is';
+		$updated_content = preg_replace_callback(
+			$pattern,
+			function ( $matches ) use ( $new_url, $attachment_id ) {
+				$full_block  = $matches[0];
+				$json_raw    = ! empty( $matches[2] ) ? $matches[2] : '';
+				$inner_html  = $matches[3];
+				$block_close = $matches[4];
+
+				if ( false === strpos( $inner_html, $new_url ) ) {
+					return $full_block;
+				}
+
+				$attrs = array();
+				if ( ! empty( $json_raw ) ) {
+					$decoded = json_decode( $json_raw, true );
+					if ( is_array( $decoded ) ) {
+						$attrs = $decoded;
+					}
+				}
+
+				if ( $attachment_id > 0 ) {
+					$attrs['id'] = (int) $attachment_id;
+					$new_open    = '<!-- wp:video ' . wp_json_encode( $attrs ) . ' -->';
+				} else {
+					unset( $attrs['id'] );
+					$new_open = empty( $attrs ) ? '<!-- wp:video -->' : '<!-- wp:video ' . wp_json_encode( $attrs ) . ' -->';
+				}
+
+				return $new_open . $inner_html . $block_close;
+			},
+			$updated_content
+		);
+
+		// 3. Handle [video] shortcode
+		if ( false !== strpos( $updated_content, '[video' ) ) {
+			$updated_content = preg_replace_callback(
+				'/(\[video\b)([^\]]*)(\](?:.*?\[\/video\])?)/is',
+				function ( $matches ) use ( $new_url, $attachment_id ) {
+					$prefix    = $matches[1];
+					$attrs_str = $matches[2];
+					$suffix    = $matches[3];
+
+					if ( false !== strpos( $attrs_str, $new_url ) ) {
+						if ( $attachment_id > 0 ) {
+							if ( preg_match( '/\bid=["\']?\d+["\']?/i', $attrs_str ) ) {
+								$attrs_str = preg_replace( '/\bid=["\']?\d+["\']?/i', 'id="' . (int) $attachment_id . '"', $attrs_str );
+							} else {
+								$attrs_str = ' id="' . (int) $attachment_id . '"' . $attrs_str;
+							}
+						} else {
+							$attrs_str = preg_replace( '/\s*\bid=["\']?\d+["\']?/i', '', $attrs_str );
+						}
+					}
+					return $prefix . $attrs_str . $suffix;
+				},
+				$updated_content
+			);
+		}
+
+		// 4. Handle <video> tag attributes and classes using WP_HTML_Tag_Processor
+		if ( class_exists( 'WP_HTML_Tag_Processor' ) ) {
+			$processor = new \WP_HTML_Tag_Processor( $updated_content );
+			while ( $processor->next_tag( 'video' ) ) {
+				$src            = $processor->get_attribute( 'src' );
+				$existing_class = $processor->get_attribute( 'class' ) ?? '';
+
+				if ( $src === $new_url || ( $attachment_id > 0 && false !== strpos( $existing_class, 'wp-video-' . $attachment_id ) ) ) {
+					if ( $attachment_id > 0 ) {
+						$processor->set_attribute( 'data-id', (string) $attachment_id );
+						$new_class = 'wp-video-' . $attachment_id;
+						if ( ! empty( $existing_class ) ) {
+							if ( strpos( $existing_class, 'wp-video-' ) === false ) {
+								$new_class = trim( $existing_class ) . ' ' . $new_class;
+							} else {
+								$new_class = preg_replace( '/wp-video-\d+/', 'wp-video-' . $attachment_id, $existing_class );
+							}
+						}
+						$processor->set_attribute( 'class', $new_class );
+					} else {
+						$processor->remove_attribute( 'data-id' );
+						if ( ! empty( $existing_class ) ) {
+							$cleaned_class = trim( preg_replace( '/\bwp-video-\d+\b/', '', $existing_class ) );
+							if ( empty( $cleaned_class ) ) {
+								$processor->remove_attribute( 'class' );
+							} else {
+								$processor->set_attribute( 'class', $cleaned_class );
+							}
+						}
+					}
+				}
+			}
+			$updated_content = $processor->get_updated_html();
+		}
+
+		if ( $updated_content !== $content ) {
+			$_POST['w2p_smart_aui_processed'] = true;
+			wp_update_post(
+				array(
+					'ID'           => $post_id,
+					'post_content' => $updated_content,
+				)
+			);
+			clean_post_cache( $post_id );
+			return true;
+		}
+
+		return false;
 	}
 }
 

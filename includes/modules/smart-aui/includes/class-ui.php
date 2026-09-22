@@ -93,12 +93,14 @@ class W2P_SmartAUI_UI {
 			'skip_duplicates'    => isset( $global_settings['smart_aui_skip_duplicates'] ) ? (bool) $global_settings['smart_aui_skip_duplicates'] : true,
 			'base_url'           => ! empty( $global_settings['smart_aui_base_url'] ) ? $global_settings['smart_aui_base_url'] : site_url(),
 			'domain_exclusions'  => isset( $global_settings['smart_aui_exclude_domains'] ) ? $global_settings['smart_aui_exclude_domains'] : '',
-			'capture_videos'     => isset( $global_settings['smart_aui_capture_videos'] ) ? (bool) $global_settings['smart_aui_capture_videos'] : false,
-			'min_width'          => isset( $global_settings['smart_aui_min_width'] ) ? (int) $global_settings['smart_aui_min_width'] : 300,
+			'capture_videos'              => isset( $global_settings['smart_aui_capture_videos'] ) ? (bool) $global_settings['smart_aui_capture_videos'] : false,
+			'auto_capture_videos_on_save' => isset( $global_settings['smart_aui_auto_capture_videos_on_save'] ) ? (bool) $global_settings['smart_aui_auto_capture_videos_on_save'] : false,
+			'min_width'                   => isset( $global_settings['smart_aui_min_width'] ) ? (int) $global_settings['smart_aui_min_width'] : 300,
 			'min_height'         => isset( $global_settings['smart_aui_min_height'] ) ? (int) $global_settings['smart_aui_min_height'] : 200,
 			'auto_set_featured'  => isset( $global_settings['smart_aui_auto_set_featured_image'] ) ? (bool) $global_settings['smart_aui_auto_set_featured_image'] : true,
 			'image_name_pattern' => ! empty( $global_settings['smart_aui_image_name_pattern'] ) ? $global_settings['smart_aui_image_name_pattern'] : '%filename%',
 			'alt_text_pattern'   => ! empty( $global_settings['smart_aui_alt_text_pattern'] ) ? $global_settings['smart_aui_alt_text_pattern'] : '%image_alt%',
+			'migrate_albums'     => isset( $global_settings['smart_aui_migrate_albums'] ) ? (bool) $global_settings['smart_aui_migrate_albums'] : false,
 		);
 
 		// Cache-bust: use file mtime so JS edits (e.g. batch local-image ID update) are picked up immediately.
@@ -172,5 +174,53 @@ class W2P_SmartAUI_UI {
 		if ( file_exists( $template_path ) ) {
 			include $template_path;
 		}
+	}
+
+	/**
+	 * Enqueue Frontend Video Action Scripts
+	 *
+	 * Only enqueues for logged-in administrators viewing singular posts/pages when Capture Videos is enabled.
+	 *
+	 * @return void
+	 */
+	public function enqueue_frontend_video_scripts() {
+		if ( ! is_user_logged_in() || ! current_user_can( 'manage_options' ) || ! is_singular() ) {
+			return;
+		}
+
+		$settings = $this->module->get_settings();
+		if ( empty( $settings['smart_aui_capture_videos'] ) ) {
+			return;
+		}
+
+		$plugin_url = plugin_dir_url( WP_GENIUS_FILE );
+		$css_path   = plugin_dir_path( WP_GENIUS_FILE ) . 'includes/modules/smart-aui/assets/css/smart-aui-video-actions.css';
+		$js_path    = plugin_dir_path( WP_GENIUS_FILE ) . 'includes/modules/smart-aui/assets/js/smart-aui-video-actions.js';
+
+		$css_ver = file_exists( $css_path ) ? filemtime( $css_path ) : W2P_VERSION;
+		$js_ver  = file_exists( $js_path ) ? filemtime( $js_path ) : W2P_VERSION;
+
+		wp_enqueue_style( 'w2p-smart-aui-video-actions', $plugin_url . 'includes/modules/smart-aui/assets/css/smart-aui-video-actions.css', array(), $css_ver );
+		wp_enqueue_script( 'w2p-smart-aui-video-actions', $plugin_url . 'includes/modules/smart-aui/assets/js/smart-aui-video-actions.js', array(), $js_ver, true );
+
+		wp_localize_script(
+			'w2p-smart-aui-video-actions',
+			'w2pSmartAuiVideo',
+			array(
+				'ajax_url' => admin_url( 'admin-ajax.php' ),
+				'nonce'    => wp_create_nonce( 'w2p_smart_aui_progress' ),
+				'post_id'  => get_the_ID(),
+				'site_url' => site_url(),
+				'base_url' => ! empty( $settings['smart_aui_base_url'] ) ? $settings['smart_aui_base_url'] : site_url(),
+				'i18n'     => array(
+					'download'      => __( 'Download', 'wp-genius' ),
+					'downloading'   => __( 'Downloading...', 'wp-genius' ),
+					'remove'        => __( 'Remove', 'wp-genius' ),
+					'removing'      => __( 'Removing...', 'wp-genius' ),
+					'confirmRemove' => __( 'Remove this video from media library? Local file will be deleted.', 'wp-genius' ),
+					'error'         => __( 'Operation failed.', 'wp-genius' ),
+				),
+			)
+		);
 	}
 }

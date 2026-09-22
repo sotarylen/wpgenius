@@ -125,38 +125,6 @@ class SystemHealthCleanupService {
 	}
 
 	/**
-	 * Get System Information
-	 */
-	public function get_system_info() {
-		global $wpdb;
-
-		return array(
-			'server'    => array(
-				'php_version'         => PHP_VERSION,
-				'mysql_version'       => $wpdb->db_version(),
-				'server_software'     => $_SERVER['SERVER_SOFTWARE'],
-				'memory_limit'        => ini_get( 'memory_limit' ),
-				'post_max_size'       => ini_get( 'post_max_size' ),
-				'upload_max_filesize' => ini_get( 'upload_max_filesize' ),
-				'max_execution_time'  => ini_get( 'max_execution_time' ),
-				'gd_version'          => function_exists( 'gd_info' ) ? gd_info()['GD Version'] : 'Not Installed',
-				'curl_version'        => function_exists( 'curl_version' ) ? curl_version()['version'] : 'Not Installed',
-			),
-			'wordpress' => array(
-				'version'      => get_bloginfo( 'version' ),
-				'site_url'     => get_site_url(),
-				'home_url'     => get_home_url(),
-				'multisite'    => is_multisite() ? 'Yes' : 'No',
-				'debug_mode'   => WP_DEBUG ? 'On' : 'Off',
-				'memory_limit' => WP_MEMORY_LIMIT,
-				'table_prefix' => $wpdb->prefix,
-				'language'     => get_locale(),
-				'timezone'     => date_default_timezone_get(),
-			),
-		);
-	}
-
-	/**
 	 * Get all categories
 	 */
 	public function get_categories() {

@@ -48,10 +48,6 @@
         bindEvents: function () {
             const self = this;
 
-            $('#w2p-recheck-environment').on('click', function () {
-                self.recheckEnvironment($(this));
-            });
-
             $('#w2p-get-stats').on('click', function () {
                 self.scanAttachments();
             });
@@ -179,47 +175,6 @@
             } else {
                 doRetry();
             }
-        },
-
-        /**
-         * Recheck environment
-         */
-        recheckEnvironment: function ($button) {
-            $button.prop('disabled', true);
-            $button.find('i').removeClass().addClass('fa-solid fa-spinner fa-spin');
-
-            $.ajax({
-                url: w2pMediaEngine.ajax_url,
-                type: 'POST',
-                data: {
-                    action: 'w2p_recheck_environment',
-                    nonce: w2pMediaEngine.nonce
-                },
-                success: function (response) {
-                    $button.prop('disabled', false);
-                    $button.find('i').removeClass().addClass('fa-solid fa-rotate');
-
-                    if (response.success && response.data) {
-                        if (response.data.html) {
-                            $('.w2p-environment-settings .w2p-section-body').html(response.data.html);
-                        }
-                        if (typeof w2p !== 'undefined' && w2p.toast) {
-                            w2p.toast(response.data.can_process ? 'Environment is ready' : 'Environment rechecked', response.data.can_process ? 'success' : 'warning');
-                        }
-                    } else {
-                        if (typeof w2p !== 'undefined' && w2p.toast) {
-                            w2p.toast('Failed to recheck environment', 'error');
-                        }
-                    }
-                },
-                error: function () {
-                    $button.prop('disabled', false);
-                    $button.find('i').removeClass().addClass('fa-solid fa-rotate');
-                    if (typeof w2p !== 'undefined' && w2p.toast) {
-                        w2p.toast('Network error while rechecking environment', 'error');
-                    }
-                }
-            });
         },
 
         /**

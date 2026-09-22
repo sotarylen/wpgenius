@@ -131,6 +131,9 @@ class W2P_Video_Downloader {
 			wp_update_attachment_metadata( $attach_id, $attach_data );
 		}
 
+		// Store original source URL for selective rollback/removal
+		update_post_meta( $attach_id, '_w2p_original_source_url', esc_url_raw( $video_url ) );
+
 		// Get video URL
 		$video_url_local = wp_get_attachment_url( $attach_id );
 

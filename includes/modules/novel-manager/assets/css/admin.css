@@ -340,9 +340,9 @@
 
 .w2p-novel-delete-container {
 	font-family: var(--w2p-font-family-base, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif);
-	width: 580px;
-	max-width: 92%;
-	background: var(--w2p-bg-surface, #ffffff);
+	width: 600px;
+	max-width: 75%;
+	background: var(--w2p-bg-surface);
 	border-radius: var(--w2p-radius-lg, 12px);
 	box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
 	overflow: hidden;
@@ -358,7 +358,7 @@
 
 .w2p-novel-delete-header {
 	padding: 16px 24px;
-	background: var(--w2p-bg-surface, #ffffff);
+	background: var(--w2p-bg-surface);
 	border-bottom: 1px solid var(--w2p-border-color-light, #e2e8f0);
 	display: flex;
 	justify-content: space-between;
@@ -480,10 +480,11 @@
 }
 
 .w2p-novel-delete-stat-card .value {
-	font-size: 22px;
+	font-family: var(--w2p-font-family-value);
+	font-size: var(--w2p-font-size-2xl);
 	font-weight: 700;
 	line-height: 1.2;
-	color: #1e293b;
+	/* color: #1e293b; */
 	transition: color 0.3s;
 }
 
@@ -492,7 +493,7 @@
 }
 
 .w2p-novel-delete-stat-card.stat-remaining .value {
-	color: #d97706;
+	color: #0657d9;
 }
 
 .w2p-novel-delete-notice {
@@ -1291,4 +1292,251 @@ a.w2p-delete-novel-with-chapters-btn:hover {
 	margin-left: 4px;
 	color: #ea580c;
 	font-size: 12px;
+}
+/* =====================================================================
+   Statistics Tab — 章节字数统计与书籍汇总校准
+   ===================================================================== */
+
+.w2p-stats-overview {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 16px;
+	margin-bottom: 8px;
+}
+
+.w2p-stats-kpi {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 16px 18px;
+	background: #f8fafc;
+	border: 1px solid #e2e8f0;
+	border-radius: 8px;
+}
+
+.w2p-stats-kpi-label {
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: .02em;
+	text-transform: uppercase;
+	color: #64748b;
+}
+
+.w2p-stats-kpi-value {
+	font-size: 26px;
+	font-weight: 700;
+	line-height: 1.2;
+	color: #0f172a;
+}
+
+.w2p-stats-kpi-sub {
+	font-size: 12px;
+	color: #64748b;
+}
+
+.w2p-stats-section-title {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0 0 6px;
+	font-size: 15px;
+	font-weight: 600;
+	color: #0f172a;
+}
+
+.w2p-stats-hint {
+	margin: 0 0 14px;
+	font-size: 13px;
+	color: #64748b;
+}
+
+.w2p-stats-inline-form {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 12px;
+}
+
+.w2p-stats-search-results {
+	max-height: 240px;
+	margin-bottom: 12px;
+	overflow-y: auto;
+	border: 1px solid #e2e8f0;
+	border-radius: 8px;
+	background: #fff;
+}
+
+.w2p-stats-result-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.w2p-stats-result-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 10px 14px;
+	cursor: pointer;
+	border-bottom: 1px solid #f1f5f9;
+	transition: background-color .15s ease;
+}
+
+.w2p-stats-result-item:last-child {
+	border-bottom: none;
+}
+
+.w2p-stats-result-item:hover {
+	background: #f1f5f9;
+}
+
+.w2p-stats-result-item.is-muted {
+	cursor: default;
+	color: #94a3b8;
+	font-size: 13px;
+}
+
+.w2p-stats-result-item.is-muted:hover {
+	background: transparent;
+}
+
+.w2p-stats-result-meta {
+	font-size: 12px;
+	color: #94a3b8;
+	white-space: nowrap;
+}
+
+.w2p-stats-single-card {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 16px;
+	padding: 14px 18px;
+	border: 1px solid #e2e8f0;
+	border-radius: 8px;
+	background: #f8fafc;
+}
+
+.w2p-stats-single-head {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	flex: 1 1 240px;
+}
+
+.w2p-stats-single-head strong {
+	font-size: 14px;
+	color: #0f172a;
+}
+
+.w2p-stats-single-id {
+	font-size: 12px;
+	color: #94a3b8;
+}
+
+.w2p-stats-single-metrics {
+	display: flex;
+	gap: 24px;
+}
+
+.w2p-stats-single-metrics > div {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.w2p-stats-single-metrics span {
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: .02em;
+	color: #64748b;
+}
+
+.w2p-stats-single-metrics strong {
+	font-size: 18px;
+	font-weight: 700;
+	color: #0f172a;
+}
+
+.w2p-stats-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-bottom: 14px;
+}
+
+#w2p-stats-log {
+	max-height: 260px;
+	margin-top: 12px;
+	overflow-y: auto;
+	padding: 10px 14px;
+	border: 1px solid #e2e8f0;
+	border-radius: 8px;
+	background: #0f172a;
+	color: #e2e8f0;
+	font-size: 12px;
+	line-height: 1.7;
+}
+
+#w2p-stats-log .w2p-log-time {
+	display: inline-block;
+	margin-right: 8px;
+	color: #64748b;
+}
+
+/* =====================================================================
+   Novel edit screen — 发布框内的「重算统计」入口
+   ===================================================================== */
+
+#w2p-novel-stats-wrap.w2p-novel-stats-wrap {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 12px;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+#w2p-novel-stats-wrap .w2p-novel-stats-status {
+	flex: 1 1 100%;
+	font-size: 12px;
+	line-height: 1.5;
+	color: #646970;
+}
+
+#w2p-novel-stats-wrap .w2p-novel-stats-status.is-success {
+	color: #1d6f42;
+}
+
+#w2p-novel-stats-wrap .w2p-novel-stats-status.is-error {
+	color: #b32d2e;
+}
+
+#w2p-novel-stats-recalc.w2p-novel-stats-recalc-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 3px 10px;
+	font-size: 12px;
+	font-weight: 500;
+	line-height: 1.8;
+	color: #2271b1;
+	text-decoration: none;
+	background: #f6f7f7;
+	border: 1px solid #2271b1;
+	border-radius: 3px;
+	cursor: pointer;
+	transition: background-color .15s ease, color .15s ease;
+}
+
+#w2p-novel-stats-recalc.w2p-novel-stats-recalc-btn:hover {
+	color: #fff;
+	background: #2271b1;
+}
+
+#w2p-novel-stats-recalc.w2p-novel-stats-recalc-btn.is-busy {
+	opacity: .65;
+	cursor: default;
+	pointer-events: none;
 }

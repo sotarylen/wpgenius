@@ -55,6 +55,13 @@ class W2P_AccelerateModule extends W2P_Abstract_Module {
 	 */
 	private $image_cleanup;
 
+	/**
+	 * Post type switch handler.
+	 *
+	 * @var W2P_Accelerate_PostTypeSwitch|null
+	 */
+	private $post_type_switch;
+
 	public function settings_key() {
 		return 'w2p_settings';
 	}
@@ -82,6 +89,7 @@ class W2P_AccelerateModule extends W2P_Abstract_Module {
 		require_once __DIR__ . '/includes/class-local-avatar.php';
 		require_once __DIR__ . '/includes/class-upload-rename.php';
 		require_once __DIR__ . '/includes/class-image-cleanup.php';
+		require_once __DIR__ . '/includes/class-post-type-switch.php';
 
 		// Wire up the responsibility classes.
 		$this->admin_cleanup  = new W2P_Accelerate_AdminCleanup( $this );
@@ -89,6 +97,7 @@ class W2P_AccelerateModule extends W2P_Abstract_Module {
 		$this->local_avatar   = new W2P_Accelerate_LocalAvatar( $this );
 		$this->upload_rename  = new W2P_Accelerate_UploadRename( $this );
 		$this->image_cleanup  = new W2P_Accelerate_ImageCleanup( $this );
+		$this->post_type_switch = new W2P_Accelerate_PostTypeSwitch( $this );
 
 		// Cleanup Functionality Hooks
 		add_action( 'wp_before_admin_bar_render', array( $this->admin_cleanup, 'clean_admin_bar' ) );
@@ -118,6 +127,9 @@ class W2P_AccelerateModule extends W2P_Abstract_Module {
 
 		// Delete with Images Hooks
 		$this->image_cleanup->init_cleanup_images();
+
+		// Change Post Type Hooks (only registered when the feature is enabled).
+		$this->post_type_switch->init_change_post_type();
 
 		// Admin Body Classes for conditional styles
 		add_filter( 'admin_body_class', array( $this->admin_cleanup, 'add_body_classes' ) );

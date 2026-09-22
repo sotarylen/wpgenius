@@ -73,6 +73,8 @@ class W2P_SmartAUI_Settings {
 			'smart_aui_max_retries'                => 'max_retries',
 			'smart_aui_skip_duplicates'            => 'skip_duplicates',
 			'smart_aui_capture_videos'             => 'capture_videos',
+			'smart_aui_auto_capture_videos_on_save' => 'auto_capture_videos_on_save',
+			'smart_aui_migrate_albums'             => 'migrate_albums',
 		);
 
 		foreach ( $map as $csf_key => $legacy_key ) {

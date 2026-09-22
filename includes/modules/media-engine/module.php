@@ -74,7 +74,6 @@ class W2P_MediaEngineModule extends W2P_Abstract_Module {
 		add_action( 'wp_ajax_w2p_media_fixer_scan', array( $this, 'ajax_fixer_scan' ) );
 		add_action( 'wp_ajax_w2p_media_fixer_process_batch', array( $this, 'ajax_fixer_process_batch' ) );
 		add_action( 'wp_ajax_w2p_media_fixer_preview_post', array( $this, 'ajax_fixer_preview_post' ) );
-		add_action( 'wp_ajax_w2p_recheck_environment', array( $this, 'ajax_recheck_environment' ) );
 
 		// Enqueue admin scripts
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
@@ -512,26 +511,6 @@ class W2P_MediaEngineModule extends W2P_Abstract_Module {
 		$report = $fixer->inspect_post( $post_id );
 
 		wp_send_json_success( $report );
-	}
-
-	/**
-	 * AJAX: Recheck Environment
-	 */
-	public function ajax_recheck_environment() {
-		check_ajax_referer( 'w2p_media_engine_nonce', 'nonce' );
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( 'Permission denied' );
-		}
-
-		$results = W2P_Media_Environment_Checker::check_all();
-		$html    = W2P_Media_Environment_Checker::render_status_html( $results );
-
-		wp_send_json_success(
-			array(
-				'html'        => $html,
-				'can_process' => $results['can_process'],
-			)
-		);
 	}
 
 	/**

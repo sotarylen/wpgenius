@@ -122,7 +122,11 @@ class ImageDownloader {
 			
 			if ( $source_match_id ) {
 				$this->logger->info( 'Found existing image by source URL index', [ 'url' => $image_data['url'], 'id' => $source_match_id ] );
-				$file_url = wp_get_attachment_url( $source_match_id );
+				$file_url       = wp_get_attachment_url( $source_match_id );
+				$migrate_albums = (bool) $this->settings_manager->get_setting( 'migrate_albums', false );
+				if ( $migrate_albums && strpos( $image_data['url'], '/wp-content/uploads/albums/' ) !== false ) {
+					$this->safe_cleanup_album_source( $image_data['url'] );
+				}
 				return [
 					'file'          => get_attached_file( $source_match_id ),
 					'url'           => $file_url,
@@ -164,6 +168,10 @@ class ImageDownloader {
 			if ( $existing_image_result ) {
 				wp_delete_file( $temp_file );
 				$this->logger->info( 'Found existing image by content hash (SHA1)', [ 'url' => $image_data['url'], 'file' => $existing_image_result['file'] ] );
+				$migrate_albums = (bool) $this->settings_manager->get_setting( 'migrate_albums', false );
+				if ( $migrate_albums && ! empty( $existing_image_result['attachment_id'] ) && strpos( $image_data['url'], '/wp-content/uploads/albums/' ) !== false ) {
+					$this->safe_cleanup_album_source( $image_data['url'] );
+				}
 				return $existing_image_result;
 			}
 		}
@@ -185,6 +193,11 @@ class ImageDownloader {
 			return $attachment_id;
 		}
 
+		// Post-import cleanup: If migrating albums and successfully added to media library
+		$migrate_albums = (bool) $this->settings_manager->get_setting( 'migrate_albums', false );
+		if ( $migrate_albums && ! empty( $attachment_id ) && strpos( $image_data['url'], '/wp-content/uploads/albums/' ) !== false ) {
+			$this->safe_cleanup_album_source( $image_data['url'] );
+		}
 
 		// Ensure we use the actual attachment URL (handles WP-scaled images like -scaled.jpg)
 		$actual_url = wp_get_attachment_url( $attachment_id );
@@ -216,6 +229,25 @@ class ImageDownloader {
 	 */
 	private function fetch_image( string $url ) {
 		$url = Sanitizer::sanitize_url( $url );
+
+		// Local Direct Read Optimization: if migrating albums and file exists locally, copy directly.
+		$migrate_albums = (bool) $this->settings_manager->get_setting( 'migrate_albums', false );
+		if ( $migrate_albums && strpos( $url, '/wp-content/uploads/albums/' ) !== false ) {
+			$local_path = $this->resolve_album_local_path( $url );
+			if ( $local_path && file_exists( $local_path ) && is_file( $local_path ) ) {
+				if ( ! function_exists( 'wp_tempnam' ) ) {
+					require_once ABSPATH . 'wp-admin/includes/file.php';
+				}
+				$temp_file = wp_tempnam( $url );
+				if ( copy( $local_path, $temp_file ) ) {
+					$this->logger->info( 'Fetched album image directly from local disk', [ 'url' => $url, 'path' => $local_path ] );
+					return [
+						'file'    => $temp_file,
+						'headers' => [],
+					];
+				}
+			}
+		}
 
 		if ( ! function_exists( 'wp_tempnam' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -491,6 +523,108 @@ class ImageDownloader {
 			'attachment_id' => $attachment_id,
 			'alt_text'      => $image_data['alt_text'] ?? '',
 		];
+	}
+
+	/**
+	 * Resolve local file path for albums URL.
+	 *
+	 * @param string $url Image URL.
+	 * @return string|null Absolute path on disk or null.
+	 */
+	public function resolve_album_local_path( string $url ): ?string {
+		$url_path = wp_parse_url( $url, PHP_URL_PATH );
+		if ( ! $url_path ) {
+			return null;
+		}
+
+		$pos = strpos( $url_path, '/wp-content/uploads/albums/' );
+		if ( false === $pos ) {
+			return null;
+		}
+
+		$relative   = urldecode( substr( $url_path, $pos + strlen( '/wp-content/uploads/' ) ) );
+		$upload_dir = wp_upload_dir();
+		$full_path  = $upload_dir['basedir'] . '/' . $relative;
+
+		return ( file_exists( $full_path ) && is_file( $full_path ) ) ? $full_path : null;
+	}
+
+	/**
+	 * Safely delete original album image and cleanup empty parent directories.
+	 *
+	 * Implements 3 security locks:
+	 * Lock 1: Physical file must exist and be a regular file.
+	 * Lock 2: realpath strictly inside realpath(wp_upload_dir()['basedir'] . '/albums').
+	 * Lock 3: Directory cleanup boundary strictly stops at albums directory itself.
+	 *
+	 * @param string $url Original album image URL.
+	 * @return bool True if deleted, false otherwise.
+	 */
+	public function safe_cleanup_album_source( string $url ): bool {
+		$url_path = wp_parse_url( $url, PHP_URL_PATH );
+		if ( ! $url_path || strpos( $url_path, '/wp-content/uploads/albums/' ) === false ) {
+			return false;
+		}
+
+		$upload_dir  = wp_upload_dir();
+		$albums_base = realpath( $upload_dir['basedir'] . '/albums' );
+		if ( false === $albums_base || ! is_dir( $albums_base ) ) {
+			return false;
+		}
+
+		$pos       = strpos( $url_path, '/wp-content/uploads/albums/' );
+		$relative  = urldecode( substr( $url_path, $pos + strlen( '/wp-content/uploads/' ) ) );
+		$full_path = $upload_dir['basedir'] . '/' . $relative;
+
+		// Lock 1: Physical file must exist and be regular file
+		if ( ! file_exists( $full_path ) || ! is_file( $full_path ) ) {
+			return false;
+		}
+
+		$real_path = realpath( $full_path );
+		if ( false === $real_path ) {
+			return false;
+		}
+
+		// Lock 2: Realpath strictly inside $albums_base directory
+		$albums_prefix = rtrim( $albums_base, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+		if ( strpos( $real_path, $albums_prefix ) !== 0 || $real_path === $albums_base ) {
+			$this->logger->error(
+				'Security violation: Refusing to delete file outside albums directory',
+				[
+					'attempted_path' => $real_path,
+					'albums_base'    => $albums_base,
+				]
+			);
+			return false;
+		}
+
+		// Delete original file
+		$deleted = @unlink( $real_path );
+		if ( ! $deleted ) {
+			$this->logger->warning( 'Failed to unlink original album file', [ 'path' => $real_path ] );
+			return false;
+		}
+
+		$this->logger->info( 'Original album file safely deleted', [ 'path' => $real_path, 'url' => $url ] );
+
+		// Lock 3: Cleanup empty parent directories, strictly stopping at albums directory itself
+		$current_dir = dirname( $real_path );
+		while ( $current_dir && $current_dir !== $albums_base && strpos( $current_dir, $albums_prefix ) === 0 ) {
+			$items = @scandir( $current_dir );
+			if ( false === $items ) {
+				break;
+			}
+			$items = array_diff( $items, [ '.', '..' ] );
+			if ( empty( $items ) ) {
+				@rmdir( $current_dir );
+				$current_dir = dirname( $current_dir );
+			} else {
+				break; // Stop climbing if directory is not empty
+			}
+		}
+
+		return true;
 	}
 
 }

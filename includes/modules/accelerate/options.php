@@ -264,6 +264,13 @@ return array(
 			'dependency' => array( 'accelerate_enable_delete_with_images', '==', 'true' ),
 		),
 		array(
+			'id'      => 'accelerate_enable_change_post_type',
+			'type'    => 'switcher',
+			'title'   => __( 'Change PostType', 'wp-genius' ),
+			'label'   => __( 'Adds a "Change PostType" select to the Publish panel and a "PostType" select to the Bulk Edit panel for moving posts between post types (e.g. post ↔ albums).', 'wp-genius' ),
+			'default' => false,
+		),
+		array(
 			'id'      => 'accelerate_enable_local_avatar',
 			'type'    => 'switcher',
 			'title'   => __( 'Local Avatar Manager', 'wp-genius' ),

@@ -137,6 +137,11 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 		add_action( 'wp_ajax_w2p_smart_aui_download_image', array( $this->ajax, 'ajax_download_image' ) );
 		// Video download endpoint
 		add_action( 'wp_ajax_w2p_smart_aui_download_video', array( $this->ajax, 'ajax_download_video' ) );
+		// Video remove endpoint
+		add_action( 'wp_ajax_w2p_smart_aui_remove_video', array( $this->ajax, 'ajax_remove_video' ) );
+
+		// Frontend video on-demand action scripts
+		add_action( 'wp_enqueue_scripts', array( $this->ui, 'enqueue_frontend_video_scripts' ) );
 
 		// Bulk processing helper endpoints
 		add_action( 'wp_ajax_w2p_smart_aui_get_post_details', array( $this->ajax, 'ajax_get_post_details' ) );
@@ -167,6 +172,14 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 		if ( $orphan_bind ) {
 			require_once __DIR__ . '/includes/class-media-orphan-bind.php';
 			new W2P_SmartAUI_Media_Orphan_Bind();
+		}
+
+		// Feature 4: Albums migration WP-CLI command.
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			require_once __DIR__ . '/includes/class-albums-migration-cli.php';
+			$cli_instance = new W2P_SmartAUI_Albums_Migration_CLI();
+			WP_CLI::add_command( 'smart-aui migrate-albums', array( $cli_instance, 'migrate_albums' ) );
+			WP_CLI::add_command( 'smart-aui', 'W2P_SmartAUI_Albums_Migration_CLI' );
 		}
 	}
 
@@ -428,6 +441,15 @@ class W2P_SmartAUIModule extends W2P_Abstract_Module {
 	 */
 	public function ajax_download_video() {
 		$this->ajax->ajax_download_video();
+	}
+
+	/**
+	 * AJAX: Remove Video.
+	 *
+	 * @return void
+	 */
+	public function ajax_remove_video() {
+		$this->ajax->ajax_remove_video();
 	}
 
 	/**

@@ -90,10 +90,15 @@ class ImageProcessorExtended extends ImageProcessor {
 		$base_url           = ! empty( $smart_aui_settings['base_url'] ) ? $smart_aui_settings['base_url'] : site_url();
 		$site_domain        = parse_url( $base_url, PHP_URL_HOST );
 		$site_url           = site_url();
+		$settings_manager   = \SmartAutoUploadImages\get_container()->get( 'settings_manager' );
+		$migrate_albums     = (bool) $settings_manager->get_setting( 'migrate_albums', false );
 
 		foreach ( $images as $index => $image ) {
-			// [FIX 3] Check if it is already a local image; skip if so
-			if ( strpos( $image['url'], $base_url ) === 0 || strpos( $image['url'], $site_url ) === 0 ) {
+			$is_albums_path     = ( strpos( $image['url'], '/wp-content/uploads/albums/' ) !== false );
+			$is_migrating_album = ( $migrate_albums && $is_albums_path );
+
+			// [FIX 3] Check if it is already a local image; skip if so (unless migrating album images)
+			if ( ! $is_migrating_album && ( strpos( $image['url'], $base_url ) === 0 || strpos( $image['url'], $site_url ) === 0 ) ) {
 				$logger->info( 'Skipped local image', array( 'url' => $image['url'] ) );
 				// Mark as success (skipped), fire the event so the progress bar updates
 				do_action( 'smart_aui_image_processed', $image, array( 'skipped' => true ), $index );
@@ -131,7 +136,7 @@ class ImageProcessorExtended extends ImageProcessor {
 
 			// Check whether the domain matches
 			$image_host = parse_url( $image['url'], PHP_URL_HOST );
-			if ( $image_host === $site_domain ) {
+			if ( ! $is_migrating_album && $image_host === $site_domain ) {
 				$logger->info( 'Skipped image with local domain', array( 'url' => $image['url'] ) );
 				do_action( 'smart_aui_image_processed', $image, array( 'skipped' => true ), $index );
 				++$success_count;

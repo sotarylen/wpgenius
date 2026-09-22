@@ -35,7 +35,7 @@ jQuery(document).ready(function ($) {
     }
 
     // 清除 CSF 未保存警告
-    $(document).on('change input', '#w2p-tab-novel-upload, #w2p-tab-fix-index, #w2p-tab-maintenance', function () {
+    $(document).on('change input', '#w2p-tab-novel-upload, #w2p-tab-fix-index, #w2p-tab-maintenance, #w2p-tab-stats', function () {
         clearCsfFormWarning();
     });
 
@@ -561,8 +561,8 @@ jQuery(document).ready(function ($) {
                 $('#w2p_novel_title').val($.trim(nameWithoutExt));
             }
 
-            // 若为 .txt 纯文本，使用 FileReader 极速预读前 32KB（Base64 二进制流）即时识别书名、作者、简介与分类
-            if (/\.txt$/i.test(file.name) && typeof FileReader !== 'undefined') {
+            // 若为 .txt / .html 文本文件，使用 FileReader 极速预读前 32KB（Base64 二进制流）即时识别书名、作者、简介与分类
+            if (/\.(txt|html|htm)$/i.test(file.name) && typeof FileReader !== 'undefined') {
                 try {
                     const reader = new FileReader();
                     const slice = file.slice(0, 32768);
@@ -733,7 +733,13 @@ jQuery(document).ready(function ($) {
 
         const fileInput = $('#w2p_novel_file')[0];
         if (!fileInput.files || !fileInput.files[0]) {
-            showToast('Please choose a .docx or .txt file to upload.', 'error');
+            showToast('Please choose a novel file (.txt, .docx, .epub, .html, .pdf) to upload.', 'error');
+            return;
+        }
+
+        const uploadFile = fileInput.files[0];
+        if (!/\.(txt|docx|epub|html|htm|pdf)$/i.test(uploadFile.name)) {
+            showToast('Unsupported file format. Please upload a .txt, .docx, .epub, .html, or .pdf file.', 'error');
             return;
         }
 
@@ -792,7 +798,11 @@ jQuery(document).ready(function ($) {
 
                 renderChaptersTable();
                 clearCsfFormWarning();
-                showToast(i18n.parseSuccess || 'File parsed successfully!', 'success');
+                if (data.safety_warning) {
+                    showToast(data.safety_warning, 'warning', 8000);
+                } else {
+                    showToast(i18n.parseSuccess || 'File parsed successfully!', 'success');
+                }
             },
             error: function (xhr, status, err) {
                 parseBtn.prop('disabled', false).html('<i class="fa-solid fa-wand-magic-sparkles"></i> Upload & Parse Document');
@@ -1880,4 +1890,363 @@ jQuery(document).ready(function ($) {
             }
         });
     }
+
+    // =========================================================================
+    // Statistics: 章节字数缓存 + 书籍统计汇总的后台校准工具
+    // =========================================================================
+    (function initStats() {
+        if (!$('#w2p-tab-stats').length) { return; }
+
+        const $searchInput = $('#w2p-stats-search-input');
+        const $resultBox   = $('#w2p-stats-search-results');
+        const $resultList  = $resultBox.find('.w2p-stats-result-list');
+        const $card        = $('#w2p-stats-single-card');
+
+        let selectedNovel = null;
+        let running = false;
+        let stopped = false;
+
+        // ---------- 概览懒加载 ----------
+        // 概览是 30 万章级别的聚合查询，不允许随页面渲染执行；
+        // 本 Tab 第一次真正可见时才通过 AJAX 拉一次，其余后台页面零开销。
+        let overviewReady = null;
+
+        function applyOverview(d) {
+            $('#w2p-stats-kpi-chapter-total').text(d.chapter_total.toLocaleString());
+            $('#w2p-stats-kpi-chapter-synced').text(d.chapter_synced.toLocaleString());
+            $('#w2p-stats-kpi-novel-total').text(d.novel_total.toLocaleString());
+            $('#w2p-stats-kpi-novel-synced').text(d.novel_synced.toLocaleString());
+            $('#w2p-stats-kpi-chapter-pending').text(Math.max(0, d.chapter_total - d.chapter_synced).toLocaleString());
+            $('#w2p-stats-kpi-novel-pending').text(Math.max(0, d.novel_total - d.novel_synced).toLocaleString());
+            $('#w2p-stats-dirty-count').text(d.dirty.toLocaleString());
+            $('.w2p-stats-actions').attr({
+                'data-chapter-total': d.chapter_total,
+                'data-novel-total': d.novel_total
+            });
+            totals.chapters = d.chapter_total;
+            totals.novels   = d.novel_total;
+        }
+
+        function ensureOverview() {
+            if (overviewReady) { return overviewReady; }
+            overviewReady = $.post(params.ajaxUrl, {
+                action: 'w2p_novel_stats_overview',
+                nonce: params.statsNonce
+            }, null, 'json').then(function (res) {
+                if (res && res.success) { applyOverview(res.data); }
+            }, function () {
+                overviewReady = null; // 失败允许下次重试
+            });
+            return overviewReady;
+        }
+
+        function maybeLoadOverview() {
+            if ($('#w2p-tab-stats').is(':visible')) { ensureOverview(); }
+        }
+
+        maybeLoadOverview();                    // 本 Tab 若默认激活，就绪即拉
+        $(document).on('click', maybeLoadOverview); // CSF Tab 切换是 JS 显隐，委托到点击统一探测
+
+        // ---------- 搜索并选中单本 ----------
+        function doSearch() {
+            const q = $.trim($searchInput.val());
+            if (!q) { return; }
+
+            $resultBox.hide().find('.w2p-stats-result-list').empty();
+            $resultList.append('<li class="w2p-stats-result-item is-muted">' + escHtml(i18n.statsSearching || 'Searching...') + '</li>');
+            $resultBox.show();
+
+            $.post(params.ajaxUrl, {
+                action: 'w2p_novel_fix_search',
+                nonce: params.fixNonce,
+                query: q
+            }, function (res) {
+                const list = (res && res.success && res.data && res.data.novels) ? res.data.novels : [];
+                $resultList.empty();
+
+                if (!list.length) {
+                    $resultList.append('<li class="w2p-stats-result-item is-muted">' + escHtml(i18n.statsNoResult || 'No result.') + '</li>');
+                    return;
+                }
+
+                list.forEach(function (n) {
+                    const $li = $('<li class="w2p-stats-result-item"></li>')
+                        .attr('data-id', n.id)
+                        .attr('data-title', n.title)
+                        .html('<strong>' + escHtml(n.title) + '</strong><span class="w2p-stats-result-meta">#' +
+                            escHtml(n.id) + ' · ' + escHtml(n.chapter_count || 0) + ' chapters</span>');
+                    $resultList.append($li);
+                });
+            });
+        }
+
+        function selectNovel(id, title) {
+            selectedNovel = { id: parseInt(id, 10) || 0, title: title };
+            $card.show();
+            $('#w2p-stats-single-title').text(selectedNovel.title);
+            $('#w2p-stats-single-id').text(selectedNovel.id);
+            $('#w2p-stats-single-chapters').text('-');
+            $('#w2p-stats-single-words').text('-');
+            $resultBox.hide();
+        }
+
+        $(document).on('click', '#w2p-stats-search-btn', doSearch);
+        $searchInput.on('keydown', function (e) {
+            if (e.which === 13) { e.preventDefault(); doSearch(); }
+        });
+
+        $(document).on('click', '.w2p-stats-result-item[data-id]', function () {
+            const $it = $(this);
+            selectNovel($it.data('id'), $it.data('title'));
+        });
+
+        // ---------- 单本重算 ----------
+        $(document).on('click', '#w2p-stats-single-run-btn', function () {
+            if (!selectedNovel || !selectedNovel.id) {
+                showToast(i18n.statsSelectNovel || 'Select a novel first.', 'warning');
+                return;
+            }
+
+            const $btn = $(this).prop('disabled', true);
+            $('#w2p-stats-single-chapters').text(i18n.statsCalculating || '...');
+
+            $.post(params.ajaxUrl, {
+                action: 'w2p_novel_stats_single',
+                nonce: params.statsNonce,
+                novel_id: selectedNovel.id
+            }, function (res) {
+                $btn.prop('disabled', false);
+                if (!res || !res.success) {
+                    const msg = (res && res.data && res.data.message) ? res.data.message : 'Failed.';
+                    showToast(msg, 'error');
+                    return;
+                }
+
+                const d = res.data;
+                $('#w2p-stats-single-chapters').text(d.chapters.toLocaleString());
+                $('#w2p-stats-single-words').text(d.words.toLocaleString());
+                showToast(d.message || (i18n.statsDone || 'Done'), 'success');
+            }).fail(function () {
+                $btn.prop('disabled', false);
+                showToast('Request failed.', 'error');
+            });
+        });
+
+        // ---------- 全站分批回填 ----------
+        const $progressBox = $('#w2p-stats-progress-container');
+        const $bar         = $('#w2p-stats-progress-bar');
+        const $status      = $('#w2p-stats-progress-status');
+        const $countText   = $('#w2p-stats-progress-count');
+        const $log         = $('#w2p-stats-log');
+        const $stopBtn     = $('#w2p-stats-stop-btn');
+
+        function setProgress(current, total, status) {
+            $progressBox.show();
+            const pct = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+            $bar.css('width', pct + '%');
+            $status.text(status);
+            $countText.text(current.toLocaleString() + ' / ' + total.toLocaleString());
+        }
+
+        function appendLog(msg) {
+            $log.show();
+            const time = new Date().toTimeString().slice(0, 8);
+            $log.append('<div class="w2p-log-line"><span class="w2p-log-time">' + escHtml(time) + '</span>' + escHtml(msg) + '</div>');
+            $log.scrollTop($log[0].scrollHeight);
+        }
+
+        function toggleButtons(isRunning) {
+            $('#w2p-stats-run-all-btn, #w2p-stats-scan-btn, #w2p-stats-sync-btn').prop('disabled', isRunning);
+            if (isRunning) { $stopBtn.show(); } else { $stopBtn.hide(); }
+        }
+
+        /**
+         * 按游标分批执行
+         */
+        function runBatch(action, total, phaseLabel, batchLog, onFinish) {
+            if (stopped) {
+                toggleButtons(false);
+                running = false;
+                appendLog(i18n.statsStopped || 'Stopped.');
+                return;
+            }
+
+            $.post(params.ajaxUrl, {
+                action: action,
+                nonce: params.statsNonce,
+                cursor: runBatch.cursor,
+                limit: action === 'w2p_novel_stats_scan' ? 500 : 100
+            }, function (res) {
+                if (!res || !res.success) {
+                    const msg = (res && res.data && res.data.message) ? res.data.message : 'Request failed.';
+                    appendLog('[ERROR] ' + msg);
+                    toggleButtons(false);
+                    running = false;
+                    return;
+                }
+
+                const d = res.data;
+                runBatch.processed = (runBatch.processed || 0) + d.processed;
+                runBatch.written   = (runBatch.written || 0) + (d.written !== undefined ? d.written : d.changed);
+                runBatch.cursor    = d.last_id;
+
+                appendLog(batchLog.replace('%1$s', d.processed.toLocaleString()).replace('%2$s', (d.written !== undefined ? d.written : d.changed).toLocaleString()));
+                setProgress(runBatch.processed, total, phaseLabel);
+
+                if (d.has_more) {
+                    runBatch(action, total, phaseLabel, batchLog, onFinish);
+                } else {
+                    onFinish();
+                }
+            }).fail(function () {
+                appendLog('[ERROR] Request failed.');
+                toggleButtons(false);
+                running = false;
+            });
+        }
+
+        function runPhase(action, total, phaseLabel, batchLog, next) {
+            appendLog(phaseLabel);
+            setProgress(0, total, phaseLabel);
+            runBatch.cursor    = 0;
+            runBatch.processed = 0;
+            runBatch.written   = 0;
+            runBatch(action, total, phaseLabel, batchLog, next);
+        }
+
+        const totals = {
+            chapters: parseInt($('.w2p-stats-actions').data('chapter-total'), 10) || 0,
+            novels: parseInt($('.w2p-stats-actions').data('novel-total'), 10) || 0
+        };
+
+        const phaseChapterLog = i18n.statsScanBatch || 'Chapters scanned: %1$s (updated %2$s)';
+        const phaseNovelLog   = i18n.statsSyncBatch || 'Novels aggregated: %1$s (updated %2$s)';
+        const phase1Label     = i18n.statsScanningPhase || 'Phase 1: caching chapter words...';
+        const phase2Label     = i18n.statsSyncingPhase || 'Phase 2: aggregating novels...';
+
+        function finishAll() {
+            toggleButtons(false);
+            running = false;
+            appendLog(i18n.statsDone || 'Done.');
+            setProgress(1, 1, i18n.statsDone || 'Done.');
+            showToast(i18n.statsDone || 'Done.', 'success');
+        }
+
+        function startRebuild(withChapters) {
+            if (running) { return; }
+
+            const confirmRun = function () {
+                // 先确保概览（分母 totals）已加载，再开跑
+                ensureOverview().then(function () {
+                    running = true;
+                    stopped = false;
+                    toggleButtons(true);
+                    $log.empty();
+
+                    if (withChapters) {
+                        runPhase('w2p_novel_stats_scan', totals.chapters, phase1Label, phaseChapterLog, function () {
+                            runPhase('w2p_novel_stats_sync_batch', totals.novels, phase2Label, phaseNovelLog, finishAll);
+                        });
+                    } else {
+                        runPhase('w2p_novel_stats_sync_batch', totals.novels, phase2Label, phaseNovelLog, finishAll);
+                    }
+                });
+            };
+
+            const msg = i18n.statsConfirmRun || 'Run now?';
+            if (typeof w2p !== 'undefined' && typeof w2p.confirm === 'function') {
+                w2p.confirm(msg, confirmRun);
+            } else if (confirm(msg)) {
+                confirmRun();
+            }
+        }
+
+        $(document).on('click', '#w2p-stats-run-all-btn', function (e) { e.preventDefault(); startRebuild(true); });
+        $(document).on('click', '#w2p-stats-scan-btn', function (e) {
+            e.preventDefault();
+            ensureOverview().then(function () {
+                running = true; stopped = false; toggleButtons(true); $log.empty();
+                runPhase('w2p_novel_stats_scan', totals.chapters, phase1Label, phaseChapterLog, finishAll);
+            });
+        });
+        $(document).on('click', '#w2p-stats-sync-btn', function (e) {
+            e.preventDefault();
+            ensureOverview().then(function () {
+                running = true; stopped = false; toggleButtons(true); $log.empty();
+                runPhase('w2p_novel_stats_sync_batch', totals.novels, phase2Label, phaseNovelLog, finishAll);
+            });
+        });
+        $(document).on('click', '#w2p-stats-stop-btn', function (e) {
+            e.preventDefault();
+            stopped = true;
+            $stopBtn.prop('disabled', true).find('.fa-solid').addClass('fa-spin');
+        });
+    })();
+
+    // =========================================================================
+    // Novel edit screen: 单篇触发章节数 / 字数重算
+    // =========================================================================
+    (function initNovelStatsRecalc() {
+        const $btn = $('#w2p-novel-stats-recalc');
+        if (!$btn.length) { return; }
+
+        const $status  = $('#w2p-novel-stats-status');
+        const novelId  = parseInt($btn.data('novel-id'), 10) || 0;
+
+        if (!novelId) { return; }
+
+        /**
+         * 把数值写回 ACF 输入框，让用户在点「更新」前就能看到结果
+         */
+        function setFieldValue(name, value) {
+            const $field = $('[data-name="' + name + '"]');
+            if (!$field.length) { return; }
+
+            const $input = $field.find('input');
+            if (!$input.length) { return; }
+
+            $input.val(value).trigger('change');
+        }
+
+        $btn.on('click', function (e) {
+            e.preventDefault();
+
+            if ($btn.hasClass('is-busy')) { return; }
+
+            $btn.addClass('is-busy').prop('disabled', true);
+            $status.removeClass('is-error is-success').text(i18n.statsCalculating || 'Calculating...');
+
+            $.post(params.ajaxUrl, {
+                action: 'w2p_novel_stats_single',
+                nonce: params.statsNonce,
+                novel_id: novelId
+            }).done(function (res) {
+                if (!res || !res.success) {
+                    const msg = (res && res.data && typeof res.data === 'string')
+                        ? res.data
+                        : (i18n.statsFailed || 'Failed.');
+                    $status.addClass('is-error').text(msg);
+                    return;
+                }
+
+                const d = res.data;
+                setFieldValue('count-chapters', d.chapters);
+                setFieldValue('count-words', d.words);
+
+                $status.addClass('is-success').text(d.message || i18n.statsSaved || 'Updated.');
+                showToast(d.message || i18n.statsSaved || 'Updated.', 'success');
+            }).fail(function () {
+                $status.addClass('is-error').text(i18n.statsFailed || 'Request failed.');
+            }).always(function () {
+                $btn.removeClass('is-busy').prop('disabled', false);
+            });
+        });
+
+        // 首次打开一本「从未统计过」的书：自动跑一次，省掉一次点击。
+        // 只在这两个字段都为空时触发；写入后字段变为 "0" 也不再满足条件，不会反复跑。
+        if ('1' === String($btn.data('needs-sync'))) {
+            $status.text(i18n.statsCalculating || 'Calculating...');
+            $btn.trigger('click');
+        }
+    })();
 });

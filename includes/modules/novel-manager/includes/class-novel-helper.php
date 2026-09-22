@@ -138,10 +138,81 @@ class W2P_Novel_Helper {
 	}
 
 	/**
-	 * 从文本行中识别并提取分卷信息
+	 * 获取模组配置的特殊分卷规则
+	 *
+	 * @return array
+	 */
+	public static function get_special_volume_rules() {
+		$settings = class_exists( 'W2P_Settings' ) ? W2P_Settings::tab( 'novel_manager_tabs' ) : array();
+		$rules    = isset( $settings['novel_special_volumes'] ) && is_array( $settings['novel_special_volumes'] )
+			? $settings['novel_special_volumes']
+			: array();
+
+		// 默认内置兜底规则
+		$defaults = array(
+			array( 'keyword' => '番外', 'policy' => 'fixed', 'fixed_idx' => 99 ),
+			array( 'keyword' => '外传', 'policy' => 'append', 'fixed_idx' => 99 ),
+			array( 'keyword' => '前传', 'policy' => 'zero', 'fixed_idx' => 0 ),
+			array( 'keyword' => '后传', 'policy' => 'append', 'fixed_idx' => 99 ),
+			array( 'keyword' => '别传', 'policy' => 'append', 'fixed_idx' => 99 ),
+			array( 'keyword' => '特别篇', 'policy' => 'fixed', 'fixed_idx' => 99 ),
+			array( 'keyword' => '作品相关', 'policy' => 'zero', 'fixed_idx' => 0 ),
+		);
+
+		if ( empty( $rules ) ) {
+			return $defaults;
+		}
+
+		$user_keywords = array();
+		$final_rules   = array();
+		foreach ( $rules as $r ) {
+			$kw = isset( $r['keyword'] ) ? trim( (string) $r['keyword'] ) : '';
+			if ( '' !== $kw ) {
+				$user_keywords[] = $kw;
+				$final_rules[]   = array(
+					'keyword'   => $kw,
+					'policy'    => isset( $r['policy'] ) ? $r['policy'] : 'append',
+					'fixed_idx' => isset( $r['fixed_idx'] ) ? intval( $r['fixed_idx'] ) : 99,
+				);
+			}
+		}
+
+		foreach ( $defaults as $d ) {
+			if ( ! in_array( $d['keyword'], $user_keywords, true ) ) {
+				$final_rules[] = $d;
+			}
+		}
+
+		return $final_rules;
+	}
+
+	/**
+	 * 获取自定义章节解析规则
+	 *
+	 * @return array
+	 */
+	public static function get_custom_chapter_rules() {
+		$settings = class_exists( 'W2P_Settings' ) ? W2P_Settings::tab( 'novel_manager_tabs' ) : array();
+		$rules    = isset( $settings['novel_custom_chapter_rules'] ) && is_array( $settings['novel_custom_chapter_rules'] )
+			? $settings['novel_custom_chapter_rules']
+			: array();
+
+		$valid_rules = array();
+		foreach ( $rules as $r ) {
+			$p = isset( $r['rule_pattern'] ) ? trim( (string) $r['rule_pattern'] ) : '';
+			if ( '' !== $p ) {
+				$valid_rules[] = $p;
+			}
+		}
+
+		return $valid_rules;
+	}
+
+	/**
+	 * 从文本行中识别并提取分卷信息（支持单行双重剥离 Extract & Peel）
 	 *
 	 * @param string $line 文本行或章节标题
-	 * @return array|null 包含 [ 'vol_idx' => int, 'vol_name' => string ] 或 null
+	 * @return array|null 包含 [ 'vol_idx' => int, 'vol_name' => string, 'has_sub_chapter' => bool, 'sub_chapter_line' => string, 'policy' => string ] 或 null
 	 */
 	public static function extract_volume( $line ) {
 		$line = self::clean_line( $line );
@@ -150,16 +221,26 @@ class W2P_Novel_Helper {
 		}
 
 		// 1. 复合形式：第X卷/卷X/第X部/部X [卷名] 第Y章 [章名]
-		if ( preg_match( '/(?:^|[\s(（【\[])(?:(?:第\s*)?([0-9零一二两三四五六七八九十百千万廿卅卌]+)\s*[卷部集册]|[卷部集册]\s*(?:第\s*)?([0-9零一二两三四五六七八九十百千万廿卅卌]+))\s*(.*?)(?=\s*第|\s*$)/u', $line, $m ) ) {
+		if ( preg_match( '/^(?:(?:第\s*)?([0-9零一二两三四五六七八九十百千万廿卅卌]+)\s*[卷部集册]|[卷部集册]\s*(?:第\s*)?([0-9零一二两三四五六七八九十百千万廿卅卌]+))\s*(.*?)(?=\s*(?:第\s*[0-9零一二两三四五六七八九十百千万廿卅卌]+\s*[章节回话折集篇幕]|Chapter\s*\d+)|$)/u', $line, $m ) ) {
 			$vol_num_str = ! empty( $m[1] ) ? $m[1] : ( ! empty( $m[2] ) ? $m[2] : '1' );
 			$vol_num     = self::chinese_to_arabic( $vol_num_str ) ?: 1;
 			$vol_title   = isset( $m[3] ) ? trim( $m[3] ) : '';
 			$vol_title   = preg_replace( '/^[·\s\-_:：|]+|[·\s\-_:：|]+$/u', '', $vol_title );
 
 			$full_name = '第' . $vol_num . '卷' . ( $vol_title ? ' ' . $vol_title : '' );
+
+			// 检查这一行是否同时包含子章节（Extract & Peel）
+			$sub_chapter = '';
+			if ( preg_match( '/\s+(第\s*[0-9零一二两三四五六七八九十百千万廿卅卌]+\s*[章节回话折集篇幕].*|Chapter\s*\d+.*)$/ui', $line, $sub_m ) ) {
+				$sub_chapter = trim( $sub_m[1] );
+			}
+
 			return array(
-				'vol_idx'  => $vol_num,
-				'vol_name' => $full_name,
+				'vol_idx'          => $vol_num,
+				'vol_name'         => $full_name,
+				'has_sub_chapter'  => ! empty( $sub_chapter ),
+				'sub_chapter_line' => $sub_chapter,
+				'policy'           => 'standard',
 			);
 		}
 
@@ -172,20 +253,45 @@ class W2P_Novel_Helper {
 
 			$full_name = '第' . $vol_num . '卷' . ( $vol_title ? ' ' . $vol_title : '' );
 			return array(
-				'vol_idx'  => $vol_num,
-				'vol_name' => $full_name,
+				'vol_idx'          => $vol_num,
+				'vol_name'         => $full_name,
+				'has_sub_chapter'  => false,
+				'sub_chapter_line' => '',
+				'policy'           => 'standard',
 			);
 		}
 
-		// 3. 番外/外传类独立分卷行
-		if ( preg_match( '/^[【\[（\(《\s]*(?:番外|番外篇|外传|后传|前传|别传|新传|特别篇|作品相关)[\s】\]）\)》]*(?:[\s:：·\-_]+(.*?))?$/u', $line, $m ) ) {
-			$vol_title = isset( $m[1] ) ? trim( $m[1] ) : '';
-			$vol_title = preg_replace( '/^[·\s\-_:：|]+|[·\s\-_:：|]+$/u', '', $vol_title );
-			$full_name = '番外' . ( $vol_title ? ' ' . $vol_title : '' );
-			return array(
-				'vol_idx'  => 99,
-				'vol_name' => $full_name,
-			);
+		// 3. 特殊分卷（外传、前传、后传、番外、xxx篇等），支持复合标题 Extract & Peel
+		$special_rules = self::get_special_volume_rules();
+		foreach ( $special_rules as $rule ) {
+			$kw = preg_quote( $rule['keyword'], '/' );
+			// 匹配行首分卷关键词（如：“胡铁花外传 第一章” 或 “【外传】少年游”）
+			if ( preg_match( '/^[【\[（\(《\s]*(?<vol>[^\s:：·\-_]{0,20}' . $kw . '[^\s:：·\-_]{0,10})[\s】\]）\)》]*(?:[\s:：·\-_]+(?<rest>.*))?$/u', $line, $m ) ) {
+				$raw_vol   = trim( $m['vol'] );
+				$rest_text = isset( $m['rest'] ) ? trim( $m['rest'] ) : '';
+
+				if ( ! empty( $rest_text ) && self::is_chapter_heading( $rest_text ) ) {
+					// 复合标题：剥离卷名，并保留子章节
+					return array(
+						'vol_idx'          => ( 'zero' === $rule['policy'] ) ? 0 : ( ( 'fixed' === $rule['policy'] ) ? $rule['fixed_idx'] : 99 ),
+						'vol_name'         => $raw_vol ?: $rule['keyword'],
+						'has_sub_chapter'  => true,
+						'sub_chapter_line' => $rest_text,
+						'policy'           => $rule['policy'],
+					);
+				}
+
+				// 独立分卷行
+				$full_vol_name = preg_replace( '/^[·\s\-_:：|]+|[·\s\-_:：|]+$/u', '', $line );
+				$full_vol_name = preg_replace( '/^[【\[（\(《\s]+|[\s】\]）\)》]+$/u', '', $full_vol_name );
+				return array(
+					'vol_idx'          => ( 'zero' === $rule['policy'] ) ? 0 : ( ( 'fixed' === $rule['policy'] ) ? $rule['fixed_idx'] : 99 ),
+					'vol_name'         => $full_vol_name ?: $rule['keyword'],
+					'has_sub_chapter'  => false,
+					'sub_chapter_line' => '',
+					'policy'           => $rule['policy'],
+				);
+			}
 		}
 
 		return null;
@@ -207,12 +313,12 @@ class W2P_Novel_Helper {
 		$test_title = preg_replace( '/^[【\[（\(《\s]+/u', '', $title );
 
 		// 1. 序言/楔子/作品相关 -> 0
-		if ( preg_match( '/^(楔子|序章|序言|前言|简介|内容简介|人物介绍|作品相关|引子)/u', $test_title ) ) {
+		if ( preg_match( '/^(楔子|序章|序言|前言|简介|内容简介|人物介绍|作品相关|引子)(?:[\s:：·\-_]|$)/u', $test_title ) ) {
 			return 0;
 		}
 
 		// 2. 尾声/后记/完结感言/终章 -> 99999
-		if ( preg_match( '/^(尾声|后记|完结感言|后续|终章|大结局)/u', $test_title ) ) {
+		if ( preg_match( '/^(尾声|后记|完结感言|后续|终章|大结局)(?:[\s:：·\-_]|$)/u', $test_title ) ) {
 			return 99999;
 		}
 
@@ -230,17 +336,23 @@ class W2P_Novel_Helper {
 			return self::chinese_to_arabic( $m[1] );
 		}
 
-		// 5. 数字开头：如 "123 回归都市" 或 "123、回归" 或 "123.回归"
+		// 5. 括号序号格式：如“章节名（一）”或“章节名(1)”或“章节名[一]”
+		if ( preg_match( '/^.+?[\s]*[（\(\[【]([0-9零一二两三四五六七八九十百千万廿卅卌]+)[）\)\]】]$/u', $test_title, $m ) ) {
+			$num = self::chinese_to_arabic( $m[1] );
+			return $num ?: intval( $m[1] );
+		}
+
+		// 6. 数字开头：如 "123 回归都市" 或 "123、回归" 或 "123.回归"
 		if ( preg_match( '/^(\d+)[\s、.．_\-:：]/u', $test_title, $m ) ) {
 			return intval( $m[1] );
 		}
 
-		// 6. 回X / 卷X / 篇X
+		// 7. 回X / 卷X / 篇X
 		if ( preg_match( '/^[回卷篇]\s*([0-9零一二两三四五六七八九十百千万廿卅卌]+)/u', $test_title, $m ) ) {
 			return self::chinese_to_arabic( $m[1] );
 		}
 
-		// 7. 纯英文 Chapter X
+		// 8. 纯英文 Chapter X
 		if ( preg_match( '/^Chapter\s*(\d+)/ui', $test_title, $m ) ) {
 			return intval( $m[1] );
 		}
@@ -283,20 +395,20 @@ class W2P_Novel_Helper {
 		$line = self::clean_line( $line );
 		$len  = mb_strlen( $line, 'UTF-8' );
 
-		// 标题通常不会过长（小于 60 字符）
-		if ( $len === 0 || $len > 60 ) {
+		// 1. 标题必须有长度且通常不超过 50 字符
+		if ( $len === 0 || $len > 50 ) {
 			return false;
 		}
 
-		// 排除标点结尾的长段落
-		if ( preg_match( '/[。！？!?…]$/u', $line ) && $len > 25 ) {
+		// 2. 标点终结符阻断：以中文句号结尾的极大概率为叙述性正文，一票否决
+		if ( preg_match( '/。$/u', $line ) ) {
 			return false;
 		}
 
-		// 容错前导装饰括号：如 【第一回】 或 [第一回]
+		// 3. 容错前导装饰括号：如 【第一回】 或 [第一回]
 		$test_line = preg_replace( '/^[【\[（\(《\s]+/u', '', $line );
 
-		// 排除误判词根：当检测到以“第X节”开头紧跟常用量词/词素，或“第X部”开头紧跟分/队/门/位/长等，排除为非章节标题
+		// 4. 排除非章节量词/单位误判词根
 		if ( preg_match( '/^第\s*[0-9零一二两三四五六七八九十百千万廿卅卌]+\s*节\s*(课|点|日|天|次|步|个|分钟|秒|轮|期|名)/u', $test_line ) ) {
 			return false;
 		}
@@ -304,29 +416,62 @@ class W2P_Novel_Helper {
 			return false;
 		}
 
-		// 特殊章节名判断（排除独立简介标记，使其归入小说简介提取）
-		if ( preg_match( '/^(楔子|序章|序言|前言|人物介绍|作品相关|引子|尾声|后记|完结感言|后续|终章|大结局|番外)/u', $test_line ) ) {
+		// 5. 特殊弱特征章节名（行首硬锚定 + 行尾严格闭合约束，防止“至于后续要怎么处理呢”误判）
+		if ( preg_match( '/^(楔子|序章|序言|前言|人物介绍|作品相关|引子|尾声|后记|完结感言|后续|终章|大结局|番外)(?:[\s:：·\-_]+[^\n。！？!?…]{0,30})?$/u', $test_line ) ) {
 			return true;
 		}
 
-		// 第X章 / 第X节 / 第X回 / 第X话 / 第X折 / 第X集 / 第X篇 / 第X幕 / 第X部
+		// 6. 标准格式：第X章 / 第X节 / 第X回 / 第X话 / 第X折 / 第X集 / 第X篇 / 第X幕 / 第X部
 		if ( preg_match( '/^第\s*[0-9零一二两三四五六七八九十百千万廿卅卌]+\s*[章节回话折集篇幕部]/u', $test_line ) ) {
 			return true;
 		}
 
-		// 数字开头且后面带有中文或空格/标点：如 "1 第一章" 或 "1、初入江湖" 或 "01 梦觉渡头"
+		// 7. 括号序号章节匹配（如“章节名（一）”或“章节名(1)”或“章节名[一]”）
+		$settings       = class_exists( 'W2P_Settings' ) ? W2P_Settings::tab( 'novel_manager_tabs' ) : array();
+		$enable_bracket = isset( $settings['novel_enable_bracket_chapters'] ) ? (bool) $settings['novel_enable_bracket_chapters'] : true;
+		if ( $enable_bracket ) {
+			if ( preg_match( '/^[^（\(\[【\r\n]{1,40}[\s]*[（\(\[【]([0-9零一二两三四五六七八九十百千万廿卅卌]+)[）\)\]】]$/u', $test_line ) ) {
+				return true;
+			}
+		}
+
+		// 8. 数字开头且后面带有中文或空格/标点：如 "1 第一章" 或 "1、初入江湖" 或 "01 梦觉渡头"
 		if ( preg_match( '/^\d+[\s、.．_\-:：]/u', $test_line ) ) {
 			return true;
 		}
 
-		// 回X / 卷X / 篇X 开头
+		// 9. 回X / 卷X / 篇X 开头
 		if ( preg_match( '/^[回卷篇]\s*[0-9零一二两三四五六七八九十百千万廿卅卌]+/u', $test_line ) ) {
 			return true;
 		}
 
-		// Chapter X
+		// 10. Chapter X
 		if ( preg_match( '/^Chapter\s*\d+/ui', $test_line ) ) {
 			return true;
+		}
+
+		// 11. 自定义规则优先检查（安全预检，必须行首匹配）
+		$custom_rules = self::get_custom_chapter_rules();
+		foreach ( $custom_rules as $rule ) {
+			$rule = trim( $rule );
+			if ( empty( $rule ) ) {
+				continue;
+			}
+
+			// 如果是完整正则表达式
+			if ( '/' === substr( $rule, 0, 1 ) && ( '/' === substr( $rule, -1 ) || 'u' === substr( $rule, -1 ) || 'i' === substr( $rule, -1 ) ) ) {
+				if ( @preg_match( $rule, '' ) !== false ) {
+					if ( preg_match( $rule, $test_line ) ) {
+						return true;
+					}
+				}
+			} else {
+				// 普通关键词/前缀匹配（必须行首匹配）
+				$quoted = preg_quote( $rule, '/' );
+				if ( preg_match( '/^' . $quoted . '(?:\s|\d|第|:：|$)/ui', $test_line ) ) {
+					return true;
+				}
+			}
 		}
 
 		return false;
@@ -364,14 +509,19 @@ class W2P_Novel_Helper {
 		// 4. 剥离作者后缀或连字符分隔部分
 		if ( ! empty( $author ) ) {
 			$escaped_author = preg_quote( trim( $author ), '/' );
-			$title          = preg_replace( '/[-_\s]*(?:作者|著|文)?[:：\s]*' . $escaped_author . '.*$/u', '', $title );
+			// 优先剥离包含该作者的整对括号块，如 (烽火戏诸侯 著)、[烽火戏诸侯]、(作者：烽火戏诸侯)
+			$title = preg_replace( '/[\(（\[【][^\)）\]】]*' . $escaped_author . '[^\)）\]】]*[\)）\]】]/u', '', $title );
+			$title = preg_replace( '/[-_\s]*(?:作者|著|文)?[:：\s]*' . $escaped_author . '.*$/u', '', $title );
 		}
-		// 常见通用作者剥离模式（如 " - 卖报小郎君"、" 作者：辰东"）
-		$title = preg_replace( '/[-_\s]+(?:作者|著|文)?[:：\s]*[^\s_\-\(\)\[\]（）【】]{2,20}$/u', '', $title );
-		$title = preg_replace( '/(?:作者|著|文)[:：\s]+[^\s_\-\(\)\[\]（）【】]{2,20}$/u', '', $title );
+		// 通用作者括号块（如 (烽火戏诸侯 著)、(辰东 著)、(作者：梦入神机)）
+		$title = preg_replace( '/[\(（\[【][^\)）\]】]*(?:作者|著|文)[^\)）\]】]*[\)）\]】]/u', '', $title );
+		// 常见通用作者剥离模式（如 " - 卖报小郎君"、" 作者：辰东"、" 辰东著"）
+		$title = preg_replace( '/\s*[-_]\s*(?:作者|著|文)?[:：\s]*[^\s_\-\(\)\[\]（）【】]{2,20}$/u', '', $title );
+		$title = preg_replace( '/\s+(?:作者|著|文)[:：\s]+[^\s_\-\(\)\[\]（）【】]{2,20}$/u', '', $title );
+		$title = preg_replace( '/\s+[^\s_\-\(\)\[\]（）【】]{2,20}(?:著|文)$/u', '', $title );
 
 		// 5. 剥离书名号、括号残留及多余首尾符号
-		$title = preg_replace( '/^[《【\[(（\s\-_]+|[》】\])）\s\-_]+$/u', '', $title );
+		$title = preg_replace( '/^[《【\[(（\)）\]】\s\-_]+|[《【\[(（\)）\]】\s\-_]+$/u', '', $title );
 
 		return trim( $title );
 	}
@@ -384,6 +534,27 @@ class W2P_Novel_Helper {
 	 * @return array array( 'author' => string, 'intro' => string, 'title' => string, 'category' => string )
 	 */
 	public static function extract_author_and_intro( $pre_chapter_lines, $filename = '' ) {
+		$author            = '';
+		$clean_title       = '';
+		$category          = '';
+		$intro_lines       = array();
+		$current_intro_len = 0;
+
+		// 0. 若输入为 HTML 源码字符串，智能解析 <title> 及 meta 标签
+		if ( is_string( $pre_chapter_lines ) && preg_match( '/<(?:!DOCTYPE|html|head|body)/i', $pre_chapter_lines ) ) {
+			if ( preg_match( '/<title[^>]*>(.*?)<\/title>/is', $pre_chapter_lines, $tm ) ) {
+				$clean_title = self::clean_novel_title( wp_strip_all_tags( $tm[1] ) );
+			}
+			if ( preg_match( '/<meta[^>]+name=["\']author["\'][^>]+content=["\']([^"\']+)["\']/i', $pre_chapter_lines, $am ) || preg_match( '/<meta[^>]+content=["\']([^"\']+)["\'][^>]+name=["\']author["\']/i', $pre_chapter_lines, $am ) ) {
+				$author = trim( $am[1] );
+			}
+			if ( preg_match( '/<meta[^>]+name=["\'](?:description|intro)["\'][^>]+content=["\']([^"\']+)["\']/i', $pre_chapter_lines, $im ) || preg_match( '/<meta[^>]+content=["\']([^"\']+)["\'][^>]+name=["\'](?:description|intro)["\']/i', $pre_chapter_lines, $im ) ) {
+				$intro_lines[] = trim( $im[1] );
+			}
+			$plain             = preg_replace( '/<(?:p|div|h[1-6]|br|tr)[^>]*>/i', "\n", $pre_chapter_lines );
+			$pre_chapter_lines = wp_strip_all_tags( $plain );
+		}
+
 		if ( is_string( $pre_chapter_lines ) ) {
 			$lines = preg_split( '/\r\n|\r|\n/u', $pre_chapter_lines );
 			if ( ! is_array( $lines ) || empty( $lines ) ) {
@@ -396,12 +567,6 @@ class W2P_Novel_Helper {
 			$lines = array();
 		}
 
-		$author            = '';
-		$clean_title       = '';
-		$category          = '';
-		$intro_lines       = array();
-		$current_intro_len = 0;
-
 		// 1. 从文件名识别作者与书名（如《斗破苍穹》作者：天蚕土豆.txt、斗罗大陆(唐家三少著).txt、大奉打更人 - 卖报小郎君.txt 等）
 		if ( ! empty( $filename ) ) {
 			$raw_fn = pathinfo( $filename, PATHINFO_FILENAME );
@@ -411,7 +576,7 @@ class W2P_Novel_Helper {
 				$author = trim( $m[1] );
 			} elseif ( preg_match( '/[\(（\[【]([^\s_\-\(\)\[\]（）【】]+)\s*(?:著|文|作品)[\)）\]】]/u', $raw_fn, $m ) ) {
 				$author = trim( $m[1] );
-			} elseif ( preg_match( '/^《?([^》]+)》?\s*[-_]\s*([^\s_\-\(\)\[\]（）【】]+)$/u', $raw_fn, $m ) ) {
+			} elseif ( preg_match( '/^《?([^》]+)》?\s*[-_]\s*([^_\-\(\)\[\]（）【】]+)$/u', $raw_fn, $m ) ) {
 				$clean_title = trim( $m[1] );
 				$author      = trim( $m[2] );
 			}
@@ -438,9 +603,9 @@ class W2P_Novel_Helper {
 				break;
 			}
 
-			// A. 匹配文本中的作者行（支持 "作者：XXX"、"【作　者】XXX"、"著：XXX"、"文 / XXX"、"文：XXX"）
+			// A. 匹配文本中的作者行（支持 "作者：XXX"、"【作　者】XXX"、"著：XXX"、"Author: XXX" 等）
 			if ( empty( $author ) ) {
-				if ( preg_match( '/^(?:【?\s*(?:作\s*者|著\s*者|文\s*\/\s*|文\s*：|著)\s*】?)\s*[:：]?\s*([^\s,，。]+)/u', $line, $am ) ) {
+				if ( preg_match( '/^(?:【?\s*(?:作\s*者|著\s*者|文\s*\/\s*|文\s*：|著|Author|By)\s*】?)\s*[:：]?\s*([^\r\n,，。]+)/ui', $line, $am ) ) {
 					$author = trim( preg_replace( '/^[【\[(（\s]+|[】\])）\s]+$/u', '', $am[1] ) );
 					continue;
 				} elseif ( preg_match( '/^([^:：\s]{2,10})\s+(?:著|编著|作品)$/u', $line, $am ) ) {
@@ -449,7 +614,7 @@ class W2P_Novel_Helper {
 				}
 			} else {
 				// 已有作者时，跳过重复出现的作者行
-				if ( preg_match( '/^(?:【?\s*(?:作\s*者|著\s*者|文\s*\/\s*|文\s*：|著)\s*】?)\s*[:：]?/u', $line ) || preg_match( '/(?:著|编著|作品)$/u', $line ) ) {
+				if ( preg_match( '/^(?:【?\s*(?:作\s*者|著\s*者|文\s*\/\s*|文\s*：|著|Author|By)\s*】?)\s*[:：]?/ui', $line ) || preg_match( '/(?:著|编著|作品)$/u', $line ) ) {
 					continue;
 				}
 			}
@@ -534,10 +699,23 @@ class W2P_Novel_Helper {
 			return array();
 		}
 
+		// 预扫描：统计标准正文分卷的最大序号
+		$max_standard_vol = 1;
+		foreach ( $chapters as $c ) {
+			$raw_v = isset( $c['volume'] ) ? trim( sanitize_text_field( $c['volume'] ) ) : '';
+			$v_inf = self::extract_volume( $raw_v ?: ( isset( $c['title'] ) ? $c['title'] : '' ) );
+			if ( $v_inf && ! empty( $v_inf['vol_idx'] ) && 'standard' === ( isset( $v_inf['policy'] ) ? $v_inf['policy'] : 'standard' ) ) {
+				$v_idx = intval( $v_inf['vol_idx'] );
+				if ( $v_idx > $max_standard_vol && $v_idx < 90 ) {
+					$max_standard_vol = $v_idx;
+				}
+			}
+		}
+
 		$current_vol_idx  = 1;
 		$current_vol_name = '正文';
-		$custom_vol_map   = array();
-		$auto_vol_idx     = 1;
+		$special_vol_map  = array();
+		$append_vol_idx   = $max_standard_vol + 1;
 		$chap_counter     = 1;
 		$result           = array();
 
@@ -545,36 +723,54 @@ class W2P_Novel_Helper {
 			$raw_volume = isset( $c['volume'] ) ? trim( sanitize_text_field( $c['volume'] ) ) : '';
 			$title      = isset( $c['title'] ) ? trim( sanitize_text_field( $c['title'] ) ) : '';
 
-			// 1. 判断分卷归属（显式分卷优先且独立识别，杜绝向后盲目串改未选章节）
+			// 1. 判断分卷归属
 			if ( '' !== $raw_volume && '-' !== $raw_volume ) {
 				if ( '正文' === $raw_volume ) {
 					$current_vol_name = '正文';
 					$current_vol_idx  = 1;
 				} else {
 					$current_vol_name = $raw_volume;
-					if ( preg_match( '/(?:番外|外传|后传|前传|别传|新传|特别篇|作品相关)/u', $raw_volume ) ) {
-						$current_vol_idx = 99;
-					} else {
-						$vol_info = self::extract_volume( $raw_volume );
-						if ( $vol_info && ! empty( $vol_info['vol_idx'] ) ) {
-							$current_vol_idx = intval( $vol_info['vol_idx'] );
-						} elseif ( ! preg_match( '/[0-9一二两三四五六七八九十百千万廿卅卌]/u', $raw_volume ) ) {
-							// 无明确分卷数字标号时，统一归入 99
-							$current_vol_idx = 99;
-						} else {
-							if ( ! isset( $custom_vol_map[ $raw_volume ] ) ) {
-								$custom_vol_map[ $raw_volume ] = $auto_vol_idx++;
+					$vol_info         = self::extract_volume( $raw_volume );
+					if ( $vol_info && ! empty( $vol_info['policy'] ) && 'standard' !== $vol_info['policy'] ) {
+						// 特殊分卷（外传/番外/前传）
+						if ( ! isset( $special_vol_map[ $raw_volume ] ) ) {
+							if ( 'append' === $vol_info['policy'] ) {
+								$special_vol_map[ $raw_volume ] = $append_vol_idx++;
+							} elseif ( 'zero' === $vol_info['policy'] ) {
+								$special_vol_map[ $raw_volume ] = 0;
+							} else {
+								$special_vol_map[ $raw_volume ] = isset( $vol_info['vol_idx'] ) ? $vol_info['vol_idx'] : 99;
 							}
-							$current_vol_idx = $custom_vol_map[ $raw_volume ];
 						}
+						$current_vol_idx = $special_vol_map[ $raw_volume ];
+					} elseif ( $vol_info && ! empty( $vol_info['vol_idx'] ) ) {
+						$current_vol_idx = intval( $vol_info['vol_idx'] );
+					} else {
+						if ( ! isset( $special_vol_map[ $raw_volume ] ) ) {
+							$special_vol_map[ $raw_volume ] = $append_vol_idx++;
+						}
+						$current_vol_idx = $special_vol_map[ $raw_volume ];
 					}
 				}
 			} else {
-				// 分卷为空或 '-' 时，尝试从章节标题中流式识别分卷；若未识别且当前分卷为空则兜底为“正文”
+				// 分卷为空或 '-' 时，尝试从章节标题中流式识别分卷
 				$vol_info = self::extract_volume( $title );
-				if ( $vol_info && ! empty( $vol_info['vol_idx'] ) ) {
-					$current_vol_idx  = intval( $vol_info['vol_idx'] );
+				if ( $vol_info && ! empty( $vol_info['vol_name'] ) ) {
 					$current_vol_name = $vol_info['vol_name'];
+					if ( ! empty( $vol_info['policy'] ) && 'standard' !== $vol_info['policy'] ) {
+						if ( ! isset( $special_vol_map[ $current_vol_name ] ) ) {
+							if ( 'append' === $vol_info['policy'] ) {
+								$special_vol_map[ $current_vol_name ] = $append_vol_idx++;
+							} elseif ( 'zero' === $vol_info['policy'] ) {
+								$special_vol_map[ $current_vol_name ] = 0;
+							} else {
+								$special_vol_map[ $current_vol_name ] = isset( $vol_info['vol_idx'] ) ? $vol_info['vol_idx'] : 99;
+							}
+						}
+						$current_vol_idx = $special_vol_map[ $current_vol_name ];
+					} else {
+						$current_vol_idx = intval( $vol_info['vol_idx'] );
+					}
 				} elseif ( empty( $current_vol_name ) ) {
 					$current_vol_name = '正文';
 					$current_vol_idx  = 1;
@@ -584,7 +780,7 @@ class W2P_Novel_Helper {
 			// 2. 提取章节号
 			$chap_num = self::extract_chapter_number( $title );
 			if ( 0 === $chap_num ) {
-				$use_vol_idx  = ( 99 === $current_vol_idx ) ? 99 : 0;
+				$use_vol_idx  = ( $current_vol_idx >= 90 ) ? $current_vol_idx : 0;
 				$use_chap_idx = 0;
 			} elseif ( 99999 === $chap_num ) {
 				$use_vol_idx  = $current_vol_idx;
@@ -600,7 +796,7 @@ class W2P_Novel_Helper {
 				$use_chap_idx = $chap_counter++;
 			}
 
-			// 特殊规则：当处于番外卷 (vol_idx === 99) 时，若章节号为普通正数序号 ( > 0 && < 90000 )，提升为 99000 + $chap_num
+			// 特殊规则：当处于番外固定卷 (vol_idx === 99) 时，若章节号为普通正数序号 ( > 0 && < 90000 )，提升为 99000 + $chap_num
 			if ( 99 === $use_vol_idx && $use_chap_idx > 0 && $use_chap_idx < 90000 ) {
 				$use_chap_idx = 99000 + $use_chap_idx;
 			}

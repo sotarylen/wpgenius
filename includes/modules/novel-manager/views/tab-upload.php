@@ -226,14 +226,14 @@ $novel_tags = get_terms(
 				<!-- 0. 上传文件区域 (独立公共模块：新建模式与现有书籍 A/B 线路共享，C 线路隐藏) -->
 				<div id="w2p-upload-file-section" class="w2p-form-row w2p-upload-dropzone-row">
 					<div class="csf-title">
-						<label for="w2p_novel_file"><?php esc_html_e( 'Document File (.docx / .txt)', 'wp-genius' ); ?> <span class="w2p-required">*</span></label>
+						<label for="w2p_novel_file"><?php esc_html_e( 'Document File (.txt / .docx / .epub / .html / .pdf)', 'wp-genius' ); ?> <span class="w2p-required">*</span></label>
 					</div>
 					<div class="w2p-form-control">
 						<div class="w2p-file-dropzone">
-							<input type="file" name="novel_file" id="w2p_novel_file" accept=".docx,.txt">
+							<input type="file" name="novel_file" id="w2p_novel_file" accept=".txt,.docx,.epub,.html,.htm,.pdf">
 							<div class="w2p-dropzone-inner">
 								<i class="fa-solid fa-cloud-arrow-up w2p-dropzone-icon"></i>
-								<p class="w2p-dropzone-text"><?php esc_html_e( 'Click to select or drag and drop a .docx or .txt novel file here', 'wp-genius' ); ?></p>
+								<p class="w2p-dropzone-text"><?php esc_html_e( 'Click to select or drag and drop a novel file (.txt, .docx, .epub, .html, .pdf) here', 'wp-genius' ); ?></p>
 								<span id="w2p-selected-filename" class="w2p-filename-tag w2p-hidden"></span>
 							</div>
 						</div>

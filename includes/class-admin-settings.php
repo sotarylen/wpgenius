@@ -53,12 +53,27 @@ class W2P_Admin_Settings {
 				)
 			);
 
-			// 2. Section 1: Module Management
-			$module_fields = array();
-
 			// Use the injected loader instance instead of creating a new one
 			$this->loader->discover( true );
 			$modules = $this->loader->get_available_modules();
+
+			// 2. Section 0: Environment Check (System Status & Module Prerequisites)
+			CSF::createSection(
+				$prefix,
+				array(
+					'title'  => __( 'Environment Check', 'wp-genius' ),
+					'icon'   => 'fa-solid fa-stethoscope',
+					'fields' => array(
+						array(
+							'type'    => 'content',
+							'content' => $this->render_environment_check_content( $modules ),
+						),
+					),
+				)
+			);
+
+			// 3. Section 1: Module Management
+			$module_fields = array();
 
 			if ( ! empty( $modules ) ) {
 				foreach ( $modules as $id => $module ) {
@@ -82,7 +97,7 @@ class W2P_Admin_Settings {
 					);
 
 					if ( ! empty( $req_error ) ) {
-						$field_config['subtitle']  .= '<div class="w2p-req-error" style="color:#d63638; margin-top:6px; font-weight:500;"><i class="fa-solid fa-triangle-exclamation"></i> ' . esc_html( $req_error ) . '</div>';
+						$field_config['subtitle']  .= '<div class="w2p-req-badge"><i class="fa-solid fa-triangle-exclamation"></i> ' . esc_html__( 'Dependencies not met. Check the Environment Check tab for details.', 'wp-genius' ) . '</div>';
 						$field_config['attributes'] = array( 'disabled' => 'disabled' );
 					}
 
@@ -174,4 +189,199 @@ class W2P_Admin_Settings {
 
 		return $new_value;
 	}
+
+	/**
+	 * Render Environment Check Section Content
+	 *
+	 * Aggregates prerequisite dependencies for Novel Manager, Media Engine, and core server environment.
+	 *
+	 * @param array $modules Discovered modules list.
+	 * @return string HTML output.
+	 */
+	private function render_environment_check_content( $modules ) {
+		ob_start();
+		?>
+		<div class="w2p-env-dashboard">
+			<!-- 1. System Environment Card -->
+			<div class="w2p-env-card">
+				<div class="w2p-env-card-header">
+					<h4 class="w2p-env-card-title">
+						<i class="fa-solid fa-server"></i>
+						<?php esc_html_e( 'System Environment', 'wp-genius' ); ?>
+					</h4>
+				</div>
+				<table class="w2p-env-table">
+					<thead>
+						<tr>
+							<th><?php esc_html_e( 'Component', 'wp-genius' ); ?></th>
+							<th><?php esc_html_e( 'Status', 'wp-genius' ); ?></th>
+							<th><?php esc_html_e( 'Current Value', 'wp-genius' ); ?></th>
+							<th><?php esc_html_e( 'Details', 'wp-genius' ); ?></th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php
+						// PHP Version
+						$php_ok = version_compare( PHP_VERSION, '7.4', '>=' );
+						?>
+						<tr>
+							<td><strong>PHP Version</strong></td>
+							<td>
+								<span class="w2p-env-status <?php echo $php_ok ? 'w2p-env-status--ok' : 'w2p-env-status--fail'; ?>">
+									<i class="fa-solid <?php echo $php_ok ? 'fa-check' : 'fa-xmark'; ?>"></i>
+									<?php echo $php_ok ? esc_html__( 'Passed', 'wp-genius' ) : esc_html__( 'Failed', 'wp-genius' ); ?>
+								</span>
+							</td>
+							<td><?php echo esc_html( PHP_VERSION ); ?></td>
+							<td><?php esc_html_e( 'PHP 7.4 or higher is recommended.', 'wp-genius' ); ?></td>
+						</tr>
+						<?php
+						// WordPress Version
+						global $wp_version;
+						$wp_ok = version_compare( $wp_version, '5.8', '>=' );
+						?>
+						<tr>
+							<td><strong>WordPress</strong></td>
+							<td>
+								<span class="w2p-env-status <?php echo $wp_ok ? 'w2p-env-status--ok' : 'w2p-env-status--fail'; ?>">
+									<i class="fa-solid <?php echo $wp_ok ? 'fa-check' : 'fa-xmark'; ?>"></i>
+									<?php echo $wp_ok ? esc_html__( 'Passed', 'wp-genius' ) : esc_html__( 'Failed', 'wp-genius' ); ?>
+								</span>
+							</td>
+							<td><?php echo esc_html( $wp_version ); ?></td>
+							<td><?php esc_html_e( 'WordPress 5.8+ required for block and media hooks.', 'wp-genius' ); ?></td>
+						</tr>
+						<?php
+						// Uploads Directory Writable
+						$upload_dir = wp_upload_dir();
+						$upload_ok  = wp_is_writable( $upload_dir['basedir'] );
+						?>
+						<tr>
+							<td><strong>Upload Directory</strong></td>
+							<td>
+								<span class="w2p-env-status <?php echo $upload_ok ? 'w2p-env-status--ok' : 'w2p-env-status--fail'; ?>">
+									<i class="fa-solid <?php echo $upload_ok ? 'fa-check' : 'fa-xmark'; ?>"></i>
+									<?php echo $upload_ok ? esc_html__( 'Writable', 'wp-genius' ) : esc_html__( 'Not Writable', 'wp-genius' ); ?>
+								</span>
+							</td>
+							<td><?php echo esc_html( wp_basename( $upload_dir['basedir'] ) ); ?></td>
+							<td><?php esc_html_e( 'Required for temporary import processing and media uploads.', 'wp-genius' ); ?></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+
+			<!-- 2. Novel Manager Prerequisites Card -->
+			<div class="w2p-env-card">
+				<div class="w2p-env-card-header">
+					<h4 class="w2p-env-card-title">
+						<i class="fa-solid fa-book"></i>
+						<?php esc_html_e( 'Novel Manager Prerequisites', 'wp-genius' ); ?>
+					</h4>
+					<?php
+					$novel_status = class_exists( 'W2P_NovelManagerModule' ) && method_exists( 'W2P_NovelManagerModule', 'get_requirements_status' )
+						? W2P_NovelManagerModule::get_requirements_status()
+						: null;
+
+					$all_novel_ok = ! empty( $novel_status['all_passed'] );
+					?>
+					<span class="w2p-env-status <?php echo $all_novel_ok ? 'w2p-env-status--ok' : 'w2p-env-status--fail'; ?>">
+						<i class="fa-solid <?php echo $all_novel_ok ? 'fa-check' : 'fa-triangle-exclamation'; ?>"></i>
+						<?php echo $all_novel_ok ? esc_html__( 'Ready to Enable', 'wp-genius' ) : esc_html__( 'Action Required', 'wp-genius' ); ?>
+					</span>
+				</div>
+				<table class="w2p-env-table">
+					<thead>
+						<tr>
+							<th><?php esc_html_e( 'Requirement', 'wp-genius' ); ?></th>
+							<th><?php esc_html_e( 'Status', 'wp-genius' ); ?></th>
+							<th><?php esc_html_e( 'Description', 'wp-genius' ); ?></th>
+							<th><?php esc_html_e( 'Action', 'wp-genius' ); ?></th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php if ( ! empty( $novel_status['items'] ) ) : ?>
+							<?php foreach ( $novel_status['items'] as $item ) : ?>
+								<tr>
+									<td><strong><?php echo esc_html( $item['name'] ); ?></strong></td>
+									<td>
+										<span class="w2p-env-status <?php echo ! empty( $item['status'] ) ? 'w2p-env-status--ok' : 'w2p-env-status--fail'; ?>">
+											<i class="fa-solid <?php echo ! empty( $item['status'] ) ? 'fa-check' : 'fa-xmark'; ?>"></i>
+											<?php echo ! empty( $item['status'] ) ? esc_html__( 'Detected', 'wp-genius' ) : esc_html__( 'Missing', 'wp-genius' ); ?>
+										</span>
+									</td>
+									<td><?php echo esc_html( $item['description'] ); ?></td>
+									<td>
+										<?php if ( ! empty( $item['action_url'] ) && ! empty( $item['action_text'] ) ) : ?>
+											<a href="<?php echo esc_url( $item['action_url'] ); ?>" class="w2p-env-action-link" target="_blank">
+												<i class="fa-solid fa-arrow-up-right-from-square"></i>
+												<?php echo esc_html( $item['action_text'] ); ?>
+											</a>
+										<?php else : ?>
+											<span>-</span>
+										<?php endif; ?>
+									</td>
+								</tr>
+							<?php endforeach; ?>
+						<?php endif; ?>
+					</tbody>
+				</table>
+			</div>
+
+			<!-- 3. Media Engine Dependencies Card (Reusing existing checker) -->
+			<?php
+			$media_checker_file = plugin_dir_path( WP_GENIUS_FILE ) . 'includes/modules/media-engine/includes/services/class-environment-service.php';
+			if ( file_exists( $media_checker_file ) ) {
+				require_once $media_checker_file;
+			}
+
+			if ( class_exists( 'W2P_Media_Environment_Checker' ) ) :
+				$media_env = W2P_Media_Environment_Checker::check_all();
+				$media_ok  = ! empty( $media_env['can_process'] );
+				?>
+				<div class="w2p-env-card">
+					<div class="w2p-env-card-header">
+						<h4 class="w2p-env-card-title">
+							<i class="fa-solid fa-photo-film"></i>
+							<?php esc_html_e( 'Media Engine Tools', 'wp-genius' ); ?>
+						</h4>
+						<span class="w2p-env-status <?php echo $media_ok ? 'w2p-env-status--ok' : 'w2p-env-status--warn'; ?>">
+							<i class="fa-solid <?php echo $media_ok ? 'fa-check' : 'fa-circle-info'; ?>"></i>
+							<?php echo $media_ok ? esc_html__( 'Ready for Processing', 'wp-genius' ) : esc_html__( 'Limited Engines Available', 'wp-genius' ); ?>
+						</span>
+					</div>
+					<table class="w2p-env-table">
+						<thead>
+							<tr>
+								<th><?php esc_html_e( 'Tool / Command', 'wp-genius' ); ?></th>
+								<th><?php esc_html_e( 'Status', 'wp-genius' ); ?></th>
+								<th><?php esc_html_e( 'Version / Info', 'wp-genius' ); ?></th>
+								<th><?php esc_html_e( 'Role', 'wp-genius' ); ?></th>
+							</tr>
+						</thead>
+						<tbody>
+							<?php if ( ! empty( $media_env['commands'] ) ) : ?>
+								<?php foreach ( $media_env['commands'] as $cmd_key => $cmd_info ) : ?>
+									<tr>
+										<td><strong><?php echo esc_html( $cmd_info['name'] ); ?></strong></td>
+										<td>
+											<span class="w2p-env-status <?php echo ! empty( $cmd_info['available'] ) ? 'w2p-env-status--ok' : 'w2p-env-status--warn'; ?>">
+												<i class="fa-solid <?php echo ! empty( $cmd_info['available'] ) ? 'fa-check' : 'fa-xmark'; ?>"></i>
+												<?php echo ! empty( $cmd_info['available'] ) ? esc_html__( 'Available', 'wp-genius' ) : esc_html__( 'Unavailable', 'wp-genius' ); ?>
+											</span>
+										</td>
+										<td><?php echo esc_html( ! empty( $cmd_info['version'] ) ? $cmd_info['version'] : '-' ); ?></td>
+										<td><?php echo esc_html( ! empty( $cmd_info['description'] ) ? $cmd_info['description'] : '-' ); ?></td>
+									</tr>
+								<?php endforeach; ?>
+							<?php endif; ?>
+						</tbody>
+					</table>
+				</div>
+			<?php endif; ?>
+		</div>
+		<?php
+		return ob_get_clean();
+	}
 }
+

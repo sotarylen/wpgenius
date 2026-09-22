@@ -92,8 +92,16 @@ return array(
 							'id'      => 'smart_aui_capture_videos',
 							'type'    => 'switcher',
 							'title'   => __( 'Capture Videos', 'wp-genius' ),
-							'label'   => __( 'Automatically download and import remote videos from &lt;video&gt; tags to media library.', 'wp-genius' ),
+							'label'   => __( 'Enable video management (frontend on-demand download and remove buttons for administrators).', 'wp-genius' ),
 							'default' => false,
+						),
+						array(
+							'id'         => 'smart_aui_auto_capture_videos_on_save',
+							'type'       => 'switcher',
+							'title'      => __( 'Auto-Capture Videos on Save', 'wp-genius' ),
+							'label'      => __( 'Automatically download all remote videos when saving posts in admin. Leave disabled for selective on-demand download.', 'wp-genius' ),
+							'default'    => false,
+							'dependency' => array( 'smart_aui_capture_videos', '==', 'true' ),
 						),
 						array(
 							'id'      => 'smart_aui_skip_duplicates',
@@ -115,6 +123,13 @@ return array(
 							'title'   => __( 'Post List External Filter', 'wp-genius' ),
 							'label'   => __( 'Add an "External Media Filter" button next to "Search Posts" on edit.php to filter posts containing external images.', 'wp-genius' ),
 							'default' => true,
+						),
+						array(
+							'id'      => 'smart_aui_migrate_albums',
+							'type'    => 'switcher',
+							'title'   => __( 'Migrate Albums Directory Images', 'wp-genius' ),
+							'label'   => __( 'Temporary Migration Mode: Treat local images under /wp-content/uploads/albums/ as external to import them into Media Library and delete original files after import. Disable when migration is completed.', 'wp-genius' ),
+							'default' => false,
 						),
 
 						// === Performance & Advanced ===

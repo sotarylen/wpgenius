@@ -10,30 +10,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 
-<!-- Template: System Info Grid -->
-<template id="w2p-system-info-template">
-	<div class="w2p-flex-1">
-		<div class="w2p-section">
-			<div class="w2p-section-header">
-				<h4></h4><!-- Section Title -->
-			</div>
-			<div class="w2p-section-body">
-				<div class="w2p-info-grid">
-					<!-- Rows will be appended here -->
-				</div>
-			</div>
-		</div>
-	</div>
-</template>
-
-<!-- Template: System Info Row -->
-<template id="w2p-system-info-row-template">
-	<div class="w2p-info-row">
-		<div class="w2p-info-label"></div>
-		<div class="w2p-info-value"></div>
-	</div>
-</template>
-
 <!-- Template: Image Link Scan Result Row -->
 <template id="w2p-image-link-row-template">
 	<tr>

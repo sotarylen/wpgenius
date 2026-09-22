@@ -90,27 +90,7 @@ return array(
 					),
 				),
 
-				// Tab 3: Environment Check (Content Field)
-				array(
-					'title'  => __( 'Environment Check', 'wp-genius' ),
-					'icon'   => 'fa fa-stethoscope',
-					'fields' => array(
-						array(
-							'type'    => 'content',
-							'content' => ( function () use ( $module_dir ) {
-								$env_path = $module_dir . 'views/environment-settings.php';
-								if ( file_exists( $env_path ) ) {
-									ob_start();
-									include $env_path;
-									return ob_get_clean();
-								}
-								return '<p>' . __( 'Environment check not available.', 'wp-genius' ) . '</p>';
-							} )(),
-						),
-					),
-				),
-
-				// Tab 4: Clipboard Upload (Content Field)
+				// Tab 3: Clipboard Upload (Content Field)
 				array(
 					'title'  => __( 'Clipboard Upload', 'wp-genius' ),
 					'icon'   => 'fa fa-paste',

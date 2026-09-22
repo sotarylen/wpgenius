@@ -126,8 +126,22 @@
                     showProgressUI = self.settings.show_progress_ui;
                 }
 
+                // Hand control back to the native form once the queue is done.
+                // Without this callback startBulkProcessing() only calls
+                // location.reload(), so the intercepted submit never runs and
+                // every other bulk-edit field (author, status, format, post
+                // type, taxonomies…) is silently dropped. Skipped when the user
+                // cancels the capture - a cancel should stay a cancel.
+                var resumeNativeSubmit = function (completed) {
+                    if (completed === false || !progressUI.originalButton || !progressUI.originalButton.length) {
+                        return;
+                    }
+                    progressUI.originalButton.data('smart-aui-processed', true);
+                    progressUI.originalButton.click();
+                };
+
                 if (showProgressUI) {
-                    progressUI.startBulkProcessing(postIds);
+                    progressUI.startBulkProcessing(postIds, resumeNativeSubmit);
                 } else {
                     progressUI.processBulkWithoutProgress(postIds);
                 }
@@ -1014,9 +1028,16 @@
                 }
             }
 
+            var migrateAlbums = this.settings && (this.settings.migrate_albums === true || this.settings.migrate_albums === '1' || this.settings.migrate_albums === 1);
+
             while ((match = imageRegex.exec(content)) !== null) {
                 var src = match[1];
-                if (src.indexOf(siteUrl) === 0 || src.indexOf('/wp-content/') === 0 || src.indexOf('data:') === 0) continue;
+                if (src.indexOf('data:') === 0) continue;
+
+                var isAlbumsPath = src.indexOf('/wp-content/uploads/albums/') !== -1;
+                if (!(migrateAlbums && isAlbumsPath)) {
+                    if (src.indexOf(siteUrl) === 0 || src.indexOf('/wp-content/') === 0) continue;
+                }
 
                 // Check exclusions
                 var isExcluded = false;
@@ -1049,6 +1070,8 @@
                 baseUrl = this.settings.base_url.replace(/\/$/, ''); // Remove trailing slash
             }
 
+            var migrateAlbums = this.settings && (this.settings.migrate_albums === true || this.settings.migrate_albums === '1' || this.settings.migrate_albums === 1);
+
             while ((match = imageRegex.exec(content)) !== null) {
                 var imgTag = match[0];
 
@@ -1056,6 +1079,11 @@
                 var srcMatch = imgTag.match(/src=["']([^"']+)["']/i);
                 if (!srcMatch) continue;
                 var src = srcMatch[1];
+
+                // If migrating albums, do not treat albums images as existing local images needing ID lookup
+                if (migrateAlbums && src.indexOf('/wp-content/uploads/albums/') !== -1) {
+                    continue;
+                }
 
                 // Check if it's a local image
                 var isLocal = src.indexOf(siteUrl) === 0 ||
@@ -1082,8 +1110,8 @@
             var videos = [];
             var siteUrl = window.location.origin;
 
-            // Check if video capture is enabled
-            if (!this.settings || !this.settings.capture_videos) {
+            // Check if video capture is enabled and auto-capture on save is enabled
+            if (!this.settings || !this.settings.capture_videos || !this.settings.auto_capture_videos_on_save) {
                 return videos;
             }
 

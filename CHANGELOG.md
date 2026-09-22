@@ -8,20 +8,36 @@
 
 ### 新增 (Added)
 
+- **Novel Manager 书籍统计（章节数 / 字数）**：新增 `W2P_Novel_Stats`，按 `related_novel_id` 聚合 chapter 并把结果回写到 novel 的 `count-chapters` / `count-words`（书籍字段组 `group_6045c262f41f5`）——
+  - chapter 新增只读自定义字段 `word-count`（local field group `group_w2p_chapter_stats`），单章字数在看版可见且不可手改
+  - 三种触发方式：chapter 保存/回收/删除/改挂时自动刷新（脏队列 + shutdown 统一汇总，避免批量导入逐章重算）、文档导入自然覆盖、后台「Statistics」页签手动校准
+  - 后台「Statistics」页签：全站分批回填（游标深分页、进度条、日志、可中断续跑）、单本搜索重算、覆盖率概览
+  - 每小时计划任务兜底刷新未完成的脏队列；模组停用时自动补跑并清理调度
 - **Novel Manager 修复交互升级**：新增「按小说检索/预览/单本应用」流程 ——
   - 小说搜索（支持 ID 精准定位 + 标题模糊匹配，附章节数与完成状态）
   - 单书章节预览（防 OOM，不读取正文仅统计字数）与新老索引对比
   - 单本应用（支持前端微调章节 new_index / new_volume 后保存）
   - 未处理小说队列 + 分步自动修复（书粒度无状态循环，替代旧有状态批量扫描）
   - 一键重建章节索引端点（import/fix 双 nonce 白名单，供两个页签复用）
+- **Novel Manager 单篇触发统计**：小说编辑页发布框新增「Recalculate Stats」入口 ——
+  - 打开一本从未统计过的小说会自动算一次（`data-needs-sync` 标记），字段为空时不再需要跑去设置页
+  - 按钮走 `recount_novel()`：先补这本书自己的章节字数缓存，再聚合回写，避免使用陈旧缓存算出偏小的字数
+  - 小说保存（`save_post_novel`，优先级 99）亦会汇总一次，且排在 ACF 表单写库之后，防止表单里的空值把统计结果覆盖掉
+  - 单本 AJAX 权限由「仅 manage_options」放宽到「能编辑这本书即可」
+  - 结果由 JS 直接写回 ACF 的 count-chapters / count-words 输入框，无需刷新页面
 
 ### 变更 (Changed)
 
 - **Novel Manager Fixer 重构为「聚合根 + 权威计算」**：全面复用 W2P_Novel_Helper 权威算法（含「卷/部/回」「卷部集册」新规则），删除旧 scan_batch/execute_batch 有状态上下文循环；JS 统一扩至约 1300 行并移除旧扫描控件 ID。
+- **chapter 字数批量写库改为拼批 SQL**：原来逐条 `update_post_meta` 实测 6.59 ms/条（30 万章 ≈ 34 分钟），改为「已存在行按 meta_id 批量 UPDATE + 不存在行批量 INSERT」后降到 0.077 ms/条（约 86 倍）。全站回填 Phase 1 估算从约 25 分钟降到约 3 分钟。
+- **书籍聚合查询重新定型**：`meta_value` 是 LONGTEXT，原先按整型比较导致索引失效；改为字符串比较并 `STRAIGHT_JOIN` 从 postmeta 驱动。单本聚合 1.93 s → 0.18 ms。
 - **架构图重绘**：docs/wpgenius-architecture.html 节点 15→16，Novel Manager 独立上主图并标注 ACF / novel+chapter CPT 依赖；Archify showcase 9/9 校验 + 四视口视觉检查通过（5 处源码证据均核实行号）。
 
 ### 修复 (Fixed)
 
+- **统计概览慢查询泄漏到全后台**：`W2P_Novel_Stats::get_overview()`（30 万章聚合）原本随 `options.php` 在每个后台请求（含 Dashboard）被 include 时即时执行，Query Monitor 报 4 条慢查询。改为三层收敛：① `tab-stats.php` 增加页面门禁，非 `wp-genius-settings` 页一律输出空字符串、零 SQL；② 设置页上概览改为占位骨架（`—`），不再随页面渲染实时计算；③ 新增 `w2p_novel_stats_overview` AJAX 端点 + JS 懒加载，统计 Tab 第一次真正可见时才拉取一次，回填按钮开跑前先确保 totals 就绪。
+
+- **postmeta 上的 `meta_value = %d` 索引失效**：`get_novel_chapter_ids()` / `count_novel_chapters()`（级联删除与删除弹窗计数依赖）改用字符串比较，实测 1.6 s → 1.6 ms。
 - **数据完整性**（Ponytail 强制审核闭环产出）：
   - save_novel_chapters_custom 空 new_index 不再覆盖已有章节索引（与 new_volume 守卫对称）
   - fix_single_novel 无章节时不再误标「已完成」，避免数据缺失的小说被永久跳过
