@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Masonry 布局自检 — wpgenius</title>
+<link rel="stylesheet" href="../includes/modules/frontend-enhancement/assets/css/masonry.css">
+<style>
+	body { margin: 0; padding: 20px; font: 13px/1.6 -apple-system, "PingFang SC", sans-serif; background: #fafafa; color: #111; }
+	h1 { font-size: 16px; font-weight: 500; margin: 0 0 4px; }
+	p.hint { color: #666; margin: 0 0 18px; }
+	h2 { font-size: 13px; font-weight: 500; margin: 0 0 6px; }
+	.case { margin: 0 0 26px; }
+	#verdict { padding: 10px 14px; border-radius: 8px; font-weight: 500; margin-bottom: 20px; }
+	.pass { background: #e7f6ec; color: #14683a; border: 1px solid #9fd9b4; }
+	.fail { background: #fdecea; color: #a02a1f; border: 1px solid #f0b0a8; }
+	#probe { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 10px; white-space: pre-wrap; margin-top: 18px; }
+</style>
+</head>
+<body>
+
+<h1>Masonry 布局自检</h1>
+<p class="hint">检查 masonry.js 的「最短列优先」是否生效：图片按 DOM 顺序横向铺开，且窄屏自动减列。直接双击本文件即可运行。</p>
+
+<div id="verdict">运行中…</div>
+
+<div class="case">
+	<h2>A. 宽 600px + 3 列 → 顶行应为 1,2,3</h2>
+	<div id="a" class="w2p-masonry" style="--w2p-cols:3;width:600px">
+		<img src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='800'%20height='450'%3E%3Crect%20width='800'%20height='450'%20fill='%232f6fd0'/%3E%3Ctext%20x='400'%20y='225'%20font-size='150'%20fill='%23ffffff'%20font-family='sans-serif'%20font-weight='bold'%20text-anchor='middle'%20dominant-baseline='central'%3E1%3C/text%3E%3C/svg%3E" alt="">
+		<img src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='600'%20height='800'%3E%3Crect%20width='600'%20height='800'%20fill='%23c0392b'/%3E%3Ctext%20x='300'%20y='400'%20font-size='200'%20fill='%23ffffff'%20font-family='sans-serif'%20font-weight='bold'%20text-anchor='middle'%20dominant-baseline='central'%3E2%3C/text%3E%3C/svg%3E" alt="">
+		<img src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='800'%20height='600'%3E%3Crect%20width='800'%20height='600'%20fill='%232f6fd0'/%3E%3Ctext%20x='400'%20y='300'%20font-size='200'%20fill='%23ffffff'%20font-family='sans-serif'%20font-weight='bold'%20text-anchor='middle'%20dominant-baseline='central'%3E3%3C/text%3E%3C/svg%3E" alt="">
+		<img src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='900'%20height='600'%3E%3Crect%20width='900'%20height='600'%20fill='%232f6fd0'/%3E%3Ctext%20x='450'%20y='300'%20font-size='200'%20fill='%23ffffff'%20font-family='sans-serif'%20font-weight='bold'%20text-anchor='middle'%20dominant-baseline='central'%3E4%3C/text%3E%3C/svg%3E" alt="">
+		<img src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='600'%20height='900'%3E%3Crect%20width='600'%20height='900'%20fill='%23c0392b'/%3E%3Ctext%20x='300'%20y='450'%20font-size='200'%20fill='%23ffffff'%20font-family='sans-serif'%20font-weight='bold'%20text-anchor='middle'%20dominant-baseline='central'%3E5%3C/text%3E%3C/svg%3E" alt="">
+		<img src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='800'%20height='450'%3E%3Crect%20width='800'%20height='450'%20fill='%232f6fd0'/%3E%3Ctext%20x='400'%20y='225'%20font-size='150'%20fill='%23ffffff'%20font-family='sans-serif'%20font-weight='bold'%20text-anchor='middle'%20dominant-baseline='central'%3E6%3C/text%3E%3C/svg%3E" alt="">
+	</div>
+</div>
+
+<div class="case">
+	<h2>B. 宽 500px → 应自动降到 2 列（顶行 1,2）</h2>
+	<div id="b" class="w2p-masonry" style="--w2p-cols:3;width:500px">
+		<img src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='800'%20height='450'%3E%3Crect%20width='800'%20height='450'%20fill='%232f6fd0'/%3E%3Ctext%20x='400'%20y='225'%20font-size='150'%20fill='%23ffffff'%20font-family='sans-serif'%20font-weight='bold'%20text-anchor='middle'%20dominant-baseline='central'%3E1%3C/text%3E%3C/svg%3E" alt="">
+		<img src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='600'%20height='800'%3E%3Crect%20width='600'%20height='800'%20fill='%23c0392b'/%3E%3Ctext%20x='300'%20y='400'%20font-size='200'%20fill='%23ffffff'%20font-family='sans-serif'%20font-weight='bold'%20text-anchor='middle'%20dominant-baseline='central'%3E2%3C/text%3E%3C/svg%3E" alt="">
+		<img src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='800'%20height='600'%3E%3Crect%20width='800'%20height='600'%20fill='%232f6fd0'/%3E%3Ctext%20x='400'%20y='300'%20font-size='200'%20fill='%23ffffff'%20font-family='sans-serif'%20font-weight='bold'%20text-anchor='middle'%20dominant-baseline='central'%3E3%3C/text%3E%3C/svg%3E" alt="">
+		<img src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='900'%20height='600'%3E%3Crect%20width='900'%20height='600'%20fill='%232f6fd0'/%3E%3Ctext%20x='450'%20y='300'%20font-size='200'%20fill='%23ffffff'%20font-family='sans-serif'%20font-weight='bold'%20text-anchor='middle'%20dominant-baseline='central'%3E4%3C/text%3E%3C/svg%3E" alt="">
+		<img src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='600'%20height='900'%3E%3Crect%20width='600'%20height='900'%20fill='%23c0392b'/%3E%3Ctext%20x='300'%20y='450'%20font-size='200'%20fill='%23ffffff'%20font-family='sans-serif'%20font-weight='bold'%20text-anchor='middle'%20dominant-baseline='central'%3E5%3C/text%3E%3C/svg%3E" alt="">
+		<img src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='800'%20height='450'%3E%3Crect%20width='800'%20height='450'%20fill='%232f6fd0'/%3E%3Ctext%20x='400'%20y='225'%20font-size='150'%20fill='%23ffffff'%20font-family='sans-serif'%20font-weight='bold'%20text-anchor='middle'%20dominant-baseline='central'%3E6%3C/text%3E%3C/svg%3E" alt="">
+	</div>
+</div>
+
+<div class="case">
+	<h2>C. 宽 350px → 应自动降到 1 列（顶行只有 1）</h2>
+	<div id="c" class="w2p-masonry" style="--w2p-cols:3;width:350px">
+		<img src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='800'%20height='450'%3E%3Crect%20width='800'%20height='450'%20fill='%232f6fd0'/%3E%3Ctext%20x='400'%20y='225'%20font-size='150'%20fill='%23ffffff'%20font-family='sans-serif'%20font-weight='bold'%20text-anchor='middle'%20dominant-baseline='central'%3E1%3C/text%3E%3C/svg%3E" alt="">
+		<img src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='600'%20height='800'%3E%3Crect%20width='600'%20height='800'%20fill='%23c0392b'/%3E%3Ctext%20x='300'%20y='400'%20font-size='200'%20fill='%23ffffff'%20font-family='sans-serif'%20font-weight='bold'%20text-anchor='middle'%20dominant-baseline='central'%3E2%3C/text%3E%3C/svg%3E" alt="">
+		<img src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='800'%20height='600'%3E%3Crect%20width='800'%20height='600'%20fill='%232f6fd0'/%3E%3Ctext%20x='400'%20y='300'%20font-size='200'%20fill='%23ffffff'%20font-family='sans-serif'%20font-weight='bold'%20text-anchor='middle'%20dominant-baseline='central'%3E3%3C/text%3E%3C/svg%3E" alt="">
+		<img src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='900'%20height='600'%3E%3Crect%20width='900'%20height='600'%20fill='%232f6fd0'/%3E%3Ctext%20x='450'%20y='300'%20font-size='200'%20fill='%23ffffff'%20font-family='sans-serif'%20font-weight='bold'%20text-anchor='middle'%20dominant-baseline='central'%3E4%3C/text%3E%3C/svg%3E" alt="">
+		<img src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='600'%20height='900'%3E%3Crect%20width='600'%20height='900'%20fill='%23c0392b'/%3E%3Ctext%20x='300'%20y='450'%20font-size='200'%20fill='%23ffffff'%20font-family='sans-serif'%20font-weight='bold'%20text-anchor='middle'%20dominant-baseline='central'%3E5%3C/text%3E%3C/svg%3E" alt="">
+		<img src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='800'%20height='450'%3E%3Crect%20width='800'%20height='450'%20fill='%232f6fd0'/%3E%3Ctext%20x='400'%20y='225'%20font-size='150'%20fill='%23ffffff'%20font-family='sans-serif'%20font-weight='bold'%20text-anchor='middle'%20dominant-baseline='central'%3E6%3C/text%3E%3C/svg%3E" alt="">
+	</div>
+</div>
+
+<pre id="probe"></pre>
+
+<script src="../includes/modules/frontend-enhancement/assets/js/masonry.js"></script>
+<script>
+window.addEventListener('load', function () {
+	setTimeout(function () {
+		var checks = [], lines = [];
+
+		function positions(id) {
+			return [].map.call(document.getElementById(id).children, function (el) {
+				return { left: parseFloat(el.style.left), top: parseFloat(el.style.top), h: el.offsetHeight };
+			});
+		}
+
+		function topRow(id) {
+			var p = positions(id), first = null, n = 0;
+			p.forEach(function (it) {
+				if (first === null) { first = it.top; }
+				if (Math.abs(it.top - first) < 1) { n++; }
+			});
+			return n;
+		}
+
+		var a = positions('a'), b = positions('b'), c = positions('c');
+
+		[['a', 3], ['b', 2], ['c', 1]].forEach(function (pair) {
+			var id = pair[0], want = pair[1], got = topRow(id);
+			checks.push({ ok: got === want, msg: '容器 ' + id.toUpperCase() + ' 顶行应为 ' + want + ' 张，实际 ' + got + ' 张' });
+		});
+
+		[['a', a, 600], ['b', b, 500], ['c', c, 350]].forEach(function (t) {
+			var id = t[0], items = t[1], width = t[2];
+			var zero = items.filter(function (it) { return !it.h; }).length;
+			checks.push({ ok: zero === 0, msg: '容器 ' + id.toUpperCase() + ' 有 ' + zero + ' 张图高度为 0' });
+
+			var out = items.filter(function (it) { return it.left < 0 || it.left >= width; }).length;
+			checks.push({ ok: out === 0, msg: '容器 ' + id.toUpperCase() + ' 有 ' + out + ' 张图越界' });
+		});
+
+		var dup = 0;
+		[['a', a], ['b', b], ['c', c]].forEach(function (t) {
+			dup += t[1].filter(function (it, i, arr) {
+				return arr.findIndex(function (o) { return o.left === it.left && o.top === it.top; }) !== i;
+			}).length;
+		});
+		checks.push({ ok: dup === 0, msg: '检测到 ' + dup + ' 处同容器坐标重叠' });
+
+		var failed = checks.filter(function (c2) { return !c2.ok; });
+		var v = document.getElementById('verdict');
+		v.className = failed.length ? 'fail' : 'pass';
+		v.textContent = failed.length
+			? 'FAIL — ' + failed.length + ' 项未通过：' + failed.map(function (f) { return f.msg; }).join('；')
+			: 'PASS — 全部 ' + checks.length + ' 项通过（最短列优先生效，窄屏减列正常）';
+
+		['a', 'b', 'c'].forEach(function (id) {
+			var box = document.getElementById(id);
+			var parts = [].map.call(box.children, function (el, i) {
+				return (i + 1) + '=' + Math.round(parseFloat(el.style.left)) + ',' + Math.round(parseFloat(el.style.top));
+			});
+			lines.push(id.toUpperCase() + '  width=' + box.clientWidth + '  height=' + Math.round(box.offsetHeight));
+			lines.push('   ' + parts.join('  '));
+		});
+		document.getElementById('probe').textContent = lines.join('\n') + '\n\n' + checks.map(function (c2) {
+			return (c2.ok ? '[ok]   ' : '[FAIL] ') + c2.msg;
+		}).join('\n');
+	}, 400);
+});
+</script>
+</body>
+</html>

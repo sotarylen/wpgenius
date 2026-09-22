@@ -2,19 +2,26 @@
  * WP Genius - Image masonry (waterfall) layout
  *
  * Runs of 2+ consecutive <img> tags in post content are wrapped in
- * .w2p-masonry by WPG_Masonry_Handler. Single images are left as-is.
+ * .w2p-masonry by WPG_Masonry_Handler.
  *
- * TRUE waterfall: CSS multi-columns make every column stack its images
- * independently, so mixed landscape/portrait images never leave large blank
- * gaps (a row-aligned grid would). The column count comes from the
- * "Images Per Row" setting and is applied inline on each container.
+ * masonry.js sets data-masonry="on", then places every image into the
+ * currently shortest column with absolute positioning. That keeps the DOM
+ * order reading left-to-right (1,2,3 then 4,5,6) while mixed landscape and
+ * portrait images still leave no large blank gaps.
+ *
+ * Without JavaScript the first rules below degrade to CSS multi-columns: the
+ * images still pack without gaps, but in column-major order (1,3,5 / 2,4,6).
+ * That is the whole reason the script exists -- do not "simplify" it away.
+ *
+ * The column count arrives as the inline CSS variable --w2p-cols.
  *
  * @package WP_Genius
  * @subpackage Frontend_Enhancement
  */
 
+/* Fallback (no JS): multi-column waterfall. */
 .w2p-masonry {
-	columns: 3; /* fallback; the inline style carries the setting value */
+	columns: var(--w2p-cols, 3);
 	column-gap: 12px;
 	margin: 1.5em 0;
 }
@@ -28,6 +35,21 @@
 	break-inside: avoid;
 	-webkit-column-break-inside: avoid;
 	page-break-inside: avoid;
+}
+
+/* Shortest-column mode: masonry.js owns the positioning. */
+.w2p-masonry[data-masonry='on'] {
+	columns: auto;
+	position: relative;
+	overflow: hidden;
+}
+
+.w2p-masonry[data-masonry='on'] > a,
+.w2p-masonry[data-masonry='on'] > img {
+	position: absolute;
+	left: 0;
+	top: 0;
+	margin: 0 !important;
 }
 
 .w2p-masonry img {

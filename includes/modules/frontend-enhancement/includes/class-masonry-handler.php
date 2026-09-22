@@ -3,10 +3,19 @@
  * Image Masonry Handler Class
  *
  * Groups runs of consecutive <img> tags in post content into a true waterfall
- * (masonry) layout: the container uses CSS multi-columns, so each column
- * stacks its images independently and mixed landscape/portrait images never
- * leave large blank gaps (unlike a row-aligned grid). A single <img> is left
- * untouched and renders as-is.
+ * (masonry) layout: masonry.js places each image into the currently shortest
+ * column, so the DOM order reads left-to-right (1,2,3 then 4,5,6) while mixed
+ * landscape/portrait images still leave no large blank gaps. A single <img> is
+ * left untouched and renders as-is.
+ *
+ * Two cheaper options were tried and rejected, do not go back to them:
+ * - A row-aligned grid: the tallest image sets the row height, so short
+ *   landscape images leave a large gap underneath. This is what the feature
+ *   originally promised to avoid.
+ * - CSS multi-columns (the previous implementation): fills column-major, so
+ *   6 images render as 1,3,5 / 2,4,6 visually instead of 1,2,3 / 4,5,6. The
+ *   fill direction is intrinsic to multi-column layout and no CSS fixes it.
+ *   It is kept only as the no-JS fallback.
  *
  * The grouping is markup-shape agnostic: it matches both bare <img> tags and
  * images wrapped in <p ...><img ...></p> (the shape used by migrated content),
@@ -15,8 +24,9 @@
  * consecutive gallery images are grouped.
  *
  * The column count is read from the "Images Per Row" setting
- * (masonry_columns, 1-6) instead of being hard-coded; the container receives
- * it as an inline columns rule.
+ * (masonry_columns, 1-6) instead of being hard-coded; it is passed to the
+ * script as an inline CSS variable, which the stylesheet also consumes for
+ * the no-JS multi-column fallback.
  *
  * @package WP_Genius
  * @subpackage Frontend_Enhancement
@@ -80,9 +90,9 @@ class WPG_Masonry_Handler {
 				// Keep only the <img> (with its <a> wrapper when present),
 				// drop <p> wrappers and separator noise from the masonry grid.
 				if ( preg_match_all( '~<a\b[^>]*>\s*<img\b[^>]*>\s*</a>|<img\b[^>]*>~i', $matches[0], $units ) ) {
-					// True waterfall: CSS multi-columns stack images per column,
-					// so columns are height-independent (no row-alignment gaps).
-					return '<div class="w2p-masonry" style="columns: ' . $columns . ';">' . implode(
+					// --w2p-cols carries the column count to masonry.js; the
+					// stylesheet also reads it for the no-JS multi-column fallback.
+					return '<div class="w2p-masonry" style="--w2p-cols:' . $columns . '">' . implode(
 						'
 ',
 						$units[0]

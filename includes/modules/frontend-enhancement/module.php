@@ -291,13 +291,27 @@ class W2P_FrontendEnhancementModule extends W2P_Abstract_Module {
 			$this->enqueue_lightbox_assets();
 		}
 
-		// Image masonry styles (enabled + content has images)
+		// Image masonry layout (enabled + content has images)
 		if ( ! empty( $settings['masonry_enabled'] ) && $this->has_image_content() ) {
+			$masonry_base = plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/';
+			// Version by file mtime so layout changes bust caches without bumping the plugin version.
+			$masonry_css_ver = filemtime( plugin_dir_path( __FILE__ ) . 'assets/css/masonry.css' ) ?: W2P_VERSION;
+			$masonry_js_ver  = filemtime( plugin_dir_path( __FILE__ ) . 'assets/js/masonry.js' ) ?: W2P_VERSION;
+
 			wp_enqueue_style(
 				'w2p-masonry',
-				plugin_dir_url( WP_GENIUS_FILE ) . 'includes/modules/frontend-enhancement/assets/css/masonry.css',
+				$masonry_base . 'css/masonry.css',
 				array(),
-				W2P_VERSION
+				$masonry_css_ver
+			);
+			// Shortest-column placement; the stylesheet alone only falls back
+			// to column-major multi-columns.
+			wp_enqueue_script(
+				'w2p-masonry',
+				$masonry_base . 'js/masonry.js',
+				array(),
+				$masonry_js_ver,
+				true
 			);
 		}
 

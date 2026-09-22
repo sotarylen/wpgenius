@@ -35,6 +35,14 @@
 
 ### 修复 (Fixed)
 
+- **图片瀑布流顺序错乱（前端增强 · Lightbox · Enable Masonry Layout）**：原实现把连续图片包进 `columns: N` 的 CSS 多列容器，而多列布局是**列优先**填充 —— 6 张图会被均衡切成「列1=1,2｜列2=3,4｜列3=5,6」，视觉顺序变成 1,3,5 / 2,4,6，而不是期望的 1,2,3 / 4,5,6。填充方向是多列布局的固有语义，改列数、改间距都修正不了，因此换为实现「最短列优先」：
+  - 新增 `assets/js/masonry.js`（约 40 行，无依赖）：按 DOM 顺序把每张图放进当前最矮的列，顶行即 1,2,3，且横竖图混排不留行内空白
+  - `class-masonry-handler.php` 改为输出 `--w2p-cols` 内联 CSS 变量（不再写死 `columns`）；`masonry.css` 在 JS 接管前保留多列作为无 JS 降级，JS 生效后（`data-masonry="on"`）切换为绝对定位
+  - 窄屏自动减列：可用宽度不足 180px/列时自动减少列数（容器 500px → 2 列，350px → 1 列）
+  - 图片异步加载完成后自动重排一次，窗口缩放 150ms 防抖后重排
+  - 原生 CSS `grid-template-rows: masonry` 实测在 Chrome 154 全部返回 `false`（`lanes` / `grid-lanes` / `item-pack` 亦然），caniuse 显示仅 Safari 26.4+ 稳定支持，故不能作为方案
+  - 新增 `docs/masonry-layout-check.html`：内置 10 项断言的自检页，双击即可运行，布局回归时直接变红
+
 - **统计概览慢查询泄漏到全后台**：`W2P_Novel_Stats::get_overview()`（30 万章聚合）原本随 `options.php` 在每个后台请求（含 Dashboard）被 include 时即时执行，Query Monitor 报 4 条慢查询。改为三层收敛：① `tab-stats.php` 增加页面门禁，非 `wp-genius-settings` 页一律输出空字符串、零 SQL；② 设置页上概览改为占位骨架（`—`），不再随页面渲染实时计算；③ 新增 `w2p_novel_stats_overview` AJAX 端点 + JS 懒加载，统计 Tab 第一次真正可见时才拉取一次，回填按钮开跑前先确保 totals 就绪。
 
 - **postmeta 上的 `meta_value = %d` 索引失效**：`get_novel_chapter_ids()` / `count_novel_chapters()`（级联删除与删除弹窗计数依赖）改用字符串比较，实测 1.6 s → 1.6 ms。
@@ -47,6 +55,7 @@
 ### 工程 (Engineering)
 
 - PHP lint / phpcs（WPCS）全部通过；JS node --check 通过；phpcbf 自动修复对齐。
+- masonry 布局改动经 headless Chrome 实测：600px 容器顶行 3 张、500px 2 张、350px 1 张，坐标与手算逐像素吻合；无 JS 时确认降级为多列（容器高 408px，而非竖排堆叠的 1092px）。
 
 ## [2.0.20260903] - 2026-09-03
 
