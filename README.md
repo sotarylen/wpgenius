@@ -110,7 +110,7 @@ wp-genius/
 
 - 代码规范：PHPCS + WPCS（`composer phpcs`）；提交前 `php -l` 语法检查。
 - 架构文档：`docs/wpgenius-architecture.html`（Archify 生成，showcase 质量，含明暗主题可交互浏览）。
-- 项目规则：`.agent/rules/wpgenius-rules.md`（含 Ponytail 反过度设计准则与强制审核员闭环）。
+- 项目规则：`.agent/rules/wpgenius-rules.md`（**唯一权威源**；含 Ponytail 反过度设计准则与四步强制交付闭环：前置审查 → 执行 → QA 校验 → 交付）。`AGENTS.md` / `CLAUDE.md` 仅为指向它的指针。
 
 ## 更新日志
 

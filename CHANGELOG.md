@@ -56,6 +56,7 @@
 
 - PHP lint / phpcs（WPCS）全部通过；JS node --check 通过；phpcbf 自动修复对齐。
 - masonry 布局改动经 headless Chrome 实测：600px 容器顶行 3 张、500px 2 张、350px 1 张，坐标与手算逐像素吻合；无 JS 时确认降级为多列（容器高 408px，而非竖排堆叠的 1092px）。
+- **项目规则强化：四步强制交付流程**（`.agent/rules/wpgenius-rules.md`）—— 把原有"前置审查 + 后置评估"骨架补成可执行闭环：`① Ponytail 前置审查（审查子代理 Reviewer） → ② 执行改动 → ③ QA 子代理校验（编码 + 执行结果双维度） → ④ 交付`。明确子代理启动方式（`Agent` + `general-purpose`，只读为提示词级约束）、QA 输入三要素（文件路径 + 校验命令 + 需求原文）、PASS/FAIL 产出格式与 FAIL 回环重跑；补齐 Ponytail 输出格式与"不许偷懒"清单；新增纯问答 / 单行微改等豁免条款。规则收敛为**单一权威源**，`AGENTS.md` / `CLAUDE.md` 降为指针，避免两套规则互相矛盾。
 
 ## [2.0.20260903] - 2026-09-03
 
