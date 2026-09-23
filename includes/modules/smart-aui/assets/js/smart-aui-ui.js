@@ -132,16 +132,15 @@
                 // every other bulk-edit field (author, status, format, post
                 // type, taxonomies…) is silently dropped. Skipped when the user
                 // cancels the capture - a cancel should stay a cancel.
-                var resumeNativeSubmit = function (completed) {
-                    if (completed === false || !progressUI.originalButton || !progressUI.originalButton.length) {
+                var onQueueDone = function (completed) {
+                    if (completed === false) {
                         return;
                     }
-                    progressUI.originalButton.data('smart-aui-processed', true);
-                    progressUI.originalButton.click();
+                    progressUI.resumeNativeSubmit(progressUI.originalButton);
                 };
 
                 if (showProgressUI) {
-                    progressUI.startBulkProcessing(postIds, resumeNativeSubmit);
+                    progressUI.startBulkProcessing(postIds, onQueueDone);
                 } else {
                     progressUI.processBulkWithoutProgress(postIds);
                 }
@@ -876,6 +875,33 @@
             processNextPost();
         },
 
+        // Hand the form back to the browser after the queue finished.
+        //
+        // Two things have to happen: mark the button so this click is not
+        // intercepted a second time, and tell the backend the images are
+        // already handled. Without that flag the native bulk-edit request
+        // re-runs the whole image pipeline for every selected post - each
+        // unreachable URL burns 3 retries and wp_insert_post_data fires twice
+        // per post, so a large batch stalls PHP until the gateway answers 502.
+        resumeNativeSubmit: function (button) {
+            if (!button || !button.length) {
+                return;
+            }
+
+            button.data('smart-aui-processed', true);
+
+            var $form = button.closest('form');
+            if ($form.length && $form.find('input[name="w2p_smart_aui_processed"]').length === 0) {
+                $form.append($('<input>').attr({
+                    type: 'hidden',
+                    name: 'w2p_smart_aui_processed',
+                    value: '1'
+                }));
+            }
+
+            button.click();
+        },
+
         // Legacy / Helper Methods
         finishProcessing: function (processedContent) { /* ... handled inline now ... */ },
         processWithoutProgress: function (content, images) {
@@ -895,8 +921,16 @@
                     images: images
                 },
                 success: function (r) {
-                    if (r.success && r.data.processed_content) self.setEditorContent(r.data.processed_content);
-                    if (self.originalButton) { self.originalButton.data('smart-aui-processed', true); self.originalButton.click(); }
+                    if (r.success && r.data && r.data.processed_content) {
+                        self.setEditorContent(r.data.processed_content);
+                        // Backend already rewrote this content - the native
+                        // submit only has to persist it.
+                        self.resumeNativeSubmit(self.originalButton);
+                        return;
+                    }
+                    // Processing did not report success: submit without the
+                    // flag so the backend still gets a shot at the images.
+                    if (self.originalButton) { self.originalButton.click(); }
                 },
                 error: function () { if (self.originalButton) self.originalButton.click(); }
             });
