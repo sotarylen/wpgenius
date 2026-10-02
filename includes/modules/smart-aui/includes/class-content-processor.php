@@ -54,6 +54,12 @@ class W2P_SmartAUI_Content_Processor {
 			}
 		}
 
+		// [GUARD] If a featured image is already set (e.g. via Frontend-Enhancement Lightbox
+		// "Set Featured" button or the native editor), respect it and do not reassign.
+		if ( has_post_thumbnail( $post_id ) ) {
+			return;
+		}
+
 		// Invalidate clean scan flag so newly added external media can be scanned in the future
 		delete_post_meta( $post_id, '_w2p_smart_aui_clean' );
 
