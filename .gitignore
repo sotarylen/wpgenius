@@ -1,6 +1,8 @@
 # Dependencies
 /vendor/
 composer.lock
+# Composer binary: use the system / CI-provided composer (setup-php), never vendor the 3.6MB phar.
+composer.phar
 
 # IDE
 .vscode/
@@ -26,6 +28,13 @@ wp-config.php
 # Temporary
 /tmp/
 
+# Runtime cache (regenerable from the remote source; keeps the repo lean)
+# actor-scanner downloads gfriends Filetree and normalizes it here on force-refresh.
+includes/modules/actor-scanner/data/gfriends-index.json
+
+# One-off ops runbooks (may contain live credentials — never commit)
+w2p-cleanup-rollback.md
+
 # Agent workspace / tooling
 .workbuddy/
 # .agent/ is tracked (agent rules & skills); only SKILL.md files are committed —
@@ -37,3 +46,5 @@ wp-config.php
 # Backup files
 *.bak*
 wpgenius-backup*.zip
+# Translation template backups (e.g. wp-genius-backup-20260831.pot~)
+*.pot~
