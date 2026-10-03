@@ -97,12 +97,14 @@ class W2P_SmartAUI_Albums_Migration_CLI {
 			$post = get_post( $post_id );
 			if ( ! $post ) {
 				remove_filter( 'smart_aui_get_setting', $filter_callback, 999 );
+				/* translators: %d: post ID. */
 				WP_CLI::error( sprintf( esc_html__( 'Post ID %d not found.', 'wp-genius' ), $post_id ) );
 				return;
 			}
 			$post_ids[] = $post_id;
 		} else {
 			$type_label = ( 'all' === $post_type ) ? 'all post types' : "post_type '{$post_type}'";
+			/* translators: %s: post type scope description. */
 			WP_CLI::line( sprintf( esc_html__( 'Scanning database (%s) for /wp-content/uploads/albums/...', 'wp-genius' ), $type_label ) );
 
 			$type_clause  = ( 'all' !== $post_type ) ? $wpdb->prepare( 'AND post_type = %s', $post_type ) : '';
@@ -124,6 +126,7 @@ class W2P_SmartAUI_Albums_Migration_CLI {
 			return;
 		}
 
+		/* translators: %d: number of posts found. */
 		WP_CLI::line( sprintf( esc_html__( 'Found %d post(s) to inspect.', 'wp-genius' ), $total_posts ) );
 
 		$total_images_found     = 0;
@@ -187,7 +190,7 @@ class W2P_SmartAUI_Albums_Migration_CLI {
 						);
 						clean_post_cache( $p_id );
 
-						$total_posts_updated++;
+						++$total_posts_updated;
 						$total_images_processed += $img_count;
 						WP_CLI::log( sprintf( 'Post #%d updated successfully (%d image(s) migrated).', $p_id, $img_count ) );
 					}
@@ -207,6 +210,7 @@ class W2P_SmartAUI_Albums_Migration_CLI {
 		WP_CLI::line( '==================================================' );
 		WP_CLI::line(
 			sprintf(
+				/* translators: %1$d: posts inspected. %2$d: album images detected. %3$d: posts updated. %4$s: duration in seconds. */
 				esc_html__( 'Summary: %1$d post(s) inspected | %2$d album image(s) detected | %3$d post(s) updated | Duration: %4$ss', 'wp-genius' ),
 				$total_posts,
 				$total_images_found,
@@ -218,6 +222,7 @@ class W2P_SmartAUI_Albums_Migration_CLI {
 		if ( $dry_run ) {
 			WP_CLI::success( esc_html__( 'Dry-run inspection completed.', 'wp-genius' ) );
 		} else {
+			/* translators: %d: number of images migrated. */
 			WP_CLI::success( sprintf( esc_html__( 'Migration completed. %d image(s) successfully migrated.', 'wp-genius' ), $total_images_processed ) );
 		}
 	}

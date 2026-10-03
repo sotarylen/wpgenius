@@ -150,13 +150,41 @@ class W2P_Novel_Helper {
 
 		// 默认内置兜底规则
 		$defaults = array(
-			array( 'keyword' => '番外', 'policy' => 'fixed', 'fixed_idx' => 99 ),
-			array( 'keyword' => '外传', 'policy' => 'append', 'fixed_idx' => 99 ),
-			array( 'keyword' => '前传', 'policy' => 'zero', 'fixed_idx' => 0 ),
-			array( 'keyword' => '后传', 'policy' => 'append', 'fixed_idx' => 99 ),
-			array( 'keyword' => '别传', 'policy' => 'append', 'fixed_idx' => 99 ),
-			array( 'keyword' => '特别篇', 'policy' => 'fixed', 'fixed_idx' => 99 ),
-			array( 'keyword' => '作品相关', 'policy' => 'zero', 'fixed_idx' => 0 ),
+			array(
+				'keyword'   => '番外',
+				'policy'    => 'fixed',
+				'fixed_idx' => 99,
+			),
+			array(
+				'keyword'   => '外传',
+				'policy'    => 'append',
+				'fixed_idx' => 99,
+			),
+			array(
+				'keyword'   => '前传',
+				'policy'    => 'zero',
+				'fixed_idx' => 0,
+			),
+			array(
+				'keyword'   => '后传',
+				'policy'    => 'append',
+				'fixed_idx' => 99,
+			),
+			array(
+				'keyword'   => '别传',
+				'policy'    => 'append',
+				'fixed_idx' => 99,
+			),
+			array(
+				'keyword'   => '特别篇',
+				'policy'    => 'fixed',
+				'fixed_idx' => 99,
+			),
+			array(
+				'keyword'   => '作品相关',
+				'policy'    => 'zero',
+				'fixed_idx' => 0,
+			),
 		);
 
 		if ( empty( $rules ) ) {
@@ -612,11 +640,9 @@ class W2P_Novel_Helper {
 					$author = trim( $am[1] );
 					continue;
 				}
-			} else {
+			} elseif ( preg_match( '/^(?:【?\s*(?:作\s*者|著\s*者|文\s*\/\s*|文\s*：|著|Author|By)\s*】?)\s*[:：]?/ui', $line ) || preg_match( '/(?:著|编著|作品)$/u', $line ) ) {
 				// 已有作者时，跳过重复出现的作者行
-				if ( preg_match( '/^(?:【?\s*(?:作\s*者|著\s*者|文\s*\/\s*|文\s*：|著|Author|By)\s*】?)\s*[:：]?/ui', $line ) || preg_match( '/(?:著|编著|作品)$/u', $line ) ) {
-					continue;
-				}
+				continue;
 			}
 
 			// B. 识别分类/类型（如 "分类：玄幻魔法"、"类别：仙侠修真"、"类型：都市"）
@@ -839,4 +865,3 @@ class W2P_Novel_Helper {
 		}
 	}
 }
-

@@ -88,7 +88,6 @@ class W2P_Accelerate_UpdateControl {
 				define( 'WP_HTTP_BLOCK_EXTERNAL', true );
 			}
 		}
-
 	}
 	/**
 	 * Force No Plugin Updates

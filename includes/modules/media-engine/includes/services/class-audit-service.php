@@ -287,7 +287,7 @@ class W2P_Media_Audit_Service {
 	 * @return array
 	 */
 	private function classify_file( $rel_path, $abs_path, $att_map = array(), $stem_map = array() ) {
-		$dir_rel  = dirname( $rel_path );
+		$dir_rel = dirname( $rel_path );
 		if ( '.' === $dir_rel ) {
 			$dir_rel = '';
 		}
@@ -539,7 +539,7 @@ class W2P_Media_Audit_Service {
 			}
 
 			// Second confirmation: only delete if the corresponding webp exists in the bucket
-			$dir_rel  = dirname( $rel_path );
+			$dir_rel = dirname( $rel_path );
 			if ( '.' === $dir_rel ) {
 				$dir_rel = '';
 			}

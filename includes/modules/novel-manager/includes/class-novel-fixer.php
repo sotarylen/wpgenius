@@ -69,6 +69,7 @@ class W2P_Novel_Fixer {
 			}
 
 			// 消除 N+1 循环查询：使用动态 %s 占位符单条批量 GROUP BY 查询章节数
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Placeholder count always matches $id_strings; WPCS cannot see a dynamically built placeholder list.
 			$placeholders = implode( ',', array_fill( 0, count( $id_strings ), '%s' ) );
 			$count_sql    = $wpdb->prepare(
 				"SELECT pm.meta_value AS novel_id, COUNT(p.ID) AS chapter_count
@@ -81,6 +82,7 @@ class W2P_Novel_Fixer {
 				 GROUP BY pm.meta_value",
 				$id_strings
 			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 			$count_rows = $wpdb->get_results( $count_sql );
 			$counts_map = array();
@@ -151,6 +153,7 @@ class W2P_Novel_Fixer {
 		}
 
 		// 第二步：批量动态占位符查询文章基础信息与对应元数据
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Placeholder count always matches $post_ids; WPCS cannot see a dynamically built placeholder list.
 		$p_placeholders = implode( ',', array_fill( 0, count( $post_ids ), '%d' ) );
 		$posts_sql      = $wpdb->prepare(
 			"SELECT ID, post_title, menu_order FROM {$wpdb->posts}
@@ -158,6 +161,7 @@ class W2P_Novel_Fixer {
 			 ORDER BY menu_order ASC, ID ASC",
 			$post_ids
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$rows = $wpdb->get_results( $posts_sql );
 		if ( empty( $rows ) ) {
@@ -171,11 +175,13 @@ class W2P_Novel_Fixer {
 
 		$valid_ids      = wp_list_pluck( $rows, 'ID' );
 		$v_placeholders = implode( ',', array_fill( 0, count( $valid_ids ), '%d' ) );
-		$meta_sql       = $wpdb->prepare(
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Placeholder count always matches $valid_ids; WPCS cannot see a dynamically built placeholder list.
+		$meta_sql = $wpdb->prepare(
 			"SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta}
 			 WHERE post_id IN ($v_placeholders) AND meta_key IN ('chapter_index', 'volume_name')",
 			$valid_ids
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$meta_rows = $wpdb->get_results( $meta_sql );
 		$meta_map  = array();
@@ -188,9 +194,9 @@ class W2P_Novel_Fixer {
 		// 组装供 W2P_Novel_Helper 计算的轻量数组
 		$input_chapters = array();
 		foreach ( $rows as $r ) {
-			$cid   = intval( $r->ID );
-			$c_idx = isset( $meta_map[ $cid ]['chapter_index'] ) ? (string) $meta_map[ $cid ]['chapter_index'] : '';
-			$c_vol = isset( $meta_map[ $cid ]['volume_name'] ) ? (string) $meta_map[ $cid ]['volume_name'] : '正文';
+			$cid              = intval( $r->ID );
+			$c_idx            = isset( $meta_map[ $cid ]['chapter_index'] ) ? (string) $meta_map[ $cid ]['chapter_index'] : '';
+			$c_vol            = isset( $meta_map[ $cid ]['volume_name'] ) ? (string) $meta_map[ $cid ]['volume_name'] : '正文';
 			$input_chapters[] = array(
 				'id'            => $cid,
 				'title'         => (string) $r->post_title,
@@ -303,5 +309,4 @@ class W2P_Novel_Fixer {
 			'updated_count' => $updated_count,
 		);
 	}
-
 }

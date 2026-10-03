@@ -198,7 +198,7 @@ class W2P_SmartAUI_Post_List_Filter {
 
 		// 5. Stage 2: Point query for content by primary key in batch (executes in ~3ms)
 		$id_placeholders = implode( ',', array_map( 'intval', $candidate_ids ) );
-		$posts = $wpdb->get_results(
+		$posts           = $wpdb->get_results(
 			"SELECT ID, post_content FROM {$wpdb->posts} WHERE ID IN ({$id_placeholders})" // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		);
 

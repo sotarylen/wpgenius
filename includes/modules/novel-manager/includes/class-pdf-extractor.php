@@ -40,9 +40,9 @@ class W2P_Pdf_Extractor {
 		}
 
 		// 2. 解析各 ToUnicode 对象流并建立各字体的 CMap 字典
-		$font_cmaps   = array();
-		$global_cmap  = array();
-		$parsed_uids  = array();
+		$font_cmaps  = array();
+		$global_cmap = array();
+		$parsed_uids = array();
 
 		foreach ( $font_to_unicode as $prefix => $uid ) {
 			if ( isset( $parsed_uids[ $uid ] ) ) {

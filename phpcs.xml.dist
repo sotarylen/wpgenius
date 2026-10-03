@@ -22,6 +22,10 @@
     <exclude-pattern>*/includes/modules/word-to-post/library/*</exclude-pattern>
 
     <!-- Exclude specific files -->
+    <!-- PHPCS is a PHP linter: JS/CSS are not PHP and must not be scanned here.
+         JS syntax is checked during development with the Node.js syntax checker. -->
+    <exclude-pattern>*.js</exclude-pattern>
+    <exclude-pattern>*.css</exclude-pattern>
     <exclude-pattern>composer.json</exclude-pattern>
     <exclude-pattern>composer.lock</exclude-pattern>
     <exclude-pattern>phpcs.xml.dist</exclude-pattern>

@@ -107,6 +107,7 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 					'action_text' => $acf_active ? '' : __( 'Install ACF', 'wp-genius' ),
 				),
 				array(
+					/* translators: %s: post type slug. */
 					'name'        => sprintf( __( 'Custom Post Type: "%s"', 'wp-genius' ), 'novel' ),
 					'required'    => true,
 					'status'      => $has_novel,
@@ -115,6 +116,7 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 					'action_text' => $has_novel ? '' : __( 'Create Post Type', 'wp-genius' ),
 				),
 				array(
+					/* translators: %s: post type slug. */
 					'name'        => sprintf( __( 'Custom Post Type: "%s"', 'wp-genius' ), 'chapter' ),
 					'required'    => true,
 					'status'      => $has_chap,
@@ -577,6 +579,7 @@ class W2P_NovelManagerModule extends W2P_Abstract_Module {
 					'keepWindowOpen'      => __( 'Please do not close this window until cleanup completes.', 'wp-genius' ),
 					'deleteSuccess'       => __( 'Novel and chapters deleted successfully.', 'wp-genius' ),
 					'docChangeDetected'   => __( 'Document change detected, please re-select and upload the document.', 'wp-genius' ),
+					/* translators: %d: number of chapters. */
 					'volumeUpdated'       => __( 'Volume updated for %d chapters.', 'wp-genius' ),
 					// Statistics tab
 					'statsSelectNovel'    => __( 'Search and select a novel first.', 'wp-genius' ),

@@ -62,7 +62,10 @@ $batch_size = isset( $settings['batch_size'] ) ? absint( $settings['batch_size']
 						</button>
 						<button type="button" id="w2p-start-conversion" class="w2p-btn w2p-btn-secondary">
 							<i class="fa-solid fa-play"></i>
-							<?php printf( esc_html__( 'Batch Conversion (%1$d items, batch %2$d)', 'wp-genius' ), absint( $scan_limit ), absint( $batch_size ) ); ?>
+							<?php
+							/* translators: %1$d: number of items to scan. %2$d: batch size. */
+							printf( esc_html__( 'Batch Conversion (%1$d items, batch %2$d)', 'wp-genius' ), absint( $scan_limit ), absint( $batch_size ) );
+							?>
 						</button>
 						<button type="button" id="w2p-start-auto" class="w2p-btn w2p-btn-primary">
 							<i class="fa-solid fa-rotate"></i>

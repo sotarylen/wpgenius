@@ -162,6 +162,7 @@ class W2P_ActorScannerModule extends W2P_Abstract_Module {
 	public function ajax_prepare_index() {
 		$this->ajax_guard();
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce + capability are verified by $this->ajax_guard() above.
 		$force   = isset( $_POST['force'] ) ? (bool) $_POST['force'] : false;
 		$gf      = new W2P_Gfriends_Client();
 		$actors  = $gf->get_actor_index( $force );
@@ -283,7 +284,7 @@ class W2P_ActorScannerModule extends W2P_Abstract_Module {
 		$post_id          = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
 		$content_override = isset( $_POST['content'] ) ? (string) wp_unslash( $_POST['content'] ) : '';
 
-		$result = w2p_actor_detect_post( $post_id, $content_override );
+		$result = $this->detect_post( $post_id, $content_override );
 
 		if ( ! empty( $result['success'] ) ) {
 			wp_send_json_success( $result );
@@ -291,19 +292,19 @@ class W2P_ActorScannerModule extends W2P_Abstract_Module {
 			wp_send_json_error( $result );
 		}
 	}
-}
 
-/**
- * Global API: Detect and assign actor from post's first line into Humans taxonomy.
- *
- * @param int    $post_id          Post ID.
- * @param string $content_override Optional HTML or text content override.
- * @return array Standard result structure: [ 'success' => bool, 'message' => string, 'terms' => array ]
- */
-function w2p_actor_detect_post( $post_id, $content_override = '' ) {
-	$gf      = new W2P_Gfriends_Client();
-	$matcher = new W2P_Actor_Matcher( $gf );
-	$sync    = new W2P_Actor_Sync( $gf, $matcher );
+	/**
+	 * Detect and assign actor from a post's first line into the Humans taxonomy.
+	 *
+	 * @param int    $post_id          Post ID.
+	 * @param string $content_override Optional HTML or text content override.
+	 * @return array Standard result structure: [ 'success' => bool, 'message' => string, 'terms' => array ]
+	 */
+	protected function detect_post( $post_id, $content_override = '' ) {
+		$gf      = new W2P_Gfriends_Client();
+		$matcher = new W2P_Actor_Matcher( $gf );
+		$sync    = new W2P_Actor_Sync( $gf, $matcher );
 
-	return $sync->detect_and_assign_post( $post_id, $content_override );
+		return $sync->detect_and_assign_post( $post_id, $content_override );
+	}
 }

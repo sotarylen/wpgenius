@@ -199,8 +199,8 @@ return array(
 							'desc'    => __( 'Post types that should skip automatic image processing.', 'wp-genius' ),
 						),
 
-						
-						
+
+
 
 						// === Media Enhancements ===
 						array(
@@ -230,10 +230,10 @@ return array(
 							'default' => true,
 						),
 						// array(
-						// 	'id'      => '_submessage_media_enhance_migration',
-						// 	'type'    => 'submessage',
-						// 	'style'   => 'warning',
-						// 	'content' => __( 'Media enhancement tools migrated from child theme. If duplicated with child theme functions, the earlier loaded one takes effect.', 'wp-genius' ),
+						//  'id'      => '_submessage_media_enhance_migration',
+						//  'type'    => 'submessage',
+						//  'style'   => 'warning',
+						//  'content' => __( 'Media enhancement tools migrated from child theme. If duplicated with child theme functions, the earlier loaded one takes effect.', 'wp-genius' ),
 						// ),
 					),
 				),
@@ -243,9 +243,9 @@ return array(
 					'icon'   => 'fa fa-history',
 					'fields' => array(
 						// array(
-						// 	'id'      => '_subheading_capture_failure_logs',
-						// 	'type'    => 'subheading',
-						// 	'content' => __( 'Capture Failure Logs', 'wp-genius' ),
+						//  'id'      => '_subheading_capture_failure_logs',
+						//  'type'    => 'subheading',
+						//  'content' => __( 'Capture Failure Logs', 'wp-genius' ),
 						// ),
 						array(
 							'id'      => '_submessage_capture_failure_logs',

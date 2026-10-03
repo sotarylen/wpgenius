@@ -84,6 +84,10 @@ class W2P_SmartAUI_Media_FindPosts_Filter {
 	 * @return void
 	 */
 	public function filter_find_posts_query( $query ) {
+		// Every request parameter read below arrives inside core's wp_ajax_find_posts handler, whose
+		// first statement is check_ajax_referer( 'find-posts' ). The values only shape a read-only
+		// search query: nothing here writes state.
+		// phpcs:disable WordPress.Security.NonceVerification -- Downstream of core's verified find-posts nonce.
 		// Coexistence guard: If child theme legacy callback exists, yield execution to it.
 		if ( function_exists( 'w2p_filter_find_posts_query' ) ) {
 			return;
@@ -170,6 +174,7 @@ class W2P_SmartAUI_Media_FindPosts_Filter {
 			$query->set( '_w2p_smart_aui_title_only', true );
 			add_filter( 'posts_where', array( $this, 'force_title_only' ), 10, 2 );
 		}
+		// phpcs:enable WordPress.Security.NonceVerification
 	}
 
 	/**
@@ -191,6 +196,7 @@ class W2P_SmartAUI_Media_FindPosts_Filter {
 
 		global $wpdb;
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Same verified find_posts request; only filters the WHERE clause.
 		$term = wp_unslash( $_POST['ps'] ?? '' );
 		if ( '' !== $term ) {
 			$like   = '%' . $wpdb->esc_like( $term ) . '%';
@@ -261,7 +267,7 @@ class W2P_SmartAUI_Media_FindPosts_Filter {
 			'error'     => __( 'Request failed. Please try again.', 'wp-genius' ),
 		);
 
-		$plugin_url = plugin_dir_url( dirname( __FILE__ ) );
+		$plugin_url = plugin_dir_url( __DIR__ );
 		$css_path   = dirname( __DIR__ ) . '/assets/css/smart-aui-admin.css';
 		$css_ver    = file_exists( $css_path ) ? filemtime( $css_path ) : W2P_VERSION;
 		$js_path    = dirname( __DIR__ ) . '/assets/js/smart-aui-find-posts.js';

@@ -87,20 +87,20 @@ class W2P_SmartAUI_UI {
 		}
 
 		$settings = array(
-			'show_progress_ui'   => isset( $global_settings['smart_aui_show_progress_ui'] ) ? (bool) $global_settings['smart_aui_show_progress_ui'] : true,
-			'concurrent_threads' => ! empty( $global_settings['smart_aui_concurrent_threads'] ) ? (int) $global_settings['smart_aui_concurrent_threads'] : 4,
-			'max_retries'        => isset( $global_settings['smart_aui_max_retries'] ) ? (int) $global_settings['smart_aui_max_retries'] : 3,
-			'skip_duplicates'    => isset( $global_settings['smart_aui_skip_duplicates'] ) ? (bool) $global_settings['smart_aui_skip_duplicates'] : true,
-			'base_url'           => ! empty( $global_settings['smart_aui_base_url'] ) ? $global_settings['smart_aui_base_url'] : site_url(),
-			'domain_exclusions'  => isset( $global_settings['smart_aui_exclude_domains'] ) ? $global_settings['smart_aui_exclude_domains'] : '',
+			'show_progress_ui'            => isset( $global_settings['smart_aui_show_progress_ui'] ) ? (bool) $global_settings['smart_aui_show_progress_ui'] : true,
+			'concurrent_threads'          => ! empty( $global_settings['smart_aui_concurrent_threads'] ) ? (int) $global_settings['smart_aui_concurrent_threads'] : 4,
+			'max_retries'                 => isset( $global_settings['smart_aui_max_retries'] ) ? (int) $global_settings['smart_aui_max_retries'] : 3,
+			'skip_duplicates'             => isset( $global_settings['smart_aui_skip_duplicates'] ) ? (bool) $global_settings['smart_aui_skip_duplicates'] : true,
+			'base_url'                    => ! empty( $global_settings['smart_aui_base_url'] ) ? $global_settings['smart_aui_base_url'] : site_url(),
+			'domain_exclusions'           => isset( $global_settings['smart_aui_exclude_domains'] ) ? $global_settings['smart_aui_exclude_domains'] : '',
 			'capture_videos'              => isset( $global_settings['smart_aui_capture_videos'] ) ? (bool) $global_settings['smart_aui_capture_videos'] : false,
 			'auto_capture_videos_on_save' => isset( $global_settings['smart_aui_auto_capture_videos_on_save'] ) ? (bool) $global_settings['smart_aui_auto_capture_videos_on_save'] : false,
 			'min_width'                   => isset( $global_settings['smart_aui_min_width'] ) ? (int) $global_settings['smart_aui_min_width'] : 300,
-			'min_height'         => isset( $global_settings['smart_aui_min_height'] ) ? (int) $global_settings['smart_aui_min_height'] : 200,
-			'auto_set_featured'  => isset( $global_settings['smart_aui_auto_set_featured_image'] ) ? (bool) $global_settings['smart_aui_auto_set_featured_image'] : true,
-			'image_name_pattern' => ! empty( $global_settings['smart_aui_image_name_pattern'] ) ? $global_settings['smart_aui_image_name_pattern'] : '%filename%',
-			'alt_text_pattern'   => ! empty( $global_settings['smart_aui_alt_text_pattern'] ) ? $global_settings['smart_aui_alt_text_pattern'] : '%image_alt%',
-			'migrate_albums'     => isset( $global_settings['smart_aui_migrate_albums'] ) ? (bool) $global_settings['smart_aui_migrate_albums'] : false,
+			'min_height'                  => isset( $global_settings['smart_aui_min_height'] ) ? (int) $global_settings['smart_aui_min_height'] : 200,
+			'auto_set_featured'           => isset( $global_settings['smart_aui_auto_set_featured_image'] ) ? (bool) $global_settings['smart_aui_auto_set_featured_image'] : true,
+			'image_name_pattern'          => ! empty( $global_settings['smart_aui_image_name_pattern'] ) ? $global_settings['smart_aui_image_name_pattern'] : '%filename%',
+			'alt_text_pattern'            => ! empty( $global_settings['smart_aui_alt_text_pattern'] ) ? $global_settings['smart_aui_alt_text_pattern'] : '%image_alt%',
+			'migrate_albums'              => isset( $global_settings['smart_aui_migrate_albums'] ) ? (bool) $global_settings['smart_aui_migrate_albums'] : false,
 		);
 
 		// Cache-bust: use file mtime so JS edits (e.g. batch local-image ID update) are picked up immediately.

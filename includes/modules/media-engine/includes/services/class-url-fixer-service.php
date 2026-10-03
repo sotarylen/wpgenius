@@ -96,14 +96,18 @@ class W2P_Media_Url_Fixer_Service {
 
 		$not_offloaded = 0;
 		if ( ! empty( $recent_ids ) ) {
-			$id_list         = implode( ',', array_map( 'intval', $recent_ids ) );
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$placeholders = implode( ',', array_fill( 0, count( $recent_ids ), '%d' ) );
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Placeholder count always matches $recent_ids; WPCS cannot see a dynamically built placeholder list.
 			$offloaded_count = (int) $wpdb->get_var(
-				"SELECT COUNT(DISTINCT post_id) FROM {$wpdb->postmeta}
-				WHERE post_id IN ({$id_list})
-				AND meta_key IN ('advmo_offloaded', '_is_minio_offloaded')
-				AND meta_value = '1'"
+				$wpdb->prepare(
+					"SELECT COUNT(DISTINCT post_id) FROM {$wpdb->postmeta}
+					WHERE post_id IN ({$placeholders})
+					AND meta_key IN ('advmo_offloaded', '_is_minio_offloaded')
+					AND meta_value = '1'",
+					$recent_ids
+				)
 			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 			if ( $offloaded_count < count( $recent_ids ) ) {
 				$not_offloaded = count( $recent_ids ) - $offloaded_count;
 			}
@@ -128,7 +132,7 @@ class W2P_Media_Url_Fixer_Service {
 					if ( is_file( $full ) ) {
 						$ext = strtolower( (string) pathinfo( $full, PATHINFO_EXTENSION ) );
 						if ( in_array( $ext, $exts, true ) ) {
-							$local_files_found++;
+							++$local_files_found;
 							$sample_local_files[] = $entry;
 							break;
 						}
@@ -144,7 +148,7 @@ class W2P_Media_Url_Fixer_Service {
 								if ( is_file( $sub_full ) ) {
 									$ext = strtolower( (string) pathinfo( $sub_full, PATHINFO_EXTENSION ) );
 									if ( in_array( $ext, $exts, true ) ) {
-										$local_files_found++;
+										++$local_files_found;
 										$sample_local_files[] = $entry . '/' . $sub_entry;
 										break 2;
 									}
@@ -160,7 +164,7 @@ class W2P_Media_Url_Fixer_Service {
 											if ( is_file( $sub2_full ) ) {
 												$ext = strtolower( (string) pathinfo( $sub2_full, PATHINFO_EXTENSION ) );
 												if ( in_array( $ext, $exts, true ) ) {
-													$local_files_found++;
+													++$local_files_found;
 													$sample_local_files[] = $entry . '/' . $sub_entry . '/' . $sub2_entry;
 													break 3;
 												}
@@ -229,12 +233,14 @@ class W2P_Media_Url_Fixer_Service {
 		$type_clause = $include_revisions ? "post_status NOT IN ('trash', 'auto-draft')" : "post_type IN ('post', 'page') AND post_status NOT IN ('trash', 'auto-draft')";
 
 		$host_param = '%' . $wpdb->esc_like( $this->site_host . '/wp-content/uploads/' ) . '%';
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $type_clause is one of two hard-coded literals picked by a boolean flag, never user input.
 		$host_posts = (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_content LIKE %s AND {$type_clause}",
 				$host_param
 			)
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		$stats = array(
 			'total_uploads_posts' => $host_posts,
@@ -261,29 +267,32 @@ class W2P_Media_Url_Fixer_Service {
 		$limit   = max( 1, min( 100, (int) $limit ) );
 		$last_id = max( 0, (int) $last_id );
 
-		$type_clause = $include_revisions ? "post_status NOT IN ('trash', 'auto-draft')" : "post_type IN ('post', 'page') AND post_status NOT IN ('trash', 'auto-draft')";
+		$type_clause  = $include_revisions ? "post_status NOT IN ('trash', 'auto-draft')" : "post_type IN ('post', 'page') AND post_status NOT IN ('trash', 'auto-draft')";
+		$uploads_like = '%' . $wpdb->esc_like( 'wp-content/uploads/' ) . '%';
 
 		if ( $last_id > 0 ) {
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $type_clause is one of two hard-coded literals picked by a boolean flag, never user input.
 			$query = $wpdb->prepare(
 				"SELECT ID FROM {$wpdb->posts}
 				WHERE ID < %d
-				AND post_content LIKE '%%wp-content/uploads/%%'
+				AND post_content LIKE %s
 				AND {$type_clause}
 				ORDER BY ID DESC
 				LIMIT %d",
 				$last_id,
+				$uploads_like,
 				$limit
 			);
 			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		} else {
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $type_clause is one of two hard-coded literals picked by a boolean flag, never user input.
 			$query = $wpdb->prepare(
 				"SELECT ID FROM {$wpdb->posts}
-				WHERE post_content LIKE '%%wp-content/uploads/%%'
+				WHERE post_content LIKE %s
 				AND {$type_clause}
 				ORDER BY ID DESC
 				LIMIT %d",
+				$uploads_like,
 				$limit
 			);
 			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -336,6 +345,7 @@ class W2P_Media_Url_Fixer_Service {
 
 			$results[] = array(
 				'id'              => (int) $id,
+				/* translators: %d: post ID. */
 				'title'           => $post->post_title ? $post->post_title : sprintf( __( '(Post #%d)', 'wp-genius' ), $id ),
 				'type'            => $post->post_type,
 				'date'            => $post->post_date,
@@ -570,7 +580,7 @@ class W2P_Media_Url_Fixer_Service {
 			$id  = (int) $id;
 			$res = $this->fix_post( $id, $dry_run );
 			if ( ! empty( $res['success'] ) && ! empty( $res['replaced'] ) ) {
-				$results['modified_posts']++;
+				++$results['modified_posts'];
 				$results['total_replaced'] += $res['replaced'];
 				foreach ( $res['changes'] as $ch ) {
 					if ( ! empty( $ch['ext_changed'] ) ) {
@@ -638,7 +648,7 @@ class W2P_Media_Url_Fixer_Service {
 			$probe_urls['static'] = rtrim( $home, '/' ) . '/wp-media/' . $dir_part . $stem . '-static.webp';
 			$probe_urls['orig']   = rtrim( $home, '/' ) . '/wp-media/' . $rel_path;
 		} else {
-			$probe_urls['orig']   = rtrim( $home, '/' ) . '/wp-media/' . $rel_path;
+			$probe_urls['orig'] = rtrim( $home, '/' ) . '/wp-media/' . $rel_path;
 		}
 
 		return array(
@@ -693,17 +703,15 @@ class W2P_Media_Url_Fixer_Service {
 			$target_ext  = $ext;
 			$ext_changed = false;
 			$status_desc = 'bucket_orig_200';
-		} else {
+		} elseif ( in_array( $ext, array( 'jpg', 'jpeg', 'png', 'gif', 'bmp' ), true ) ) {
 			// Default rule: offloaded non-webp images converted to .webp
-			if ( in_array( $ext, array( 'jpg', 'jpeg', 'png', 'gif', 'bmp' ), true ) ) {
-				$target_ext  = 'webp';
-				$ext_changed = true;
-				$status_desc = 'fallback_webp';
-			} else {
-				$target_ext  = $ext;
-				$ext_changed = false;
-				$status_desc = 'fallback_orig';
-			}
+			$target_ext  = 'webp';
+			$ext_changed = true;
+			$status_desc = 'fallback_webp';
+		} else {
+			$target_ext  = $ext;
+			$ext_changed = false;
+			$status_desc = 'fallback_orig';
 		}
 
 		$new_rel_file = ( $dir_part ? $dir_part : '' ) . $target_stem . '.' . $target_ext;
@@ -786,7 +794,7 @@ class W2P_Media_Url_Fixer_Service {
 		} while ( $running && CURLM_OK === $status );
 
 		foreach ( $handles as $url => $ch ) {
-			$code                       = (int) curl_getinfo( $ch, CURLINFO_RESPONSE_CODE );
+			$code                      = (int) curl_getinfo( $ch, CURLINFO_RESPONSE_CODE );
 			$this->probe_cache[ $url ] = $code;
 			curl_multi_remove_handle( $mh, $ch );
 			curl_close( $ch );

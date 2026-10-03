@@ -4,6 +4,20 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### 修复 (Fixed)
+
+- **CI 的 `phpcs` job 恢复绿灯（WordPress-Extra）**：该 job 上一次通过已是 2026-09-08，红是既有技术债、不是某次改动引入。按三类处理，不搞「关掉报警」：
+  - **真修**：`LIKE` 通配符改走 `%s` + `esc_like()`（media-engine url-fixer）；`postmeta` 计数改 `%d` 占位符列表（不再字符串拼 ID）；`prepare()` 内联进查询调用，消掉 WPCS 追不到的 `$sql` 中转变量（actor-scanner）；去掉嵌套的 `prepare()`（smart-aui orphan-bind）；两处 `else { if }` 摊平为 `elseif`；`count()` 移出 `for` 判断条件；17 处 i18n 补 `translators` 注释。
+  - **收敛而非豁免**：`actor-scanner` 的全局函数 `w2p_actor_detect_post()` 收敛为类方法 `detect_post()`（全站唯一调用方本就在类内）；3 个 0 字节的 `index.php` 补上哨兵内容。
+  - **带理由豁免**：动态占位符列表（WP 的数组实参只接受「占位符个数 == 实参个数」，WPCS 静态看不穿）、由布尔开关选中的硬编码 SQL 片段、以及跑在核心 `wp_ajax_find_posts` 下游的表单读取（核心该处理函数首行即 `check_ajax_referer( 'find-posts' )`）。
+- **`phpcs.xml.dist` 不再把 JS/CSS 当 PHP 扫描**：此前 `docs/verify-*.js` 被当作 PHP 解析，单独贡献了 91% 的报错（529 个 error）。
+
+### 变更 (Changed)
+
+- `phpcbf` 自动修正 33 个文件的代码格式（等号对齐、空格等），无逻辑改动。
+
 ## [2.1.0] - 2026-10-03
 
 ### 新增 (Added)
@@ -117,5 +131,6 @@
 
 安全加固与架构重构（详见 readme.txt / 上一版本记录）。
 
+[Unreleased]: https://github.com/sotarylen/wpgenius/compare/v2.1.0...HEAD
 [2.1.0]: https://github.com/sotarylen/wpgenius/compare/v2.0.20260903...v2.1.0
 [2.0.20260903]: https://github.com/sotarylen/wpgenius/compare/bdea482...a6c4011

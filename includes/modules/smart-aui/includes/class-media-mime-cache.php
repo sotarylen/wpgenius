@@ -107,6 +107,7 @@ class W2P_SmartAUI_Media_Mime_Cache {
 
 		// L3: Cache miss on all tiers — perform single SQL query.
 		if ( $debug ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_wp_debug_backtrace_summary -- Debug-gated diagnostic trace, only emitted when the module debug flag is on.
 			error_log( '[w2p-mime] MISS - run DISTINCT SQL. opt_count=' . count( $opt ) . ' opt_age=' . ( time() - $ts ) . 's trace=' . wp_debug_backtrace_summary( 6 ) );
 		}
 
@@ -138,6 +139,7 @@ class W2P_SmartAUI_Media_Mime_Cache {
 	public function flush_cache( $post_id = 0, $reason = 'manual' ) {
 		$debug = $this->debug_enabled();
 		if ( $debug ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_wp_debug_backtrace_summary -- Debug-gated diagnostic trace, only emitted when the module debug flag is on.
 			$trace = function_exists( 'wp_debug_backtrace_summary' ) ? wp_debug_backtrace_summary( 8 ) : 'n/a';
 			error_log( '[w2p-mime-flush] reason=' . $reason . ' post_id=' . intval( $post_id ) . ' trace=' . $trace );
 		}
@@ -193,13 +195,13 @@ class W2P_SmartAUI_Media_Mime_Cache {
 		}
 
 		// Cached path timing.
-		$t0     = microtime( true );
+		$t0 = microtime( true );
 		get_available_post_mime_types( 'attachment' );
 		$cached = ( microtime( true ) - $t0 ) * 1000;
 
 		// Raw SQL query timing.
 		global $wpdb;
-		$t1       = microtime( true );
+		$t1 = microtime( true );
 		$wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT DISTINCT post_mime_type FROM {$wpdb->posts} WHERE post_type = %s AND post_mime_type != ''",
@@ -252,9 +254,9 @@ class W2P_SmartAUI_Media_Mime_Cache {
 		}
 
 		// 2b. Redis cache check (<12h).
-		$redis  = wp_cache_get( self::REDIS_KEY, self::CACHE_GROUP );
-		$rts    = (int) wp_cache_get( self::REDIS_TS_KEY, self::CACHE_GROUP );
-		$rage   = ( $rts > 0 ) ? ( time() - $rts ) : -1;
+		$redis = wp_cache_get( self::REDIS_KEY, self::CACHE_GROUP );
+		$rts   = (int) wp_cache_get( self::REDIS_TS_KEY, self::CACHE_GROUP );
+		$rage  = ( $rts > 0 ) ? ( time() - $rts ) : -1;
 
 		if ( defined( 'WP_REDIS_DISABLED' ) && WP_REDIS_DISABLED ) {
 			WP_CLI::log( __( 'NOTE: Current CLI running with Redis disabled (WP_REDIS_DISABLED); web requests still utilize Redis cache', 'wp-genius' ) );
@@ -295,12 +297,12 @@ class W2P_SmartAUI_Media_Mime_Cache {
 		}
 
 		// 4. Cached vs raw SQL performance comparison.
-		$t0         = microtime( true );
+		$t0 = microtime( true );
 		get_available_post_mime_types( 'attachment' );
-		$cached_ms  = ( microtime( true ) - $t0 ) * 1000;
+		$cached_ms = ( microtime( true ) - $t0 ) * 1000;
 
 		global $wpdb;
-		$t1          = microtime( true );
+		$t1 = microtime( true );
 		$wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT DISTINCT post_mime_type FROM {$wpdb->posts} WHERE post_type = %s AND post_mime_type != ''",
@@ -337,4 +339,3 @@ class W2P_SmartAUI_Media_Mime_Cache {
 		return defined( 'W2P_DEBUG_LOGGING' ) ? (bool) W2P_DEBUG_LOGGING : false;
 	}
 }
-

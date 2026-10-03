@@ -92,11 +92,11 @@ class W2P_AccelerateModule extends W2P_Abstract_Module {
 		require_once __DIR__ . '/includes/class-post-type-switch.php';
 
 		// Wire up the responsibility classes.
-		$this->admin_cleanup  = new W2P_Accelerate_AdminCleanup( $this );
-		$this->update_control = new W2P_Accelerate_UpdateControl( $this );
-		$this->local_avatar   = new W2P_Accelerate_LocalAvatar( $this );
-		$this->upload_rename  = new W2P_Accelerate_UploadRename( $this );
-		$this->image_cleanup  = new W2P_Accelerate_ImageCleanup( $this );
+		$this->admin_cleanup    = new W2P_Accelerate_AdminCleanup( $this );
+		$this->update_control   = new W2P_Accelerate_UpdateControl( $this );
+		$this->local_avatar     = new W2P_Accelerate_LocalAvatar( $this );
+		$this->upload_rename    = new W2P_Accelerate_UploadRename( $this );
+		$this->image_cleanup    = new W2P_Accelerate_ImageCleanup( $this );
 		$this->post_type_switch = new W2P_Accelerate_PostTypeSwitch( $this );
 
 		// Cleanup Functionality Hooks

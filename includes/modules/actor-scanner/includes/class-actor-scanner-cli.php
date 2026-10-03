@@ -52,6 +52,7 @@ class W2P_ActorScannerCLI {
 		$sync    = new W2P_Actor_Sync( $gf, $matcher );
 
 		global $wpdb;
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Placeholder count always matches $post_types; WPCS cannot see a dynamically built placeholder list.
 		$placeholders = implode( ',', array_fill( 0, count( $post_types ), '%s' ) );
 		$total        = (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -59,6 +60,7 @@ class W2P_ActorScannerCLI {
 				$post_types
 			)
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 		WP_CLI::log( sprintf( 'Starting actor identification on %d posts (batch %d, offset %d)...', $total, $batch, $offset ) );
 
@@ -66,6 +68,7 @@ class W2P_ActorScannerCLI {
 		$matched = 0;
 
 		while ( $offset < $total ) {
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Placeholder count matches array_merge( $post_types, ... ); WPCS cannot see a dynamically built placeholder list.
 			$post_ids = $wpdb->get_col(
 				$wpdb->prepare(
 					"SELECT ID FROM {$wpdb->posts}
@@ -74,6 +77,7 @@ class W2P_ActorScannerCLI {
 					array_merge( $post_types, array( $batch, $offset ) )
 				)
 			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 			if ( empty( $post_ids ) ) {
 				break;
@@ -81,10 +85,10 @@ class W2P_ActorScannerCLI {
 
 			foreach ( $post_ids as $pid ) {
 				$res = $sync->detect_and_assign_post( (int) $pid );
-				$scanned++;
+				++$scanned;
 
 				if ( ! empty( $res['success'] ) && ! empty( $res['terms'] ) ) {
-					$matched++;
+					++$matched;
 					$names = wp_list_pluck( $res['terms'], 'name' );
 					WP_CLI::log( sprintf( '  [%d] Matched: %s', $pid, implode( ', ', $names ) ) );
 				}

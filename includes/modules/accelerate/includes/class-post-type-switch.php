@@ -117,9 +117,9 @@ class W2P_Accelerate_PostTypeSwitch {
 			return;
 		}
 
-		$types    = self::get_allowed_post_types();
-		$current  = self::get_type_label( $post->post_type );
-		$url      = wp_nonce_url(
+		$types   = self::get_allowed_post_types();
+		$current = self::get_type_label( $post->post_type );
+		$url     = wp_nonce_url(
 			admin_url( 'admin-post.php?action=w2p_change_post_type&post_id=' . $post->ID ),
 			'w2p_change_post_type_' . $post->ID
 		);
@@ -298,10 +298,12 @@ class W2P_Accelerate_PostTypeSwitch {
 	 * @return array
 	 */
 	public function override_bulk_post_type( $data, $postarr ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only flag check on the bulk-edit request; wp-admin runs check_admin_referer( 'bulk-posts' ) before this filter fires.
 		if ( ! isset( $_REQUEST['bulk_edit'] ) || ! isset( $_REQUEST['w2p_bulk_post_type'] ) ) {
 			return $data;
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Same verified bulk-edit request; bulk_edit_posts() also enforces the per-post edit_post cap.
 		$new = sanitize_key( wp_unslash( $_REQUEST['w2p_bulk_post_type'] ) );
 		if ( ! self::is_allowed( $new ) ) {
 			return $data;

@@ -149,7 +149,10 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 				if ( 0 !== (int) $att->post_parent ) {
 					continue; // Already attached to another post.
 				}
-				$pairs[] = array( 'orphan_id' => $mid, 'post_id' => $post_id );
+				$pairs[] = array(
+					'orphan_id' => $mid,
+					'post_id'   => $post_id,
+				);
 			}
 			if ( empty( $pairs ) ) {
 				return;
@@ -193,18 +196,21 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 
 		global $wpdb;
 		if ( '' !== $post_type ) {
-			$pt_sql = $wpdb->prepare( ' AND post_type = %s', $post_type );
+			$pt_clause = ' AND post_type = %s';
+			$pt_args   = array( $post_type );
 		} else {
-			$pt_sql = " AND post_type NOT IN ('attachment','revision')";
+			$pt_clause = " AND post_type NOT IN ('attachment','revision')";
+			$pt_args   = array();
 		}
 
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $pt_clause is a hard-coded fragment; the operator-supplied post type travels through %s, so the placeholder/argument count always matches.
 		$ids = $wpdb->get_col(
 			$wpdb->prepare(
-				"SELECT ID FROM {$wpdb->posts} WHERE post_status != 'trash' {$pt_sql} ORDER BY ID ASC LIMIT %d OFFSET %d",
-				$limit,
-				$offset
+				"SELECT ID FROM {$wpdb->posts} WHERE post_status != 'trash' {$pt_clause} ORDER BY ID ASC LIMIT %d OFFSET %d",
+				array_merge( $pt_args, array( $limit, $offset ) )
 			)
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		if ( empty( $ids ) ) {
 			/* translators: %d: Offset number. */
@@ -242,7 +248,10 @@ class W2P_SmartAUI_Media_Orphan_Bind {
 				if ( 0 !== (int) $att->post_parent ) {
 					continue; // First reference wins.
 				}
-				$pairs[] = array( 'orphan_id' => $mid, 'post_id' => $pid );
+				$pairs[] = array(
+					'orphan_id' => $mid,
+					'post_id'   => $pid,
+				);
 			}
 		}
 

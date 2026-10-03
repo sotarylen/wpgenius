@@ -292,7 +292,7 @@ return array(
 			'desc'       => $rename_token_hint,
 			'dependency' => array( 'accelerate_enable_upload_rename', '==', 'true' ),
 		),
-		
+
 
 		// Update Behaviors
 		array(

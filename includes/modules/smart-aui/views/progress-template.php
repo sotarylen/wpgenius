@@ -1,4 +1,5 @@
-<?php if ( ! defined( 'ABSPATH' ) ) { exit; } // Direct access guard. ?>
+<?php if ( ! defined( 'ABSPATH' ) ) {
+	exit; } // Direct access guard. ?>
 <div id="w2p-smart-aui-backdrop" class="w2p-hidden">
 	<div id="w2p-smart-aui-progress-container">
 		<!-- Header -->

@@ -50,19 +50,19 @@ class WPG_Music_Handler {
 		$playlist_id = absint( $atts['id'] );
 
 		if ( ! $playlist_id ) {
-			
+
 			return '';
 		}
 
 		$playlist = get_post( $playlist_id );
 		if ( ! $playlist || 'wpg_playlist' !== $playlist->post_type || 'publish' !== $playlist->post_status ) {
-			
+
 			return '';
 		}
 
 		$track_ids = WPG_Playlist_CPT::get_track_ids( $playlist_id );
 		if ( empty( $track_ids ) ) {
-			
+
 			return '';
 		}
 
@@ -141,7 +141,7 @@ class WPG_Music_Handler {
 		}
 
 		if ( empty( $aplayer_tracks ) ) {
-			
+
 			return '';
 		}
 

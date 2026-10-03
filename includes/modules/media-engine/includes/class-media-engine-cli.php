@@ -67,6 +67,7 @@ class W2P_Media_Engine_CLI {
 
 		// Process a single attachment
 		if ( $id ) {
+			/* translators: %d: attachment ID. */
 			WP_CLI::line( sprintf( __( 'Processing attachment ID: %d', 'wp-genius' ), $id ) );
 			$result = $this->processor->process_attachment( $id );
 
@@ -88,25 +89,28 @@ class W2P_Media_Engine_CLI {
 			return;
 		}
 
+		/* translators: %d: number of found attachments. */
 		WP_CLI::line( sprintf( __( 'Found %d attachments to process', 'wp-genius' ), $total ) );
 
 		$start_time = microtime( true );
 		$result     = $this->processor->process_batch( $attachments );
 		$duration   = microtime( true ) - $start_time;
 
-		$stats = isset( $result['stats']['convert'] ) ? $result['stats']['convert'] : array();
+		$stats     = isset( $result['stats']['convert'] ) ? $result['stats']['convert'] : array();
 		$succeeded = 0;
 		$failed    = 0;
 		foreach ( $stats as $att_res ) {
 			if ( ! empty( $att_res['success'] ) ) {
-				$succeeded++;
+				++$succeeded;
 			} else {
-				$failed++;
+				++$failed;
 			}
 		}
 
+		/* translators: %1$d: total processed. %2$d: succeeded. %3$d: failed. %4$.2f: duration in seconds. */
 		WP_CLI::line(
 			sprintf(
+				/* translators: %1$d: total processed. %2$d: succeeded. %3$d: failed. %4$.2f: duration in seconds. */
 				__( 'Processed: %1$d | Succeeded: %2$d | Failed: %3$d | Duration: %4$.2fs', 'wp-genius' ),
 				$total,
 				$succeeded,
@@ -116,10 +120,12 @@ class W2P_Media_Engine_CLI {
 		);
 
 		if ( $succeeded > 0 ) {
+			/* translators: %d: number of successfully converted images. */
 			WP_CLI::success( sprintf( __( 'Successfully converted %d images', 'wp-genius' ), $succeeded ) );
 		}
 
 		if ( $failed > 0 ) {
+			/* translators: %d: number of images that failed to convert. */
 			WP_CLI::warning( sprintf( __( '%d images failed to convert', 'wp-genius' ), $failed ) );
 		}
 	}
@@ -141,6 +147,7 @@ class W2P_Media_Engine_CLI {
 	public function offload( $args, $assoc_args ) {
 		$limit = isset( $assoc_args['limit'] ) ? (int) $assoc_args['limit'] : 100;
 
+		/* translators: %d: maximum number of files to offload. */
 		WP_CLI::line( sprintf( __( 'Offloading up to %d files to Minio...', 'wp-genius' ), $limit ) );
 
 		$command = sprintf( 'wp advmo offload --limit=%d --yes 2>&1', $limit );
@@ -196,10 +203,12 @@ class W2P_Media_Engine_CLI {
 			return;
 		}
 
+		/* translators: %d: number of confirmed cleanable files. */
 		WP_CLI::line( sprintf( __( 'Found %d confirmed cleanable files. Deleting local copies...', 'wp-genius' ), count( $files ) ) );
 		$clean_res = $audit->clean_files( $files, false );
 
-		WP_CLI::success( sprintf( __( 'Cleanup complete: %d removed, %d skipped.', 'wp-genius' ), $clean_res['cleaned'], count( $clean_res['skipped'] ) ) );
+		/* translators: %1$d: number of removed files. %2$d: number of skipped files. */
+		WP_CLI::success( sprintf( __( 'Cleanup complete: %1$d removed, %2$d skipped.', 'wp-genius' ), $clean_res['cleaned'], count( $clean_res['skipped'] ) ) );
 	}
 
 	/**
@@ -319,22 +328,27 @@ class W2P_Media_Engine_CLI {
 
 		// Single post
 		if ( $post_id ) {
+			/* translators: %d: post ID. */
 			WP_CLI::line( sprintf( __( 'Inspecting Post ID: %d...', 'wp-genius' ), $post_id ) );
 			$res = $fixer->fix_post( $post_id, $dry_run );
 
 			if ( ! empty( $res['changes'] ) ) {
+				/* translators: %d: number of URLs found for replacement. */
 				WP_CLI::line( sprintf( __( 'Found %d URL(s) to replace:', 'wp-genius' ), count( $res['changes'] ) ) );
 				foreach ( $res['changes'] as $ch ) {
 					$tag = ! empty( $ch['ext_changed'] ) ? '[PATH+EXT]' : '[PATH]';
 					WP_CLI::line( sprintf( '  %s %s => %s (%d times)', $tag, $ch['old'], $ch['new'], $ch['count'] ) );
 				}
 				if ( ! $dry_run ) {
-					WP_CLI::success( sprintf( __( 'Post #%d updated successfully (%d replacements).', 'wp-genius' ), $post_id, $res['replaced'] ) );
+					/* translators: %1$d: post ID. %2$d: number of replacements. */
+					WP_CLI::success( sprintf( __( 'Post #%1$d updated successfully (%2$d replacements).', 'wp-genius' ), $post_id, $res['replaced'] ) );
 				} else {
-					WP_CLI::success( sprintf( __( '[DRY-RUN] Post #%d would have %d replacements.', 'wp-genius' ), $post_id, $res['replaced'] ) );
+					/* translators: %1$d: post ID. %2$d: number of replacements. */
+					WP_CLI::success( sprintf( __( '[DRY-RUN] Post #%1$d would have %2$d replacements.', 'wp-genius' ), $post_id, $res['replaced'] ) );
 				}
 			} else {
-				WP_CLI::line( sprintf( __( 'No local uploads URLs need fixing in Post #%d (Reason: %s).', 'wp-genius' ), $post_id, isset( $res['reason'] ) ? $res['reason'] : 'none' ) );
+				/* translators: %1$d: post ID. %2$s: reason code. */
+				WP_CLI::line( sprintf( __( 'No local uploads URLs need fixing in Post #%1$d (Reason: %2$s).', 'wp-genius' ), $post_id, isset( $res['reason'] ) ? $res['reason'] : 'none' ) );
 			}
 			return;
 		}
@@ -350,7 +364,7 @@ class W2P_Media_Engine_CLI {
 		$round           = 0;
 
 		do {
-			$round++;
+			++$round;
 			$pending_ids = $fixer->get_pending_post_ids( $limit, $offset, $include_revisions );
 			$count       = count( $pending_ids );
 
@@ -363,7 +377,8 @@ class W2P_Media_Engine_CLI {
 				break;
 			}
 
-			WP_CLI::line( sprintf( __( '--- Round %d: Processing batch of %d posts (offset: %d) ---', 'wp-genius' ), $round, $count, $offset ) );
+			/* translators: %1$d: round number. %2$d: batch size. %3$d: offset. */
+			WP_CLI::line( sprintf( __( '--- Round %1$d: Processing batch of %2$d posts (offset: %3$d) ---', 'wp-genius' ), $round, $count, $offset ) );
 			$batch_res = $fixer->fix_batch( $pending_ids, $dry_run );
 
 			$total_modified  += $batch_res['modified_posts'];

@@ -37,7 +37,7 @@ class W2P_AutoPublish_Cron {
 	 * @param mixed $publisher publisher instance.
 	 */
 	public function __construct( $module, $publisher ) {
-		$this->module = $module;
+		$this->module    = $module;
 		$this->publisher = $publisher;
 	}
 

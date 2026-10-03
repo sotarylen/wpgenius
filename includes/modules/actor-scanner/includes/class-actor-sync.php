@@ -137,25 +137,27 @@ class W2P_Actor_Sync {
 		// mention the same actress, and the term we just created must be found.
 		global $wpdb;
 
-		$sql     = $wpdb->prepare(
-			"SELECT t.term_id FROM {$wpdb->terms} t
-			 INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id
-			 WHERE tt.taxonomy = 'humans' AND t.name = %s LIMIT 1",
-			$name
+		$term_id = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT t.term_id FROM {$wpdb->terms} t
+				 INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id
+				 WHERE tt.taxonomy = 'humans' AND t.name = %s LIMIT 1",
+				$name
+			)
 		);
-		$term_id = (int) $wpdb->get_var( $sql );
 		if ( $term_id ) {
 			return $term_id;
 		}
 
 		// Fall back to nickname aliases (direct SQL join on termmeta).
-		$sql     = $wpdb->prepare(
-			"SELECT tm.term_id FROM {$wpdb->termmeta} tm
-			 INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_id = tm.term_id
-			 WHERE tt.taxonomy = 'humans' AND tm.meta_key = 'human_nickname' AND tm.meta_value LIKE %s LIMIT 1",
-			'%' . $wpdb->esc_like( $name ) . '%'
+		$term_id = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT tm.term_id FROM {$wpdb->termmeta} tm
+				 INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_id = tm.term_id
+				 WHERE tt.taxonomy = 'humans' AND tm.meta_key = 'human_nickname' AND tm.meta_value LIKE %s LIMIT 1",
+				'%' . $wpdb->esc_like( $name ) . '%'
+			)
 		);
-		$term_id = (int) $wpdb->get_var( $sql );
 
 		return $term_id;
 	}

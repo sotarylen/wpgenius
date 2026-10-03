@@ -84,13 +84,13 @@ class W2P_Actor_Matcher {
 			// Description aliases (only if concise name list, not long biographical text).
 			if ( ! empty( $term->description ) && mb_strlen( $term->description ) <= 100 ) {
 				$desc_aliases = preg_split( '/[\s,，、;；\/|]+/u', $term->description );
-				$count = 0;
+				$count        = 0;
 				foreach ( $desc_aliases as $da ) {
 					if ( $count >= 10 ) {
 						break;
 					}
 					if ( $this->register_alias( $this->term_alias_map, $da, $term->term_id ) ) {
-						$count++;
+						++$count;
 					}
 				}
 			}
@@ -99,13 +99,13 @@ class W2P_Actor_Matcher {
 			$nickname = (string) get_term_meta( $term->term_id, 'human_nickname', true );
 			if ( '' !== $nickname && mb_strlen( $nickname ) <= 150 ) {
 				$aliases = preg_split( '/[\s,，、;；\/|]+/u', $nickname );
-				$count = 0;
+				$count   = 0;
 				foreach ( $aliases as $alias ) {
 					if ( $count >= 10 ) {
 						break;
 					}
 					if ( $this->register_alias( $this->term_alias_map, $alias, $term->term_id ) ) {
-						$count++;
+						++$count;
 					}
 				}
 			}
@@ -304,12 +304,20 @@ class W2P_Actor_Matcher {
 		}
 
 		// 3. Expand iteration mark 々 (e.g. 八神七々実 -> 八神七七実).
-		$norm_a = preg_replace_callback( '/(.)々/u', static function( $m ) {
-			return $m[1] . $m[1];
-		}, $a );
-		$norm_b = preg_replace_callback( '/(.)々/u', static function( $m ) {
-			return $m[1] . $m[1];
-		}, $b );
+		$norm_a = preg_replace_callback(
+			'/(.)々/u',
+			static function ( $m ) {
+				return $m[1] . $m[1];
+			},
+			$a
+		);
+		$norm_b = preg_replace_callback(
+			'/(.)々/u',
+			static function ( $m ) {
+				return $m[1] . $m[1];
+			},
+			$b
+		);
 
 		if ( $norm_a === $norm_b || $this->gf->similarity_score( $norm_a, $norm_b ) >= 0.55 ) {
 			return true;
@@ -404,7 +412,7 @@ class W2P_Actor_Matcher {
 		// Normalize CJK internal spaces: "八神 七々実" -> "八神七々実"
 		$normalized = preg_replace_callback(
 			'/([\x{4E00}-\x{9FFF}\x{3400}-\x{4DBF}\x{3040}-\x{30FF}\x{3005}\x{3006}\x{3007}])\s+([\x{4E00}-\x{9FFF}\x{3400}-\x{4DBF}\x{3040}-\x{30FF}\x{3005}\x{3006}\x{3007}])/u',
-			static function( $m ) {
+			static function ( $m ) {
 				return $m[1] . $m[2];
 			},
 			$cleaned
@@ -493,9 +501,10 @@ class W2P_Actor_Matcher {
 				}
 			);
 
-			$primary = $clean_cluster[0];
-			$aliases = array();
-			for ( $i = 1; $i < count( $clean_cluster ); $i++ ) {
+			$primary       = $clean_cluster[0];
+			$cluster_count = count( $clean_cluster );
+			$aliases       = array();
+			for ( $i = 1; $i < $cluster_count; $i++ ) {
 				if ( $clean_cluster[ $i ] !== $primary && ! in_array( $clean_cluster[ $i ], $aliases, true ) ) {
 					$aliases[] = $clean_cluster[ $i ];
 				}
@@ -517,9 +526,13 @@ class W2P_Actor_Matcher {
 
 			// Check normalized iteration mark (e.g. 八神七々実 -> 八神七七実).
 			if ( 'none' === $res['source'] ) {
-				$norm_p = preg_replace_callback( '/(.)々/u', static function( $m ) {
-					return $m[1] . $m[1];
-				}, $primary );
+				$norm_p = preg_replace_callback(
+					'/(.)々/u',
+					static function ( $m ) {
+						return $m[1] . $m[1];
+					},
+					$primary
+				);
 				if ( $norm_p !== $primary ) {
 					$r_norm = $this->resolve( $norm_p );
 					if ( 'none' !== $r_norm['source'] ) {

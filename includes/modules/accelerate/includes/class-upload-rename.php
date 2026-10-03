@@ -143,22 +143,22 @@ class W2P_Accelerate_UploadRename {
 	 */
 	public static function get_token_descriptions() {
 		return array(
-			'{timestamp}'    => __( 'Unix timestamp in seconds', 'wp-genius' ),
-			'{sanitized}'    => __( 'Original filename, sanitized', 'wp-genius' ),
-			'{rand}'         => __( '4-digit random number', 'wp-genius' ),
-			'{datetime}'     => __( 'Date and time (YmdHis)', 'wp-genius' ),
-			'{date:Y-m-d}'   => __( 'Date in any PHP date() format, e.g. {date:Y-m-d}', 'wp-genius' ),
-			'{year}'         => __( '4-digit year', 'wp-genius' ),
-			'{month}'        => __( '2-digit month', 'wp-genius' ),
-			'{day}'          => __( '2-digit day', 'wp-genius' ),
-			'{hour}'         => __( '2-digit hour', 'wp-genius' ),
-			'{minute}'       => __( '2-digit minute', 'wp-genius' ),
-			'{second}'       => __( '2-digit second', 'wp-genius' ),
-			'{user_id}'      => __( 'Current user ID', 'wp-genius' ),
-			'{user_login}'   => __( 'Current user login', 'wp-genius' ),
-			'{orig}'         => __( 'Original base filename', 'wp-genius' ),
-			'{ext}'          => __( 'File extension (no dot)', 'wp-genius' ),
-			'{uniqid}'       => __( 'Unique ID', 'wp-genius' ),
+			'{timestamp}'  => __( 'Unix timestamp in seconds', 'wp-genius' ),
+			'{sanitized}'  => __( 'Original filename, sanitized', 'wp-genius' ),
+			'{rand}'       => __( '4-digit random number', 'wp-genius' ),
+			'{datetime}'   => __( 'Date and time (YmdHis)', 'wp-genius' ),
+			'{date:Y-m-d}' => __( 'Date in any PHP date() format, e.g. {date:Y-m-d}', 'wp-genius' ),
+			'{year}'       => __( '4-digit year', 'wp-genius' ),
+			'{month}'      => __( '2-digit month', 'wp-genius' ),
+			'{day}'        => __( '2-digit day', 'wp-genius' ),
+			'{hour}'       => __( '2-digit hour', 'wp-genius' ),
+			'{minute}'     => __( '2-digit minute', 'wp-genius' ),
+			'{second}'     => __( '2-digit second', 'wp-genius' ),
+			'{user_id}'    => __( 'Current user ID', 'wp-genius' ),
+			'{user_login}' => __( 'Current user login', 'wp-genius' ),
+			'{orig}'       => __( 'Original base filename', 'wp-genius' ),
+			'{ext}'        => __( 'File extension (no dot)', 'wp-genius' ),
+			'{uniqid}'     => __( 'Unique ID', 'wp-genius' ),
 		);
 	}
 }

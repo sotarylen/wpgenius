@@ -62,11 +62,11 @@ return array(
 							'default' => true,
 						),
 						array(
-							'id'      => 'novel_custom_chapter_rules',
-							'type'    => 'repeater',
-							'title'   => __( 'Custom Chapter Rules', 'wp-genius' ),
+							'id'       => 'novel_custom_chapter_rules',
+							'type'     => 'repeater',
+							'title'    => __( 'Custom Chapter Rules', 'wp-genius' ),
 							'subtitle' => __( 'Supplement custom patterns for chapter titles not covered by built-in rules.', 'wp-genius' ),
-							'fields'  => array(
+							'fields'   => array(
 								array(
 									'id'    => 'rule_pattern',
 									'type'  => 'text',
@@ -82,11 +82,11 @@ return array(
 							),
 						),
 						array(
-							'id'      => 'novel_special_volumes',
-							'type'    => 'repeater',
-							'title'   => __( 'Special Volume Rules', 'wp-genius' ),
+							'id'       => 'novel_special_volumes',
+							'type'     => 'repeater',
+							'title'    => __( 'Special Volume Rules', 'wp-genius' ),
 							'subtitle' => __( 'Define keywords and index numbering rules for side stories, prequels, and extra volumes.', 'wp-genius' ),
-							'fields'  => array(
+							'fields'   => array(
 								array(
 									'id'    => 'keyword',
 									'type'  => 'text',

@@ -1051,4 +1051,3 @@ class W2P_SmartAUI_Ajax {
 		return false;
 	}
 }
-

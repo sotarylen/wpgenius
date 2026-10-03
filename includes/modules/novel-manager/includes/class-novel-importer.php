@@ -546,6 +546,7 @@ class W2P_Novel_Importer {
 
 			$chap_idx_str = W2P_Novel_Helper::format_chapter_index( $current_vol_idx, $chap_num );
 			if ( empty( $chap_title ) ) {
+				/* translators: %d: chapter number. */
 				$chap_title = sprintf( __( 'Chapter %d', 'wp-genius' ), count( $chapters ) + 1 );
 			}
 
@@ -662,10 +663,12 @@ class W2P_Novel_Importer {
 
 		// 轨道 1：优先尝试系统 CLI pdftotext (安全调用 + 函数可用性检测)
 		if ( function_exists( 'exec' ) && ! in_array( 'exec', array_map( 'trim', explode( ',', (string) ini_get( 'disable_functions' ) ) ), true ) ) {
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Fast path guarded by function_exists() + disable_functions checks; fixed command string, no user input.
 			$which = @exec( 'which pdftotext 2>/dev/null' );
 			if ( ! empty( $which ) && is_executable( $which ) ) {
 				$out_file = $file_path . '.txt';
 				$cmd      = escapeshellcmd( $which ) . ' -enc UTF-8 -layout ' . escapeshellarg( $file_path ) . ' ' . escapeshellarg( $out_file ) . ' 2>&1';
+				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- $cmd is assembled from escapeshellcmd() + escapeshellarg() above and never contains raw request data.
 				@exec( $cmd );
 				if ( file_exists( $out_file ) ) {
 					$text = file_get_contents( $out_file );
@@ -1023,7 +1026,7 @@ class W2P_Novel_Importer {
 		$avg_words      = $count_chapters > 0 ? ( $total_words / $count_chapters ) : 0;
 		foreach ( $chapters as $c ) {
 			if ( isset( $c['word_count'] ) && $c['word_count'] < 30 ) {
-				$short_chaps++;
+				++$short_chaps;
 			}
 		}
 
