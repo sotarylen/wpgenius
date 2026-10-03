@@ -4,7 +4,7 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased] - 2.1 积攒中
+## [2.1.0] - 2026-10-03
 
 ### 新增 (Added)
 
@@ -26,6 +26,13 @@
   - 单本 AJAX 权限由「仅 manage_options」放宽到「能编辑这本书即可」
   - 结果由 JS 直接写回 ACF 的 count-chapters / count-words 输入框，无需刷新页面
 
+- **Album Importer 图集导入模组（`album-importer`，新增）**：把本地磁盘上的套图目录批量导入为 `albums` 图集，走 **WordPress 标准入库管道**（`wp_insert_attachment` + `wp_generate_attachment_metadata`，绕开 smart-aui），使新导入的图集与站上存量 8473 篇的附件形态完全一致。
+  - 三段式流程：浏览源目录 → 扫描并解析套图名（`W2P_Album_Name_Parser`）→ 分批导入（默认 5 张/批，适配 `php_wp` 仅 6 个 FPM 子进程的池容量）。
+  - **幂等键 = 源图绝对路径**（`post_parent` + meta 联合查，入口第一步、早于任何磁盘/DB 写）：重跑同一批不产生重复附件；前端重发靠「源路径幂等 + 正文 `wp-image-{id}` 去重」双保险兜底。
+  - 附件的 `menu_order` 写为篇内序号（0 起），保证封面与顺序确定；导入完成 `finalize_album()` 设封面、标记 `state=done`、移源目录到 `_已导入/`。
+  - **批次 AJAX 参数一律 `w2p_` 前缀**（游标用 `w2p_offset`）：站上 us-core（Impreza）的 `US_Filter_Indexer` 挂在 `save_post` 上并无条件读全局 `$_POST['offset']`，用通用名会让每次 `wp_update_post()` 触发全站 35.6 万篇的过滤器索引重建（单批 32.7 万条 SQL、90s+、撞内存上限）。
+  - **路径净化走 `sanitize_abs_path()` 而非 `sanitize_text_field()`**：后者会折叠连续空白，含双空格的目录名会被判为不可读；标识符（路径/文件名）不能套用面向人类文本的净化函数。
+
 ### 变更 (Changed)
 
 - **Novel Manager Fixer 重构为「聚合根 + 权威计算」**：全面复用 W2P_Novel_Helper 权威算法（含「卷/部/回」「卷部集册」新规则），删除旧 scan_batch/execute_batch 有状态上下文循环；JS 统一扩至约 1300 行并移除旧扫描控件 ID。
@@ -34,6 +41,11 @@
 - **架构图重绘**：docs/wpgenius-architecture.html 节点 15→16，Novel Manager 独立上主图并标注 ACF / novel+chapter CPT 依赖；Archify showcase 9/9 校验 + 四视口视觉检查通过（5 处源码证据均核实行号）。
 
 ### 修复 (Fixed)
+
+- **Lightbox「设为封面」被文章保存覆盖（Frontend-Enhancement × Smart AUI）**：前台 Lightbox 的 "Set Featured" 按钮用 `set_post_thumbnail()` 设的封面，会在下一次文章更新时被 Smart AUI 的 `auto_set_featured_image`（挂在 `save_post@20`）覆盖回正文第一张图 —— 因为该函数只比较「找到的图 ≠ 当前封面」就重设，**完全没考虑文章是否已经手动设过封面**。修法是在函数入口加一行 `has_post_thumbnail()` 守卫：**文章已有封面则直接返回**。
+  - 守卫加在 5 个调用方（`save_post` 钩子 + 3 处 AJAX + 模块壳方法）共享的函数内部，一次修复覆盖全部路径；album-importer / novel-manager 走 `set_post_thumbnail` 直接设封面、post-duplicator 在复制瞬间封面仍为空，均不经此守卫，行为不变。
+  - 后台「Remove featured image」清空封面后，自动补第一张图的原行为保留。
+  - 经 A/B 验证：去掉守卫时封面确实被覆盖（复现 bug），装上后保持不变；phpcs / php -l 通过。
 
 - **图片瀑布流顺序错乱（前端增强 · Lightbox · Enable Masonry Layout）**：原实现把连续图片包进 `columns: N` 的 CSS 多列容器，而多列布局是**列优先**填充 —— 6 张图会被均衡切成「列1=1,2｜列2=3,4｜列3=5,6」，视觉顺序变成 1,3,5 / 2,4,6，而不是期望的 1,2,3 / 4,5,6。填充方向是多列布局的固有语义，改列数、改间距都修正不了，因此换为实现「最短列优先」：
   - 新增 `assets/js/masonry.js`（约 40 行，无依赖）：按 DOM 顺序把每张图放进当前最矮的列，顶行即 1,2,3，且横竖图混排不留行内空白
@@ -57,6 +69,15 @@
 - PHP lint / phpcs（WPCS）全部通过；JS node --check 通过；phpcbf 自动修复对齐。
 - masonry 布局改动经 headless Chrome 实测：600px 容器顶行 3 张、500px 2 张、350px 1 张，坐标与手算逐像素吻合；无 JS 时确认降级为多列（容器高 408px，而非竖排堆叠的 1092px）。
 - **项目规则强化：四步强制交付流程**（`.agent/rules/wpgenius-rules.md`）—— 把原有"前置审查 + 后置评估"骨架补成可执行闭环：`① Ponytail 前置审查（审查子代理 Reviewer） → ② 执行改动 → ③ QA 子代理校验（编码 + 执行结果双维度） → ④ 交付`。明确子代理启动方式（`Agent` + `general-purpose`，只读为提示词级约束）、QA 输入三要素（文件路径 + 校验命令 + 需求原文）、PASS/FAIL 产出格式与 FAIL 回环重跑；补齐 Ponytail 输出格式与"不许偷懒"清单；新增纯问答 / 单行微改等豁免条款。规则收敛为**单一权威源**，`AGENTS.md` / `CLAUDE.md` 降为指针，避免两套规则互相矛盾。
+
+- **仓库瘦身 · 忽略规则整理**：审查全项目后把两个不该入库的大文件移出版本控制 ——
+  - `composer.phar`（3.6 MB，依赖管理器二进制）→ 用系统 / CI（`setup-php`）提供的 composer，代码零引用；
+  - `includes/modules/actor-scanner/data/gfriends-index.json`（22 MB）→ 运行时缓存，由 gfriends Filetree 下载后规范化生成（`class-gfriends-client.php`），代码已处理文件缺失（走空数组、不 fatal），可从后台强制刷新重建。
+  - 两者写入 `.gitignore` 并 `git rm --cached`：**磁盘文件保留**，只是不再跟踪。
+  - 另将含明文数据库凭据的一次性运维手册 `w2p-cleanup-rollback.md`、翻译模板备份 `*.pot~` 加入忽略。
+  - ⚠️ 注意：本次只是「不再跟踪」，历史提交里的对象仍在 —— 要真正缩小仓库体积需重写历史（`git filter-repo`），因属破坏性操作未执行。
+
+- **版本号体系归位为 SemVer**：`2.0.20260903`（主版本.年.日期）→ `2.1.0`，与 CHANGELOG 既有 `[1.2.0]` / Keep a Changelog 约定统一。同步更新 `wp-genius.php`（Version 头 + `W2P_VERSION` 常量）、`readme.txt`（Stable tag）、`package.json`、`README.md` 徽章共 5 处。
 
 ## [2.0.20260903] - 2026-09-03
 
@@ -96,4 +117,5 @@
 
 安全加固与架构重构（详见 readme.txt / 上一版本记录）。
 
+[2.1.0]: https://github.com/sotarylen/wpgenius/compare/v2.0.20260903...v2.1.0
 [2.0.20260903]: https://github.com/sotarylen/wpgenius/compare/bdea482...a6c4011

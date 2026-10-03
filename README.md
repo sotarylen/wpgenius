@@ -2,7 +2,7 @@
 
 > 一个功能强大的 WordPress 内容管理、媒体处理与网站优化工具集合插件。
 
-![WordPress](https://img.shields.io/badge/WordPress-5.0%2B-blue) ![PHP](https://img.shields.io/badge/PHP-7.4%2B-777BB4) ![License](https://img.shields.io/badge/License-MIT-green) ![Version](https://img.shields.io/badge/Version-2.0.20260903-orange)
+![WordPress](https://img.shields.io/badge/WordPress-5.0%2B-blue) ![PHP](https://img.shields.io/badge/PHP-7.4%2B-777BB4) ![License](https://img.shields.io/badge/License-MIT-green) ![Version](https://img.shields.io/badge/Version-2.1.0-orange)
 
 ## 简介
 

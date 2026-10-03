@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Genius
  * Description: A comprehensive toolkit for WordPress content management, optimization, and automation (Auto-Publish, Media Engine, System Health, and more).
- * Version: 2.0.20260903
+ * Version: 2.1.0
  * Author: Sotary
  * Text Domain: wp-genius
  */
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Define plugin constants
 define( 'WP_GENIUS_FILE', __FILE__ );
-define( 'W2P_VERSION', '2.0.20260903' );
+define( 'W2P_VERSION', '2.1.0' );
 define( 'W2P_DB_VERSION', '1.0' );
 
 // Include module framework (abstracts, loader, admin settings)
