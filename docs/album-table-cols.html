@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Album Importer — 待导入列表列宽验证</title>
+<!-- 直接 link 磁盘上的真实 admin.css（走本机 web server），保证量到的是真产物、不是复制品 -->
+<link rel="stylesheet" href="https://web.sotarylen.com/wp-content/plugins/wpgenius/includes/modules/album-importer/assets/css/admin.css">
+<style>
+	body { margin: 0; padding: 20px; background: #f0f0f1; font: 13px/1.5 -apple-system, "PingFang SC", sans-serif; }
+	h1 { font-size: 16px; margin: 0 0 4px; }
+	.w2p-note { color: #646970; margin: 0 0 18px; }
+	.w2p-case { margin-bottom: 26px; }
+	.w2p-case h2 { font-size: 13px; font-weight: 600; margin: 0 0 8px; color: #1d2327; }
+	/* 模拟 WordPress 后台内容区的可用宽度 */
+	.w2p-viewport { outline: 1px dashed #c3c4c7; }
+	#w2p-measure { background: #1d2327; color: #d5e5b8; padding: 12px 14px; border-radius: 6px;
+		white-space: pre; font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-x: auto; }
+</style>
+</head>
+<body>
+
+<h1>待导入列表 —— 列宽验证</h1>
+<p class="w2p-note">列序与控件类型严格照 <code>views/tab-import.php</code> 第 129-165 行的模板；CSS 直接引用插件的 <code>admin.css</code>。</p>
+
+<pre id="w2p-measure">measuring…</pre>
+
+<div class="w2p-case">
+	<h2>案例 1 — 容器 1240px（宽屏后台）</h2>
+	<div class="w2p-viewport" style="width:1240px" data-case="1240">
+		<div id="w2p-album-importer" class="w2p-wrapper"></div>
+	</div>
+</div>
+
+<div class="w2p-case">
+	<h2>案例 2 — 容器 1040px（笔记本后台）</h2>
+	<div class="w2p-viewport" style="width:1040px" data-case="1040">
+		<div id="w2p-album-importer" class="w2p-wrapper"></div>
+	</div>
+</div>
+
+<div class="w2p-case">
+	<h2>案例 3 — 容器 820px（窄窗口）</h2>
+	<div class="w2p-viewport" style="width:820px" data-case="820">
+		<div id="w2p-album-importer" class="w2p-wrapper"></div>
+	</div>
+</div>
+
+<script>
+(function () {
+	'use strict';
+
+	/* 真实样本：目录名取自实测截图里最长的几个 */
+	var ROWS = [
+		{ dir: '【YouWu尤物】2017.12.18 VOL0072 LULU小璐璐', title: '[YouWu尤物] 2017.12.18 VOL0072', studio: 'YouWu 尤物馆', models: ['LULU小璐璐'], number: '0072', date: '2017.12.18', count: '46', done: true },
+		{ dir: '【YouWu尤物】2017.12.20 Vol.073 李宓儿', title: '[YouWu尤物] 2017.12.20 Vol.073', studio: 'YouWu 尤物馆', models: ['李宓儿'], number: '073', date: '2017.12.20', count: '46', done: false },
+		{ dir: '【YouWu尤物】2017.12.25 Vol.074 SEVEN七七', title: '[YouWu尤物] 2017.12.25 Vol.074', studio: 'YouWu 尤物馆', models: ['SEVEN七七'], number: '074', date: '2017.12.25', count: '43', done: false }
+	];
+
+	/* 表头：照 tab-import.php:131-140 逐列照抄 */
+	var HEAD = [
+		['', 'w2p-album-col-check'],
+		['Directory', 'w2p-album-col-dir'],
+		['Title', ''],
+		['Studio', ''],
+		['Model(s)', ''],
+		['Serial', 'w2p-album-col-narrow'],
+		['Release', 'w2p-album-col-date'],
+		['Images', 'w2p-album-col-count'],
+		['Status', 'w2p-album-col-status'],
+		['', 'w2p-album-col-action']
+	];
+
+	/* 行内单元格的类序 —— 照 tab-import.php:154-163 的模板，用来自检列序没错位。
+	   上一次就是错在这里（把 Serial/Release 的 input 塞进了 Studio/Model(s) 的位置），
+	   量出来的数字全偏，所以这次让页面自己断言。 */
+	var ROW_CELLS = [
+		'w2p-album-col-check',
+		'w2p-album-cell-dir',
+		'w2p-album-input-title',
+		'w2p-album-input-studio',
+		'w2p-album-cell-models',
+		'w2p-album-input-number',
+		'w2p-album-input-date',
+		'w2p-album-cell-count',
+		'w2p-album-cell-status',
+		'w2p-album-cell-action'
+	];
+
+	function el(tag, cls, text) {
+		var n = document.createElement(tag);
+		if (cls) { n.className = cls; }
+		if (text) { n.textContent = text; }
+		return n;
+	}
+
+	function input(cls, value) {
+		var i = document.createElement('input');
+		i.type = 'text';
+		i.className = 'w2p-album-input ' + cls;
+		i.value = value;
+		return i;
+	}
+
+	function cell(cls) {
+		return el('td', cls);
+	}
+
+	function buildTable(root) {
+		var wrap = el('div', 'w2p-album-table-wrap');
+		var table = el('table', 'w2p-album-table');
+
+		var thead = el('thead');
+		var htr = el('tr');
+		HEAD.forEach(function (h) { htr.appendChild(el('th', h[1], h[0])); });
+		thead.appendChild(htr);
+		table.appendChild(thead);
+
+		var tbody = el('tbody');
+		ROWS.forEach(function (r) {
+			var tr = el('tr', 'w2p-album-row');
+
+			// 1 check
+			var td = cell('w2p-album-col-check');
+			var cb = document.createElement('input');
+			cb.type = 'checkbox';
+			cb.className = 'w2p-album-row-check';
+			td.appendChild(cb);
+			tr.appendChild(td);
+
+			// 2 Directory
+			td = cell('w2p-album-cell-dir');
+			var span = el('span', 'w2p-album-dirname', r.dir);
+			span.title = r.dir;             // JS 里由 .attr('title', row.dirname) 补
+			td.appendChild(span);
+			tr.appendChild(td);
+
+			// 3 Title
+			td = cell();
+			td.appendChild(input('w2p-album-input-title', r.title));
+			tr.appendChild(td);
+
+			// 4 Studio —— 真实是 input.w2p-album-input-studio（renderStudioInput），不是 span
+			td = cell('w2p-album-cell-studio');
+			td.appendChild(input('w2p-album-input-studio', r.studio));
+			tr.appendChild(td);
+
+			// 5 Model(s) —— 真实是 #w2p-album-tag-tpl：badge + 标签文字 + × 删除按钮，
+			//   少了 × 会把该列的 min-content 量小（× 占 3px gap + 14px），数字就不可信了。
+			td = cell('w2p-album-cell-models');
+			r.models.forEach(function (m) {
+				var tag = el('span', 'w2p-badge w2p-album-tag');
+				tag.appendChild(el('span', 'w2p-album-tag-label', m));
+				var x = document.createElement('button');
+				x.type = 'button';
+				x.className = 'w2p-album-tag-x';
+				x.innerHTML = '&times;';
+				tag.appendChild(x);
+				td.appendChild(tag);
+			});
+			tr.appendChild(td);
+
+			// 6 Serial（真实 class 是 -number）
+			td = cell();
+			td.appendChild(input('w2p-album-input-number', r.number));
+			tr.appendChild(td);
+
+			// 7 Release
+			td = cell();
+			td.appendChild(input('w2p-album-input-date', r.date));
+			tr.appendChild(td);
+
+			// 8 Images
+			td = cell('w2p-album-cell-count');
+			td.textContent = r.count;
+			tr.appendChild(td);
+
+			// 9 Status
+			td = cell('w2p-album-cell-status');
+			td.appendChild(el('span', 'w2p-badge' + (r.done ? ' w2p-badge-ok' : ''), r.done ? '✓ ' + r.count : 'NEW'));
+			tr.appendChild(td);
+
+			// 10 action
+			td = cell('w2p-album-cell-action');
+			var btn = el('button', 'w2p-album-discard-btn');
+			btn.type = 'button';
+			btn.appendChild(el('span', 'w2p-album-discard-label', 'Discard'));
+			td.appendChild(btn);
+			tr.appendChild(td);
+
+			tbody.appendChild(tr);
+		});
+		table.appendChild(tbody);
+		wrap.appendChild(table);
+		root.appendChild(wrap);
+		return table;
+	}
+
+	/** 自检：把行里每个 td 的「内容类」抽出来，和 ROW_CELLS 逐位比对。 */
+	function checkColumnOrder(tr) {
+		var tds = tr.querySelectorAll('td');
+		var got = Array.prototype.map.call(tds, function (td) {
+			if (td.classList.contains('w2p-album-col-check')) { return 'w2p-album-col-check'; }
+			if (td.classList.contains('w2p-album-cell-dir')) { return 'w2p-album-cell-dir'; }
+			var inner = td.querySelector('input, .w2p-album-cell-models, .w2p-badge');
+			if (inner && inner.classList.contains('w2p-album-input')) {
+				return Array.prototype.filter.call(inner.classList, function (c) {
+					return c.indexOf('w2p-album-input-') === 0;
+				})[0] || 'input';
+			}
+			var hit = Array.prototype.filter.call(['w2p-album-cell-models', 'w2p-album-cell-count', 'w2p-album-cell-status', 'w2p-album-cell-action'], function (c) {
+				return td.classList.contains(c);
+			})[0];
+			return hit || '?';
+		});
+		if (got.length !== ROW_CELLS.length) {
+			return 'FAIL 列数 ' + got.length + ' ≠ ' + ROW_CELLS.length;
+		}
+		for (var i = 0; i < got.length; i++) {
+			if (got[i] !== ROW_CELLS[i]) {
+				return 'FAIL 第 ' + i + ' 列 期望 ' + ROW_CELLS[i] + ' 实际 ' + got[i];
+			}
+		}
+		return 'PASS';
+	}
+
+	function measure(viewport) {
+		var root = viewport.querySelector('#w2p-album-importer');
+		buildTable(root);
+
+		var wrap = root.querySelector('.w2p-album-table-wrap');
+		var table = root.querySelector('.w2p-album-table');
+		var ths = table.querySelectorAll('thead th');
+		var tr = table.querySelectorAll('tbody tr')[0];
+		var lines = [];
+
+		lines.push('=== 容器 ' + viewport.getAttribute('data-case') + 'px ===');
+		lines.push('  列序自检(照 tab-import.php 模板): ' + checkColumnOrder(tr));
+		lines.push('  table 宽=' + Math.round(table.getBoundingClientRect().width)
+			+ '  wrap 可视宽=' + wrap.clientWidth
+			+ (table.getBoundingClientRect().width > wrap.clientWidth + 1 ? '  ← 横向滚动(overflow-x 兜底)' : '  无横向溢出'));
+
+		var row = [];
+		Array.prototype.forEach.call(ths, function (th, i) {
+			var text = (th.textContent || '').trim() || '(空)';
+			row.push(text + '=' + Math.round(th.getBoundingClientRect().width));
+		});
+		lines.push('  列宽: ' + row.join('  '));
+
+		var dir = tr.querySelector('.w2p-album-dirname');
+		var box = dir.getBoundingClientRect();
+		var lineH = parseFloat(getComputedStyle(dir).lineHeight) || 20;
+		lines.push('  Directory: 可视宽=' + Math.round(box.width) + ' 需要=' + dir.scrollWidth
+			+ ' 行数≈' + Math.round(box.height / lineH)
+			+ (dir.scrollWidth > box.width + 1 ? '  (省略号截断, title 悬停看全名)' : '  (完整显示)'));
+
+		var bad = [];
+		['w2p-album-input-title', 'w2p-album-input-studio', 'w2p-album-input-number', 'w2p-album-input-date'].forEach(function (cls) {
+			var inp = tr.querySelector('.' + cls);
+			var td = inp.parentNode;
+			var iw = inp.getBoundingClientRect().width;
+			var tw = td.getBoundingClientRect().width;
+			if (iw > tw + 0.5) { bad.push(cls.replace('w2p-album-input-', '') + '(' + Math.round(iw) + '>' + Math.round(tw) + ')'); }
+		});
+		lines.push('  输入框溢出检查: ' + (bad.length ? '溢出! ' + bad.join(' ') : 'OK (4 个 input 均 ≤ 所在单元格)'));
+
+		var btn = tr.querySelector('.w2p-album-discard-btn');
+		var tdAction = tr.querySelector('.w2p-album-cell-action');
+		var tdStatus = tr.querySelector('.w2p-album-cell-status');
+		lines.push('  Status/Discard: Status 高=' + Math.round(tdStatus.getBoundingClientRect().height)
+			+ ' Discard 宽=' + Math.round(btn.getBoundingClientRect().width)
+			+ ' ≤ action 列 ' + Math.round(tdAction.getBoundingClientRect().width)
+			+ '  ' + (btn.getBoundingClientRect().width <= tdAction.getBoundingClientRect().width + 0.5 ? 'OK' : '溢出!'));
+
+		return lines.join('\n');
+	}
+
+	var out = [];
+	Array.prototype.forEach.call(document.querySelectorAll('.w2p-viewport'), function (vp) {
+		out.push(measure(vp));
+	});
+	document.getElementById('w2p-measure').textContent = out.join('\n\n');
+}());
+</script>
+</body>
+</html>

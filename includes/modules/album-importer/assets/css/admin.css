@@ -1,0 +1,474 @@
+/**
+ * Album Importer — admin styles
+ *
+ * 全部选择器收敛在 #w2p-album-importer 之下，避免与其它模组 / 主题互相污染。
+ * 只复用 core.css 已提供的 .w2p-btn* 与 .w2p-badge 基础类；徽章配色与进度条自带命名空间。
+ *
+ * @package WP_Genius
+ * @subpackage Modules/AlbumImporter
+ */
+
+#w2p-album-importer .w2p-album-mount-card {
+	margin-bottom: 16px;
+}
+
+#w2p-album-importer .w2p-album-mount-path {
+	margin: 8px 0;
+	font-size: 12px;
+}
+
+#w2p-album-importer .w2p-album-mount-path code {
+	background: #f0f0f1;
+	padding: 3px 6px;
+	border-radius: 3px;
+}
+
+#w2p-album-importer .w2p-album-mount-error {
+	color: #b32d2e;
+	font-weight: 500;
+	margin: 8px 0;
+}
+
+#w2p-album-importer .w2p-album-mount-hint {
+	color: #646970;
+	font-size: 12px;
+	margin: 6px 0 0;
+}
+
+#w2p-album-importer .w2p-album-mount-samples {
+	margin: 8px 0 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	align-items: center;
+	font-size: 12px;
+	color: #646970;
+}
+
+#w2p-album-importer .w2p-album-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0 0 12px;
+	flex-wrap: wrap;
+}
+
+/* ---------- 目录选择器 ---------- */
+
+#w2p-album-importer .w2p-album-picker {
+	margin: 0 0 16px;
+	padding: 12px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+}
+
+#w2p-album-importer .w2p-album-picker-bar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+#w2p-album-importer .w2p-album-path-label {
+	font-weight: 500;
+	color: #1d2327;
+	white-space: nowrap;
+}
+
+#w2p-album-importer .w2p-album-path-input {
+	flex: 1 1 320px;
+	min-width: 200px;
+	font-family: Menlo, Consolas, monospace;
+	font-size: 12px;
+	padding: 5px 8px;
+	border: 1px solid #8c8f94;
+	border-radius: 4px;
+	background: #fff;
+	color: #1d2327;
+	box-sizing: border-box;
+}
+
+#w2p-album-importer .w2p-album-path-input:focus {
+	border-color: #2271b1;
+	box-shadow: 0 0 0 1px #2271b1;
+	outline: 2px solid transparent;
+}
+
+#w2p-album-importer .w2p-album-browser {
+	margin-top: 10px;
+	max-height: 220px;
+	overflow-y: auto;
+	border: 1px solid #f0f0f1;
+	border-radius: 4px;
+	padding: 4px;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+#w2p-album-importer .w2p-album-browser-loading {
+	opacity: 0.55;
+}
+
+#w2p-album-importer .w2p-album-browser-frozen {
+	opacity: 0.5;
+	pointer-events: none;
+}
+
+#w2p-album-importer .w2p-album-dir-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	text-align: left;
+	padding: 5px 8px;
+	border: 0;
+	border-radius: 4px;
+	background: transparent;
+	color: #1d2327;
+	cursor: pointer;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+#w2p-album-importer .w2p-album-dir-item:hover,
+#w2p-album-importer .w2p-album-dir-item:focus {
+	background: #f0f6fc;
+	color: #2271b1;
+}
+
+#w2p-album-importer .w2p-album-dir-icon {
+	color: #dba617;
+	flex: 0 0 auto;
+}
+
+#w2p-album-importer .w2p-album-dir-name {
+	word-break: break-all;
+}
+
+#w2p-album-importer .w2p-album-browser-empty,
+#w2p-album-importer .w2p-album-scope-hint {
+	margin: 8px 0 0;
+	font-size: 12px;
+	color: #646970;
+}
+
+#w2p-album-importer .w2p-album-scope-hint {
+	margin-top: 10px;
+	padding: 6px 10px;
+	background: #f6f7f7;
+	border-left: 3px solid #2271b1;
+	border-radius: 3px;
+	color: #1d2327;
+}
+
+#w2p-album-importer .w2p-album-check-all-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	font-size: 13px;
+	color: #1d2327;
+	white-space: nowrap;
+}
+
+#w2p-album-importer .w2p-album-toolbar-spacer {
+	flex: 1 1 auto;
+}
+
+#w2p-album-importer .w2p-album-summary {
+	color: #646970;
+	font-size: 12px;
+}
+
+#w2p-album-importer .w2p-album-progress {
+	margin: 0 0 14px;
+	padding: 10px 12px;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+}
+
+#w2p-album-importer .w2p-album-progress-info {
+	display: flex;
+	justify-content: space-between;
+	font-size: 12px;
+	color: #1d2327;
+	margin-bottom: 8px;
+}
+
+#w2p-album-importer .w2p-album-progress-bg {
+	height: 8px;
+	background: #dcdcde;
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+#w2p-album-importer .w2p-album-progress-fill {
+	height: 100%;
+	width: var(--w2p-album-progress, 0%);
+	background: #2271b1;
+	border-radius: 4px;
+	transition: width 0.2s ease;
+}
+
+#w2p-album-importer .w2p-album-table-wrap {
+	overflow-x: auto;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+	background: #fff;
+}
+
+#w2p-album-importer .w2p-album-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+	/* 刻意**不用** table-layout: fixed —— 实测（docs/album-table-cols.html，真实 Chrome）：
+	   fixed 下「未声明宽度」的列只能分到剩余空间，而 Serial/Release/Images/Status 这些
+	   固定列会吃掉 1000px+，把 Title/Studio/Model(s) 挤到 95px（容器 1040px 时只剩 29px，
+	   820px 时 0px + 横向溢出），比不改还糟。
+	   保持默认的 auto 布局（各列按内容自适应），Directory 靠单元格内 block 元素的
+	   max-width 夹住 —— block 的 max-width 可靠，table-cell 的在 auto 布局下不可靠。 */
+}
+
+#w2p-album-importer .w2p-album-table thead th {
+	text-align: left;
+	padding: 9px 10px;
+	background: #f6f7f7;
+	border-bottom: 1px solid #dcdcde;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+#w2p-album-importer .w2p-album-table tbody td {
+	padding: 7px 10px;
+	border-bottom: 1px solid #f0f0f1;
+	vertical-align: middle;
+}
+
+#w2p-album-importer .w2p-album-table tbody tr:last-child td {
+	border-bottom: 0;
+}
+
+#w2p-album-importer .w2p-album-col-check {
+	width: 36px;
+}
+
+/* Directory 是唯一固定宽度的一列；Title / Studio / Model(s) 不设宽度，
+   由 auto 布局按各自内容分走剩余空间（随容器宽度自适应）。 */
+#w2p-album-importer .w2p-album-col-dir {
+	width: 280px;
+}
+
+#w2p-album-importer .w2p-album-col-narrow {
+	width: 80px;
+}
+
+#w2p-album-importer .w2p-album-col-date {
+	width: 104px;
+}
+
+#w2p-album-importer .w2p-album-col-count {
+	width: 66px;
+}
+
+#w2p-album-importer .w2p-album-col-status {
+	width: 120px;
+}
+
+#w2p-album-importer .w2p-album-col-action {
+	width: 96px;
+}
+
+#w2p-album-importer .w2p-album-discard-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 3px 8px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #fff;
+	color: #b32d2e;
+	font-size: 12px;
+	line-height: 1.6;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+#w2p-album-importer .w2p-album-discard-btn:hover,
+#w2p-album-importer .w2p-album-discard-btn:focus {
+	border-color: #b32d2e;
+	background: #fdf0ef;
+}
+
+#w2p-album-importer .w2p-album-discard-btn:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+
+/* 单行 + 省略号：目录名普遍很长，折行会把行高撑乱；完整名走 title 悬停提示（JS 补）。
+   固定宽度靠这里的 max-width —— display:block 的块级元素在 auto 表格布局下
+   max-width 会被如实计入该列的最小/最大内容宽，从而把整列钉在 280px。 */
+#w2p-album-importer .w2p-album-dirname {
+	display: block;
+	max-width: 280px;
+	color: #1d2327;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+#w2p-album-importer .w2p-album-cell-studio,
+#w2p-album-importer .w2p-album-cell-models,
+#w2p-album-importer .w2p-album-cell-status {
+	display: table-cell;
+}
+
+#w2p-album-importer .w2p-album-cell-models,
+#w2p-album-importer .w2p-album-cell-status {
+	white-space: normal;
+}
+
+#w2p-album-importer .w2p-album-cell-models .w2p-badge,
+#w2p-album-importer .w2p-album-cell-studio .w2p-badge,
+#w2p-album-importer .w2p-album-cell-status .w2p-badge {
+	margin: 1px 3px 1px 0;
+	display: inline-block;
+}
+
+/* 徽章一律不折行。core.css 的 .w2p-badge 基础类没有 nowrap，而中文可在任意字之间断行 ——
+   Model(s) 列被压窄时「陆萱萱 ×」会竖成一列（min-content 塌到 1 个字）。
+   nowrap 把 min-content 抬到整串文本宽，整列自然就有了下限，不会再被压垮。
+   刻意收敛在模组选择器下、不改 core.css：那是全插件共享的类，动了会波及其它模组。 */
+#w2p-album-importer .w2p-badge {
+	white-space: nowrap;
+}
+
+#w2p-album-importer .w2p-album-cell-count {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+#w2p-album-importer .w2p-album-input {
+	width: 100%;
+	min-width: 90px;
+	font-size: 12px;
+	padding: 3px 6px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #fff;
+	color: #1d2327;
+	box-sizing: border-box;
+}
+
+#w2p-album-importer .w2p-album-input:focus {
+	border-color: #2271b1;
+	box-shadow: 0 0 0 1px #2271b1;
+	outline: 2px solid transparent;
+}
+
+#w2p-album-importer .w2p-album-row-importing {
+	background: #fef8e7;
+}
+
+#w2p-album-importer .w2p-album-row-done {
+	background: #f0f9f2;
+}
+
+#w2p-album-importer .w2p-album-row-failed {
+	background: #fdf0ef;
+}
+
+#w2p-album-importer .w2p-album-empty {
+	margin: 12px 0 0;
+	color: #646970;
+	font-size: 13px;
+}
+
+#w2p-album-importer .w2p-album-tag-ok {
+	background: #edfaef;
+	color: #0a4b1a;
+	border: 1px solid #b8e6c2;
+}
+
+#w2p-album-importer .w2p-album-tag-warn {
+	background: #fef8e7;
+	color: #674400;
+	border: 1px solid #f5d76e;
+}
+
+#w2p-album-importer .w2p-album-tag-err {
+	background: #fdf0ef;
+	color: #8a1f1d;
+	border: 1px solid #f0b3b1;
+}
+
+#w2p-album-importer .w2p-album-tag-muted {
+	background: #f0f0f1;
+	color: #50575e;
+	border: 1px solid #dcdcde;
+}
+
+/* ---------- 可删除的模特标签 ---------- */
+
+#w2p-album-importer .w2p-album-tag {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	margin: 1px 3px 1px 0;
+	padding-right: 2px;
+}
+
+/* 只作用于「模特标签」本身：状态徽章也复用了 tag-muted/ok 配色，不能被波及成可点击手型。 */
+#w2p-album-importer .w2p-album-tag.w2p-album-tag-muted {
+	cursor: pointer;
+	border-style: dashed;
+}
+
+#w2p-album-importer .w2p-album-tag.w2p-album-tag-muted:hover {
+	border-style: solid;
+	background: #f6f7f7;
+}
+
+#w2p-album-importer .w2p-album-tag-x {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 14px;
+	height: 14px;
+	padding: 0;
+	margin: 0;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	color: inherit;
+	font-size: 12px;
+	line-height: 1;
+	cursor: pointer;
+	opacity: 0.55;
+}
+
+#w2p-album-importer .w2p-album-tag-x:hover,
+#w2p-album-importer .w2p-album-tag-x:focus {
+	opacity: 1;
+	background: #d63638;
+	color: #fff;
+}
+
+#w2p-album-importer .w2p-album-input-studio {
+	min-width: 130px;
+	max-width: 200px;
+	font-family: inherit;
+}
+
+/* 标题很长（"[XIUREN秀人网] 2023.01.05 NO.6093 陆萱萱"），90px 的基线只够露出开头。
+   单独给足最小宽度，序列号 / 日期那两列短，继续用 .w2p-album-input 的 90px 基线。 */
+#w2p-album-importer .w2p-album-input-title {
+	min-width: 180px;
+}
+
+/* 词条库里还没有这个名字：导入时会新建，用琥珀色边框提示一下 */
+#w2p-album-importer .w2p-album-input-newterm {
+	border-color: #dba617;
+	background: #fef8e7;
+}
