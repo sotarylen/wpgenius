@@ -1,6 +1,9 @@
 # Dependencies
 /vendor/
+# Commit the root lock so CI installs exact versions and its cache key resolves;
+# nested third-party library locks stay local.
 composer.lock
+!/composer.lock
 # Composer binary: use the system / CI-provided composer (setup-php), never vendor the 3.6MB phar.
 composer.phar
 
